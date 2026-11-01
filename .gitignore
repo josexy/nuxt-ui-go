@@ -1,0 +1,6 @@
+/.work/
+/.task/
+/go.work
+/go.work.sum
+*.exe
+.DS_Store
