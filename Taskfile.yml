@@ -1,0 +1,74 @@
+version: "3"
+
+env:
+  CGO_ENABLED: "0"
+
+tasks:
+  default:
+    desc: Lists available development tasks
+    silent: true
+    cmds:
+      - task --list
+
+  verify:
+    desc: Checks formatting, tests, lifecycle, generated sources and cross builds
+    summary: Runs the repository verification script for Windows or Linux, including all examples.
+    platforms: [windows, linux]
+    cmds:
+      - cmd: pwsh -NoLogo -NoProfile -File ./scripts/verify.ps1
+        platforms: [windows]
+      - cmd: bash scripts/verify.sh
+        platforms: [linux]
+
+  test:native:
+    desc: Runs native Gallery interaction tests in a desktop session
+    summary: Opens native test windows and writes screenshots and logs to .work/native/.
+    platforms: [windows, linux]
+    cmds:
+      - cmd: pwsh -NoLogo -NoProfile -File ./scripts/test-native.ps1
+        platforms: [windows]
+      - cmd: bash scripts/test-native.sh
+        platforms: [linux]
+
+  test:native:smoke:
+    desc: Checks the first frame of a hidden native window
+    summary: Requires a desktop session and checks rendering without running the interaction suite.
+    platforms: [windows, linux]
+    cmds:
+      - cmd: pwsh -NoLogo -NoProfile -File ./scripts/test-native.ps1 -HiddenSmoke
+        platforms: [windows]
+      - cmd: bash scripts/test-native.sh --hidden-smoke
+        platforms: [linux]
+
+  fmt:go:
+    desc: Formats Go code and organizes imports with goimports
+    summary: Recursively formats Go source files, adding missing imports and removing unused imports.
+    aliases: [fmt]
+    cmds:
+      - goimports -w .
+
+  lint:go:
+    desc: Checks Go code with golangci-lint
+    summary: Validates the golangci-lint v2 configuration and checks all packages, including tests.
+    cmds:
+      - golangci-lint config verify
+      - golangci-lint run ./...
+
+  lint:go:fix:
+    desc: Applies available Go lint and formatting fixes
+    summary: Validates the configuration, then writes supported linter fixes and goimports changes to source files.
+    cmds:
+      - golangci-lint config verify
+      - golangci-lint run --fix ./...
+
+  modernize:
+    desc: Previews Go modernization changes
+    summary: Prints a diff without editing files; exits nonzero when changes are suggested.
+    cmds:
+      - go fix -diff ./...
+
+  modernize:fix:
+    desc: Applies Go modernization fixes
+    summary: Updates source files using the modernizers in the installed Go toolchain.
+    cmds:
+      - go fix ./...
