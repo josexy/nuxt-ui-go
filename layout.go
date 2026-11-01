@@ -1,0 +1,242 @@
+package nui
+
+import "github.com/egoist/mygo/ui"
+
+type ContainerOptions struct {
+	MaxWidth, Padding Optional[float32]
+	Decoration
+}
+
+func Container(c *ui.Context, t Theme, opts ContainerOptions, children func()) ui.Element {
+	width := t.ContainerWidth
+	if opts.MaxWidth.Set {
+		width = opts.MaxWidth.Value
+	}
+	padding := t.spacing(24)
+	if opts.Padding.Set {
+		padding = opts.Padding.Value
+	}
+	e := ui.Column(c).FillWidth().MaxWidth(width).AlignSelf(ui.Center).MinWidth(0)
+	style := mergeStyle(PartStyle{PaddingX: Set(padding), Gap: Set(t.spacing(16))}, t.components[ComponentContainer].UI[Root])
+	style.PaddingX = mergeValue(style.PaddingX, opts.Padding)
+	decorated(Root, e, Styles{Root: mergeStyle(style, opts.UI[Root])}, opts.Style)
+	if children != nil {
+		e.Children(children)
+	}
+	return e
+}
+func Main(c *ui.Context, t Theme, children func()) ui.Element {
+	e := ui.Column(c).Grow(1).MinWidth(0).MinHeight(0)
+	finish(t, ComponentMain, Root, e, PartStyle{Foreground: Set(t.Text), Font: Set(t.Font), FontSize: Set(t.text(14)), LineHeight: Set(float32(20.0 / 14))}, Decoration{})
+	if children != nil {
+		e.Children(children)
+	}
+	return e
+}
+
+type CardOptions struct {
+	Variant            Variant
+	Title, Description string
+	Header, Footer     func()
+	Decoration
+}
+
+func surface(t Theme, variant Variant) PartStyle {
+	s := PartStyle{Radius: Set(t.radius(8)), Background: Set(t.Background), Foreground: Set(t.Text), BorderWidth: Set(float32(0)), BorderColor: Set(t.Border)}
+	switch variant {
+	case Solid:
+		s.Background = Set(t.InvertedBackground)
+		s.Foreground = Set(t.Inverted)
+	case Soft:
+		s.Background = Set(t.Elevated.Alpha(.5))
+	case Subtle:
+		s.Background = Set(t.Elevated.Alpha(.5))
+		s.BorderWidth = Set(float32(1))
+	default:
+		s.BorderWidth = Set(float32(1))
+	}
+	return s
+}
+func Card(c *ui.Context, t Theme, opts CardOptions, body func()) ui.Element {
+	config, styles := resolve(t, ComponentCard, ComponentTheme{Variant: Outline}, ComponentTheme{Variant: opts.Variant, UI: opts.UI}, func(v ComponentTheme) Styles {
+		fg, muted := t.Highlighted, t.Muted
+		if v.Variant == Solid {
+			fg = t.Inverted
+			muted = t.Dimmed
+		}
+		pad := PartStyle{PaddingX: Set(t.spacing(24)), PaddingY: Set(t.spacing(16)), Gap: Set(t.spacing(8))}
+		return Styles{Root: surface(t, v.Variant), Header: pad, Body: mergeStyle(pad, PartStyle{PaddingY: Set(t.spacing(24))}), Footer: pad, Label: {Foreground: Set(fg), Weight: Set(600)}, Description: {Foreground: Set(muted), FontSize: Set(t.text(14))}}
+	})
+	e := ui.Column(c).MinWidth(0).Clip()
+	styles[Root].apply(e)
+	e.Children(func() {
+		if opts.Header != nil || opts.Title != "" || opts.Description != "" {
+			h := ui.Column(c)
+			styles[Header].apply(h)
+			h.Children(func() {
+				if opts.Header != nil {
+					opts.Header()
+				} else {
+					if opts.Title != "" {
+						decorated(Label, ui.Text(c, opts.Title), styles, opts.Style)
+					}
+					if opts.Description != "" {
+						decorated(Description, ui.Text(c, opts.Description), styles, opts.Style)
+					}
+				}
+			})
+			if opts.Style != nil {
+				opts.Style(Header, h)
+			}
+			if config.Variant != Solid {
+				ui.Box(c).Height(1).Background(t.Border)
+			}
+		}
+		b := ui.Column(c).MinWidth(0)
+		styles[Body].apply(b)
+		if body != nil {
+			b.Children(body)
+		}
+		if opts.Style != nil {
+			opts.Style(Body, b)
+		}
+		if opts.Footer != nil {
+			if config.Variant != Solid {
+				ui.Box(c).Height(1).Background(t.Border)
+			}
+			f := ui.Row(c).AlignItems(ui.Center).Wrap()
+			styles[Footer].apply(f)
+			f.Children(opts.Footer)
+			if opts.Style != nil {
+				opts.Style(Footer, f)
+			}
+		}
+	})
+	if opts.Style != nil {
+		opts.Style(Root, e)
+	}
+	return e
+}
+
+type SeparatorPosition uint8
+
+const (
+	SeparatorCenter SeparatorPosition = iota
+	SeparatorStart
+	SeparatorEnd
+)
+
+type SeparatorType uint8
+
+const (
+	SeparatorSolid SeparatorType = iota
+	SeparatorDashed
+	SeparatorDotted
+)
+
+type SeparatorOptions struct {
+	Label       string
+	Icon        *ui.SVG
+	Avatar      *AvatarOptions
+	Content     func()
+	Color       Color
+	Size        Size // XS..XL correspond to 1..5 pixels.
+	Type        SeparatorType
+	Position    SeparatorPosition
+	Vertical    bool // Kept for existing callers; either this or Orientation can select vertical.
+	Orientation Orientation
+	Decoration
+}
+
+func Separator(c *ui.Context, t Theme, opts SeparatorOptions) ui.Element {
+	if opts.Position > SeparatorEnd || opts.Type > SeparatorDotted {
+		panic("nui: invalid separator position or type")
+	}
+	vert := vertical(opts.Orientation) || opts.Vertical
+	config := selected(defaults(t, ComponentSeparator, ComponentTheme{Color: Neutral, Size: XS}), ComponentTheme{Color: opts.Color, Size: opts.Size})
+	color := t.color(config.Color)
+	if config.Color == Neutral {
+		color = t.Border
+	}
+	thickness := float32(sizeIndex(config.Size) + 1)
+	e := ui.Row(c).AlignItems(ui.Center).Gap(t.spacing(12))
+	if vert {
+		e.Column().Height(48).Gap(t.spacing(8))
+	} else {
+		e.FillWidth()
+	}
+	e.Children(func() {
+		line := func() {
+			l := ui.Box(c).Grow(1)
+			if vert {
+				l.Width(thickness)
+			} else {
+				l.Height(thickness)
+			}
+			style := mergeStyle(PartStyle{Background: Set(color)}, t.components[ComponentSeparator].UI[Indicator])
+			style = mergeStyle(style, opts.UI[Indicator])
+			if opts.Type != SeparatorSolid {
+				stroke := style.Background.Value
+				style.Background = Set(ui.Transparent)
+				l.Draw(func(p *ui.Painter, r ui.Rect) {
+					length, width := r.W, r.H
+					if vert {
+						length, width = r.H, r.W
+					}
+					if width <= 0 {
+						return
+					}
+					dash, radius := width*3, float32(0)
+					if opts.Type == SeparatorDotted {
+						dash, radius = width, width/2
+					}
+					for at := float32(0); at < length; at += dash + width*2 {
+						segment := ui.Rect{X: r.X + at, Y: r.Y, W: min(dash, length-at), H: width}
+						if vert {
+							segment = ui.Rect{X: r.X, Y: r.Y + at, W: width, H: min(dash, length-at)}
+						}
+						p.Fill(segment, stroke, radius)
+					}
+				})
+			}
+			style.apply(l)
+			if opts.Style != nil {
+				opts.Style(Indicator, l)
+			}
+		}
+		hasContent := opts.Content != nil || opts.Label != "" || opts.Icon != nil || opts.Avatar != nil
+		content := func() {
+			container := ui.Row(c).Shrink(0)
+			finish(t, ComponentSeparator, Body, container, PartStyle{Foreground: Set(t.Text), Weight: Set(500)}, opts.Decoration)
+			container.Children(func() {
+				switch {
+				case opts.Content != nil:
+					opts.Content()
+				case opts.Label != "":
+					finish(t, ComponentSeparator, Label, ui.Text(c, opts.Label).SingleLine(), PartStyle{FontSize: Set(t.text(14))}, opts.Decoration)
+				case opts.Icon != nil:
+					icon := Icon(c, t, opts.Icon, IconOptions{Size: Set(t.text(20)), Color: Set(t.Text)})
+					finish(t, ComponentSeparator, Leading, icon, PartStyle{}, opts.Decoration)
+				case opts.Avatar != nil:
+					avatar := *opts.Avatar
+					if avatar.Size == SizeDefault {
+						avatar.Size = XS
+					}
+					Avatar(c, t, avatar)
+				}
+			})
+		}
+		if hasContent && opts.Position == SeparatorStart {
+			content()
+		}
+		line()
+		if hasContent && opts.Position != SeparatorStart {
+			content()
+			if opts.Position == SeparatorCenter {
+				line()
+			}
+		}
+	})
+	finish(t, ComponentSeparator, Root, e, PartStyle{}, opts.Decoration)
+	return e
+}

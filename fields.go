@@ -1,0 +1,265 @@
+package nui
+
+import (
+	"strings"
+
+	"github.com/egoist/mygo/ui"
+)
+
+type fieldDefaults struct {
+	Size               Size
+	Disabled, Required bool
+	Error              string
+	Focus              *ui.Handle
+	State              *FormFieldState
+	Label, Description string
+	Activate           *func()
+}
+type groupPart struct{ active, first, last, vertical bool }
+
+type FormFieldOptions struct {
+	// Name and Value register a serialized value with the enclosing Form.
+	Name, Value                           string
+	Label, Description, Help, Hint, Error string
+	Required, Disabled                    bool
+	Size                                  Size
+	Orientation                           Optional[Orientation] // Defaults to Vertical.
+	Decoration
+}
+
+// FormField keeps the label and supporting text separate from the editor column.
+// Only model data and the first control's handle cross build passes.
+func FormField(c *ui.Context, t Theme, opts FormFieldOptions, content func(Theme)) ui.Element {
+	var registered *FormFieldState
+	if t.form != nil && opts.Name != "" {
+		registered = t.form.Register(opts.Name, opts.Value)
+		if registered.controlErrorKey != "" {
+			// Translate before the editor compares its error: a locale change
+			// updates visible validation without acting like a new form edit.
+			translated := message(c, registered.controlErrorKey)
+			if registered.Error == registered.controlError {
+				registered.Error = translated
+			}
+			registered.controlError = translated
+		}
+		if opts.Error == "" && registered.Touched {
+			opts.Error = registered.Error
+		}
+	}
+	config := defaults(t, ComponentFormField, ComponentTheme{Size: MD})
+	if opts.Size != SizeDefault {
+		config.Size = opts.Size
+	}
+	inner := t
+	inner.field = fieldDefaults{Size: config.Size, Disabled: opts.Disabled || t.field.Disabled, Required: opts.Required, Error: opts.Error}
+	e := ui.Column(c).MinWidth(0).Disabled(inner.field.Disabled).Role(ui.RoleGroup)
+	control := ui.Local(e, "control", func() ui.Handle { return ui.Handle{} })
+	inner.field.Focus = control
+	if registered != nil {
+		inner.field.Focus = &registered.Handle
+		inner.field.State = registered
+		registered.Disabled = inner.field.Disabled
+	}
+	label := opts.Label
+	if opts.Required {
+		label += " *"
+	}
+	e.Label(label)
+	inner.field.Label = label
+	inner.field.Description = strings.TrimSpace(strings.Join([]string{opts.Description, opts.Hint, opts.Help}, "\n"))
+	fontSize := t.text([5]float32{12, 12, 14, 14, 16}[sizeIndex(config.Size)])
+	copyStyle := PartStyle{Foreground: Set(t.Muted), FontSize: Set(fontSize)}
+	activate := func() { inner.field.Focus.Focus(c) }
+	inner.field.Activate = &activate
+	if !vertical(valueOr(opts.Orientation, Vertical)) {
+		e.Row().Justify(ui.SpaceBetween).AlignItems(ui.Start)
+	}
+	e.Children(func() {
+		ui.Column(c.Key("label")).MinWidth(0).Gap(t.spacing(4)).Children(func() {
+			ui.Row(c.Key("heading")).Justify(ui.SpaceBetween).AlignItems(ui.Center).Gap(t.spacing(4)).Children(func() {
+				if label != "" {
+					labelPart := ui.Text(c, label).FontWeight(500).OnClick(func() {
+						if !inner.field.Disabled {
+							activate()
+						}
+					})
+					finish(t, ComponentFormField, Label, labelPart, PartStyle{Foreground: Set(t.Text), FontSize: Set(fontSize)}, opts.Decoration)
+				}
+				if opts.Hint != "" {
+					finish(t, ComponentFormField, Hint, ui.Text(c, opts.Hint), copyStyle, opts.Decoration)
+				}
+			})
+			if opts.Description != "" {
+				finish(t, ComponentFormField, Description, ui.Text(c, opts.Description), copyStyle, opts.Decoration)
+			}
+		})
+		ui.Column(c.Key("content")).MinWidth(0).Gap(t.spacing(6)).Children(func() {
+			if content != nil {
+				content(inner)
+			}
+			if opts.Error != "" {
+				finish(t, ComponentFormField, ErrorSlot, ui.Text(c, opts.Error), PartStyle{Foreground: Set(t.Error), FontSize: Set(fontSize)}, opts.Decoration)
+			} else if opts.Help != "" {
+				finish(t, ComponentFormField, Help, ui.Text(c, opts.Help), copyStyle, opts.Decoration)
+			}
+		})
+	})
+	if registered != nil {
+		focused := registered.Handle.Focused(c)
+		if registered.focused && !focused {
+			registered.Touched = true
+		}
+		registered.focused = focused
+	}
+	c.Resolve(*inner.field.Focus).Error(opts.Error)
+	finish(t, ComponentFormField, Root, e, PartStyle{Gap: Set(t.spacing(6))}, opts.Decoration)
+	return e
+}
+
+type FieldGroupItem struct {
+	ID    string
+	Build func(*ui.Context, Theme) ui.Element
+}
+type FieldGroupOptions struct {
+	Size               Size
+	Disabled, Vertical bool
+	Decoration
+}
+type fieldGroupKey string
+
+func FieldGroup(c *ui.Context, t Theme, opts FieldGroupOptions, items []FieldGroupItem) ui.Element {
+	seen := map[string]bool{}
+	for _, item := range items {
+		if item.ID == "" || seen[item.ID] || item.Build == nil {
+			panic("nui: FieldGroup needs unique non-empty IDs and builders")
+		}
+		seen[item.ID] = true
+	}
+	config := defaults(t, ComponentFieldGroup, ComponentTheme{Size: MD})
+	if opts.Size != SizeDefault {
+		config.Size = opts.Size
+	}
+	e := ui.Row(c).MinWidth(0).Disabled(opts.Disabled || t.field.Disabled)
+	if opts.Vertical {
+		e.Column().AlignItems(ui.Stretch)
+	}
+	finish(t, ComponentFieldGroup, Root, e, PartStyle{Gap: Set(float32(-1))}, opts.Decoration)
+	e.Children(func() {
+		for i, item := range items {
+			inner := t
+			inner.field.Size = config.Size
+			inner.field.Disabled = inner.field.Disabled || opts.Disabled
+			inner.group = groupPart{true, i == 0, i == len(items)-1, opts.Vertical}
+			item.Build(c.Key(fieldGroupKey(item.ID)), inner)
+		}
+	})
+	return e
+}
+func applyGroup(e ui.Element, t Theme, radius float32) {
+	g := t.group
+	if !g.active {
+		return
+	}
+	if g.vertical {
+		a, b := float32(0), float32(0)
+		if g.first {
+			a = radius
+		}
+		if g.last {
+			b = radius
+		}
+		e.Radius(a, a, b, b)
+	} else {
+		a, b := float32(0), float32(0)
+		if g.first {
+			a = radius
+		}
+		if g.last {
+			b = radius
+		}
+		e.Radius(a, b, b, a)
+	}
+}
+func inheritedSize(t Theme, size Size) Size {
+	if size == SizeDefault {
+		return t.field.Size
+	}
+	return size
+}
+
+type ScrollDirection uint8
+
+const (
+	ScrollVertical ScrollDirection = iota
+	ScrollHorizontal
+	ScrollBoth
+)
+
+type ScrollAreaOptions struct {
+	Direction      ScrollDirection
+	ScrollbarColor Optional[ui.Color]
+	ScrollbarWidth Optional[float32]
+	State          *ui.ScrollState
+	Decoration
+}
+
+// ScrollArea uses a themed wrapper because MyGo reads scrollbar colors from its theme.
+// Size the returned wrapper; it is intentionally not a transparent provider.
+func ScrollArea(c *ui.Context, t Theme, opts ScrollAreaOptions, content func()) ui.Element {
+	native := t.Native()
+	native.Scrollbar = t.BorderAccented
+	if opts.ScrollbarColor.Set {
+		native.Scrollbar = opts.ScrollbarColor.Value
+	}
+	if opts.ScrollbarWidth.Set {
+		native.ScrollbarWidth = opts.ScrollbarWidth.Value
+	}
+	root := ui.Themed(c, native).MinWidth(0).MinHeight(0)
+	finish(t, ComponentScrollArea, Root, root, PartStyle{}, opts.Decoration)
+	root.Children(func() {
+		var scroll ui.Element
+		switch opts.Direction {
+		case ScrollHorizontal:
+			scroll = ui.ScrollHorizontal(c)
+		case ScrollBoth:
+			scroll = ui.ScrollBoth(c)
+		default:
+			scroll = ui.Scroll(c)
+		}
+		scroll.Fill().MinWidth(0).MinHeight(0)
+		if opts.State != nil {
+			scroll.TrackScroll(opts.State)
+		}
+		finish(t, ComponentScrollArea, Body, scroll, PartStyle{}, opts.Decoration)
+		if content != nil {
+			scroll.Children(content)
+		}
+	})
+	return root
+}
+
+// Bind only the first focusable field control (groups can have several).
+func bindField(c *ui.Context, e ui.Element, t Theme) {
+	if t.field.Focus != nil && !c.Resolve(*t.field.Focus).Valid() {
+		e.Bind(t.field.Focus)
+		e.Label(t.field.Label).Description(t.field.Description)
+	}
+}
+
+func fieldActivation(c *ui.Context, e ui.Element, t Theme, activate func() bool) {
+	if t.field.Activate != nil && t.field.Focus != nil && c.Resolve(*t.field.Focus) == e {
+		pending := ui.Local(e, "field-change", func() bool { return false })
+		if *pending {
+			*pending = false
+			if activate() {
+				e.SetChanged()
+			}
+		}
+		*t.field.Activate = func() {
+			t.field.Focus.Focus(c)
+			// Recompute derived values (such as a group item's checked bool)
+			// before activating, then let the current build observe the change.
+			*pending = true
+		}
+	}
+}
