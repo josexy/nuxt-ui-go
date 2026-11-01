@@ -11,17 +11,18 @@ import (
 	nui "github.com/josexy/nuxt-ui-go"
 )
 
-// The independent target is the desktop CSS fixture: 20px line + 2*6px padding.
+// The Latin-text target is the desktop CSS fixture: 20px line + 2*6px padding.
+// Native fallback fonts may need a taller line for mixed-script text.
 func TestReferenceGeometry(t *testing.T) {
 	for _, scale := range []float32{1, 1.25, 1.5, 2} {
 		for _, dark := range []bool{false, true} {
 			t.Run(fmt.Sprintf("dark-%v-scale-%g", dark, scale), func(t *testing.T) {
-				value := "Workspace 你好"
+				value := "Workspace"
+				theme := nui.Light()
+				if dark {
+					theme = nui.Dark()
+				}
 				tt := ui.NewTester(func(c *ui.Context) {
-					theme := nui.Light()
-					if dark {
-						theme = nui.Dark()
-					}
 					nui.Window(c, theme)
 					ui.Column(c).Padding(32).Gap(24).AlignItems(ui.Start).Children(func() {
 						ui.Text(c, "Nuxt UI 4.12.0 · resolved desktop styles").LineHeight(20.0 / 14)
@@ -50,6 +51,19 @@ func TestReferenceGeometry(t *testing.T) {
 				}
 				if !tt.Focused("Focus") {
 					t.Fatal("focus sample")
+				}
+				// Measure fallback glyphs independently of the input's recipe. Keep
+				// the six-DIP padding while allowing the native line to grow.
+				value = "Workspace 你好"
+				tt.Frame()
+				_, lineHeight := ui.ShapeText(value, ui.Font{Family: theme.Font, Size: 14, LineHeight: 20.0 / 14}, 0).Size()
+				input := bounds(t, tt, "Reference input root")
+				t.Logf("Mixed-script input: %.3f DIP, native line: %.3f DIP", input.H, lineHeight)
+				if want := lineHeight + 2*6; input.H != want {
+					t.Fatalf("mixed-script input height %.3f, want %.3f including native font metrics", input.H, want)
+				}
+				if !tt.Focused("Focus") {
+					t.Fatal("font fallback rebuild lost focus")
 				}
 				if dir := os.Getenv("NUI_ARTIFACTS"); dir != "" {
 					if err := os.MkdirAll(dir, 0755); err != nil {

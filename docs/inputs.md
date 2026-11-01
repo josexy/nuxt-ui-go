@@ -8,7 +8,7 @@
 
 所有入口接收当前 `*ui.Context` 与 `nui.Theme`。持久模型保存输入值、选择 ID、`SearchState`、`ui.ScrollState`、弹层 bool 或 `ui.Handle`；不保存 Element、Context、Parts。每个动态控件先用 `c.Key(stableID)` 定义身份；同一个业务模型可以被多个视图显示，但每个窗口的独立编辑状态由调用方创建。
 
-输入控件支持 `XS/SM/MD/LG/XL`，默认 MD；单行外框高度在默认字号、密度下是 24/28/32/36/40 DIP。Input、Textarea、Select、InputMenu 支持字段变体 `Outline`（默认）、`Soft`、`Subtle`、`Ghost`、`None`，不接受 Button 的 Solid/LinkVariant。错误态仍有错误边框；None 取消普通背景与焦点外环。Color 主要决定焦点/选中强调色。浅深色、字号、圆角、密度来自 Theme。
+输入控件支持 `XS/SM/MD/LG/XL`，默认 MD；单行外框在默认字号、密度下的基准高度是 24/28/32/36/40 DIP。原生字体或回退字体需要更高的行高时，控件会随之增高以容纳文字；例如 Linux 使用 Noto CJK 回退字体时，含中文的 MD Input 可高于 32 DIP。Input、Textarea、Select、InputMenu 支持字段变体 `Outline`（默认）、`Soft`、`Subtle`、`Ghost`、`None`，不接受 Button 的 Solid/LinkVariant。错误态仍有错误边框；None 取消普通背景与焦点外环。Color 主要决定焦点/选中强调色。浅深色、字号、圆角、密度来自 Theme。
 
 文本输入框在鼠标点击和 Tab 聚焦后均显示强调边框/外圈，失焦后恢复；只读字段仍可聚焦、选择与复制，错误边框优先保持错误色。Select 等非文本触发器保留键盘焦点提示；Select 的 Outline/Subtle 变体具有悬停背景，禁用时不响应悬停。已展开的 Select 弹层会继承触发器的有效禁用状态（包括祖先禁用），不能在禁用后继续修改选中值；当前 MyGo Base 可保留禁用弹层直到关闭。
 

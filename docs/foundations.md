@@ -135,7 +135,7 @@ Empty 支持 Loading/LoadingIcon，None 对应无表面样式。User 的 XS 尺�
 
 ### 操作组件
 
-Button 变体：`Solid/Outline/Soft/Subtle/Ghost/LinkVariant`；尺寸 `XS/SM/MD/LG/XL` 默认高度为 **24/28/32/36/40 DIP**。`Neutral` bool 保留兼容，推荐 `Color: nui.Neutral`。Color 取 `Primary/Secondary/Success/Info/Warning/Error/Neutral`。
+Button 变体：`Solid/Outline/Soft/Subtle/Ghost/LinkVariant`；尺寸 `XS/SM/MD/LG/XL` 默认基准高度为 **24/28/32/36/40 DIP**，原生字体或回退字体的行高较大时会随文字增高。`Neutral` bool 保留兼容，推荐 `Color: nui.Neutral`。Color 取 `Primary/Secondary/Success/Info/Warning/Error/Neutral`。
 
 Loading 阻止点击与键盘激活。默认在 leading 位置替换或新增旋转图标，标签始终显示；`LoadingTrailing` 可放到 trailing（显式 Leading 优先），`LoadingIcon` 自定义图标。没有原图标时按钮宽度会增加。`Active/ActiveColor/ActiveVariant` 控制活动态；仅图标按钮自动使用 square，Square 的 padding 允许实例 UI 最后覆盖。图标按钮要求 `AccessibleLabel`，否则 panic。动画 spinner 的颜色由 Root / Leading 前景字段解析，需覆盖颜色时使用 UI；低层 `Style(...leading).TextColor` 不能重新着色已解析的自绘 spinner。
 
