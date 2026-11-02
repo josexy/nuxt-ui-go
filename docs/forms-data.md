@@ -47,7 +47,7 @@ nui.Form(c, theme, &form, nui.FormOptions{
 | `InputNumber` / `NumberState` | `*Optional[float64]`；Text 与有效数值分离；空值、负号中间态、有限数值、Min/Max、Step（默认 1）、上下箭头及按钮；horizontal/vertical 布局；Enter 恢复/格式化最后有效值 | 小数点为 `.`，无货币/区域格式；NaN/Inf 模型及非法边界拒绝；不把 float64 当精确货币类型 |
 | `InputTags` / `TagsState` | `*[]string`；Query 独立；Enter、空输入 Backspace 删除末项、标签上的 × 删除、trim/去重、MaxTags；标签为 Nuxt 的 Elevated 底加 Accented 内描边小芯片，字号随字段尺寸，只有 × 能删除；设置 `AddOnPaste: nui.Set(true)` 启用批量粘贴 | 批量粘贴默认关闭；开启后按 Separators 分隔（默认与 Nuxt 一样只有 `,`；需要分号或换行时设 `Separators: ",;\n"`），保留已有草稿；按大小写区分去重；不提供拖拽排序与远程实体匹配；受已知输入法取消问题影响 |
 | `PinInput` / `PinState` | `*string`；默认 5 格文本，Numeric=true 为 ASCII 数字；1–32 格、按 rune 截断、退格、遮罩、ReadOnly、Placeholder、Separator/SeparatorEvery、OnChange/OnComplete | 一个真实编辑器配多个可视槽位，Tab 只进入一次；长度满且值变化才触发完成；不做短信读取或自动提交 |
-| `InputRating` | `*int`，默认 Max=5、0 表示未评分；整数星级、只读/禁用、方向键/Home/End | 不支持半星、任意精度或拖拽评分 |
+| `InputRating` | `*int`，默认 Max=5、0 表示未评分；整数星级、只读/禁用、方向键/Home/End/空格 | 不支持半星、任意精度或拖拽评分 |
 
 InputNumber、InputDate、InputTime 和 Numeric=true 的 PinInput 使用固定格式并关闭 IME；PinInput 文本模式及其他普通文本入口启用 IME。PIN 可视槽位跟随编辑器光标显示焦点，编辑、粘贴和撤销由单个原生编辑器承担。放在有 Error 的 FormField 中时，各槽位改用错误色边框。
 
@@ -70,7 +70,7 @@ nui.InputNumber(c, theme, &value, &numberState, nui.InputNumberOptions{
 
 六位数字验证码使用 `PinInputOptions{Numeric: true, Length: 6}`；文本模式启用 IME，受已知输入法取消问题影响。InputRating 五档星标尺寸为 12/16/20/24/28 DIP，间距 2 DIP。
 
-PIN 点击已有字符会选中该位，随后输入替换该位、Backspace 删除该位；点击空槽或槽间空隙将光标放在已有内容末尾。槽位不会增加 Tab 停靠点，文字缩放与遮罩不影响点击映射。InputRating 横向左右箭头随 LTR/RTL 镜像，纵向 ↓ 下一项、↑ 上一项；忽略另一轴，循环导航，Home/End 到 1/Max。
+PIN 点击已有字符会选中该位，随后输入替换该位、Backspace 删除该位；点击空槽或槽间空隙将光标放在已有内容末尾。槽位不会增加 Tab 停靠点，文字缩放与遮罩不影响点击映射。InputRating 横向左右箭头随 LTR/RTL 镜像，纵向 ↓ 下一项、↑ 上一项，忽略另一轴。与 Nuxt 一样，方向键到首尾停止、不循环，← 不会把评分降到 0（只有清零能回到 0）；空评分按 → 得 1。空格作用于当前星：空评分得 1，Clearable 时清零当前评分；回车不做处理。Home/End（及 PageUp/PageDown）直接设为 1/Max：Nuxt 只把焦点移到首尾的星，需再按空格确认，这里保持滑块的按键习惯。键盘焦点环画在当前星上（空评分时为第 1 颗），组件按星星大小排布，不随容器拉伸。可交互时，悬停的星放大到 1.1 倍；Hoverable 的预览划过星间空隙时保持，指针离开组件或点击清零后消失。放在出错的 FormField 中时，实心星和焦点环使用 Error 色。只读评分仍可通过 Tab 聚焦，按键无效（Nuxt 会跳过只读评分）。
 
 `CheckboxTri` 使用 `CheckState`：Unchecked / Checked / Indeterminate。混合态通过原生 Mixed 语义暴露；首次激活混合态变为 Checked，之后在 Checked/Unchecked 间切换。父子级联由业务计算；普通二态选择使用绑定 `*bool` 的 `Checkbox`。
 

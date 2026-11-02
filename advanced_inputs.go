@@ -335,6 +335,11 @@ type InputRatingOptions struct {
 	Decoration
 }
 
+// ratingMemory is the star under the pointer and the hover preview, as Nuxt's
+// hoveredRating: set when the pointer enters a star, kept over the gaps
+// between stars, and reset when it leaves the rating or a click clears it.
+type ratingMemory struct{ over, hover int }
+
 func InputRating(c *ui.Context, t Theme, value *int, o InputRatingOptions) ui.Element {
 	vert := vertical(o.Orientation)
 	if value == nil {
@@ -348,11 +353,14 @@ func InputRating(c *ui.Context, t Theme, value *int, o InputRatingOptions) ui.El
 		panic("nui: rating maximum must be 1..20")
 	}
 	*value = max(0, min(n, *value))
-	root := ui.Row(c).Focusable().Role(ui.RoleSlider).Label(o.Label).Range(0, float64(n), float64(*value)).Step(1).Value(fmt.Sprint(*value)).Disabled(o.Disabled || t.field.Disabled).ReadOnly(o.ReadOnly)
+	// Nuxt rings the current star, not the whole control.
+	root := ui.Row(c).Focusable().FocusRing(false).Role(ui.RoleSlider).Label(o.Label).Range(0, float64(n), float64(*value)).Step(1).Value(fmt.Sprint(*value)).Disabled(o.Disabled || t.field.Disabled).ReadOnly(o.ReadOnly)
 	if vert {
 		root.Column()
 	}
 	bindField(c, root, t)
+	memory := ui.Local(root, "rating", func() ratingMemory { return ratingMemory{} })
+	interactive := !root.IsDisabled() && !o.ReadOnly
 	set := func(v int) {
 		if o.ReadOnly {
 			return
@@ -365,36 +373,87 @@ func InputRating(c *ui.Context, t Theme, value *int, o InputRatingOptions) ui.El
 			}
 		}
 	}
+	clear := func() {
+		// A cleared rating previews nothing until the pointer enters a star again.
+		memory.hover = 0
+		set(0)
+	}
 	increase, decrease := ui.KeyRight, ui.KeyLeft
 	if vert {
 		increase, decrease = ui.KeyDown, ui.KeyUp
 	} else if c.Direction() == ui.RightToLeft {
 		increase, decrease = decrease, increase
 	}
-	root.OnShortcut(0, increase, func() { set(*value%n + 1) }).OnShortcut(0, decrease, func() { set((max(1, *value)+n-2)%n + 1) }).OnShortcut(0, ui.KeyHome, func() { set(1) }).OnShortcut(0, ui.KeyEnd, func() { set(n) }).OnShortcut(0, ui.KeyPageUp, func() { set(1) }).OnShortcut(0, ui.KeyPageDown, func() { set(n) })
-	finish(t, ComponentInputRating, Root, root, PartStyle{Gap: Set(t.spacing(2))}, o.Decoration)
+	// As Nuxt's, the arrow keys stop at the first and the last star: only
+	// clearing returns to 0. Home and End set the value, as a slider's do.
+	root.OnShortcut(0, increase, func() {
+		if *value < n {
+			set(*value + 1)
+		}
+	}).OnShortcut(0, decrease, func() {
+		if *value > 1 {
+			set(*value - 1)
+		}
+	}).OnShortcut(0, ui.KeyHome, func() { set(1) }).OnShortcut(0, ui.KeyEnd, func() { set(n) }).OnShortcut(0, ui.KeyPageUp, func() { set(1) }).OnShortcut(0, ui.KeyPageDown, func() { set(n) })
+	// Space acts on the current star, as on Nuxt's focused one: it rates an
+	// empty rating 1, and clears the current star when Clearable.
+	root.OnShortcut(0, ui.KeySpace, func() {
+		switch {
+		case *value == 0:
+			set(1)
+		case o.Clearable:
+			clear()
+		}
+	})
 	config := selected(defaults(t, ComponentInputRating, ComponentTheme{Color: Primary, Size: MD}), ComponentTheme{Color: o.Color, Size: inheritedSize(t, o.Size)})
+	tone := config.Color
+	if t.field.Error != "" {
+		tone = Error // An invalid field colors the stars and the ring, as Nuxt's.
+	}
 	size := t.text([5]float32{12, 16, 20, 24, 28}[sizeIndex(config.Size)])
+	// Nuxt's inline-flex rating takes its stars' size instead of stretching
+	// across its container, so hover and focus end where the stars do.
+	base := PartStyle{Gap: Set(t.spacing(2))}
+	style := mergeStyle(mergeStyle(base, t.components[ComponentInputRating].UI[Root]), o.UI[Root])
+	length := float32(n)*size + float32(n-1)*style.Gap.Value
+	w, h := length, size
+	if vert {
+		w, h = size, length
+	}
+	root.Size(w+2*style.PaddingX.Value, h+2*style.PaddingY.Value)
+	finish(t, ComponentInputRating, Root, root, base, o.Decoration)
+	focus := root.FocusVisible()
 	preview := *value
+	now := 0 // The star under the pointer in this build.
 	root.Children(func() {
 		for i := 1; i <= n; i++ {
-			e := ui.Box(c.Key(i)).Size(size, size).Center().OnClick(func() {
+			e := ui.Box(c.Key(i)).Size(size, size).Center().Radius(t.radius(4)).OnClick(func() {
+				memory.over = i // The pointer is on this star, which must not count as entering it.
 				if o.Clearable && *value == i {
-					set(0)
+					clear()
 				} else {
 					set(i)
 				}
 			})
-			if valueOr(o.Hoverable, false) && e.Hovered() && !e.IsDisabled() && !o.ReadOnly {
-				preview = i
+			if e.Hovered() {
+				now = i
 			}
+			// Interactive stars grow on hover, as Nuxt's hover:scale-110.
+			scale := float32(1)
+			if interactive && e.Hovered() {
+				scale = 1.1
+			}
+			if t.motion(c) && t.Motion.Transition > 0 {
+				scale = e.AnimateWith("nui-rating-scale", scale, t.Motion.Transition, ui.EaseOut)
+			}
+			e.TransformOrigin(.5, .5).Scale(scale, scale)
 			e.Draw(func(p *ui.Painter, r ui.Rect) {
 				color, icon := t.Muted, o.EmptyIcon
 				if icon == nil {
 					icon = o.Icon
 				}
 				if i <= preview {
-					color = t.color(config.Color)
+					color = t.color(tone)
 					icon = o.Icon
 				}
 				if icon == nil {
@@ -403,8 +462,26 @@ func InputRating(c *ui.Context, t Theme, value *int, o InputRatingOptions) ui.El
 				p.Icon(icon, r, color)
 			})
 			finish(t, ComponentInputRating, Item, e, PartStyle{}, o.Decoration)
+			// The ring marks the current star: the rated one, or the first of an empty rating.
+			if focus && i == max(1, *value) {
+				e.Shadow(0, 0, 0, 3, t.focusColor(tone))
+			}
 		}
 	})
+	if interactive && valueOr(o.Hoverable, false) {
+		switch {
+		case now > 0 && now != memory.over:
+			memory.hover = now // The pointer entered a star.
+		case !root.Hovered():
+			memory.hover = 0 // It left the rating; between stars, the preview stays.
+		}
+		memory.over = now
+		if memory.hover > 0 {
+			preview = memory.hover
+		}
+	} else {
+		memory.over, memory.hover = now, 0
+	}
 	return root
 }
 

@@ -84,6 +84,8 @@
 - Calendar 星期表头改用 Primary 色；Tree 的文件夹图标随展开状态在 folder / folder-open 之间切换；Table 表头使用 Highlighted 色、单元格使用 Muted 色。
 - Progress 数值变化有 200ms 过渡，减少动态效果时立即到位。
 
+- InputRating 对齐 Nuxt：方向键到首尾停止，不再循环（行为变化：此前 5 再按 → 回到 1，空评分按 ← 跳到 5）；空格选中当前星，Clearable 时清零，键盘也能清除评分；键盘焦点环画在当前星上，组件不再横向拉伸到容器宽度；可交互时悬停的星放大到 1.1 倍；Hoverable 的预览在点击清零后立即消失，划过星间空隙不再闪回；在出错的 FormField 中星星使用 Error 色。
+
 ### 依赖
 
 - MyGo 从 `v0.7.4-0.20261031084912-402a3cf8eb35` 升级到 `v0.7.4` 正式版。新增的 API 只有增量，没有删除导出 API；滚动条统一绘制后仍读取 `Theme.Scrollbar` 和 `ScrollbarWidth`。

@@ -59,7 +59,7 @@ nui.RangeSlider(c, t, &state.Low, &state.High, nui.RangeSliderOptions{
 | Carousel | Arrows 为 Optional[bool]；Dots 开启圆点导航，圆点有本地化的页码名称 |
 | Toast | Close / Progress、Actions []ToastActionOptions；每项含 Label、OnAction、ButtonOptions 和 Close（默认 true）；Close=false 的操作执行后保留通知；持续时间条复用原生暂停时钟，常驻通知不显示倒计时 |
 | PinInput | Color / Variant / Size；Separator []int 在指定的第几个槽位后插入间隔，例如 `{3}` 表示三位后分组；保留单个编辑器和 Tab 停靠点 |
-| InputRating | Clearable 点击当前评分归零；Hoverable 默认 false，开启后悬停只预览；EmptyIcon 未指定时继承 Icon。横向 ←→（RTL 镜像）、纵向 ↑↓ 按项导航并循环；忽略另一轴，Home/PageUp 到 1，End/PageDown 到 Max |
+| InputRating | Clearable 时点击当前评分或在当前星上按空格归零；Hoverable 默认 false，开启后悬停只预览，清零后预览随即消失；EmptyIcon 未指定时继承 Icon。横向 ←→（RTL 镜像）、纵向 ↑↓ 按项导航，到首尾停止、不循环；忽略另一轴，Home/PageUp 到 1，End/PageDown 到 Max |
 | Slider / RangeSlider | PageUp/PageDown 与 Shift+方向键走 10 个 Step，方向按横纵、反向、RTL 映射；OnChange 报告实时变化，OnCommit 在有变化的按键/拖拽结束时通知。范围拇指可越过彼此，自动排序并跟随焦点；不满足 Step × MinStepsBetweenThumbs 的移动被拒绝。Tooltip 挂在每个拇指上显示各自值 |
 | Listbox | Loop、HighlightOnHover、SelectionBehavior；SelectionToggle（默认）在单选/多选下都能取消当前项，SelectionReplace 激活时替换；SelectMenu 单选固定使用替换语义。SelectionReplace 多选模式支持 Shift+方向键/Home/End 扩展连续范围并跳过禁用项；Ctrl/Cmd+A 选择可用项 |
 | FileUpload | Variant=UploadArea / UploadButton；Layout=UploadList / UploadGrid；Dropzone、Interactive、FileDelete、Preview 及 Color / Size。与 Nuxt 一样，可交互的 UploadArea 整个区域就是可聚焦的按钮（名称取 Label，Enter/Space 或点击打开选择器），不再显示 Choose 按钮；Choose 按钮只在 UploadButton 或 `Interactive: nui.Set(false)` 时显示。关闭 Preview 只隐藏预览，不删除数据 |

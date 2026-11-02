@@ -172,14 +172,15 @@ func TestInputRatingKeyboardDirection(t *testing.T) {
 			for _, step := range []struct {
 				key  ui.Key
 				want int
-			}{{increase, 4}, {decrease, 3}, {ui.KeyUp, 3}, {ui.KeyDown, 3}, {ui.KeyHome, 1}, {ui.KeyEnd, 5}, {increase, 1}} {
+			}{{increase, 4}, {decrease, 3}, {ui.KeyUp, 3}, {ui.KeyDown, 3}, {ui.KeyHome, 1}, {decrease, 1}, {ui.KeyEnd, 5}, {increase, 5}} {
 				tt.Key(0, step.key)
 				if value != step.want {
 					t.Fatalf("key %v: value=%d, want=%d", step.key, value, step.want)
 				}
 			}
-			if changes != 5 {
-				t.Fatalf("change callbacks=%d, want 5", changes)
+			// The arrows stop at the first and last star without wrapping, as Nuxt's.
+			if changes != 4 {
+				t.Fatalf("change callbacks=%d, want 4", changes)
 			}
 			readOnly = true
 			tt.Frame()
@@ -187,7 +188,7 @@ func TestInputRatingKeyboardDirection(t *testing.T) {
 			readOnly, disabled = false, true
 			tt.Frame()
 			tt.Key(0, decrease)
-			if value != 1 || changes != 5 {
+			if value != 5 || changes != 4 {
 				t.Fatal("read-only or disabled rating changed")
 			}
 		})
