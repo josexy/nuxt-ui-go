@@ -107,7 +107,7 @@ func ToastViewport(c *ui.Context, t Theme, o ToastViewportOptions) ui.Element {
 				width = o.Width.Value
 			}
 			root := parts.Root.Column().MinWidth(0).Width(min(width, max(0, w-32))).Label(ts.Title)
-			finish(inner, ComponentToast, Panel, root, panelStyle(inner), d)
+			finish(inner, ComponentToast, Panel, root, dialogStyle(inner), d)
 			if !inner.Motion.Reduce {
 				root.Transition(ui.ElementTransition{Duration: 150 * time.Millisecond, Enter: &ui.Motion{Y: 8}, Exit: &ui.Motion{Y: 8}})
 			}

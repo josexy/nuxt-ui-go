@@ -45,12 +45,87 @@ type popoverMemory struct {
 	intent, suppressed bool
 }
 
-func panelStyle(t Theme) PartStyle {
-	return PartStyle{Font: Set(t.Font), FontSize: Set(t.text(14)), LineHeight: Set(float32(20.0 / 14)), Foreground: Set(t.Text), Background: Set(t.Background), Radius: Set(t.radius(8)), BorderWidth: Set(float32(1)), BorderColor: Set(t.Border), PaddingX: Set(t.spacing(12)), PaddingY: Set(t.spacing(12)), Gap: Set(t.spacing(8)), Shadow: Set(t.Shadow)}
+// popupStyle is Nuxt's popup surface for Popover, Select, InputMenu, SelectMenu
+// and menus: rounded-md, a default ring and shadow-lg. Popover keeps a 16 DIP
+// padding, as Nuxt's documented examples add; lists and menus tighten it.
+func popupStyle(t Theme) PartStyle {
+	return PartStyle{Font: Set(t.Font), FontSize: Set(t.text(14)), LineHeight: Set(float32(20.0 / 14)), Foreground: Set(t.Text), Background: Set(t.Background), Radius: Set(t.radius(6)), BorderWidth: Set(float32(1)), BorderColor: Set(t.Border), PaddingX: Set(t.spacing(16)), PaddingY: Set(t.spacing(16)), Gap: Set(t.spacing(8)), Shadow: Set(t.Shadow)}
 }
-func stylePanel(panel, anchor ui.Element, t Theme, opts PopoverOptions, recipe PartStyle) {
+
+// dialogStyle is Nuxt's dialog surface for Modal, Slideover and Toast: rounded-lg.
+func dialogStyle(t Theme) PartStyle {
+	s := popupStyle(t)
+	s.Radius = Set(t.radius(8))
+	s.PaddingX, s.PaddingY = Set(t.spacing(12)), Set(t.spacing(12))
+	return s
+}
+
+// Popups take Nuxt's 100 ms scale-in; dialogs take 200 ms.
+const (
+	popupMotion  = 100 * time.Millisecond
+	dialogMotion = 200 * time.Millisecond
+)
+
+type popInKey struct{}
+
+// popIn plays Nuxt's scale-in on a panel as it appears: from 95% and
+// transparent to its place, scaled around (originX, originY), the side
+// toward its anchor. Each newly shown panel plays it once. Closing is
+// immediate: a popup's overlay leaves with it, so no exit can be drawn.
+// It returns the progress, 1 once settled or while motion is reduced.
+func popIn(c *ui.Context, t Theme, panel ui.Element, d time.Duration, originX, originY float32) float32 {
+	if !panel.Valid() || !t.motion(c) {
+		return 1
+	}
+	started := ui.Local(panel, "nui-pop-in", func() bool { return false })
+	if !*started {
+		*started = true
+		panel.Jump(popInKey{}, 0)
+	}
+	v := panel.AnimateWith(popInKey{}, 1, d, ui.EaseOut)
+	scale := .95 + .05*v
+	panel.Opacity(v).TransformOrigin(originX, originY).Scale(scale, scale)
+	return v
+}
+
+// popupOrigin is the panel's point nearest its anchor for a placement.
+// Start and End of top and bottom placements follow the reading direction.
+func popupOrigin(p Placement, rtl bool) (x, y float32) {
+	switch p {
+	case BottomEnd:
+		x, y = 1, 0
+	case BottomCenter:
+		x, y = .5, 0
+	case TopStart:
+		x, y = 0, 1
+	case TopEnd:
+		x, y = 1, 1
+	case TopCenter:
+		x, y = .5, 1
+	case RightStart:
+		return 0, 0
+	case RightCenter:
+		return 0, .5
+	case RightEnd:
+		return 0, 1
+	case LeftStart:
+		return 1, 0
+	case LeftCenter:
+		return 1, .5
+	case LeftEnd:
+		return 1, 1
+	}
+	if rtl {
+		x = 1 - x
+	}
+	return x, y
+}
+
+func stylePanel(c *ui.Context, panel, anchor ui.Element, t Theme, opts PopoverOptions, recipe PartStyle) {
 	positionPanel(panel, anchor, t, opts)
 	finish(t, ComponentPopover, Panel, panel, recipe, opts.Decoration)
+	x, y := popupOrigin(opts.Placement, c.Direction() == ui.RightToLeft)
+	popIn(c, t, panel, popupMotion, x, y)
 }
 func positionPanel(panel, anchor ui.Element, t Theme, opts PopoverOptions) {
 	at, self := ui.AnchorBottomStart, ui.AnchorTopStart
@@ -164,7 +239,7 @@ func Popover(c *ui.Context, t Theme, anchor ui.Element, open *bool, opts Popover
 	inner := t
 	inner.group = groupPart{}
 	panel := ui.PopoverBase(c.Key(identity), anchor, open, func(panel ui.Element) {
-		stylePanel(panel, anchor, t, opts, panelStyle(t))
+		stylePanel(c, panel, anchor, t, opts, popupStyle(t))
 		ui.Themed(c, t.Native()).MinWidth(0).Children(func() {
 			if content != nil {
 				content(inner)
@@ -198,7 +273,7 @@ func selectionPanel(c *ui.Context, panel, anchor ui.Element, t Theme, opts Popov
 	}
 	opts.MatchAnchor = true
 	// Tight viewport spacing is a recipe default, before theme/instance overrides.
-	recipe := panelStyle(t)
+	recipe := popupStyle(t)
 	recipe.PaddingX, recipe.PaddingY, recipe.Gap = Set(t.spacing(4)), Set(t.spacing(4)), Set(float32(0))
-	stylePanel(panel, anchor, t, opts, recipe)
+	stylePanel(c, panel, anchor, t, opts, recipe)
 }

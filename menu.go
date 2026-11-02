@@ -252,13 +252,15 @@ func menuPanel(c *ui.Context, t Theme, panel, anchor ui.Element, s *MenuState, i
 			popup.Placement = LeftStart
 		}
 	}
-	recipe := panelStyle(t)
+	recipe := popupStyle(t)
 	recipe.PaddingX = Set(t.spacing(4))
 	recipe.PaddingY = Set(t.spacing(4))
 	recipe.Gap = Set(float32(0))
 	positionPanel(panel, anchor, t, popup)
 	panel.Role(ui.RoleMenu).Label(o.Label).FocusGroup(ui.Vertical).MinWidth(0)
 	finish(t, id, Panel, panel, recipe, o.Decoration)
+	originX, originY := popupOrigin(popup.Placement, c.Direction() == ui.RightToLeft)
+	popIn(c, t, panel, popupMotion, originX, originY)
 	enabled := 0
 	for _, it := range items {
 		if menuEnabled(it) {

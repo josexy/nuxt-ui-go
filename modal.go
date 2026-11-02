@@ -41,7 +41,16 @@ func ModalWithOptions(c *ui.Context, t Theme, open *bool, o ModalOptions, conten
 		if !valueOr(o.Overlay, true) {
 			backdrop = ui.Transparent
 		}
-		finish(t, ComponentModal, Backdrop, back, PartStyle{Background: Set(backdrop)}, o.Decoration)
+		// Nuxt fades the overlay in while the panel scales in, both over 200 ms.
+		shown := popIn(c, t, panel, dialogMotion, .5, .5)
+		style := mergeStyle(mergeStyle(PartStyle{Background: Set(backdrop)}, t.components[ComponentModal].UI[Backdrop]), o.UI[Backdrop])
+		if bg := style.Background.Value; style.Background.Set && shown < 1 {
+			style.Background = Set(bg.Alpha(float32(bg.A) / 255 * shown))
+		}
+		style.apply(back)
+		if o.Style != nil {
+			o.Style(Backdrop, back)
+		}
 		w, h := c.Size()
 		width := float32(512)
 		if o.Width.Set {
@@ -52,7 +61,7 @@ func ModalWithOptions(c *ui.Context, t Theme, open *bool, o ModalOptions, conten
 			maximum = min(maximum, o.MaxHeight.Value)
 		}
 		panel.Column().Width(min(width, max(0, w-32))).MaxHeight(max(0, maximum)).MinWidth(0)
-		recipe := panelStyle(t)
+		recipe := dialogStyle(t)
 		if o.Fullscreen {
 			maximum = h
 			panel.Width(w).Height(h).MaxHeight(h)
@@ -230,7 +239,7 @@ func Slideover(c *ui.Context, t Theme, open *bool, o SlideoverOptions, content f
 				x = extent
 			}
 			panel.Translate(x*(1-presence.value), y*(1-presence.value))
-			recipe := panelStyle(t)
+			recipe := dialogStyle(t)
 			recipe.Radius = Set(float32(0))
 			recipe.PaddingX = Set(float32(0))
 			recipe.PaddingY = Set(float32(0))
@@ -250,6 +259,9 @@ func Slideover(c *ui.Context, t Theme, open *bool, o SlideoverOptions, content f
 	})
 	return result
 }
+
+// tooltipShadow is Nuxt's shadow-sm, lighter than the popup panels' shadow-lg.
+var tooltipShadow = ShadowTokens{Color: ui.RGBA(0, 0, 0, .10), Blur: 3, OffsetY: 1}
 
 type TooltipOptions struct {
 	Disabled  bool
@@ -288,11 +300,16 @@ func Tooltip(c *ui.Context, t Theme, anchor ui.Element, text string, o TooltipOp
 			width = o.MaxWidth.Value
 		}
 		tip.MaxWidth(width).IgnoreInput(true)
-		positionPanel(tip, anchor, t, PopoverOptions{Placement: valueOr(o.Placement, BottomCenter), Offset: o.Offset})
-		finish(t, ComponentTooltip, Panel, tip, PartStyle{Background: Set(t.Background), Foreground: Set(t.Highlighted), BorderWidth: Set(float32(1)), BorderColor: Set(t.Border), Radius: Set(t.radius(6)), PaddingX: Set(t.spacing(8)), PaddingY: Set(t.spacing(4)), FontSize: Set(t.text(12)), Shadow: Set(t.Shadow)}, o.Decoration)
+		placement := valueOr(o.Placement, BottomCenter)
+		positionPanel(tip, anchor, t, PopoverOptions{Placement: placement, Offset: o.Offset})
+		// Nuxt's tooltip: one truncated 24 DIP line, rounded-sm, px-2.5, shadow-sm.
+		tip.Height(t.text(24)).Justify(ui.Center)
+		finish(t, ComponentTooltip, Panel, tip, PartStyle{Background: Set(t.Background), Foreground: Set(t.Highlighted), BorderWidth: Set(float32(1)), BorderColor: Set(t.Border), Radius: Set(t.radius(4)), PaddingX: Set(t.spacing(10)), PaddingY: Set(t.spacing(4)), FontSize: Set(t.text(12)), LineHeight: Set(float32(16.0 / 12)), Shadow: Set(tooltipShadow)}, o.Decoration)
+		originX, originY := popupOrigin(placement, c.Direction() == ui.RightToLeft)
+		popIn(c, t, tip, popupMotion, originX, originY)
 		tip.Children(func() {
-			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
-				finish(t, ComponentTooltip, Label, ui.Text(c, text), PartStyle{}, o.Decoration)
+			ui.Row(c).MinWidth(0).Gap(t.spacing(4)).AlignItems(ui.Center).Children(func() {
+				finish(t, ComponentTooltip, Label, ui.Text(c, text).SingleLine().MinWidth(0), PartStyle{}, o.Decoration)
 				for _, key := range o.Kbds {
 					Kbd(c, t, []string{key}, KbdOptions{Size: XS})
 				}

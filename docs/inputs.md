@@ -129,7 +129,9 @@ Popover 使用 PopoverBase；anchor 必须来自当前构建，open 指针持久
 
 PopoverOptions 为 Label、Placement、Width/MaxHeight/Offset（Optional[float32]）、MatchAnchor、Decoration。默认 BottomStart、间距 8 DIP、最大高度 320 DIP、内容决定宽度；支持上/下/左/右各 start/center/end 共 12 个方位。上下 start/end 跟随文字方向，左右为物理方向；间距使用 AttachTo 的单侧 margin，避免对称 margin 相互抵消；窗口边缘由 AttachTo 避让。返回面板，关闭时为空元素，不能跨构建保存。样式 slot 为 Panel。
 
-面板配方为主题背景、边框、圆角 8、padding 12、gap 8 与阴影。Select/InputMenu 共用该配方，采用默认最大高度 240、padding 4、gap 0，并至少匹配触发器宽度。选择列表自己的 Panel 覆盖最后应用；Popup.UI 中的显式 padding 也有效。通用 Popover 的大段内容需要调用方加入 ScrollArea；MaxHeight 不等同于自动滚动。
+面板配方与 Nuxt 的弹出层一致：主题背景、1 DIP 边框、圆角 6（`rounded-md`）、gap 8 与阴影。Nuxt 的 Popover 内容区没有内边距，文档示例都自己加 `p-4`；本库保留 16 DIP 的内置 padding，效果与示例相同，需要贴边内容时用 `UI[Panel]` 设为 0。Select/InputMenu/菜单共用该配方，采用默认最大高度 240、padding 4、gap 0，并至少匹配触发器宽度。
+
+弹出层打开时按 Nuxt 的 scale-in 在 100ms 内从 95% 大小和全透明过渡到原位，缩放原点在靠近锚点的一侧，因此贴着锚点的边不动。`Theme.Motion.Reduce` 或系统减少动态效果时直接显示。关闭立即完成：MyGo 的弹出层所在的叠加层随面板一起卸载，无法绘制退出动画；保留已关闭的面板又会推迟焦点恢复，因此没有 Nuxt 的 scale-out。选择列表自己的 Panel 覆盖最后应用；Popup.UI 中的显式 padding 也有效。通用 Popover 的大段内容需要调用方加入 ScrollArea；MaxHeight 不等同于自动滚动。
 
 ScrollAreaOptions 有 Direction（ScrollVertical 默认、ScrollHorizontal、ScrollBoth）、ScrollbarColor/ScrollbarWidth、State（*ui.ScrollState）、Decoration。内部公开 Scroll 负责滚轮、拖动和滚动边界；滚动条颜色默认 BorderAccented，宽度默认使用 MyGo（当前 6 DIP；设置 0 也采用其默认值，不代表隐藏）。Theme wrapper 创建实际布局元素，必须给**返回的 wrapper**设置 Height/Fill/Grow，内容的 padding/gap 放在 Body slot。Root/Body 是可覆盖部件，State 可选用于读取滚动位置。
 

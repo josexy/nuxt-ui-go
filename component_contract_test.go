@@ -78,6 +78,7 @@ func TestModalTooltipAndToastDefaults(t *testing.T) {
 		th := nui.App(c, nui.AppConfig{})
 		nui.ModalWithOptions(c, th, &open, nui.ModalOptions{Title: "Full", Fullscreen: full, Overlay: nui.Set(false)}, func(nui.Theme) { ui.Text(c, "Body") })
 	}, 600, 400)
+	tt.Advance(time.Second) // Measure after the 200 ms scale-in settles.
 	if r := bounds(t, tt, "Full"); r.X != 0 || r.Y != 0 || r.W != 600 || r.H != 400 {
 		t.Fatalf("fullscreen panel = %v", r)
 	}

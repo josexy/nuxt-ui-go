@@ -19,6 +19,13 @@
 - CommandPalette 在标签下显示条目描述；Listbox 行可随内容增高。
 - 右到左布局下，Breadcrumb 分隔符、Calendar 翻页按钮、Sidebar 收起按钮的图标随方向镜像；Sidebar 收起按钮改用面板图标，分隔边框放在结束侧。
 
+### 共享配方
+
+- 弹出层面板（Popover、Select、InputMenu、SelectMenu、DropdownMenu、ContextMenu）圆角由 8 改为 6；Modal、Slideover、Toast 保持 8。
+- Popover 默认内边距由 12 改为 16（D3：贴近 Nuxt 文档示例的 `p-4`）。
+- Tooltip 改为高 24 的单行，超长截断；圆角 4、水平内边距 10、小阴影。此前长文本会换行。
+- 弹出层和 Tooltip 打开时有 100ms scale-in，Modal 有 200ms 缩放淡入并淡入遮罩；减少动态效果时直接显示。关闭仍立即完成。
+
 ### 依赖
 
 - MyGo 从 `v0.7.4-0.20261031084912-402a3cf8eb35` 升级到 `v0.7.4` 正式版。新增的 API 只有增量，没有删除导出 API；滚动条统一绘制后仍读取 `Theme.Scrollbar` 和 `ScrollbarWidth`。

@@ -31,7 +31,7 @@ API 和默认行为可能随更新调整，后续变化会记录在 [更新日�
 | --- | --- |
 | 主题与尺寸 | 使用 DIP 和原生字体，通用 Size 为 XS/SM/MD/LG/XL；字体及回退字体的度量可能增加行高和控件高度。不提供 Tailwind/CSS 运行时。原生禁用透明度为 50%，部分尺寸、状态和动画与 Nuxt 不同 |
 | 输入与国际化 | 内置 en/zh-Hans；日期为公历 YYYY-MM-DD，数字使用小数点，时间按 Options 选择 12/24 小时。没有完整地区格式或多历法 |
-| 弹层与通知 | Tooltip 原生悬停延迟为 600ms；Toast 同时最多显示 3 条；Modal/Slideover 使用文档中的固定过渡与焦点策略 |
+| 弹层与通知 | Tooltip 原生悬停延迟为 600ms；Toast 同时最多显示 3 条；Modal/Slideover 使用文档中的固定过渡与焦点策略。Popover、Select、菜单、Tooltip 和 Modal 只有打开动画，关闭立即完成 |
 | Table / Tree | 使用原生数据控件与稳定 ID；不覆盖全部 TanStack 配置、冻结列、多层表头、行分组聚合或树拖拽级联选择 |
 | Chart | 支持 6 类图、分类/数值/时间轴、堆叠和图例；使用 Go 数据模型，不覆盖全部 Unovis 功能、双 Y 轴、对数轴或刷选缩放 |
 | Drawer / Carousel / Splitter | Drawer 仅底部手柄拖拽；Carousel Wrap 是有界翻页，不是无缝克隆循环；Splitter 为双面板，不提供多面板布局协议 |
