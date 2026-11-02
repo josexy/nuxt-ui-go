@@ -127,9 +127,10 @@ func Drawer(c *ui.Context, t Theme, s *DrawerState, o DrawerOptions, content fun
 		if originalHeader != nil {
 			originalHeader(c, t)
 		} else {
-			ui.Text(c, o.Title).Role(ui.RoleHeading).Level(2).FontSize(t.text(18)).FontWeight(600)
+			// The same Label and Description parts as a Modal title.
+			finish(t, ComponentDrawer, Label, ui.Text(c, o.Title).Role(ui.RoleHeading).Level(2), PartStyle{Foreground: Set(t.Highlighted), Weight: Set(600), FontSize: Set(t.text(16)), LineHeight: Set(float32(24.0 / 16))}, o.Decoration)
 			if o.Description != "" {
-				ui.Text(c, o.Description).TextColor(t.Muted)
+				finish(t, ComponentDrawer, Description, ui.Text(c, o.Description), PartStyle{Foreground: Set(t.Muted)}, o.Decoration)
 			}
 		}
 	}

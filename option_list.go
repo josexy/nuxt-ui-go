@@ -101,18 +101,19 @@ func (s *optionListState[T]) move(key ui.Key) {
 }
 
 func optionList[T comparable](c *ui.Context, t Theme, s *optionListState[T], owner ui.Element, count int, option func(int) Option[T], height float32, component Component, decoration Decoration, size Size, chosen func(T) bool, choose func(T)) {
-	m := buttonMetrics(t, size)
-	estimate := float32(count)*(m.Line+t.spacing(12)) + float32(s.descriptions)*(t.text(16)+t.spacing(2))
+	m := optionRecipe(t, size)
+	// Rows are a line and their padding; a description adds a line of the same size.
+	estimate := float32(count)*(m.Line+2*m.Pad) + float32(s.descriptions)*m.Line
 	list := ui.List(c.Key("options"), &s.list, count).ItemKey(func(i int) any { return s.keys[i] })
 	list.MinWidth(0).FillWidth().Height(min(height, estimate)).KeepFocus()
 	list.Rows(func(r ui.ListRow) {
 		o := option(r.Index)
 		item := ui.Row(r.Context).KeepFocus().Role(ui.RoleListItem).Label(o.Label).Description(o.Description).Disabled(o.Disabled).Selected(chosen(o.Value))
-		if s.active.Set && s.active.Value == o.Value && !o.Disabled {
-			item.Background(t.Elevated)
+		highlighted := s.active.Set && s.active.Value == o.Value && !o.Disabled
+		if highlighted {
 			owner.ActiveDescendant(item)
 		}
-		optionStyle(item, t, component, decoration)
+		optionStyle(item, t, component, decoration, size, highlighted)
 		item.HandleInput(func(ev ui.InputEvent) bool {
 			if ev.Kind == ui.InputPointerMove && !o.Disabled && (!s.active.Set || s.active.Value != o.Value) {
 				s.highlight(o.Value, false)
@@ -121,6 +122,6 @@ func optionList[T comparable](c *ui.Context, t Theme, s *optionListState[T], own
 			return false
 		})
 		item.OnClick(func() { choose(o.Value) })
-		item.Children(func() { optionContent(r.Context, t, o, chosen(o.Value), size) })
+		item.Children(func() { optionContent(r.Context, t, o, chosen(o.Value), highlighted, size) })
 	})
 }

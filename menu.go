@@ -307,15 +307,22 @@ func menuPanel(c *ui.Context, t Theme, panel, anchor ui.Element, s *MenuState, i
 				}
 			}
 			highlighted := row.Focused() || childOpen
-			bg := ui.Transparent
-			if highlighted {
-				bg = t.Elevated
-			}
-			fg := t.Text
+			// Menus share the option row recipe at MD; colored items tint
+			// their highlight and keep their color, as Nuxt's do.
+			m := optionRecipe(t, MD)
+			style := optionItemStyle(t, m, highlighted)
+			style.Font = Set(t.Font)
+			leading := optionLeadingColor(t, highlighted)
 			if it.Color != ColorDefault && it.Color != Neutral {
-				fg = t.color(it.Color)
+				color := t.color(it.Color)
+				style.Foreground = Set(color)
+				leading = color.Alpha(.75)
+				if highlighted {
+					style.Background = Set(color.Alpha(.10))
+					leading = color
+				}
 			}
-			finish(t, id, Item, row, PartStyle{Background: Set(bg), Foreground: Set(fg), Font: Set(t.Font), FontSize: Set(t.text(14)), PaddingX: Set(t.spacing(6)), PaddingY: Set(t.spacing(6)), Gap: Set(t.spacing(8)), Radius: Set(t.radius(4))}, o.Decoration)
+			finish(t, id, Item, row, style, o.Decoration)
 			row.TextCaret(ui.Rect{H: 1}).InputMethod(false)
 			handle := s.handles[it.ID]
 			rtl := c.Direction() == ui.RightToLeft
@@ -423,24 +430,24 @@ func menuPanel(c *ui.Context, t Theme, panel, anchor ui.Element, s *MenuState, i
 						box.Children(func() { ui.Icon(c, lucide.Check()).Size(16, 16).TextColor(t.Primary) })
 					}
 				} else if it.Icon != nil {
-					finish(t, id, Leading, ui.Icon(c, it.Icon).Size(18, 18).Shrink(0), PartStyle{Foreground: Set(t.Muted)}, o.Decoration)
+					finish(t, id, Leading, ui.Icon(c, it.Icon).Size(m.Icon, m.Icon).Shrink(0), PartStyle{Foreground: Set(leading)}, o.Decoration)
 				}
 				if it.Build != nil {
 					it.Build(c, t)
 				} else {
-					ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
+					ui.Column(c).Grow(1).MinWidth(0).Children(func() {
 						finish(t, id, Label, ui.Text(c, it.Label).SingleLine(), PartStyle{}, o.Decoration)
 						if it.Description != "" {
-							finish(t, id, Description, ui.Text(c, it.Description).SingleLine(), PartStyle{Foreground: Set(t.Muted), FontSize: Set(t.text(12))}, o.Decoration)
+							finish(t, id, Description, ui.Text(c, it.Description).SingleLine(), PartStyle{Foreground: Set(t.Muted)}, o.Decoration)
 						}
 					})
 				}
 				if len(it.Children) > 0 {
-					angle := float32(-90)
+					chevron := lucide.ChevronRight()
 					if rtl {
-						angle = 90
+						chevron = lucide.ChevronLeft()
 					}
-					finish(t, id, Trailing, ui.Icon(c, lucide.ChevronDown()).Size(16, 16).Rotate(angle), PartStyle{Foreground: Set(t.Muted)}, o.Decoration)
+					finish(t, id, Trailing, ui.Icon(c, chevron).Size(m.Icon, m.Icon).Shrink(0), PartStyle{}, o.Decoration)
 				} else if it.Shortcut != "" {
 					finish(t, id, Trailing, ui.Text(c, it.Shortcut).SingleLine(), PartStyle{Foreground: Set(t.Dimmed), FontSize: Set(t.text(12))}, o.Decoration)
 				}
@@ -457,7 +464,8 @@ func menuPanel(c *ui.Context, t Theme, panel, anchor ui.Element, s *MenuState, i
 			}
 		}
 		if len(items) == 0 {
-			ui.Text(c, message(c, "noActions")).Padding(8).TextColor(t.Muted).Role(ui.RoleStatus)
+			empty := ui.Text(c, message(c, "noActions")).TextAlign(ui.Center).Role(ui.RoleStatus)
+			optionEmptyStyle(t, MD).apply(empty)
 		}
 	})
 }

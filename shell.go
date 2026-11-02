@@ -141,7 +141,7 @@ func Sidebar(c *ui.Context, t Theme, collapsed *bool, o SidebarOptions, content 
 	root.Children(func() {
 		ui.Row(c).MinWidth(0).AlignItems(ui.Center).Children(func() {
 			if !*collapsed {
-				ui.Text(c, o.Title).Grow(1).MinWidth(0).SingleLine().FontWeight(600)
+				ui.Text(c, o.Title).Grow(1).MinWidth(0).SingleLine().FontSize(t.text(16)).LineHeight(24.0 / 16).FontWeight(600).TextColor(t.Highlighted)
 			}
 			label := o.ToggleLabel
 			if label == "" {

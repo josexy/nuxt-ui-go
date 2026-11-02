@@ -84,7 +84,11 @@ func SelectMultiple[T comparable](c *ui.Context, t Theme, value *[]T, options []
 	byOption := map[string]Option[T]{}
 	for _, it := range options {
 		key := id(it.Value)
-		items = append(items, ListboxItem{ID: key, Label: it.Label, Description: it.Description, Disabled: it.Disabled, Icon: it.Icon})
+		icon := it.Icon
+		if it.Build != nil {
+			icon = nil // As in Select, a custom builder replaces the whole content.
+		}
+		items = append(items, ListboxItem{ID: key, Label: it.Label, Description: it.Description, Disabled: it.Disabled, Icon: icon})
 		byID[key] = it.Value
 		byOption[key] = it
 	}
@@ -103,7 +107,12 @@ func SelectMultiple[T comparable](c *ui.Context, t Theme, value *[]T, options []
 	root.Children(func() {
 		SelectMenu(c, menuTheme, &selected, &s.menu, items, SelectMenuOptions{
 			Label: o.Label, Multiple: true, Disabled: o.Disabled, Decoration: decoration, Build: func(c *ui.Context, t Theme, item ListboxItem) {
-				optionContent(c, t, byOption[item.ID], false, inputDefaults(t, ComponentSelect, InputOptions{Size: o.Size}).Size)
+				// Listbox draws the icon and the check; only the content differs.
+				if custom := byOption[item.ID].Build; custom != nil {
+					custom(c, t)
+				} else {
+					optionTexts(c, t, item.Label, item.Description)
+				}
 			}, OnChange: func(ids []string) {
 				next := make([]T, 0, len(ids))
 				for _, key := range ids {

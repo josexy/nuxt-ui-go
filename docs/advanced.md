@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | CommandPalette | `CommandPalette` / `CommandPaletteState`、`CommandIndex` | Root、Editor、Listbox 转交的 Root/Label/Item/EmptySlot |
 | NavigationMenu | `NavigationMenu` / `NavigationState`、`*string` active ID | Root、Label、Item |
-| Drawer | `Drawer` / `DrawerState` | Slideover/Modal 的各 slots、Thumb |
+| Drawer | `Drawer` / `DrawerState` | Slideover/Modal 的各 slots（默认标题也使用 Label/Description）、Thumb |
 | FileUpload | `FileUpload` / `FileUploadState` | Root、Body、Item |
 | Chart | `Chart` / `ChartState` | Root、Body、Item（图例）、Label、Description、EmptySlot |
 | Carousel | `Carousel` / `CarouselState` | Root、Body、Item |

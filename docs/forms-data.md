@@ -80,11 +80,11 @@ PIN 点击已有字符会选中该位，随后输入替换该位、Backspace 删
 
 `ListboxItem` 包含 ID、Label、Description、Group、Disabled、Icon。ID 不依赖标签；空/重复 ID 报错。选择使用 `*[]string`，空切片表示空选；默认 SelectionToggle：单选与多选均可再次激活以取消；SelectionReplace 表示激活替换，SelectMenu 的单选模式使用后者。数据暂时不包含的已选 ID 保留（用于异步搜索），清理失效业务值由调用方负责。
 
-`ListboxState` 持有 Active 和列表状态；相邻同组项目有不可选择的组标题。纵向使用虚拟列表和 Up/Down；横向按 ItemWidth 裁剪可见项目，使用 Left/Right，组标题也占一个 ItemWidth。两种方向均只构建可见项目及少量预留项目。Home/End 到两端，Enter/Space 激活，字符前缀检索，高亮随稳定 ID 恢复；被删除的高亮回退到第一个可用项。
+`ListboxState` 持有 Active 和列表状态；相邻同组项目有不可选择的组标题。行使用[选项行配方](inputs.md#select-与-inputmenu)，MD 下约 32 DIP 高，有描述时增加一行；根圆角 8，键盘聚焦时整个列表显示组件颜色的焦点环；空状态居中。Listbox 还没有公开的 Size/Color 字段：尺寸取外层 FormField，其次 `WithComponent(ComponentListbox, …)` 的默认值；在 SelectMenu 中使用菜单的 Size 和 Color。纵向使用虚拟列表和 Up/Down；横向按 ItemWidth 裁剪可见项目，使用 Left/Right，组标题也占一个 ItemWidth。两种方向均只构建可见项目及少量预留项目。Home/End 到两端，Enter/Space 激活，字符前缀检索，高亮随稳定 ID 恢复；被删除的高亮回退到第一个可用项。
 
 状态缓存数据快照、ID 索引、分组及选择集合；未变更数据不再逐帧重建这些结构。调用方原地修改项目或选择切片也会更新缓存，不需要显式版本号。每次构建仍线性比较输入与快照，数据变更时重新验证 ID 和整理分组；字符前缀检索仍可能遍历全部项目，不宣称整个渲染过程为常量时间。
 
-`SelectMenuState` 保存 Open/Query/Listbox。触发器的 ↑、↓ 都可打开；默认聚焦搜索，SearchInput=false 时聚焦列表。搜索框 ↑↓ 把焦点移至列表，Escape 使用 Popover 关闭并返回触发器。单选后关闭，多选保留打开；默认选择或关闭后清空搜索词，两个 ResetSearchTerm 选项可分别关闭。Clearable 清空，OnCreate 只发送创建请求并保留搜索词/打开状态；不会替应用添加记录。默认只搜索 Label；FilterFields 可指定 label/description/value(id)/group。默认无匹配结果才显示创建；CreateWhenAlways 提供非完全相同 ID 的创建项，CreateAtTop 调整位置。Loading/Error/EmptyText 显示状态；ExternalFilter=true 时不再执行本地 contains 筛选。
+`SelectMenuState` 保存 Open/Query/Listbox。SelectMenu 的 Size 和 Color 同时作用于触发器、弹层里的搜索框和列表。触发器的 ↑、↓ 都可打开；默认聚焦搜索，SearchInput=false 时聚焦列表。搜索框 ↑↓ 把焦点移至列表，Escape 使用 Popover 关闭并返回触发器。单选后关闭，多选保留打开；默认选择或关闭后清空搜索词，两个 ResetSearchTerm 选项可分别关闭。Clearable 清空，OnCreate 只发送创建请求并保留搜索词/打开状态；不会替应用添加记录。默认只搜索 Label；FilterFields 可指定 label/description/value(id)/group。默认无匹配结果才显示创建；CreateWhenAlways 提供非完全相同 ID 的创建项，CreateAtTop 调整位置。Loading/Error/EmptyText 显示状态；ExternalFilter=true 时不再执行本地 contains 筛选。
 
 SelectMenu 通过 ID 索引解析已选标签，并缓存拼接后的触发器文本；临时缺失的已选项保留上次标签。数据、查询或 FilterFields 改变时才重新执行本地过滤。首次处理或更新大量已选标签仍有线性工作，远程搜索应使用 ExternalFilter 与 QueryState。
 

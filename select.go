@@ -43,32 +43,88 @@ func validateOptions[T comparable](options []Option[T]) {
 		seen[o.Value] = true
 	}
 }
-func optionContent[T comparable](c *ui.Context, t Theme, o Option[T], chosen bool, size Size) {
-	m := buttonMetrics(t, size)
+
+// optionMetrics is Nuxt's item recipe shared by Select, InputMenu, SelectMenu,
+// Listbox, menus and CommandPalette: p-1…p-2 with a matching gap, text-xs…
+// text-base, and size-4…size-6 icons, which are as tall as the text line.
+type optionMetrics struct{ Pad, Gap, Font, Line, Icon float32 }
+
+func optionRecipe(t Theme, size Size) optionMetrics {
+	i := sizeIndex(size)
+	return optionMetrics{
+		Pad:  t.spacing([5]float32{4, 6, 6, 8, 8}[i]),
+		Gap:  t.spacing([5]float32{4, 6, 6, 8, 8}[i]),
+		Font: t.text([5]float32{12, 12, 14, 14, 16}[i]),
+		Line: t.text([5]float32{16, 16, 20, 20, 24}[i]),
+		Icon: t.text([5]float32{16, 16, 20, 20, 24}[i]),
+	}
+}
+
+// optionItemStyle is the row: rounded-md; a highlighted row has an
+// elevated/50 surface and highlighted text, which its icons follow.
+func optionItemStyle(t Theme, m optionMetrics, highlighted bool) PartStyle {
+	s := PartStyle{PaddingX: Set(m.Pad), PaddingY: Set(m.Pad), Gap: Set(m.Gap), Radius: Set(t.radius(6)), Foreground: Set(t.Text), FontSize: Set(m.Font), LineHeight: Set(m.Line / m.Font)}
+	if highlighted {
+		s.Background = Set(t.Elevated.Alpha(.5))
+		s.Foreground = Set(t.Highlighted)
+	}
+	return s
+}
+
+// optionLeadingColor dims a leading icon until its row is highlighted.
+func optionLeadingColor(t Theme, highlighted bool) ui.Color {
+	if highlighted {
+		return t.Text
+	}
+	return t.Dimmed
+}
+
+// optionLabelStyle is a group heading: semibold highlighted text, one step smaller.
+func optionLabelStyle(t Theme, size Size) PartStyle {
+	m := optionRecipe(t, size)
+	font := t.text([5]float32{10, 10, 12, 12, 14}[sizeIndex(size)])
+	return PartStyle{PaddingX: Set(m.Pad), PaddingY: Set(m.Pad), FontSize: Set(font), LineHeight: Set(float32(12.0 / 10)), Weight: Set(600), Foreground: Set(t.Highlighted)}
+}
+
+// optionTexts are a row's label and muted description, at the row's size.
+func optionTexts(c *ui.Context, t Theme, label, description string) {
+	ui.Column(c).Grow(1).MinWidth(0).Children(func() {
+		ui.Text(c, label).SingleLine().MinWidth(0)
+		if description != "" {
+			ui.Text(c, description).SingleLine().MinWidth(0).TextColor(t.Muted)
+		}
+	})
+}
+
+// optionCheck marks a selected row at its end, in the row's text color.
+func optionCheck(c *ui.Context, m optionMetrics) {
+	ui.Icon(c, lucide.Check()).Size(m.Icon, m.Icon).Shrink(0)
+}
+
+func optionContent[T comparable](c *ui.Context, t Theme, o Option[T], chosen, highlighted bool, size Size) {
+	m := optionRecipe(t, size)
 	if o.Build != nil {
 		o.Build(c, t)
 	} else {
 		if o.Icon != nil {
-			ui.Icon(c, o.Icon).Size(m.Icon, m.Icon).TextColor(t.Muted).Shrink(0)
+			ui.Icon(c, o.Icon).Size(m.Icon, m.Icon).TextColor(optionLeadingColor(t, highlighted)).Shrink(0)
 		}
-		ui.Column(c).Grow(1).MinWidth(0).Gap(t.spacing(2)).Children(func() {
-			ui.Text(c, o.Label).SingleLine().TextColor(t.Highlighted)
-			if o.Description != "" {
-				ui.Text(c, o.Description).SingleLine().FontSize(t.text(12)).TextColor(t.Muted)
-			}
-		})
+		optionTexts(c, t, o.Label, o.Description)
 	}
 	if chosen {
-		ui.Icon(c, lucide.Check()).Size(t.text(16), t.text(16)).TextColor(t.Primary).Shrink(0)
+		optionCheck(c, m)
 	}
 }
-func optionStyle(e ui.Element, t Theme, id Component, d Decoration) {
-	s := PartStyle{PaddingX: Set(t.spacing(8)), PaddingY: Set(t.spacing(6)), Gap: Set(t.spacing(8)), Radius: Set(t.radius(4)), Foreground: Set(t.Text)}
-	if e.Highlighted() && !e.IsDisabled() {
-		s.Background = Set(t.Elevated)
-	}
+
+// optionEmptyStyle is a popup list's centered, muted empty state.
+func optionEmptyStyle(t Theme, size Size) PartStyle {
+	m := optionRecipe(t, size)
+	pad := t.spacing([5]float32{8, 10, 10, 12, 12}[sizeIndex(size)])
+	return PartStyle{Foreground: Set(t.Muted), FontSize: Set(m.Font), LineHeight: Set(m.Line / m.Font), PaddingX: Set(pad), PaddingY: Set(pad)}
+}
+func optionStyle(e ui.Element, t Theme, id Component, d Decoration, size Size, highlighted bool) {
 	e.MinWidth(0).AlignItems(ui.Center)
-	finish(t, id, Item, e, s, d)
+	finish(t, id, Item, e, optionItemStyle(t, optionRecipe(t, size), highlighted), d)
 }
 
 // Select never reserves a T zero value. Optional[T] or an explicit option models absence.
@@ -188,7 +244,7 @@ func Select[T comparable](c *ui.Context, t Theme, selected *T, options []Option[
 		selectionPanel(c, panel, e, t, o.Popup)
 		finish(t, ComponentSelect, Panel, panel, PartStyle{}, o.Decoration)
 		if len(options) == 0 {
-			finish(t, ComponentSelect, EmptySlot, ui.Text(c, message(c, "noOptions")).Role(ui.RoleStatus).Padding(8), PartStyle{Foreground: Set(t.Muted)}, o.Decoration)
+			finish(t, ComponentSelect, EmptySlot, ui.Text(c, message(c, "noOptions")).Role(ui.RoleStatus).TextAlign(ui.Center), optionEmptyStyle(t, config.Size), o.Decoration)
 		}
 		optionList(c, t, &memory.list, e, len(options), func(i int) Option[T] { return options[i] }, selectionHeight(o.Popup), ComponentSelect, o.Decoration, config.Size, func(v T) bool { return v == *selected }, choose)
 	})
@@ -447,7 +503,7 @@ func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[stri
 					if text == "" {
 						text = message(c, "noResultsFound")
 					}
-					finish(t, ComponentInputMenu, EmptySlot, ui.Text(c, text).Padding(8).Role(ui.RoleStatus), PartStyle{Foreground: Set(t.Muted)}, Decoration{UI: input.UI})
+					finish(t, ComponentInputMenu, EmptySlot, ui.Text(c, text).Role(ui.RoleStatus).TextAlign(ui.Center), optionEmptyStyle(t, config.Size), Decoration{UI: input.UI})
 				}
 			})
 		})

@@ -97,7 +97,7 @@ func togglePresentation(c *ui.Context, t Theme, e ui.Element, on bool, id Compon
 		if invalid {
 			border = t.Error
 		}
-		indicator := PartStyle{Background: Set(bg), BorderWidth: Set(float32(1)), BorderColor: Set(border), Radius: Set(t.radius(3))}
+		indicator := PartStyle{Background: Set(bg), BorderWidth: Set(float32(1)), BorderColor: Set(border), Radius: Set(t.radius(4))}
 		if isSwitch && !o.Highlight && !invalid {
 			// Nuxt's switch track border is transparent; only highlight and errors draw a ring.
 			indicator.BorderWidth = Set(float32(0))

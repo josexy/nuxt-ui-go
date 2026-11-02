@@ -104,6 +104,16 @@ nui.Select(c, theme, &app.Region, []nui.Option[nui.Optional[string]]{
 
 SelectOptions 有 Label、Placeholder、ErrorMessage、Disabled、Invalid、Color、Variant、Size、Popup、OnChange(func())、Decoration。无选项时显示 No options；未匹配值保留并显示占位。打开时使用方向键/Home/End、Enter 选择、Escape 关闭；动态重排按业务 ID 恢复高亮，原高亮被删除时退到当前有效选中项或首个可用项。UI slots 为 Root、Label、Trailing、Panel、Item、EmptySlot。
 
+Select、InputMenu、SelectMenu、Listbox、菜单和 CommandPalette 共用 Nuxt 的选项行配方，随 Size 变化：
+
+| 尺寸 | XS | SM | MD | LG | XL |
+| --- | --- | --- | --- | --- | --- |
+| 内边距 / gap | 4 | 6 | 6 | 8 | 8 |
+| 字号 / 行高 | 12/16 | 12/16 | 14/20 | 14/20 | 16/24 |
+| 图标 | 16 | 16 | 20 | 20 | 24 |
+
+行圆角 6；高亮行用 Elevated 的 50% 底色，文字变为 Highlighted，前导图标从 Dimmed 变为 Text。描述在标签下一行，字号与标签相同，Muted 色。选中项的对勾放在行尾，尺寸同图标，颜色跟随文字。组标题为半粗体、比条目小一档。空状态居中、Muted 色。
+
 InputMenu 绑定 `*SearchState`，其中 Query 是编辑草稿，Selected 是单选的稳定 string ID；Selected="" 表示未选，所以选项 ID 不允许空字符串。默认仅按 Label 忽略大小写包含匹配，可显式设置 FilterFields；SearchSelect 兼容入口保留 Label+Description。多选以 SelectedValues 为唯一选中来源。应用删除选项时不自动清理模型。
 
 InputMenuOptions 嵌入 InputOptions，增加 EmptyText、Popup、AllowCustom、OnSelect(func(string))。默认只允许选候选，不执行自由文本 OnSubmit；AllowCustom=true 时，无候选选择的 Enter 执行 InputOptions.OnSubmit(Query)，不会伪造 Selected 或触发 OnSelect。选择候选只触发一次 OnSelect，不同时提交自由文本。Clearable 清空 Query 和 Selected，并调用 OnClear；一般输入的 OnChange 用于草稿变化，业务选择监听 OnSelect。

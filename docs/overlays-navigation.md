@@ -80,6 +80,9 @@ nui.DropdownMenu(c.Key("actions"), t, anchor, &state.Menu, []nui.MenuItem{
 | ID、Label、Description、Icon | 稳定身份、语义与显示；图标使用 Lucide |
 | Kind | MenuAction（零值）、MenuLabel、MenuSeparator；分组标题和分隔符也要求 ID |
 | Shortcut | 右侧显示字符串；不自动注册全局快捷键 |
+| Color | 非 Neutral 时文字和图标使用该颜色，高亮时铺该颜色的 10% 底色 |
+
+菜单行使用 MD 尺寸的[选项行配方](inputs.md#select-与-inputmenu)：内边距 6、图标 20、描述与标签同字号；子菜单箭头为 20 DIP 的 chevron，右到左时朝左。
 | Disabled、Color | 禁用阻止聚焦/激活；语义色可表达危险动作 |
 | Checked `Optional[bool]`、Radio | 设置后分别使用 menuItemCheckBox/menuItemRadio；应用在 OnSelect 更新值及同组互斥关系 |
 | Children | 嵌套条目；键盘和鼠标打开；递归超过 32 层拒绝构建 |

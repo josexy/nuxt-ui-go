@@ -94,7 +94,7 @@ func dialogContent(c *ui.Context, t Theme, panel ui.Element, open *bool, o Modal
 				if o.Header != nil {
 					o.Header(c, t)
 				} else {
-					finish(t, id, Label, ui.Text(c, o.Title).Role(ui.RoleHeading).Level(2), PartStyle{Foreground: Set(t.Highlighted), Weight: Set(600), FontSize: Set(t.text(18))}, o.Decoration)
+					finish(t, id, Label, ui.Text(c, o.Title).Role(ui.RoleHeading).Level(2), PartStyle{Foreground: Set(t.Highlighted), Weight: Set(600), FontSize: Set(t.text(16)), LineHeight: Set(float32(24.0 / 16))}, o.Decoration)
 					if o.Description != "" {
 						finish(t, id, Description, ui.Text(c, o.Description), PartStyle{Foreground: Set(t.Muted)}, o.Decoration)
 					}

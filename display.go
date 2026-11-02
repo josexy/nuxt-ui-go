@@ -32,7 +32,7 @@ func Badge(c *ui.Context, t Theme, label string, opts BadgeOptions) ui.Element {
 		m.Gap = t.spacing(m.Gap)
 		style := mergeStyle(controlStyle(t, m), appearance(t, v.Color, v.Variant, false, false))
 		if v.Size == XS || v.Size == SM {
-			style.Radius = Set(t.radius(2))
+			style.Radius = Set(t.radius(4))
 		}
 		if opts.Square {
 			style.PaddingX = style.PaddingY
@@ -323,7 +323,7 @@ func Kbd(c *ui.Context, t Theme, keys []string, opts KbdOptions) ui.Element {
 	e := ui.Row(c).Gap(t.spacing(4))
 	e.Children(func() {
 		for _, key := range keys {
-			chip := ui.Box(c).Height(height).MinWidth(height).PaddingX(t.spacing(4)).Radius(t.radius(2)).Center()
+			chip := ui.Box(c).Height(height).MinWidth(height).PaddingX(t.spacing(4)).Radius(t.radius(4)).Center()
 			decorated(Label, chip, styles, opts.Style)
 			chip.Children(func() { ui.Text(c, FormatKey(key, platform)).SingleLine() })
 		}

@@ -24,6 +24,11 @@
 - 弹出层面板（Popover、Select、InputMenu、SelectMenu、DropdownMenu、ContextMenu）圆角由 8 改为 6；Modal、Slideover、Toast 保持 8。
 - Popover 默认内边距由 12 改为 16（D3：贴近 Nuxt 文档示例的 `p-4`）。
 - Tooltip 改为高 24 的单行，超长截断；圆角 4、水平内边距 10、小阴影。此前长文本会换行。
+- Select、InputMenu、SelectMenu、Listbox、菜单、CommandPalette 共用 Nuxt 的选项行配方：内边距、gap、字号和图标随 Size 变化（MD 为 6/6/14/20），圆角 6；高亮行改为 Elevated 50% 底色加 Highlighted 文字；选中对勾放在行尾、跟随文字色；描述与标签同字号。Listbox 行高由 40 降为约 32，空状态居中，键盘聚焦时显示组件颜色的焦点环；SelectMenu 的 Size/Color 传给弹层里的搜索框和列表。
+- 菜单中带 Color 的条目高亮时铺该颜色的 10% 底色；子菜单箭头放大到 20。
+- 圆角对齐 Nuxt：Badge XS/SM、Kbd、Checkbox 改为 4；Listbox 改为 8。
+- 标题字号对齐 Nuxt 继承的 16px：Card 由 14、Modal/Slideover/Drawer 由 18、Sidebar 由 14 改为 16。Drawer 的默认标题和描述现在使用 Label/Description 部件样式。
+- 修复 SelectMultiple 选项带 Icon 时图标画了两次。
 - 弹出层和 Tooltip 打开时有 100ms scale-in，Modal 有 200ms 缩放淡入并淡入遮罩；减少动态效果时直接显示。关闭仍立即完成。
 
 ### 依赖

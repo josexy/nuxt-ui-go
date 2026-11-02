@@ -115,17 +115,25 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 			height = 64
 		}
 	}
+	// Listbox has no Size or Color option yet: they come from the component
+	// defaults, an enclosing FormField, or SelectMenu's own Size and Color.
+	config := defaults(t, ComponentListbox, ComponentTheme{Color: Primary, Size: MD})
+	if t.field.Size != SizeDefault {
+		config.Size = t.field.Size
+	}
+	m := optionRecipe(t, config.Size)
 	root := ui.Column(c).MinWidth(0).Height(height).Disabled(o.Disabled || t.field.Disabled)
-	finish(t, ComponentListbox, Root, root, PartStyle{Background: Set(t.Background), Radius: Set(t.radius(6)), BorderWidth: Set(float32(1)), BorderColor: Set(t.Border)}, o.Decoration)
+	rootStyle := PartStyle{Background: Set(t.Background), Radius: Set(t.radius(8)), BorderWidth: Set(float32(1)), BorderColor: Set(t.Border)}
+	var list ui.Element
 	root.Children(func() {
 		if len(items) == 0 {
 			text := o.EmptyText
 			if text == "" {
 				text = message(c, "noResults")
 			}
-			finish(t, ComponentListbox, EmptySlot, ui.Text(c, text).Role(ui.RoleStatus).Padding(12), PartStyle{Foreground: Set(t.Muted)}, o.Decoration)
+			pad := t.spacing([5]float32{12, 16, 24, 28, 32}[sizeIndex(config.Size)])
+			finish(t, ComponentListbox, EmptySlot, ui.Text(c, text).Role(ui.RoleStatus).TextAlign(ui.Center), PartStyle{Foreground: Set(t.Muted), FontSize: Set(m.Font), LineHeight: Set(m.Line / m.Font), PaddingX: Set(m.Pad), PaddingY: Set(pad)}, o.Decoration)
 		}
-		var list ui.Element
 		itemWidth := o.ItemWidth
 		if itemWidth <= 0 {
 			itemWidth = 160
@@ -153,7 +161,7 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 			last = min(len(rows), int(math.Ceil(float64((s.horizontal.X+viewport)/itemWidth)))+2)
 			list = ui.ScrollHorizontal(c.Key("list")).TrackScroll(&s.horizontal).Bind(&s.List.Handle).Role(ui.RoleList)
 		}
-		list.Fill().Focusable().Label(o.Label).InputMethod(false)
+		list.Fill().Focusable().FocusRing(false).Label(o.Label).InputMethod(false)
 		bindField(c, list, t)
 		move := func(i int) {
 			if i >= 0 && i < len(items) && !items[i].Disabled {
@@ -262,22 +270,22 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 		buildRow := func(r ui.ListRow) {
 			entry := rows[r.Index]
 			if entry.item < 0 {
-				header := ui.Text(r.Context, entry.group).Height(t.text(28)).Padding(6, 8).FontWeight(600)
+				header := ui.Text(r.Context, entry.group).SingleLine()
 				if !vert {
-					header.Width(itemWidth).MinWidth(itemWidth).MaxWidth(itemWidth).Shrink(0).SingleLine()
+					header.Width(itemWidth).MinWidth(itemWidth).MaxWidth(itemWidth).Shrink(0)
 				}
-				finish(t, ComponentListbox, Label, header, PartStyle{Foreground: Set(t.Highlighted), FontSize: Set(t.text(12))}, o.Decoration)
+				finish(t, ComponentListbox, Label, header, optionLabelStyle(t, config.Size), o.Decoration)
 				return
 			}
 			it := items[entry.item]
 			chosen := s.selection.set[it.ID]
-			// Rows with a description grow; the list measures each row it shows.
-			row := ui.Row(r.Context).MinWidth(0).MinHeight(t.text(40)).AlignItems(ui.Center).Gap(t.spacing(8)).Padding(6, 8).Role(ui.RoleListItem).Label(it.Label).Description(it.Description).Selected(chosen).Background(ui.Transparent).Disabled(it.Disabled)
+			highlighted := it.ID == s.Active
+			// Rows take their content's height; the list measures each row it shows.
+			row := ui.Row(r.Context).MinWidth(0).AlignItems(ui.Center).Role(ui.RoleListItem).Label(it.Label).Description(it.Description).Selected(chosen).Disabled(it.Disabled)
 			if !vert {
 				row.Width(itemWidth).MinWidth(itemWidth).MaxWidth(itemWidth).Shrink(0).Height(height)
 			}
-			if it.ID == s.Active {
-				row.Background(t.Elevated)
+			if highlighted {
 				list.ActiveDescendant(row)
 			}
 			row.HandleInput(func(ev ui.InputEvent) bool {
@@ -291,23 +299,18 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 				s.Active = it.ID
 				choose(it.ID, o.SelectionBehavior != SelectionReplace)
 			})
-			finish(t, ComponentListbox, Item, row, PartStyle{Radius: Set(t.radius(4)), Foreground: Set(t.Text)}, o.Decoration)
+			finish(t, ComponentListbox, Item, row, optionItemStyle(t, m, highlighted), o.Decoration)
 			row.Children(func() {
 				if it.Icon != nil {
-					ui.Icon(r.Context, it.Icon).Size(16, 16)
+					ui.Icon(r.Context, it.Icon).Size(m.Icon, m.Icon).TextColor(optionLeadingColor(t, highlighted)).Shrink(0)
 				}
 				if o.Build != nil {
 					o.Build(r.Context, t, it)
 				} else {
-					ui.Column(r.Context).Grow(1).MinWidth(0).Children(func() {
-						ui.Text(r.Context, it.Label).SingleLine()
-						if it.Description != "" {
-							ui.Text(r.Context, it.Description).FontSize(t.text(11)).TextColor(t.Muted)
-						}
-					})
+					optionTexts(r.Context, t, it.Label, it.Description)
 				}
 				if chosen {
-					ui.Icon(r.Context, lucide.Check()).Size(16, 16).TextColor(t.Primary)
+					optionCheck(r.Context, m)
 				}
 			})
 		}
@@ -326,6 +329,12 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 			})
 		}
 	})
+	// Nuxt rings the list in its color while it has keyboard focus.
+	if list.FocusVisible() {
+		rootStyle.BorderColor = Set(t.color(config.Color))
+		root.Shadow(0, 0, 0, 3, t.focusColor(config.Color))
+	}
+	finish(t, ComponentListbox, Root, root, rootStyle, o.Decoration)
 	return root
 }
 
@@ -435,6 +444,9 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 			popup.MaxHeight = Set(float32(400))
 		}
 		Popover(c.Key("popup"), t, anchor, &s.Open, popup, func(inner Theme) {
+			// The search field and list take the menu's Size and Color.
+			inner.field.Size = config.Size
+			inner = inner.WithComponent(ComponentListbox, ComponentTheme{Color: config.Color})
 			if search {
 				in := Input(c.Key("search"), inner, &s.Query, InputOptions{Label: namedMessage(c, "searchNamed", o.Label), Placeholder: o.SearchPlaceholder, Leading: lucide.Search(), OnChange: o.OnQuery, Style: func(root, editor, leading, trailing ui.Element) {
 					editor.Bind(&s.queryHandle).OnTextKey(func(k ui.TextKey) bool {
