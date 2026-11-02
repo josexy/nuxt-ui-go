@@ -364,12 +364,15 @@ type StepItem struct {
 	Disabled               bool
 }
 type StepperOptions struct {
-	Label                      string
-	Vertical, Linear, Disabled bool
-	Color                      Color
-	Size                       Size
-	CanSelect                  func(string) bool
-	OnChange                   func(string)
+	Label              string
+	Vertical, Disabled bool
+	// Linear defaults to true, as Nuxt's: a step can be reached only after
+	// the one before it. Set(false) allows any available step.
+	Linear    Optional[bool]
+	Color     Color
+	Size      Size
+	CanSelect func(string) bool
+	OnChange  func(string)
 	Decoration
 }
 
@@ -405,7 +408,7 @@ func Stepper(c *ui.Context, t Theme, value *string, items []StepItem, o StepperO
 	finish(t, ComponentStepper, Root, root, PartStyle{Gap: Set(gap)}, o.Decoration)
 	root.Children(func() {
 		for i, it := range items {
-			blocked := it.Disabled || o.Disabled || (o.Linear && i > current+1)
+			blocked := it.Disabled || o.Disabled || (valueOr(o.Linear, true) && i > current+1)
 			item := ui.Column(c.Key(it.ID)).MinWidth(0)
 			itemGap := float32(0)
 			if o.Vertical {

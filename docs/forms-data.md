@@ -112,7 +112,7 @@ Listbox 支持同步 Build、SelectionBehavior、Loop 和 HighlightOnHover；`Se
 
 `InputDate` 接收 `*Optional[Date]` 与 `DateInputState`，ISO `YYYY-MM-DD` 文本与单日 Calendar 共用业务值。非法/未完成文本保留在 Text/Error，最后有效值不变；空文本清空，弹层选择回写文本并关闭。HideCalendar 对单日与范围输入均生效，隐藏触发器并关闭现有面板。范围输入使用同组件的 `InputDateRange` 入口、`DateRangeInputState` 和 `*DateSelection`：两个 ISO 编辑器共享范围面板；起点改到终点之后会清空终点，终点不能早于起点，第二次日历点击完成范围后关闭。作为一个 FormField 使用时错误聚焦到起点；需要独立端点错误聚焦时分别注册两个 InputDate。
 
-`ClockTime{Hour,Minute,Second}` 为不含日期、时区的墙上时间；小时 0–23。`InputTime` 使用 `*Optional[ClockTime]` 与 `TimeInputState`，支持 24 小时或 `hh:mm AM/PM`、可选秒。12/24 格式切换保留值，隐藏秒后编辑小时/分钟仍保留原秒。无时区选择器、夏令时推算、分段旋钮或时间弹层。
+`ClockTime{Hour,Minute,Second}` 为不含日期、时区的墙上时间；小时 0–23。`InputTime` 使用 `*Optional[ClockTime]` 与 `TimeInputState`，支持 24 小时或 `hh:mm AM/PM`、可选秒。`TwelveHour` 是 `Optional[bool]`：未设置时与 Nuxt 一样随语言决定（en 为 12 小时，zh-Hans 为 24 小时），并优先采用用户系统区域格式里的小时制（`Context.Region().HourCycle`）；`nui.Set(true/false)` 固定格式。12/24 格式切换（包括切换语言）保留值并按新格式重写；正在输入的无效草稿和错误提示保持不变。隐藏秒后编辑小时/分钟仍保留原秒。无时区选择器、夏令时推算、分段旋钮或时间弹层。
 
 尚不支持日历多选、年/月选择面板、多月并排、周序号、其他历法及时间范围输入。
 

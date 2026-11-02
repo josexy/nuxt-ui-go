@@ -90,7 +90,7 @@ func (a *State) navigationComponents(c *ui.Context, t nui.Theme) {
 	nui.Breadcrumb(c, t, []nui.BreadcrumbItem{{ID: "home", Label: "Home", OnSelect: func() { p.Message = "Home selected" }}, {ID: "projects", Label: "Projects", OnSelect: func() { p.Message = "Projects selected" }}, {ID: "review", Label: "Workspace review"}}, nui.BreadcrumbOptions{Label: "Project location"})
 	heading(c, t, "Workspace review", "Follow the review, inspect the activity, and decide when to continue.")
 	nui.Banner(c, t, &p.Banner, nui.BannerOptions{Title: "Review requested", Description: "Your team can review the draft before it is published.", Icon: lucide.Info(), Color: nui.Info})
-	nui.Stepper(c, t, &p.Step, []nui.StepItem{{ID: "details", Title: "Details", Description: "Describe the workspace"}, {ID: "review", Title: "Review", Description: "Check access and activity"}, {ID: "approve", Title: "Approve", Description: "Confirm the changes"}}, nui.StepperOptions{Label: "Review progress", Linear: true, OnChange: func(id string) { p.Message = "Current step: " + id }})
+	nui.Stepper(c, t, &p.Step, []nui.StepItem{{ID: "details", Title: "Details", Description: "Describe the workspace"}, {ID: "review", Title: "Review", Description: "Check access and activity"}, {ID: "approve", Title: "Approve", Description: "Confirm the changes"}}, nui.StepperOptions{Label: "Review progress", OnChange: func(id string) { p.Message = "Current step: " + id }})
 	nui.Tabs(c, t, &p.Tab, []nui.TabItem{
 		{ID: "overview", Label: "Overview", Icon: lucide.FolderOpen(), Content: func(c *ui.Context, t nui.Theme) {
 			nui.Accordion(c, t, &p.OpenSections, []nui.AccordionItem{

@@ -155,7 +155,7 @@ func TestStepperKeyboardAndRemount(t *testing.T) {
 			tt := ui.NewTester(func(c *ui.Context) {
 				theme := nui.App(c, nui.AppConfig{})
 				if shown {
-					nui.Stepper(c.Key("steps"), theme, &value, []nui.StepItem{{ID: "one", Title: "One"}, {ID: "two", Title: "Two"}, {ID: "three", Title: "Three", Disabled: true}}, nui.StepperOptions{Vertical: vertical, Linear: true, OnChange: func(string) { changes++ }})
+					nui.Stepper(c.Key("steps"), theme, &value, []nui.StepItem{{ID: "one", Title: "One"}, {ID: "two", Title: "Two"}, {ID: "three", Title: "Three", Disabled: true}}, nui.StepperOptions{Vertical: vertical, OnChange: func(string) { changes++ }})
 				}
 			}, 600, 300)
 			tt.Key(0, ui.KeyTab)

@@ -417,32 +417,51 @@ type TimeInputState struct {
 }
 type InputTimeOptions struct {
 	InputOptions
-	TwelveHour, Seconds bool
-	OnValueChange       func(Optional[ClockTime])
+	// TwelveHour defaults to the hour cycle of the locale and the user's
+	// regional formats, as Nuxt's follows the locale: 12 for en, 24 for zh-Hans.
+	TwelveHour    Optional[bool]
+	Seconds       bool
+	OnValueChange func(Optional[ClockTime])
+}
+
+// localeTwelveHour reports whether the current locale, with the user's
+// regional formats, writes times with AM and PM: whether its preferred hour
+// ("j") is written as the 12-hour cycle ("h") is.
+func localeTwelveHour(c *ui.Context) bool {
+	locale := c.Region().FormatLocale(c.Locale())
+	at := time.Date(2000, 1, 1, 13, 0, 0, 0, time.UTC)
+	return i18n.FormatDate(locale, at, i18n.DateOptions{Skeleton: "j"}) == i18n.FormatDate(locale, at, i18n.DateOptions{Skeleton: "h"})
 }
 
 func InputTime(c *ui.Context, t Theme, value *Optional[ClockTime], s *TimeInputState, o InputTimeOptions) ui.Element {
 	if value == nil || s == nil {
 		panic("nui: InputTime requires value and state")
 	}
-	if !s.initialized || s.seen != *value || s.twelve != o.TwelveHour || s.seconds != o.Seconds {
+	twelve := o.TwelveHour.Value
+	if !o.TwelveHour.Set {
+		twelve = localeTwelveHour(c)
+	}
+	// A new hour cycle, as after a language change, rewrites the committed
+	// time; it keeps an invalid draft being typed, with its error.
+	cycle := s.initialized && s.twelve != twelve && s.Error == ""
+	if !s.initialized || s.seen != *value || s.seconds != o.Seconds || cycle {
 		s.Text = ""
 		if value.Set {
-			s.Text = clockFormat(value.Value, o.TwelveHour, o.Seconds)
+			s.Text = clockFormat(value.Value, twelve, o.Seconds)
 		}
 		s.seen = *value
 		s.initialized = true
-		s.twelve = o.TwelveHour
 		s.seconds = o.Seconds
 		s.Error = ""
 	}
+	s.twelve = twelve
 	in := o.InputOptions
 	if in.Placeholder == "" {
 		in.Placeholder = "HH:MM"
 		if o.Seconds {
 			in.Placeholder += ":SS"
 		}
-		if o.TwelveHour {
+		if twelve {
 			in.Placeholder += " AM/PM"
 		}
 	}
@@ -454,7 +473,7 @@ func InputTime(c *ui.Context, t Theme, value *Optional[ClockTime], s *TimeInputS
 	}
 	prior := in.OnChange
 	in.OnChange = func(text string) {
-		v, ok := ParseClockTime(text, o.TwelveHour, o.Seconds)
+		v, ok := ParseClockTime(text, twelve, o.Seconds)
 		if ok {
 			s.Error = ""
 			if v.Set && !o.Seconds && value.Set {

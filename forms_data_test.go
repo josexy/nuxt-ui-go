@@ -281,7 +281,7 @@ func TestDateTimeEditorsPreserveValues(t *testing.T) {
 		th := nui.App(c, nui.AppConfig{})
 		ui.Column(c).Gap(12).Children(func() {
 			nui.InputDate(c, th, &date, &ds, nui.InputDateOptions{Label: "Date"})
-			nui.InputTime(c, th, &tm, &ts, nui.InputTimeOptions{Label: "Time", TwelveHour: twelve})
+			nui.InputTime(c, th, &tm, &ts, nui.InputTimeOptions{Label: "Time", TwelveHour: nui.Set(twelve)})
 		})
 	}, 420, 300)
 	click(t, tt, "Date")

@@ -4,6 +4,11 @@
 
 按 Nuxt UI v4.12.0 对齐。以下为可见的行为变化，未列出的公开 API 保持不变。
 
+### 破坏性变更与迁移
+
+- `StepperOptions.Linear` 由 `bool` 改为 `Optional[bool]`，未设置时为 true（Nuxt 的 `linear: true`）。迁移：`Linear: true` 可直接删除或改为 `Linear: nui.Set(true)`；原来依赖默认非线性的 Stepper 需要显式写 `Linear: nui.Set(false)`。
+- `InputTimeOptions.TwelveHour` 由 `bool` 改为 `Optional[bool]`，未设置时随语言和用户区域格式（en 为 12 小时，zh-Hans 为 24 小时）。迁移：`TwelveHour: true` 改为 `TwelveHour: nui.Set(true)`；原来依赖默认 24 小时的英文界面需要显式写 `TwelveHour: nui.Set(false)`。
+
 ### 缺陷修复
 
 - CheckboxGroup 的 Label、Description、Indicator 等部件样式和 Style 回调现在作用于每个 Checkbox；Root/Item 仍只作用于组和行。

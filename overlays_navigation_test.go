@@ -580,7 +580,7 @@ func TestPaginationStepperAndRecovery(t *testing.T) {
 		theme := nui.App(c, nui.AppConfig{})
 		ui.Column(c).Padding(12).Gap(12).Children(func() {
 			nui.Pagination(c, theme, &page, nui.PaginationOptions{Total: 1000, PageSize: 10})
-			nui.Stepper(c, theme, &step, []nui.StepItem{{ID: "one", Title: "Details"}, {ID: "two", Title: "Review"}, {ID: "three", Title: "Finish"}}, nui.StepperOptions{Linear: true, CanSelect: func(string) bool { return allow }})
+			nui.Stepper(c, theme, &step, []nui.StepItem{{ID: "one", Title: "Details"}, {ID: "two", Title: "Review"}, {ID: "three", Title: "Finish"}}, nui.StepperOptions{CanSelect: func(string) bool { return allow }})
 			nui.Breadcrumb(c, theme, []nui.BreadcrumbItem{{ID: "home", Label: "Home", OnSelect: func() { navigated++ }}, {ID: "settings", Label: "Settings"}}, nui.BreadcrumbOptions{})
 			nui.Banner(c, theme, &banner, nui.BannerOptions{Title: "Pending changes"})
 			nui.ErrorView(c, theme, nui.ErrorOptions{Title: "Could not load", Description: "Try loading the local draft again.", OnRetry: func() { retried++ }})
