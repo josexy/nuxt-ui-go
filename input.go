@@ -132,7 +132,8 @@ func inputShell(c *ui.Context, t Theme, value *string, o InputOptions, id Compon
 		} else if o.Leading != nil {
 			leading = ui.Icon(c, o.Leading).Size(m.Icon, m.Icon).Shrink(0)
 		}
-		editor = makeEditor().Grow(1).MinWidth(0).Font(t.Font).FontSize(m.Font).LineHeight(m.Line / m.Font).Placeholder(o.Placeholder).ReadOnly(o.ReadOnly).FocusRing(false)
+		// Nuxt's placeholder:text-dimmed; MyGo would otherwise use the theme's TextMuted.
+		editor = makeEditor().Grow(1).MinWidth(0).Font(t.Font).FontSize(m.Font).LineHeight(m.Line / m.Font).Placeholder(o.Placeholder).PlaceholderColor(t.Dimmed).ReadOnly(o.ReadOnly).FocusRing(false)
 		if minRows > 0 {
 			editor.Lines(minRows, maxRows)
 		}

@@ -19,6 +19,11 @@
 - CommandPalette 在标签下显示条目描述；Listbox 行可随内容增高。
 - 右到左布局下，Breadcrumb 分隔符、Calendar 翻页按钮、Sidebar 收起按钮的图标随方向镜像；Sidebar 收起按钮改用面板图标，分隔边框放在结束侧。
 
+### 依赖
+
+- MyGo 从 `v0.7.4-0.20261031084912-402a3cf8eb35` 升级到 `v0.7.4` 正式版。新增的 API 只有增量，没有删除导出 API；滚动条统一绘制后仍读取 `Theme.Scrollbar` 和 `ScrollbarWidth`。
+- 所有文本输入的占位文字改为 Dimmed 色（此前为 MyGo 默认的 TextMuted，即 Muted 色），与 Nuxt 一致。
+
 ## 当前内容
 
 采用 MIT 许可证，提供 Nuxt UI v4 风格的 MyGo 原生组件。

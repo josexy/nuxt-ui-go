@@ -470,3 +470,28 @@ func TestNoticeCloseButtonsKeepContrastOnHover(t *testing.T) {
 		}
 	}
 }
+
+func TestTextInputPlaceholdersUseDimmed(t *testing.T) {
+	for _, dark := range []bool{false, true} {
+		text := ""
+		var number nui.Optional[float64]
+		var numberState nui.NumberState
+		tt := ui.NewTester(func(c *ui.Context) {
+			th := nui.App(c, nui.AppConfig{Mode: map[bool]nui.Mode{false: nui.LightMode, true: nui.DarkMode}[dark]})
+			ui.Column(c).Padding(16).Gap(16).Children(func() {
+				nui.Input(c, th, &text, nui.InputOptions{Label: "Plain", Placeholder: "Search everything"}).Width(260)
+				nui.InputNumber(c, th, &number, &numberState, nui.InputNumberOptions{InputOptions: nui.InputOptions{Label: "Count", Placeholder: "Enter a number"}}).Width(260)
+			})
+		}, 320, 160)
+		th := nui.Light()
+		if dark {
+			th = nui.Dark()
+		}
+		for _, label := range []string{"Plain", "Count"} {
+			r := bounds(t, tt, label)
+			if countColor(tt.Image(), r, rgba(th.Dimmed)) == 0 || countColor(tt.Image(), r, rgba(th.Muted)) != 0 {
+				t.Errorf("dark=%v %s placeholder is not drawn in Dimmed", dark, label)
+			}
+		}
+	}
+}

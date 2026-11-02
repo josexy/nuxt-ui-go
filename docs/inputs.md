@@ -34,7 +34,7 @@ nui.Textarea(c, theme, &app.Bio, nui.TextareaOptions{
 }).FillWidth()
 ```
 
-值为非 nil `*string`；空字符串有效。`InputOptions` 提供 Label、Placeholder、ErrorMessage、Disabled、ReadOnly、Invalid、Password、Clearable、ClearLabel、Color、Variant、Size、Leading/Trailing Lucide SVG、OnChange/OnSubmit/OnClear，以及 UI 和 Style。ErrorMessage/Invalid 提供控件错误语义；要显示独立错误文字，使用 FormField.Error。
+值为非 nil `*string`；空字符串有效。`InputOptions` 提供 Label、Placeholder、ErrorMessage、Disabled、ReadOnly、Invalid、Password、Clearable、ClearLabel、Color、Variant、Size、Leading/Trailing Lucide SVG、OnChange/OnSubmit/OnClear，以及 UI 和 Style。ErrorMessage/Invalid 提供控件错误语义；要显示独立错误文字，使用 FormField.Error。占位文字使用 Dimmed 色（Nuxt 的 `placeholder:text-dimmed`），所有文本输入一致；需要其他颜色时在 Style 回调里对 editor 调用 `PlaceholderColor`。
 
 输入编辑、选区、复制粘贴、撤销和 IME 由 TextInputBase/TextAreaBase 处理。密码模式只适用于单行 Input；Textarea 不隐藏文字。ReadOnly 允许选择/复制，阻止修改并关闭编辑 IME；Disabled 阻止交互。原生密码可访问树只有 password 状态，不暴露明文值。
 

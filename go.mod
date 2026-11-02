@@ -2,7 +2,7 @@ module github.com/josexy/nuxt-ui-go
 
 go 1.27.3
 
-require github.com/egoist/mygo v0.7.4-0.20261031084912-402a3cf8eb35
+require github.com/egoist/mygo v0.7.4
 
 require (
 	github.com/ebitengine/purego v0.11.1 // indirect
