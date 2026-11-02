@@ -17,6 +17,7 @@ type ModalOptions struct {
 	OnClose                        func()
 	ReturnFocus                    *ui.Handle
 	Decoration
+	plain bool // Drawer: Nuxt's drawer has no dividers between its regions.
 }
 
 // Modal is a convenience wrapper; use ModalWithOptions for additional options.
@@ -87,8 +88,13 @@ func dialogContent(c *ui.Context, t Theme, panel ui.Element, open *bool, o Modal
 		container.Grow(1)
 	}
 	container.Children(func() {
-		header := ui.Row(c).MinWidth(0).AlignItems(ui.Start).Shrink(0)
-		finish(t, id, Header, header, PartStyle{PaddingX: Set(t.spacing(24)), PaddingY: Set(t.spacing(20)), Gap: Set(t.spacing(12))}, o.Decoration)
+		// Nuxt's header: p-4 sm:px-6, at least --ui-header-height (64) tall,
+		// with divide-y lines between the regions that render.
+		header := ui.Row(c).MinWidth(0).MinHeight(t.spacing(64)).AlignItems(ui.Center).Shrink(0)
+		if !o.plain && (content != nil || o.Footer != nil) {
+			header.BorderWidth(0, 0, 1, 0).BorderColor(t.Border)
+		}
+		finish(t, id, Header, header, PartStyle{PaddingX: Set(t.spacing(24)), PaddingY: Set(t.spacing(16)), Gap: Set(t.spacing(6))}, o.Decoration)
 		header.Children(func() {
 			ui.Column(c).Grow(1).MinWidth(0).Gap(t.spacing(4)).Children(func() {
 				if o.Header != nil {
@@ -105,7 +111,7 @@ func dialogContent(c *ui.Context, t Theme, panel ui.Element, open *bool, o Modal
 				if label == "" {
 					label = namedMessage(c, "closeNamed", o.Title)
 				}
-				close := Button(c, t, "", ButtonOptions{Leading: lucide.X(), AccessibleLabel: label, Variant: Ghost, Color: Neutral, Square: true, Size: SM}).OnClick(func() {
+				close := Button(c, t, "", ButtonOptions{Leading: lucide.X(), AccessibleLabel: label, Variant: Ghost, Color: Neutral, Square: true, Size: MD}).OnClick(func() {
 					*open = false
 					if o.OnClose != nil {
 						o.OnClose()
@@ -114,17 +120,21 @@ func dialogContent(c *ui.Context, t Theme, panel ui.Element, open *bool, o Modal
 				finish(t, id, Close, close, PartStyle{}, o.Decoration)
 			}
 		})
-		body := ui.Scroll(c).MinWidth(0).MinHeight(0).MaxHeight(available).Shrink(1)
-		if id == ComponentSlideover {
-			body.Grow(1)
-		}
-		finish(t, id, Body, body, PartStyle{PaddingX: Set(t.spacing(24)), PaddingY: Set(t.spacing(16)), Gap: Set(t.spacing(16))}, o.Decoration)
+		// Like Nuxt's, the body exists only with content.
 		if content != nil {
+			body := ui.Scroll(c).MinWidth(0).MinHeight(0).MaxHeight(available).Shrink(1)
+			if id == ComponentSlideover {
+				body.Grow(1)
+			}
+			finish(t, id, Body, body, PartStyle{PaddingX: Set(t.spacing(24)), PaddingY: Set(t.spacing(24)), Gap: Set(t.spacing(16))}, o.Decoration)
 			body.Children(func() { content(t) })
 		}
 		if o.Footer != nil {
-			footer := ui.Row(c).Wrap().Justify(ui.End).Shrink(0).BorderWidth(1, 0, 0, 0).BorderColor(t.Border)
-			finish(t, id, Footer, footer, PartStyle{PaddingX: Set(t.spacing(24)), PaddingY: Set(t.spacing(16)), Gap: Set(t.spacing(8))}, o.Decoration)
+			footer := ui.Row(c).Wrap().AlignItems(ui.Center).Justify(ui.End).Shrink(0)
+			if !o.plain {
+				footer.BorderWidth(1, 0, 0, 0).BorderColor(t.Border)
+			}
+			finish(t, id, Footer, footer, PartStyle{PaddingX: Set(t.spacing(24)), PaddingY: Set(t.spacing(16)), Gap: Set(t.spacing(6))}, o.Decoration)
 			footer.Children(func() { o.Footer(c, t) })
 		}
 	})
@@ -219,6 +229,22 @@ func Slideover(c *ui.Context, t Theme, open *bool, o SlideoverOptions, content f
 				extent = max(0, o.Extent.Value)
 			}
 			panel := ui.Column(c).Absolute().MinWidth(0).MinHeight(0).Role(ui.RoleDialog).Disabled(!*open).OnClick(func() {})
+			vertical := o.Side == SideTop || o.Side == SideBottom
+			if vertical {
+				// Without an Extent, Nuxt's top and bottom panels fit their content.
+				// They slide by their last measured height; at the first frame,
+				// fully hidden either way, by the window's.
+				if o.Extent.Set {
+					extent = min(h, extent)
+					panel.Height(extent)
+				} else {
+					panel.MaxHeight(h)
+					extent = panel.Bounds().H
+					if extent <= 0 {
+						extent = h
+					}
+				}
+			}
 			x, y := float32(0), float32(0)
 			switch o.Side {
 			case SideLeft:
@@ -226,12 +252,10 @@ func Slideover(c *ui.Context, t Theme, open *bool, o SlideoverOptions, content f
 				panel.Left(0).Top(0).Bottom(0).Width(extent)
 				x = -extent
 			case SideTop:
-				extent = min(h, extent)
-				panel.Left(0).Right(0).Top(0).Height(extent)
+				panel.Left(0).Right(0).Top(0)
 				y = -extent
 			case SideBottom:
-				extent = min(h, extent)
-				panel.Left(0).Right(0).Bottom(0).Height(extent)
+				panel.Left(0).Right(0).Bottom(0)
 				y = extent
 			default:
 				extent = min(w, extent)
@@ -246,7 +270,7 @@ func Slideover(c *ui.Context, t Theme, open *bool, o SlideoverOptions, content f
 			finish(t, ComponentSlideover, Panel, panel, recipe, o.Decoration)
 			result = panel
 			available := h
-			if o.Side == SideTop || o.Side == SideBottom {
+			if vertical && o.Extent.Set {
 				available = extent
 			}
 			panel.Children(func() {
@@ -309,9 +333,16 @@ func Tooltip(c *ui.Context, t Theme, anchor ui.Element, text string, o TooltipOp
 		popIn(c, t, tip, popupMotion, originX, originY)
 		tip.Children(func() {
 			ui.Row(c).MinWidth(0).Gap(t.spacing(4)).AlignItems(ui.Center).Children(func() {
-				finish(t, ComponentTooltip, Label, ui.Text(c, text).SingleLine().MinWidth(0), PartStyle{}, o.Decoration)
-				for _, key := range o.Kbds {
-					Kbd(c, t, []string{key}, KbdOptions{Size: XS})
+				if text != "" {
+					finish(t, ComponentTooltip, Label, ui.Text(c, text).SingleLine().MinWidth(0), PartStyle{}, o.Decoration)
+				}
+				if len(o.Kbds) > 0 {
+					ui.Row(c.Key("kbds")).Shrink(0).AlignItems(ui.Center).Gap(t.spacing(2)).Children(func() {
+						if text != "" {
+							ui.Text(c, "·").MarginEnd(t.spacing(2)).Role(ui.RoleNone)
+						}
+						Kbd(c, t, o.Kbds, KbdOptions{Size: XS})
+					})
 				}
 			})
 		})

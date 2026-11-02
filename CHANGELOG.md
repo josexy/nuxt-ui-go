@@ -38,6 +38,11 @@
 - CheckboxGroup / RadioGroup 项间距改为横向 8、纵向 2/4/6；ChoiceTable 相邻项共用边框，只有外侧圆角，横向时不换行。
 - FormField 的必填星号改为单独的红色 `*`；描述紧贴标签，内容与标签间距 4，Error/Help 与内容间距 8，横向两列间距 8。
 
+- Modal / Slideover 标题区最低高 64、上下内边距 16，与正文和 Footer 之间加分隔线；正文内边距 24，没有 content 时不创建正文区；Footer gap 6；关闭按钮改为 MD。上下方向的 Slideover 默认按内容高度显示（此前固定 448）。
+- Toast 宽度默认 384、内边距 16；倒计时条改为 SM 并贴在底边；关闭按钮图标 20，悬停变为 Text 色。
+- Tooltip 在文字和快捷键之间显示"·"。
+- DropdownMenu / ContextMenu 默认按内容宽度（至少 128，此前固定 240）；选中项的对勾移到行尾、跟随文字色；Shortcut 按 `+` 拆成多个 Kbd 显示。
+
 ### 依赖
 
 - MyGo 从 `v0.7.4-0.20261031084912-402a3cf8eb35` 升级到 `v0.7.4` 正式版。新增的 API 只有增量，没有删除导出 API；滚动条统一绘制后仍读取 `Theme.Scrollbar` 和 `ScrollbarWidth`。

@@ -4,6 +4,7 @@ import (
 	"image"
 	"image/color"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	nui "github.com/josexy/nuxt-ui-go"
@@ -232,5 +233,120 @@ func TestHorizontalChoiceTableFollowsDirection(t *testing.T) {
 		if im.RGBAAt(outer, y) != white || im.RGBAAt(inner, y) == white {
 			t.Fatalf("%v: the first item should round only its outer corner", dir)
 		}
+	}
+}
+
+func TestModalRegionsAndDividers(t *testing.T) {
+	open, withBody := true, true
+	tt := ui.NewTester(func(c *ui.Context) {
+		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
+		var body func(nui.Theme)
+		if withBody {
+			body = func(nui.Theme) { ui.Text(c, "Body text") }
+		}
+		nui.ModalWithOptions(c, th, &open, nui.ModalOptions{Title: "Settings", Footer: func(c *ui.Context, th nui.Theme) {
+			nui.Button(c, th, "Cancel", nui.ButtonOptions{})
+			nui.Button(c, th, "Save", nui.ButtonOptions{})
+		}}, body)
+	}, 800, 600)
+	tt.Advance(time.Second)
+	th := nui.Light()
+	panel, close, text := bounds(t, tt, "Settings"), bounds(t, tt, "Close Settings"), bounds(t, tt, "Body text")
+	if close.W != 32 || close.H != 32 {
+		t.Fatalf("close button %v, want MD 32x32", close)
+	}
+	// The 64 DIP header is followed by a 1 DIP divider, as Nuxt's divide-y
+	// border on the next region; the body is padded by 24.
+	header := float32(64 + 1)
+	if line := tt.Image().RGBAAt(int(panel.X+panel.W/2), int(panel.Y+header)-1); line != rgba(th.Border) {
+		t.Fatalf("no divider under the 64 DIP header: %v", line)
+	}
+	if text.Y-(panel.Y+header) != 24 || text.X-panel.X != 24 {
+		t.Fatalf("body text at %v in panel %v; want 24 DIP padding", text, panel)
+	}
+	if gap := bounds(t, tt, "Save").X - (bounds(t, tt, "Cancel").X + bounds(t, tt, "Cancel").W); gap != 6 {
+		t.Fatalf("footer gap %v, want 6", gap)
+	}
+	height := panel.H
+	withBody = false
+	tt.Frame()
+	if got := bounds(t, tt, "Settings").H; got >= height-24 {
+		t.Fatalf("a modal without content keeps a body region: height %v, was %v", got, height)
+	}
+}
+
+func TestTopSlideoverFitsContent(t *testing.T) {
+	open := true
+	tt := ui.NewTester(func(c *ui.Context) {
+		th := nui.App(c, nui.AppConfig{})
+		nui.Slideover(c, th, &open, nui.SlideoverOptions{ModalOptions: nui.ModalOptions{Title: "Filters"}, Side: nui.SideTop}, func(nui.Theme) { ui.Text(c, "One line") })
+	}, 800, 700)
+	tt.Advance(time.Second)
+	// Header 64, the divider, and the body: 24 + one 20 DIP line + 24.
+	if r := bounds(t, tt, "Filters"); r.Y != 0 || r.H != 64+1+68 {
+		t.Fatalf("top slideover %v; want its content's 133 DIP height", r)
+	}
+}
+
+func TestToastRecipe(t *testing.T) {
+	tt := ui.NewTester(func(c *ui.Context) {
+		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
+		nui.Button(c, th, "Notify", nui.ButtonOptions{}).OnClick(func() { nui.Toast(c, th, nui.ToastOptions{Title: "Saved", Timeout: time.Hour}) })
+		nui.ToastViewport(c, th, nui.ToastViewportOptions{})
+	}, 800, 600)
+	click(t, tt, "Notify")
+	tt.Advance(time.Second)
+	panel, close := bounds(t, tt, "Saved"), bounds(t, tt, "Dismiss Saved")
+	if panel.W != 384 {
+		t.Fatalf("toast is %v DIPs wide, want 384", panel.W)
+	}
+	if close.Y-panel.Y != 16 || panel.X+panel.W-(close.X+close.W) != 16 {
+		t.Fatalf("close button %v in toast %v; want 16 DIP padding", close, panel)
+	}
+	// The SM progress bar runs along the toast's bottom edge.
+	im := tt.Image()
+	y := int(panel.Y+panel.H) - 2
+	if c := im.RGBAAt(int(panel.X+panel.W/2), y); c == white || c == rgba(nui.Light().Border) {
+		t.Fatalf("no progress bar at the toast's bottom edge: %v", c)
+	}
+}
+
+func TestTooltipSeparatesKeys(t *testing.T) {
+	open := true
+	tt := ui.NewTester(func(c *ui.Context) {
+		th := nui.App(c, nui.AppConfig{})
+		a := nui.Button(c, th, "Anchor", nui.ButtonOptions{}).Absolute().Left(150).Top(100)
+		nui.Tooltip(c, th, a, "Save", nui.TooltipOptions{Open: &open, Kbds: []string{"Ctrl", "S"}})
+	}, 500, 300)
+	tt.Advance(time.Second)
+	dot, save, key := bounds(t, tt, "·"), bounds(t, tt, "Save"), bounds(t, tt, "S")
+	if !(save.X+save.W <= dot.X && dot.X+dot.W < key.X) {
+		t.Fatalf("want text, middle dot, then keys: %v %v %v", save, dot, key)
+	}
+}
+
+func TestMenuWidthChecksAndKeys(t *testing.T) {
+	var state nui.MenuState
+	tt := ui.NewTester(func(c *ui.Context) {
+		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
+		ui.Column(c).Padding(20).Children(func() {
+			anchor := nui.Button(c, th, "View", nui.ButtonOptions{})
+			nui.DropdownMenu(c, th, anchor, &state, []nui.MenuItem{{ID: "grid", Label: "Grid", Checked: nui.Set(true)}, {ID: "open", Label: "Open", Shortcut: "Ctrl+O"}}, nui.MenuOptions{Label: "View menu"})
+		})
+	}, 500, 400)
+	click(t, tt, "View")
+	tt.Advance(time.Second)
+	panel := bounds(t, tt, "View menu")
+	if panel.W >= 240 || panel.W < 128 {
+		t.Fatalf("menu is %v DIPs wide; want its content's width, at least 128", panel.W)
+	}
+	grid := bounds(t, tt, "Grid")
+	th := nui.Light()
+	if countColor(tt.Image(), grid, rgba(th.Primary)) != 0 {
+		t.Fatal("the checked item's mark still uses the primary color")
+	}
+	// Each key of the shortcut is its own chip.
+	if !tt.HasText("O") || tt.HasText("Ctrl+O") {
+		t.Fatalf("shortcut not split into keys: %v", tt.Texts())
 	}
 }

@@ -102,12 +102,15 @@ func ToastViewport(c *ui.Context, t Theme, o ToastViewportOptions) ui.Element {
 			color := inner.color(appearance.Color)
 			parts := ui.ToastBase(c, ts)
 			w, _ := c.Size()
-			width := float32(356)
+			// Nuxt's sm:w-96 toast with p-4; the progress bar is clipped to its corners.
+			width := float32(384)
 			if o.Width.Set {
 				width = o.Width.Value
 			}
-			root := parts.Root.Column().MinWidth(0).Width(min(width, max(0, w-32))).Label(ts.Title)
-			finish(inner, ComponentToast, Panel, root, dialogStyle(inner), d)
+			root := parts.Root.Column().MinWidth(0).Width(min(width, max(0, w-32))).Label(ts.Title).Clip()
+			recipe := dialogStyle(inner)
+			recipe.PaddingX, recipe.PaddingY = Set(inner.spacing(16)), Set(inner.spacing(16))
+			finish(inner, ComponentToast, Panel, root, recipe, d)
 			if !inner.Motion.Reduce {
 				root.Transition(ui.ElementTransition{Duration: 150 * time.Millisecond, Enter: &ui.Motion{Y: 8}, Exit: &ui.Motion{Y: 8}})
 			}
@@ -160,9 +163,14 @@ func ToastViewport(c *ui.Context, t Theme, o ToastViewportOptions) ui.Element {
 						actions()
 					}
 					if appearance.Close {
+						// Nuxt's unpadded neutral link button with a 20 DIP icon.
 						close := parts.CloseButton().Label(namedMessage(c, "dismissNamed", ts.Title)).Size(20, 20).FocusRing(true)
-						finish(inner, ComponentToast, Close, close, PartStyle{}, d)
-						close.Children(func() { ui.Icon(c, lucide.X()).Size(16, 16).TextColor(inner.Muted) })
+						iconColor := inner.Muted
+						if close.Hovered() || close.Pressed() {
+							iconColor = inner.Text
+						}
+						finish(inner, ComponentToast, Close, close, PartStyle{Foreground: Set(iconColor)}, d)
+						close.Children(func() { ui.Icon(c, lucide.X()).Size(20, 20) })
 					}
 				})
 				if appearance.Progress && ts.Timeout >= 0 {
@@ -171,7 +179,8 @@ func ToastViewport(c *ui.Context, t Theme, o ToastViewportOptions) ui.Element {
 						total = 4 * time.Second
 					}
 					left := parts.Left()
-					Progress(c.Key("progress"), inner, 100*float64(left)/float64(total), ProgressOptions{Color: appearance.Color, Size: XS})
+					// Pinned to the bottom edge across the full width, as Nuxt's.
+					Progress(c.Key("progress"), inner, 100*float64(left)/float64(total), ProgressOptions{Color: appearance.Color, Size: SM}).Absolute().Left(0).Right(0).Bottom(0)
 					if left > 0 && inner.motion(c) && !viewport.Hovered() && !viewport.FocusWithin() {
 						c.After(50 * time.Millisecond)
 					}

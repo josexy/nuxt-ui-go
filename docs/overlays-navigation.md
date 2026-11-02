@@ -49,7 +49,9 @@ Modal 使用 DialogBase 的模态作用域，背景不可操作，Tab 约束在�
 
 ModalOptions 提供 Overlay（默认 true）与 Fullscreen。Overlay=false 仅隐藏遮罩颜色，保留模态焦点；Fullscreen 使用整窗尺寸、零圆角和零边框。默认遮罩为 Elevated 的 75% 透明度配色。面板圆角 8（与 Toast 相同），打开时面板在 200ms 内从 95% 缩放并淡入，遮罩同步淡入；减少动态效果时直接显示。关闭立即完成，原因同 Popover，见 [Popover](inputs.md#popover-与-scrollarea)。Slideover 不使用 Fullscreen，仍由 Side/Extent 控制。
 
-`Slideover(c,t,&open,SlideoverOptions,body)` 复用相同标题、正文、关闭与 Footer 选项。`Side` 为 `SideRight`（零值）、`SideLeft`、`SideTop`、`SideBottom`；`Extent` 默认 448 DIP，表示左右宽度或上下高度，最多占满对应窗口轴。Slideover 使用 Extent 和窗口尺寸；嵌入 ModalOptions 的 Width/MaxHeight 仅供 Modal 使用。
+Modal、Slideover 的布局与 Nuxt 一致：标题区上下内边距 16、左右 24、最低高 64，与正文、Footer 之间各有一条分隔线（只画在实际存在的区域之间）；正文内边距 24，content 为 nil 时不创建正文区；Footer gap 6；关闭按钮为 MD。Footer 保持右对齐：Nuxt 默认起始对齐，但其 Modal 和 Slideover 文档示例都用 `ui.footer: 'justify-end'` 改成右对齐；PartStyle 不能表达对齐方式，需要起始对齐时在 Footer builder 里自行布局。
+
+`Slideover(c,t,&open,SlideoverOptions,body)` 复用相同标题、正文、关闭与 Footer 选项。`Side` 为 `SideRight`（零值）、`SideLeft`、`SideTop`、`SideBottom`；左右方向的 `Extent` 默认 448 DIP；上下方向未设置 Extent 时与 Nuxt 一样按内容高度显示（最多占满窗口），设置后固定为该高度。Extent 最多占满对应窗口轴。Slideover 使用 Extent 和窗口尺寸；嵌入 ModalOptions 的 Width/MaxHeight 仅供 Modal 使用。
 
 Slideover 采用 200ms cubic ease-out 位移与遮罩过渡；`Theme.Motion.Reduce` 时即时开关，当前持续时间固定。退出动画结束前保留模态作用域、禁止内容操作，结束后卸载并恢复焦点；反向切换从当前进度继续。请持续调用组件，不能用 `if open` 包住整次构建。正文伸展并滚动，Footer 位于面板底部。需要底部手柄拖拽与停靠点时使用 [Drawer](advanced.md#drawer)。Slideover 不提供拉伸边缘。
 
@@ -57,7 +59,7 @@ Slideover 采用 200ms cubic ease-out 位移与遮罩过渡；`Theme.Motion.Redu
 
 `Tooltip(c,t,anchor,text,TooltipOptions)`：无交互提示，设置 anchor.Description，使用 TooltipBase 的悬停与键盘焦点规则。默认下方居中、边距 8 DIP，MaxWidth 默认 320；Disabled 或无效/禁用锚点不显示。外观与 Nuxt 一致：高 24 DIP 的单行，超出 MaxWidth 时以省略号截断，圆角 4、水平内边距 10、小阴影；打开时与弹出层一样 100ms scale-in。需要多行说明时改用 Popover。
 
-当前 MyGo 的鼠标延迟为 600ms，连续提示有 400ms warm window；键盘焦点即时显示。离开、按下或 Escape 隐藏。Options 未提供延迟时长配置。提示不接收点击或额外焦点；需要交互内容使用 Popover。Description 会替换锚点已有描述，组合时由调用者整理所需文本。
+同时有文字和 Kbds 时，两者之间显示"·"，键之间间距 2 DIP。当前 MyGo 的鼠标延迟为 600ms，连续提示有 400ms warm window；键盘焦点即时显示。离开、按下或 Escape 隐藏。Options 未提供延迟时长配置。提示不接收点击或额外焦点；需要交互内容使用 Popover。Description 会替换锚点已有描述，组合时由调用者整理所需文本。
 
 ## DropdownMenu 与 ContextMenu
 
@@ -84,12 +86,12 @@ nui.DropdownMenu(c.Key("actions"), t, anchor, &state.Menu, []nui.MenuItem{
 
 菜单行使用 MD 尺寸的[选项行配方](inputs.md#select-与-inputmenu)：内边距 6、图标 20、描述与标签同字号；子菜单箭头为 20 DIP 的 chevron，右到左时朝左。
 | Disabled、Color | 禁用阻止聚焦/激活；语义色可表达危险动作 |
-| Checked `Optional[bool]`、Radio | 设置后分别使用 menuItemCheckBox/menuItemRadio；应用在 OnSelect 更新值及同组互斥关系 |
+| Checked `Optional[bool]`、Radio | 设置后分别使用 menuItemCheckBox/menuItemRadio；应用在 OnSelect 更新值及同组互斥关系。选中时对勾显示在行尾，颜色跟随文字；Icon 仍显示在行首 |
 | Children | 嵌套条目；键盘和鼠标打开；递归超过 32 层拒绝构建 |
 | OnSelect `func()` | 叶项激活后先关闭并请求恢复触发器，再调用一次；子菜单父项不执行叶项动作 |
 | Build `func(*ui.Context, Theme)` | 自定义展示内容。Label 仍必需；不在其中嵌套输入框或独立按钮 |
 
-MenuOptions 提供 Label、Width（默认 240）、MaxHeight（默认 320）与 Decoration。面板宽高限制在窗口内，长菜单滚动，子菜单锚定父行并由公开 AttachTo 避让窗口边缘。非模态菜单外部点击关闭后继续传到目标。
+MenuOptions 提供 Label、Width（默认按内容宽度，至少 128，与 Nuxt 的 `min-w-32` 一致）、MaxHeight（默认 320）与 Decoration。Shortcut 按 `+` 拆成多个键，每个键显示为一个 MD Kbd（`Ctrl++` 中末尾的 `+` 是键本身），键名经 `FormatKey` 映射为平台符号。面板宽高限制在窗口内，长菜单滚动，子菜单锚定父行并由公开 AttachTo 避让窗口边缘。非模态菜单外部点击关闭后继续传到目标。
 
 键盘：上下/Home/End 在可用项间移动；右箭头打开子菜单，左箭头退一级（RTL 时左右互换）；Enter/Space 激活；Escape 只退当前层，根层关闭并恢复锚点；Tab/Shift+Tab 关闭菜单并交给 MyGo 正常遍历。直接文本输入进行不区分大小写的 1 秒前缀匹配，重复首字母可循环；它不启用系统 IME 候选输入，也不是模糊搜索。
 
@@ -119,7 +121,7 @@ Action / OnAction 定义一个动作按钮，执行后关闭通知并调用 OnCl
 
 OnAction/OnClose 被队列保存，必须只捕获业务模型、数据或服务，不能捕获构建 Element、Parts、Context。Toast 本身应从仍有效的 UI 动作调用；后台完成通知通过 Window.Update 发布结果，再由窗口 UI 动作/受控事件桥接。
 
-ToastViewportOptions：Position（右下默认，另有左下/中下/右上/左上/中上）、Width（默认 356）、Limit、Decoration。Limit 1–3，0 或越界归为 3；固定 MyGo 最多提供最新 3 个，较早排队项仍计时。Limit 不是无限队列容量。无队列不绘制面板，进入/退出 150ms（减少动态效果时无过渡）。有超时的通知默认绘制倒计时条，`ToastOptions.Progress: nui.Set(false)` 可关闭；悬停/焦点暂停时同步停止推进。
+ToastViewportOptions：Position（右下默认，另有左下/中下/右上/左上/中上）、Width（默认 384，Nuxt 的 `sm:w-96`）、Limit、Decoration。Limit 1–3，0 或越界归为 3；固定 MyGo 最多提供最新 3 个，较早排队项仍计时。Limit 不是无限队列容量。无队列不绘制面板，进入/退出 150ms（减少动态效果时无过渡）。有超时的通知默认绘制倒计时条，`ToastOptions.Progress: nui.Set(false)` 可关闭；悬停/焦点暂停时同步停止推进。
 
 队列在悬停整个 viewport 内的通知、焦点位于通知内或窗口失焦时暂停，由 MyGo 管理计时和窗口清理。通知为 RoleStatus，操作和关闭按钮可通过键盘访问。屏幕阅读器实际播报尚未验证。
 

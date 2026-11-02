@@ -134,6 +134,7 @@ func Drawer(c *ui.Context, t Theme, s *DrawerState, o DrawerOptions, content fun
 			}
 		}
 	}
+	mo.plain = true
 	style := mo.Style
 	mo.Style = func(slot Slot, e ui.Element) {
 		finish(t, ComponentDrawer, slot, e, PartStyle{}, Decoration{UI: o.UI})

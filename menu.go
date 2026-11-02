@@ -33,6 +33,23 @@ type MenuOptions struct {
 	Width, MaxHeight Optional[float32]
 	Decoration
 }
+
+// shortcutKeys splits a displayed shortcut such as "Ctrl+Shift+P" into its
+// keys; a "+" that cannot separate two keys, as in "Ctrl++", is a key.
+func shortcutKeys(s string) []string {
+	var keys []string
+	for s != "" {
+		i := strings.Index(s[1:], "+")
+		if i < 0 || i == len(s)-2 {
+			keys = append(keys, strings.TrimSpace(s))
+			break
+		}
+		keys = append(keys, strings.TrimSpace(s[:i+1]))
+		s = s[i+2:]
+	}
+	return keys
+}
+
 type menuLevel struct {
 	prefix  string
 	typed   time.Time
@@ -240,12 +257,11 @@ func menuPanel(c *ui.Context, t Theme, panel, anchor ui.Element, s *MenuState, i
 	}
 	w, h := c.Size()
 	maxHeight = min(maxHeight, h-24)
-	width := float32(240)
+	// Nuxt's min-w-32 menu takes its content's width unless Width is set.
+	popup := PopoverOptions{MaxHeight: Set(maxHeight)}
 	if o.Width.Set {
-		width = o.Width.Value
+		popup.Width = Set(min(o.Width.Value, w-24))
 	}
-	width = min(width, w-24)
-	popup := PopoverOptions{Width: Set(width), MaxHeight: Set(maxHeight)}
 	if depth > 0 {
 		popup.Placement = RightStart
 		if c.Direction() == ui.RightToLeft {
@@ -257,7 +273,7 @@ func menuPanel(c *ui.Context, t Theme, panel, anchor ui.Element, s *MenuState, i
 	recipe.PaddingY = Set(t.spacing(4))
 	recipe.Gap = Set(float32(0))
 	positionPanel(panel, anchor, t, popup)
-	panel.Role(ui.RoleMenu).Label(o.Label).FocusGroup(ui.Vertical).MinWidth(0)
+	panel.Role(ui.RoleMenu).Label(o.Label).FocusGroup(ui.Vertical).MinWidth(min(t.spacing(128), w-24)).MaxWidth(max(0, w-24))
 	finish(t, id, Panel, panel, recipe, o.Decoration)
 	originX, originY := popupOrigin(popup.Placement, c.Direction() == ui.RightToLeft)
 	popIn(c, t, panel, popupMotion, originX, originY)
@@ -424,12 +440,7 @@ func menuPanel(c *ui.Context, t Theme, panel, anchor ui.Element, s *MenuState, i
 				}
 			})
 			row.Children(func() {
-				if it.Checked.Set {
-					box := ui.Box(c).Size(16, 16)
-					if it.Checked.Value {
-						box.Children(func() { ui.Icon(c, lucide.Check()).Size(16, 16).TextColor(t.Primary) })
-					}
-				} else if it.Icon != nil {
+				if it.Icon != nil {
 					finish(t, id, Leading, ui.Icon(c, it.Icon).Size(m.Icon, m.Icon).Shrink(0), PartStyle{Foreground: Set(leading)}, o.Decoration)
 				}
 				if it.Build != nil {
@@ -449,7 +460,13 @@ func menuPanel(c *ui.Context, t Theme, panel, anchor ui.Element, s *MenuState, i
 					}
 					finish(t, id, Trailing, ui.Icon(c, chevron).Size(m.Icon, m.Icon).Shrink(0), PartStyle{}, o.Decoration)
 				} else if it.Shortcut != "" {
-					finish(t, id, Trailing, ui.Text(c, it.Shortcut).SingleLine(), PartStyle{Foreground: Set(t.Dimmed), FontSize: Set(t.text(12))}, o.Decoration)
+					// Nuxt shows a Kbd for each key of the shortcut.
+					keys := Kbd(c, t, shortcutKeys(it.Shortcut), KbdOptions{}).Shrink(0)
+					finish(t, id, Trailing, keys, PartStyle{}, o.Decoration)
+				}
+				// The check of a checked item ends the row, in the row's text color.
+				if it.Checked.Set && it.Checked.Value {
+					ui.Icon(c.Key("checked"), lucide.Check()).Size(m.Icon, m.Icon).Shrink(0)
 				}
 			})
 			if childOpen {
