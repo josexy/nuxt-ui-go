@@ -715,6 +715,13 @@ func TestNativeGallery(t *testing.T) {
 	c.press("Team menu")
 	c.find("Beta")
 	c.key("Escape")
+	c.press("Team search")
+	c.call("input", map[string]any{"events": []any{map[string]any{"type": "text", "text": "Beta"}}}, nil)
+	c.idle()
+	c.key("Enter")
+	c.find("Remove Beta")
+	c.press("Remove Beta")
+	c.key("Escape")
 	c.capture("props-selection-light")
 	c.press("Orientation")
 	editorID := c.find("Orientation name").ID

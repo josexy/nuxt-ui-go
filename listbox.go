@@ -2,6 +2,7 @@ package nui
 
 import (
 	"context"
+	"math"
 	"slices"
 	"strings"
 	"time"
@@ -23,6 +24,8 @@ type ListboxState struct {
 	horizontal      ui.ScrollState
 	scrollTo        string
 	selectionAnchor string
+	data            listboxData
+	selection       stringSelection
 }
 type SelectionBehavior uint8
 
@@ -47,14 +50,6 @@ type ListboxOptions struct {
 	Decoration
 }
 
-func enabledListIndex(items []ListboxItem, id string) int {
-	for i, it := range items {
-		if it.ID == id && !it.Disabled {
-			return i
-		}
-	}
-	return -1
-}
 func nextListIndex(items []ListboxItem, at, delta int) int {
 	for i := at + delta; i >= 0 && i < len(items); i += delta {
 		if !items[i].Disabled {
@@ -71,32 +66,11 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 	if selected == nil || s == nil {
 		panic("nui: Listbox requires selection and state")
 	}
-	seen := map[string]bool{}
-	for _, it := range items {
-		checkID(seen, it.ID, "Listbox")
-	}
-	type visibleRow struct {
-		item  int
-		group string
-		key   any
-	}
-	rows := make([]visibleRow, 0, len(items))
-	positions := make([]int, len(items))
-	previousGroup := ""
-	groupNumber := 0
-	for i, it := range items {
-		if it.Group != "" && it.Group != previousGroup {
-			groupNumber++
-			rows = append(rows, visibleRow{item: -1, group: it.Group, key: struct {
-				Group  string
-				Number int
-			}{it.Group, groupNumber}})
-		}
-		positions[i] = len(rows)
-		rows = append(rows, visibleRow{item: i, key: it.ID})
-		previousGroup = it.Group
-	}
-	at := enabledListIndex(items, s.Active)
+	s.data.update(items)
+	s.selection.update(*selected)
+	items = s.data.items
+	rows, positions := s.data.rows, s.data.positions
+	at := s.data.enabledIndex(s.Active)
 	if at < 0 {
 		at = nextListIndex(items, -1, 1)
 		if at >= 0 {
@@ -108,6 +82,7 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 	publish := func(next []string) {
 		if !slices.Equal(next, *selected) {
 			*selected = next
+			s.selection.update(next)
 			if o.OnChange != nil {
 				o.OnChange(slices.Clone(next))
 			}
@@ -151,9 +126,31 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 			finish(t, ComponentListbox, EmptySlot, ui.Text(c, text).Role(ui.RoleStatus).Padding(12), PartStyle{Foreground: Set(t.Muted)}, o.Decoration)
 		}
 		var list ui.Element
+		itemWidth := o.ItemWidth
+		if itemWidth <= 0 {
+			itemWidth = 160
+		}
+		first, last := 0, len(rows)
 		if vert {
 			list = ui.List(c.Key("list"), &s.List, len(rows)).ItemKey(func(i int) any { return rows[i].key })
 		} else {
+			viewport := s.horizontal.Bounds(c).W
+			if viewport <= 0 {
+				viewport, _ = c.Size()
+				c.After(time.Nanosecond)
+			}
+			if i := s.data.enabledIndex(s.scrollTo); s.scrollTo != "" && i >= 0 {
+				x := float32(positions[i]) * itemWidth
+				if x < s.horizontal.X {
+					s.horizontal.X = x
+				} else if x+itemWidth > s.horizontal.X+viewport {
+					s.horizontal.X = max(0, x+itemWidth-viewport)
+				}
+			}
+			s.scrollTo = ""
+			s.horizontal.X = max(0, min(s.horizontal.X, float32(len(rows))*itemWidth-viewport))
+			first = max(0, int(s.horizontal.X/itemWidth)-2)
+			last = min(len(rows), int(math.Ceil(float64((s.horizontal.X+viewport)/itemWidth)))+2)
 			list = ui.ScrollHorizontal(c.Key("list")).TrackScroll(&s.horizontal).Bind(&s.List.Handle).Role(ui.RoleList)
 		}
 		list.Fill().Focusable().Label(o.Label).InputMethod(false)
@@ -161,8 +158,9 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 		move := func(i int) {
 			if i >= 0 && i < len(items) && !items[i].Disabled {
 				s.Active = items[i].ID
-				s.List.ScrollIntoView(positions[i])
-				if !vert {
+				if vert {
+					s.List.ScrollIntoView(positions[i])
+				} else {
 					s.scrollTo = items[i].ID
 				}
 			}
@@ -186,7 +184,7 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 			}
 		}
 		list.HandleInput(func(ev ui.InputEvent) bool {
-			at := enabledListIndex(items, s.Active)
+			at := s.data.enabledIndex(s.Active)
 			if ev.Kind == ui.InputText && ev.Text != "" {
 				if ev.Time.Sub(s.typed) > time.Second {
 					s.prefix = ""
@@ -238,12 +236,12 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 				return false
 			}
 			if ev.Mods == ui.Shift && o.Multiple && o.SelectionBehavior == SelectionReplace {
-				anchor := enabledListIndex(items, s.selectionAnchor)
+				anchor := s.data.enabledIndex(s.selectionAnchor)
 				if anchor < 0 {
 					s.selectionAnchor = before
-					anchor = enabledListIndex(items, before)
+					anchor = s.data.enabledIndex(before)
 				}
-				to := enabledListIndex(items, s.Active)
+				to := s.data.enabledIndex(s.Active)
 				if anchor >= 0 && to >= 0 {
 					rangeIDs := []string{}
 					for i := min(anchor, to); i <= max(anchor, to); i++ {
@@ -257,29 +255,25 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 			return true
 		})
 		list.OnShortcut(0, ui.KeyEnter, func() {
-			if i := enabledListIndex(items, s.Active); i >= 0 {
+			if i := s.data.enabledIndex(s.Active); i >= 0 {
 				choose(items[i].ID, o.SelectionBehavior != SelectionReplace)
 			}
 		})
 		buildRow := func(r ui.ListRow) {
 			entry := rows[r.Index]
 			if entry.item < 0 {
-				finish(t, ComponentListbox, Label, ui.Text(r.Context, entry.group).Height(t.text(28)).Padding(6, 8).FontWeight(600), PartStyle{Foreground: Set(t.Highlighted), FontSize: Set(t.text(12))}, o.Decoration)
+				header := ui.Text(r.Context, entry.group).Height(t.text(28)).Padding(6, 8).FontWeight(600)
+				if !vert {
+					header.Width(itemWidth).MinWidth(itemWidth).MaxWidth(itemWidth).Shrink(0).SingleLine()
+				}
+				finish(t, ComponentListbox, Label, header, PartStyle{Foreground: Set(t.Highlighted), FontSize: Set(t.text(12))}, o.Decoration)
 				return
 			}
 			it := items[entry.item]
-			chosen := slices.Contains(*selected, it.ID)
+			chosen := s.selection.set[it.ID]
 			row := ui.Row(r.Context).MinWidth(0).Height(t.text(40)).AlignItems(ui.Center).Gap(t.spacing(8)).Padding(6, 8).Role(ui.RoleListItem).Label(it.Label).Description(it.Description).Selected(chosen).Background(ui.Transparent).Disabled(it.Disabled)
 			if !vert {
-				w := o.ItemWidth
-				if w <= 0 {
-					w = 160
-				}
-				row.Width(w).Height(height)
-				if s.scrollTo == it.ID {
-					row.ScrollIntoView()
-					s.scrollTo = ""
-				}
+				row.Width(itemWidth).MinWidth(itemWidth).MaxWidth(itemWidth).Shrink(0).Height(height)
 			}
 			if it.ID == s.Active {
 				row.Background(t.Elevated)
@@ -320,10 +314,13 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 			list.Rows(buildRow)
 		} else {
 			list.Children(func() {
-				ui.Row(c).Children(func() {
-					for i, entry := range rows {
+				ui.Row(c).Width(float32(len(rows)) * itemWidth).Height(height).Shrink(0).Children(func() {
+					ui.Box(c.Key(listboxSpacer(false))).Width(float32(first) * itemWidth).Shrink(0)
+					for i := first; i < last; i++ {
+						entry := rows[i]
 						buildRow(ui.ListRow{Context: c.Key(entry.key), Index: i})
 					}
+					ui.Box(c.Key(listboxSpacer(true))).Width(float32(len(rows)-last) * itemWidth).Shrink(0)
 				})
 			})
 		}
@@ -332,12 +329,19 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 }
 
 type SelectMenuState struct {
-	Open        bool
-	Query       string
-	Listbox     ListboxState
-	queryHandle ui.Handle
-	wasOpen     bool
-	labels      map[string]string
+	Open           bool
+	Query          string
+	Listbox        ListboxState
+	queryHandle    ui.Handle
+	wasOpen        bool
+	labels         map[string]string
+	data           listboxItems
+	labelIDs       []string
+	label          string
+	filtered       []ListboxItem
+	filterQuery    string
+	filterFields   []string
+	filterRevision uint64
 }
 type SelectMenuOptions struct {
 	ListboxOptions
@@ -363,6 +367,8 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 	if s == nil || value == nil {
 		panic("nui: SelectMenu requires value and state")
 	}
+	dataChanged := s.data.update(items)
+	items = s.data.items
 	resetQuery := func() {
 		if s.Query == "" {
 			return
@@ -380,24 +386,7 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 	root := ui.Column(c).MinWidth(0)
 	finish(t, ComponentSelectMenu, Root, root, PartStyle{Gap: Set(t.spacing(4))}, o.Decoration)
 	root.Children(func() {
-		labels := []string{}
-		cache := map[string]string{}
-		for _, id := range *value {
-			label := id
-			if known, ok := s.labels[id]; ok {
-				label = known
-			}
-			for _, it := range items {
-				if it.ID == id {
-					label = it.Label
-					break
-				}
-			}
-			labels = append(labels, label)
-			cache[id] = label
-		}
-		s.labels = cache
-		label := strings.Join(labels, ", ")
+		label := s.selectionLabel(*value, dataChanged)
 		if label == "" {
 			label = o.Placeholder
 			if label == "" {
@@ -458,28 +447,7 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 			}
 			filtered := items
 			if search && !o.ExternalFilter && s.Query != "" {
-				filtered = nil
-				q := strings.ToLower(s.Query)
-				for _, it := range items {
-					fields := o.FilterFields
-					if fields == nil {
-						fields = []string{"label"}
-					}
-					matched := false
-					for _, field := range fields {
-						if field == "group" {
-							matched = matched || strings.Contains(strings.ToLower(it.Group), q)
-						} else {
-							if field == "id" {
-								field = "value"
-							}
-							matched = matched || matchOption(Option[string]{Value: it.ID, Label: it.Label, Description: it.Description}, q, []string{field})
-						}
-					}
-					if matched {
-						filtered = append(filtered, it)
-					}
-				}
+				filtered = s.filter(s.Query, o.FilterFields)
 			}
 			if o.Loading {
 				ui.Text(c, message(c, "loading")).Role(ui.RoleStatus)

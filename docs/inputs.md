@@ -89,7 +89,7 @@ Root slot 和 Style(Root) 控制整体元素；Indicator.Background 控制已选
 
 ## Select 与 InputMenu
 
-公共选项为 `Option[T comparable]{Value, Label, Description, Disabled, Icon, Build}`。Value 与 Label 分开，允许重复显示名称；ID 必须唯一、可反身比较（拒绝 NaN）。自定义 Build 同步构建选项内容，仍应填写 Label 供辅助技术与搜索使用。禁用项只显示，不进入 Base 的键盘候选列表。列表尚未虚拟化，不承诺大数据异步搜索性能。
+公共选项为 `Option[T comparable]{Value, Label, Description, Disabled, Icon, Build}`。Value 与 Label 分开，允许重复显示名称；ID 必须唯一、可反身比较（拒绝 NaN）。自定义 Build 同步构建选项内容，仍应填写 Label 供辅助技术与搜索使用。禁用项只显示，不进入键盘候选列表。Select 与 InputMenu 使用原生虚拟列表，键盘候选项独立于屏幕内的行；Build 只为可见行及少量预留行调用，因此不得依赖屏幕外选项的构建副作用。输入与快照的比较仍随数据量增长；InputMenu 缓存本地过滤结果，数据、查询或过滤字段变化时重算。远程分页与异步请求由应用管理。
 
 Select 绑定 `*T`，默认 Placeholder 为空；没有内置零值哨兵。以下字段无选择时是 Optional 的零值，真实选项仍可使用字符串零值：
 
@@ -108,7 +108,7 @@ InputMenu 绑定 `*SearchState`，其中 Query 是编辑草稿，Selected 是单
 
 InputMenuOptions 嵌入 InputOptions，增加 EmptyText、Popup、AllowCustom、OnSelect(func(string))。默认只允许选候选，不执行自由文本 OnSubmit；AllowCustom=true 时，无候选选择的 Enter 执行 InputOptions.OnSubmit(Query)，不会伪造 Selected 或触发 OnSelect。选择候选只触发一次 OnSelect，不同时提交自由文本。Clearable 清空 Query 和 Selected，并调用 OnClear；一般输入的 OnChange 用于草稿变化，业务选择监听 OnSelect。
 
-没有匹配/只有禁用候选时，显示 EmptyText（默认 No results found）状态。通过公开 Overlay+AttachTo 补充 ComboboxBase 零候选隐藏面板的行为；空状态无可选哨兵、不抢焦点、不吃外部点击。Escape/失焦跟随原生 Combobox。选项的 ID、Label、Description、Disabled 集合变化时关闭正在显示的面板，重新打开后使用新集合，避免基于索引的高亮错选；没有实现异步请求取消/加载状态。
+没有匹配/只有禁用候选时，显示 EmptyText（默认 No results found）状态。输入使用 TextInputBase，面板使用 PopoverBase 与 List；空状态无可选哨兵、不抢焦点、不吃外部点击。上下键可移动到屏幕外候选，选择时焦点保留在输入框；Escape 或失焦关闭面板。选项的 ID、Label、Description、Disabled 集合变化时关闭正在显示的面板，重新打开后使用新集合，避免接受旧数据中的候选；没有实现异步请求取消/加载状态。
 
 InputMenu 的 UI 包含 Input 的四个 slot 及 Panel、Item、EmptySlot；继承的 Style 回调仍只接收输入外壳/编辑器/两侧图标，面板可用 Popup.Decoration.Style。SearchSelect 是便捷入口，内部转到 InputMenu；新代码使用完整 Options。
 

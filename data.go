@@ -167,6 +167,7 @@ type TreeState struct {
 	Selection ui.Selection[string]
 	roots     []string
 	nodes     map[string]*treeRecord
+	loading   map[string]*treeRecord
 	version   uint64
 	RowBuilds int
 }
@@ -200,6 +201,7 @@ func (s *TreeState) SetNodes(nodes []TreeNode) {
 	s.version++
 	s.nodes = records
 	s.roots = roots
+	s.loading = nil
 	for id := range s.Selection.All() {
 		if records[id] == nil {
 			s.Selection.Remove(id)
@@ -224,16 +226,18 @@ func (s *TreeState) Retry(id string) {
 		n.loaded = false
 		n.loading = false
 		n.version++
+		delete(s.loading, id)
 	}
 }
 
 // CompleteLoad must be called on the window's UI thread. Collapsed/replaced requests are rejected.
 func (s *TreeState) CompleteLoad(ticket TreeTicket, children []TreeNode, err error) bool {
 	r := s.nodes[ticket.id]
-	if ticket.owner != s.identity || r == nil || !r.loading || r.version != ticket.version {
+	if ticket.owner != s.identity || r == nil || !r.loading || r.version != ticket.version || !s.Outline.Open.Has(ticket.id) {
 		return false
 	}
 	r.loading = false
+	delete(s.loading, ticket.id)
 	if err != nil {
 		r.err = err.Error()
 		return true
@@ -272,17 +276,24 @@ func Tree(c *ui.Context, t Theme, s *TreeState, o TreeOptions) ui.Element {
 	s.Outline.Indent = t.spacing(16)
 	s.Outline.List.Label = func(i int) string { return s.nodes[s.Outline.Item(i)].node.Label }
 	// A request is issued once per expansion, and invalidated when its branch closes.
-	for id, n := range s.nodes {
-		open := s.Outline.Open.Has(id)
-		if n.loading && !open {
+	for id, n := range s.loading {
+		if !s.Outline.Open.Has(id) {
 			n.loading = false
 			n.version++
 			s.version = max(s.version, n.version)
+			delete(s.loading, id)
 		}
-		if open && !n.loaded && !n.loading && n.err == "" && o.OnLoad != nil {
+	}
+	for id := range s.Outline.Open.All() {
+		n := s.nodes[id]
+		if n != nil && !n.loaded && !n.loading && n.err == "" && o.OnLoad != nil {
 			s.version++
 			n.version = s.version
 			n.loading = true
+			if s.loading == nil {
+				s.loading = make(map[string]*treeRecord)
+			}
+			s.loading[id] = n
 			o.OnLoad(id, TreeTicket{s.identity, id, n.version})
 		}
 	}

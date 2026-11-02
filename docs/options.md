@@ -20,7 +20,7 @@ Pagination 同时按 [Reka UI 2.11.0 分页规则](https://github.com/unovue/rek
 | --- | --- | --- |
 | FormFieldOptions | `Optional[Orientation]` / Vertical | Label / Hint / Description 属于标签列，输入 / Help / Error 属于内容列；保持本库控件的标签激活和编辑器身份 |
 | AlertOptions / ToastOptions | `Optional[Orientation]` / Vertical | 操作放在正文下方或旁边 |
-| ListboxOptions | `Optional[Orientation]` / Vertical | 纵向虚拟列表或横向滚动列表；对应 ↑↓ / ←→，水平键随 RTL 镜像 |
+| ListboxOptions | `Optional[Orientation]` / Vertical | 纵向虚拟列表或按 ItemWidth 裁剪的横向虚拟列表；对应 ↑↓ / ←→，水平键随 RTL 镜像 |
 | InputRatingOptions | `Orientation` / Horizontal | 星级横向或纵向排列 |
 | RangeSliderOptions | `Orientation` / Horizontal | 共用轨道、两拇指几何与拖拽坐标同步变化；保留两个独立焦点与范围值 |
 | ProgressGroupOptions | `Orientation` / Horizontal | 水平分段轨道或纵向分段轨道；纵向 Height 默认 160 DIP |
@@ -83,7 +83,7 @@ Gallery 的 **Props & behavior** 展示加载、选择上限、标签策略、�
 
 ## 使用限制
 
-横向 Listbox 使用普通滚动布局，纵向保留虚拟化。Slider / RangeSlider 统一通过公开 Range / Step / 焦点和快捷键实现 Nuxt 的按键规则，因为 SliderBase 会先消耗按键；实际值、上下限和步长可访问，但 MyGo 通用控件缺少纵向元数据 setter，**此限制目前适用于所有纵向 Slider / RangeSlider，包括非反向模式**。InputRating 仍使用单焦点 slider 角色，未宣称完整 radio 读屏等价。
+Listbox 两个方向均限制实际构建数量；横向项目与组标题采用固定 ItemWidth，纵向由原生 List 管理行高。Slider / RangeSlider 统一通过公开 Range / Step / 焦点和快捷键实现 Nuxt 的按键规则，因为 SliderBase 会先消耗按键；实际值、上下限和步长可访问，但 MyGo 通用控件缺少纵向元数据 setter，**此限制目前适用于所有纵向 Slider / RangeSlider，包括非反向模式**。InputRating 仍使用单焦点 slider 角色，未宣称完整 radio 读屏等价。
 
 Go Options 与 Nuxt Vue Props 使用不同的数据模型，支持字段以各 API 文档为准。滑块值提示按拇指定位，未提供 Tooltip 延迟配置对象。FormField 通过本库控件的字段绑定处理标签激活；直接传入自定义 MyGo 控件时，需由应用处理其标签关联。表单校验、日期/数字格式与 Table/Tree 的支持范围见 [表单与数据](forms-data.md)，读屏、输入法与 DPI 的验证范围见 [兼容性说明](compatibility.md)。
 
