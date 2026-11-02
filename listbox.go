@@ -271,7 +271,8 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 			}
 			it := items[entry.item]
 			chosen := s.selection.set[it.ID]
-			row := ui.Row(r.Context).MinWidth(0).Height(t.text(40)).AlignItems(ui.Center).Gap(t.spacing(8)).Padding(6, 8).Role(ui.RoleListItem).Label(it.Label).Description(it.Description).Selected(chosen).Background(ui.Transparent).Disabled(it.Disabled)
+			// Rows with a description grow; the list measures each row it shows.
+			row := ui.Row(r.Context).MinWidth(0).MinHeight(t.text(40)).AlignItems(ui.Center).Gap(t.spacing(8)).Padding(6, 8).Role(ui.RoleListItem).Label(it.Label).Description(it.Description).Selected(chosen).Background(ui.Transparent).Disabled(it.Disabled)
 			if !vert {
 				row.Width(itemWidth).MinWidth(itemWidth).MaxWidth(itemWidth).Shrink(0).Height(height)
 			}
@@ -421,7 +422,13 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 		})
 		fieldSemantics(c, anchor, t, field)
 		anchor.OnClick(func() { s.Open = !s.Open }).OnShortcut(0, ui.KeyDown, func() { s.Open = true }).OnShortcut(0, ui.KeyUp, func() { s.Open = true })
-		finish(t, ComponentSelectMenu, Trigger, anchor, PartStyle{}, o.Decoration)
+		// Group corners follow part styles and precede the caller's Style callback, as for Input.
+		trigger := mergeStyle(t.components[ComponentSelectMenu].UI[Trigger], o.UI[Trigger])
+		trigger.apply(anchor)
+		applyGroup(c, anchor, t, mergeValue(style.Radius, trigger.Radius).Value)
+		if o.Style != nil {
+			o.Style(Trigger, anchor)
+		}
 		popup := o.Popup
 		popup.MatchAnchor = true
 		if !popup.MaxHeight.Set {

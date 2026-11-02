@@ -42,7 +42,14 @@ func Banner(c *ui.Context, t Theme, open *bool, o BannerOptions) ui.Element {
 			if label == "" {
 				label = message(c, "dismissBanner")
 			}
-			close := Button(c, t, "", ButtonOptions{Leading: lucide.X(), Variant: Ghost, Color: Neutral, Square: true, AccessibleLabel: label, UI: Styles{Root: {Foreground: Set(t.Inverted)}}}).OnClick(func() {
+			// Nuxt's hover:bg-default/10 keeps the inverted icon readable on the banner color.
+			close := Button(c, t, "", ButtonOptions{Leading: lucide.X(), Variant: Ghost, Color: Neutral, Square: true, AccessibleLabel: label, UI: Styles{Root: {Foreground: Set(t.Inverted)}}, Style: func(root, label, leading, trailing ui.Element) {
+				if !root.IsDisabled() && (root.Hovered() || root.Pressed() || root.FocusVisible()) {
+					root.Background(t.Background.Alpha(.10))
+				} else {
+					root.Background(ui.Transparent)
+				}
+			}}).OnClick(func() {
 				*open = false
 				if o.OnClose != nil {
 					o.OnClose()

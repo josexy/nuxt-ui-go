@@ -136,7 +136,7 @@ func Sidebar(c *ui.Context, t Theme, collapsed *bool, o SidebarOptions, content 
 			w = o.CollapsedWidth.Value
 		}
 	}
-	root := ui.Column(c).Width(max(0, w)).AlignSelf(ui.Stretch).MinWidth(0).MinHeight(0).Shrink(0).Role(ui.RoleGroup).Label(o.Title).BorderWidth(0, 1, 0, 0).BorderColor(t.Border)
+	root := ui.Column(c).Width(max(0, w)).AlignSelf(ui.Stretch).MinWidth(0).MinHeight(0).Shrink(0).Role(ui.RoleGroup).Label(o.Title).BorderEndWidth(1).BorderColor(t.Border)
 	finish(t, ComponentSidebar, Root, root, PartStyle{Background: Set(t.Background), PaddingX: Set(t.spacing(8)), PaddingY: Set(t.spacing(12)), Gap: Set(t.spacing(12))}, o.Decoration)
 	root.Children(func() {
 		ui.Row(c).MinWidth(0).AlignItems(ui.Center).Children(func() {
@@ -147,7 +147,17 @@ func Sidebar(c *ui.Context, t Theme, collapsed *bool, o SidebarOptions, content 
 			if label == "" {
 				label = message(c, "toggleSidebar")
 			}
-			Button(c, t, "", ButtonOptions{Leading: lucide.ChevronDown(), AccessibleLabel: label, Square: true, Variant: Ghost, Color: Neutral}).Expanded(!*collapsed).OnClick(func() { *collapsed = !*collapsed })
+			// Panel icons point toward the sidebar's edge, which is the right edge right to left.
+			icon := lucide.PanelLeftClose()
+			switch rtl := c.Direction() == ui.RightToLeft; {
+			case *collapsed && rtl:
+				icon = lucide.PanelRightOpen()
+			case *collapsed:
+				icon = lucide.PanelLeftOpen()
+			case rtl:
+				icon = lucide.PanelRightClose()
+			}
+			Button(c, t, "", ButtonOptions{Leading: icon, AccessibleLabel: label, Square: true, Variant: Ghost, Color: Neutral}).Expanded(!*collapsed).OnClick(func() { *collapsed = !*collapsed })
 		})
 		if o.Header != nil {
 			o.Header(c, t)
@@ -237,7 +247,7 @@ func FooterColumns(c *ui.Context, t Theme, columns []FooterColumn, o FooterColum
 				ids := map[string]bool{}
 				for _, it := range col.Items {
 					checkID(ids, it.ID, "FooterColumns item")
-					b := Button(c.Key(it.ID), t, it.Label, ButtonOptions{Variant: LinkVariant, Color: Neutral, Disabled: it.Disabled}).Justify(ui.Start)
+					b := Button(c.Key(it.ID), t, it.Label, ButtonOptions{Variant: LinkVariant, Color: Neutral, Leading: it.Icon, Disabled: it.Disabled}).Justify(ui.Start)
 					finish(t, ComponentFooterColumns, Item, b, PartStyle{}, o.Decoration)
 					b.OnClick(func() {
 						if o.OnNavigate != nil {

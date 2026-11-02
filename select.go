@@ -192,7 +192,7 @@ func Select[T comparable](c *ui.Context, t Theme, selected *T, options []Option[
 		}
 		optionList(c, t, &memory.list, e, len(options), func(i int) Option[T] { return options[i] }, selectionHeight(o.Popup), ComponentSelect, o.Decoration, config.Size, func(v T) bool { return v == *selected }, choose)
 	})
-	applyGroup(e, t, styles[Root].Radius.Value)
+	applyGroup(c, e, t, styles[Root].Radius.Value)
 	if o.Style != nil {
 		o.Style(Root, e)
 	}

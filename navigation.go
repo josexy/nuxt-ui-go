@@ -182,10 +182,22 @@ func Breadcrumb(c *ui.Context, t Theme, items []BreadcrumbItem, o BreadcrumbOpti
 				continue
 			}
 			if i > 0 {
-				ui.Icon(c, lucide.ChevronDown()).Size(14, 14).Rotate(-90).TextColor(t.Dimmed)
+				separator := lucide.ChevronRight()
+				if c.Direction() == ui.RightToLeft {
+					separator = lucide.ChevronLeft()
+				}
+				ui.Icon(c, separator).Size(14, 14).TextColor(t.Dimmed)
 			}
 			if i == len(items)-1 {
-				finish(t, ComponentBreadcrumb, Item, ui.Text(c.Key(it.ID), it.Label).SingleLine().MinWidth(0).Description(message(c, "currentPage")), PartStyle{Foreground: Set(t.Highlighted), Weight: Set(500)}, o.Decoration)
+				m := buttonMetrics(t, SM)
+				current := ui.Row(c.Key(it.ID)).MinWidth(0).AlignItems(ui.Center).Gap(m.Gap)
+				current.Children(func() {
+					if it.Icon != nil {
+						ui.Icon(c, it.Icon).Size(m.Icon, m.Icon).Shrink(0)
+					}
+					ui.Text(c, it.Label).SingleLine().MinWidth(0).Description(message(c, "currentPage"))
+				})
+				finish(t, ComponentBreadcrumb, Item, current, PartStyle{Foreground: Set(t.Highlighted), Weight: Set(500)}, o.Decoration)
 			} else {
 				e := Button(c.Key(it.ID), t, it.Label, ButtonOptions{Variant: LinkVariant, Color: Neutral, Leading: it.Icon, Disabled: it.Disabled, Size: SM}).Role(ui.RoleLink).OnClick(it.OnSelect)
 				finish(t, ComponentBreadcrumb, Item, e, PartStyle{}, o.Decoration)

@@ -182,6 +182,12 @@ func RangeSlider(c *ui.Context, t Theme, low, high *float64, o RangeSliderOption
 			}
 			e := ui.Box(c.Key(k)).Focusable().Role(ui.RoleSlider).Range(from, to, *v)
 			e.Absolute().Left(0).Right(0).Top(0).Bottom(0).Step(step).Label(label).FocusRing(false).Bind(&s.thumbs[k])
+			if k == 0 {
+				// A FormField label focuses the first thumb, which also carries the
+				// field's description and error; each thumb keeps its own name.
+				bindField(c, e, t)
+				e.Label(label)
+			}
 			for _, key := range sliderKeys {
 				for _, mods := range []ui.Modifiers{0, ui.Shift} {
 					e.OnShortcut(mods, key, func() {

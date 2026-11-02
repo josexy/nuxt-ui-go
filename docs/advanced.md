@@ -29,7 +29,7 @@ Gallery 的 Advanced interactions、Activity & attachments、Application layout 
 
 - 默认 Ctrl+K 切换；`ShortcutKey/ShortcutMods` 可改为平台习惯，`DisableShortcut` 可关闭。动作的 `Key/Mods` 是可执行快捷键，`Shortcut` 仅负责显示。业务快捷键由应用避免冲突。
 - 大小写不敏感的 Unicode 子序列搜索；连续匹配与词首加权，Keywords 可提供别名。返回 rune 索引用 RichText 高亮，不按 UTF-8 字节切片。默认不做拼音、分词或重音折叠。
-- 分组、描述语义、图标、快捷键、禁用项、子动作与 Back。列表用 Listbox 虚拟化；默认最多 200 个结果，配置最大 1,000。不对全部结果建立每帧 UI。
+- 分组、描述、图标、快捷键、禁用项、子动作与 Back。描述以 Muted 色、与标签同字号显示在标签下一行。列表用 Listbox 虚拟化；默认最多 200 个结果，配置最大 1,000。不对全部结果建立每帧 UI。
 - 默认搜索在工作线程扫描不可变索引，使用至多一项的 mailbox；UI 构建轮询并发布。每 128 条检查取消，过期任务不回写。排序保存有界 top-k，不全量排序。
 - 输入 Down 进入列表，Up/Down/Home/End 在列表移动，Enter 激活。正在搜索或查询与结果不一致时，Enter 不执行旧动作。OnTextKey 沿用底层组合输入屏蔽规则。
 - `Open=false` 的下一次构建取消任务；`Close()` 立即取消。组件应每帧调用，包括关闭时；不再调用或窗口关闭时显式 `Close()`。无永久 goroutine/ticker。
@@ -54,7 +54,7 @@ nui.CommandPalette(c, theme, &state.Commands,
 
 水平导航的子级使用已有 DropdownMenu（多层菜单、Escape、焦点恢复）；纵向采用内联展开层级。方向键、Home/End 和 Tab 使用 MyGo FocusGroup；禁用项不激活。父项用于展开，不同时跳转。全树 ID 唯一，删除项目后清理菜单状态。
 
-Sidebar 是侧栏内容区，有标题、Header/Footer builder、可滚动 body 和收起按钮，默认宽 224/64 DIP。`content(c,t,compact)` 中可组合 NavigationMenu；紧凑模式隐藏有图标项目的文字，但保留可访问名称。没有图标的项仍显示标签。长文本按可用宽度省略；应用应在更窄的窗口主动收起，或把导航放进 Drawer。
+Sidebar 是侧栏内容区，有标题、Header/Footer builder、可滚动 body 和收起按钮，默认宽 224/64 DIP。收起按钮使用 Nuxt 的面板图标（panel-left-close / open），分隔边框在结束侧；右到左时图标和边框一起镜像。`content(c,t,compact)` 中可组合 NavigationMenu；紧凑模式隐藏有图标项目的文字，但保留可访问名称。没有图标的项仍显示标签。长文本按可用宽度省略；应用应在更窄的窗口主动收起，或把导航放进 Drawer。
 
 不包含 DashboardSidebar、路由匹配、Web mega menu、移动端断点系统，也不要求 URL。导航的原生无障碍角色为 Group（MyGo 没有公开 Navigation landmark 枚举）。
 
@@ -112,7 +112,7 @@ go func() {
 
 所有数据设置方法先验证再复制；错误不改动原数据。`SetData(xs, series)` 要求有限、严格递增的共享 X；每条序列与 X 等长，系列 ID 唯一且非空。NaN/Inf Y 表示缺值，不转为 0。`SetCategories(labels, series)` 使用唯一非空标签的 Band 轴；`SetTimeData(times, series)` 要求时间严格递增，刻度使用第一项的时区。散点图沿用共享、排序的 X 数据模型。
 
-`SetSlices` 独立保存 `ChartSlice{ID, Label, Value, Color}`，可在同一状态中保留直角坐标与径向两组数据，再切换 Kind。切片 ID 唯一非空；Value 必须有限、非负，总和有限。0 值不绘制扇区，但保留图例。语义颜色随 Primary／Neutral 与明暗主题刷新；默认系列颜色按数据顺序循环，也可显式指定 `Color`。
+`SetSlices` 独立保存 `ChartSlice{ID, Label, Value, Color}`，可在同一状态中保留直角坐标与径向两组数据，再切换 Kind。切片 ID 唯一非空；Value 必须有限、非负，总和有限。0 值不绘制扇区，但保留图例。语义颜色随 Primary／Neutral 与明暗主题刷新；默认系列颜色与 Nuxt 的 `--ui-chart-1..6` 一致，依次为 Primary、blue、violet、amber、rose、cyan（浅色主题取 500 色阶，深色取 400），六条之后循环，也可显式指定 `Color`。
 
 Y 轴包含 0。Standard 将正负值分别向上／下累积；Normalized 按每个 X 的可见值**绝对值总和**归一化，纯正值合计 100%，混合正负时两侧共享分母；Center 将代数和居中到 0。隐藏系列会重新计算坐标范围和堆叠；隐藏扇区后重算可见比例。隐藏状态按 ID 跨更新和重排保留，删除 ID 后清理。
 

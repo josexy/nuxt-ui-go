@@ -138,14 +138,14 @@ Tabs 的 pill 活动项使用语义色背景/反色文字，水平列表填充�
 
 ## Breadcrumb、Pagination、Stepper、Timeline
 
-- **Breadcrumb**：`[]BreadcrumbItem{ID,Label,Icon,Disabled,OnSelect}`，Options 为 Label、MaxItems。最后一项作为当前页文本，不可点击；祖先为 Link 语义。MaxItems≥2 时保留第一项和末尾若干项，中间显示不可交互省略号；不实现省略项下拉或路由系统。当前路径需由应用提供。
+- **Breadcrumb**：`[]BreadcrumbItem{ID,Label,Icon,Disabled,OnSelect}`，Options 为 Label、MaxItems。最后一项作为当前页文本，不可点击，同样显示 Icon；祖先为 Link 语义。分隔符为 chevron-right，右到左时换成 chevron-left。MaxItems≥2 时保留第一项和末尾若干项，中间显示不可交互省略号；不实现省略项下拉或路由系统。当前路径需由应用提供。
 - **Pagination**：绑定 `*int`，页码从 1 开始。Total 为总条数、PageSize≤0 默认 10、Siblings≤0 默认 2（最大 10），`SiblingCount: nui.Set(0)` 可显式指定零邻页。ShowEdges 默认 false，Size 默认 MD；总数减少会静默夹紧 page。边界按钮禁用；OnChange 仅在用户切到不同页时执行，不执行查询。按钮与可访问名称跟随 MyGo 全局语言，支持中英文，见 [i18n](i18n.md)。
 - **Stepper**：绑定当前 `*string`，`[]StepItem{ID,Title,Description,Icon,Disabled}`；Options：Label、Vertical、Linear、Disabled、Color、Size、CanSelect、OnChange。横向默认等宽排列，圆点居中，标题与描述在下方，圆点之间有连接线；Vertical 将文字放在圆点旁，并改为纵向连线。Size 默认 MD，XS/SM/MD/LG/XL 的圆点直径为 24/32/40/48/56 DIP（随 Density 缩放）。当前位置以前的圆点及其后连接线显示完成色，当前位置圆点高亮；图标或数字保留，不自动替换成勾号。点击圆点激活步骤。默认允许任意可用步骤；Linear 允许返回和前进至下一个位置，CanSelect 在实际激活时可否决。方向键只移动焦点，Enter/Space 才激活；不自动跳过线性流程中的禁用业务步骤，应用应提供正确流程。未知 ID 表示尚未开始，不静默选中第一项。
 - **Timeline**：`[]TimelineItem{ID,Title,Description,Time,Icon,Color,Content}`；Options：Label、Horizontal、Color、Size、Current、CurrentID、Reverse、OnSelect。默认纵向；横向将指标/连接线放在上方，文字放在下方。Current 为可选零基步骤索引，CurrentID 优先；未设置时无活动/完成项；Reverse 改变进度解释而不重排。点击只通知 OnSelect，不改受控进度。条目可带 Avatar/UI。Time 为应用格式化字符串。RoleList/ListItem，不自动排序、格式化时区或调度动画。
 
 ## Banner 与 ErrorView
 
-`Banner(c,t,open *bool,BannerOptions)` 是容器内状态通知。open=false 不显示；nil 表示常驻且无关闭按钮；非 nil 显示可关闭按钮。Options：Title、Description、CloseLabel、Color、Icon、Actions builder、OnClose、Decoration。应用安排其位置，不自动固定在窗口顶部。长文本换行，操作区支持多按钮；极窄容器应由应用减少操作或改为纵向组合。
+`Banner(c,t,open *bool,BannerOptions)` 是容器内状态通知。open=false 不显示；nil 表示常驻且无关闭按钮；非 nil 显示可关闭按钮，悬停或键盘聚焦时铺 10% 的背景色（Nuxt 的 `bg-default/10`），反色图标保持可读。Options：Title、Description、CloseLabel、Color、Icon、Actions builder、OnClose、Decoration。应用安排其位置，不自动固定在窗口顶部。长文本换行，操作区支持多按钮；极窄容器应由应用减少操作或改为纵向组合。
 
 Nuxt 的 Error 入口在 Go 命名为 `ErrorView`，保留既有语义色 `nui.Error`。`ErrorOptions` 提供 Status、Title、Description、RetryLabel、Icon、OnRetry、Actions、Decoration。默认警告图标与居中标题，Actions 优先于默认重试按钮；没有 OnRetry 时不生成重试按钮。不接管 panic、请求、路由或重试状态机。
 

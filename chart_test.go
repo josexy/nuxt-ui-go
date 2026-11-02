@@ -376,3 +376,24 @@ func TestChartInteractionAndAnimationLifecycle(t *testing.T) {
 		t.Fatal("returning chart did not settle")
 	}
 }
+
+func TestChartDefaultSeriesColorsAreDistinct(t *testing.T) {
+	for _, th := range []Theme{Light(), Dark()} {
+		shade := 500
+		if th.Dark {
+			shade = 400
+		}
+		want := []ui.Color{th.Primary, BluePalette().Shade(shade), VioletPalette().Shade(shade), AmberPalette().Shade(shade), RosePalette().Shade(shade), CyanPalette().Shade(shade)}
+		seen := map[ui.Color]bool{}
+		for i, color := range want {
+			got := chartColor(th, ColorDefault, i)
+			if got != color || seen[got] {
+				t.Fatalf("dark=%v series %d color %v, want distinct %v", th.Dark, i, got, color)
+			}
+			seen[got] = true
+		}
+		if chartColor(th, ColorDefault, 6) != th.Primary || chartColor(th, Error, 3) != th.Error {
+			t.Fatal("series colors must cycle after six and honor explicit colors")
+		}
+	}
+}

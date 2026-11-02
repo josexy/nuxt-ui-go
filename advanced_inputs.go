@@ -187,7 +187,7 @@ func InputTags(c *ui.Context, t Theme, value *[]string, s *TagsState, o InputTag
 		}
 		root.Shadow(0, 0, 0, 3, t.focusColor(color))
 	}
-	applyGroup(root, t, styles[Root].Radius.Value)
+	applyGroup(c, root, t, styles[Root].Radius.Value)
 	return root
 }
 
@@ -310,7 +310,7 @@ func PinInput(c *ui.Context, t Theme, value *string, s *PinState, o PinInputOpti
 					c.Resolve(s.Handle).Focus().SetTextSelection(start, end)
 				}).Children(func() { ui.Text(c, v).Role(ui.RoleNone).IgnoreInput(true) })
 				active := focused && i == min(caret, n-1)
-				recipe := inputRecipe(t, config, active, e.Hovered(), false)[Root]
+				recipe := inputRecipe(t, config, active, e.Hovered(), fieldInvalid(t, InputOptions{}))[Root]
 				recipe.PaddingX, recipe.PaddingY = Set(float32(0)), Set(float32(0))
 				finish(t, ComponentPinInput, Item, e, recipe, o.Decoration)
 			}

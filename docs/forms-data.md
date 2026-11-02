@@ -49,7 +49,7 @@ nui.Form(c, theme, &form, nui.FormOptions{
 | `PinInput` / `PinState` | `*string`；默认 5 格文本，Numeric=true 为 ASCII 数字；1–32 格、按 rune 截断、退格、遮罩、ReadOnly、Placeholder、Separator/SeparatorEvery、OnChange/OnComplete | 一个真实编辑器配多个可视槽位，Tab 只进入一次；长度满且值变化才触发完成；不做短信读取或自动提交 |
 | `InputRating` | `*int`，默认 Max=5、0 表示未评分；整数星级、只读/禁用、方向键/Home/End | 不支持半星、任意精度或拖拽评分 |
 
-InputNumber、InputDate、InputTime 和 Numeric=true 的 PinInput 使用固定格式并关闭 IME；PinInput 文本模式及其他普通文本入口启用 IME。PIN 可视槽位跟随编辑器光标显示焦点，编辑、粘贴和撤销由单个原生编辑器承担。
+InputNumber、InputDate、InputTime 和 Numeric=true 的 PinInput 使用固定格式并关闭 IME；PinInput 文本模式及其他普通文本入口启用 IME。PIN 可视槽位跟随编辑器光标显示焦点，编辑、粘贴和撤销由单个原生编辑器承担。放在有 Error 的 FormField 中时，各槽位改用错误色边框。
 
 InputNumber/InputDate/InputTime 的文本编辑器与 Input 共用鼠标、Tab 聚焦高亮。InputTags 的外框使用字段变体配方：编辑器聚焦或标签按钮键盘聚焦时显示强调色和外圈，支持 Color/Variant 与错误色；None 不显示焦点外圈。
 
@@ -74,7 +74,7 @@ PIN 点击已有字符会选中该位，随后输入替换该位、Backspace 删
 
 `CheckboxTri` 使用 `CheckState`：Unchecked / Checked / Indeterminate。混合态通过原生 Mixed 语义暴露；首次激活混合态变为 Checked，之后在 Checked/Unchecked 间切换。父子级联由业务计算；普通二态选择使用绑定 `*bool` 的 `Checkbox`。
 
-`RangeSlider` 接收两个 `*float64`，默认 0–100、Step=1；拇指交叉后排序并转移活动焦点，保持 low≤high，不满足最小间距的移动被拒绝。外部越界值在构建时归入合法范围。支持 Orientation、Inverted、每拇指 Tooltip、MinStepsBetweenThumbs、Color/Size、实时 OnChange 和结束 OnCommit；使用公开 Range/Step 与作用域快捷键，两个拇指保留独立焦点和实际可访问值。纵向元数据限制及参数说明见 [参数与默认值](options.md)。
+`RangeSlider` 接收两个 `*float64`，默认 0–100、Step=1；拇指交叉后排序并转移活动焦点，保持 low≤high，不满足最小间距的移动被拒绝。外部越界值在构建时归入合法范围。支持 Orientation、Inverted、每拇指 Tooltip、MinStepsBetweenThumbs、Color/Size、实时 OnChange 和结束 OnCommit；使用公开 Range/Step 与作用域快捷键，两个拇指保留独立焦点和实际可访问值。放在 FormField 中时，点击字段标签聚焦第一个拇指，字段的描述和错误也落在该拇指上；两个拇指保留各自的"最小值/最大值"名称。纵向元数据限制及参数说明见 [参数与默认值](options.md)。
 
 ## Listbox、SelectMenu 与异步搜索
 

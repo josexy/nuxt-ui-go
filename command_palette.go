@@ -397,8 +397,13 @@ func CommandPalette(c *ui.Context, t Theme, s *CommandPaletteState, o CommandPal
 				spans = append(spans, span)
 				start = end
 			}
-			ui.RichText(c, spans...).Grow(1).MinWidth(0).SingleLine()
-
+			ui.Column(c).Grow(1).MinWidth(0).Children(func() {
+				ui.RichText(c, spans...).MinWidth(0).SingleLine()
+				// Nuxt shows the description under the label, muted, at the item's size.
+				if it.Description != "" {
+					ui.Text(c, it.Description).MinWidth(0).SingleLine().TextColor(t.Muted)
+				}
+			})
 			if m.Action.Shortcut != "" {
 				Kbd(c, t, []string{m.Action.Shortcut}, KbdOptions{})
 			}

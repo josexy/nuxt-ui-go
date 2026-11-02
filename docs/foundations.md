@@ -115,9 +115,9 @@ Button 提供 `Style(root, label, leading, trailing ui.Element)` 和直接 `UI` 
 | Icon / `Icon` | `*ui.SVG`，可选尺寸/颜色/Label；无 Label 时装饰性；Root | Workspace、所有操作 |
 | Button / `Button` | 六变体、五尺寸、七语义色、图标、Loading/Disabled/Block/Square；Root/Label/Leading/Trailing | Theme & buttons |
 | Link / `Link` | URL 或应用 OnClick，Active、Color、Disabled，原生链接角色和键盘焦点；Root/Label | Workspace、Display |
-| Badge / `Badge` | solid/outline/soft/subtle，五尺寸、颜色、Square、两侧图标；Root/Label/Leading/Trailing | Display、Workspace |
-| Card / `Card` | solid/outline/soft/subtle；默认 outline；Title/Description 或 Header builder、正文、Footer builder；Root/Header/Body/Footer/Label/Description | Display、Workspace |
-| Alert / `Alert` | 四种同上变体、默认 solid；图标、标题、长说明、Actions、可选 OnClose；Root/Leading/Label/Description/Trailing | Feedback |
+| Badge / `Badge` | solid/outline/soft/subtle，五尺寸、颜色、Square、两侧图标；Root/Label/Leading/Trailing。标签为空时不创建文字，纯图标徽章没有多余间距；在 FieldGroup/FormField 中继承尺寸并参与组圆角 | Display、Workspace |
+| Card / `Card` | solid/outline/soft/subtle；默认 outline；Title/Description 或 Header builder、正文、Footer builder；Root/Header/Body/Footer/Label/Description。正文 builder 为 nil 时不创建正文区；分隔线只画在实际存在的区域之间 | Display、Workspace |
+| Alert / `Alert` | 四种同上变体、默认 solid；图标、标题、长说明、Actions、可选 OnClose；Root/Leading/Label/Description/Trailing。关闭按钮与 Nuxt 一样是无内边距的 MD link 按钮，悬停不铺底色；为保证对比度沿用提示自身的文字色（Nuxt 为 muted），悬停时变淡 | Feedback |
 | Avatar / `Avatar` | 已解码 Bitmap → SVG → Text 字面文字或 Alt 首字母回退，Alt、Color、五尺寸；Root/Label/Leading | Display、Workspace |
 | AvatarGroup / `AvatarGroup` | 稳定 ID、统一尺寸、重叠、Max 未设置时不限数量、剩余数量；Root；单项 AvatarOptions 可配置 | Display |
 | Chip / `Chip` | 四角、Inset、Hidden、颜色/尺寸、可选文字；Root/Indicator；忽略输入不抢宿主点击；无 content 时独立显示 | Display |

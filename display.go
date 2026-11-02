@@ -19,7 +19,7 @@ type BadgeOptions struct {
 }
 
 func Badge(c *ui.Context, t Theme, label string, opts BadgeOptions) ui.Element {
-	config, styles := resolve(t, ComponentBadge, ComponentTheme{Color: Primary, Variant: Solid, Size: MD}, ComponentTheme{Color: opts.Color, Variant: opts.Variant, Size: opts.Size, UI: opts.UI}, func(v ComponentTheme) Styles {
+	config, styles := resolve(t, ComponentBadge, ComponentTheme{Color: Primary, Variant: Solid, Size: MD}, ComponentTheme{Color: opts.Color, Variant: opts.Variant, Size: inheritedSize(t, opts.Size), UI: opts.UI}, func(v ComponentTheme) Styles {
 		if v.Variant > Subtle {
 			panic("nui: Badge supports solid, outline, soft and subtle")
 		}
@@ -46,11 +46,15 @@ func Badge(c *ui.Context, t Theme, label string, opts BadgeOptions) ui.Element {
 		if opts.Leading != nil {
 			decorated(Leading, ui.Icon(c, opts.Leading).Size(size, size), styles, opts.Style)
 		}
-		decorated(Label, ui.Text(c, label).SingleLine(), styles, opts.Style)
+		// An empty label must not reserve a gap beside icon-only badges.
+		if label != "" {
+			decorated(Label, ui.Text(c, label).SingleLine(), styles, opts.Style)
+		}
 		if opts.Trailing != nil {
 			decorated(Trailing, ui.Icon(c, opts.Trailing).Size(size, size), styles, opts.Style)
 		}
 	})
+	applyGroup(c, e, t, styles[Root].Radius.Value)
 	if opts.Style != nil {
 		opts.Style(Root, e)
 	}

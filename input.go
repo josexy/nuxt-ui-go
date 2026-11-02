@@ -204,7 +204,7 @@ func inputShell(c *ui.Context, t Theme, value *string, o InputOptions, id Compon
 	if root.Clicked() && !root.IsDisabled() {
 		editor.Focus()
 	}
-	applyGroup(root, t, styles[Root].Radius.Value)
+	applyGroup(c, root, t, styles[Root].Radius.Value)
 	if o.Style != nil {
 		o.Style(root, editor, leading, trailing)
 	}

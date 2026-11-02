@@ -45,7 +45,7 @@ nui.RangeSlider(c, t, &state.Low, &state.High, nui.RangeSliderOptions{
 
 | 组件 | 入口与约定 |
 | --- | --- |
-| Switch | Loading 阻止鼠标和键盘切换；LoadingIcon / CheckedIcon / UncheckedIcon 自定义图标；减少动态效果时停止转动 |
+| Switch | Loading 阻止鼠标和键盘切换；LoadingIcon / CheckedIcon / UncheckedIcon 自定义图标；减少动态效果时停止转动。Checkbox 只使用 CheckedIcon |
 | Checkbox / CheckboxGroup / RadioGroup | Variant 使用 ChoiceList / ChoiceCard / ChoiceTable；Indicator 使用 IndicatorStart / End / Hidden。卡片选择后自动着色，隐藏指示器仍可辨认；Highlight 强制强调边框/指示器，未选中也生效。CheckboxGroup.Max 达上限只禁用未选项 |
 | SelectMenu | SearchInput、Color、Variant、Size、两个 ResetSearchTerm 选项；SearchInput=false 不构建搜索，也不按保留的 Query 过滤。Invalid / ErrorMessage 与字段错误语义和边框对齐 |
 | Select | `SelectMultiple[T](c,t,*[]T,[]Option[T],SelectOptions)` 保持原 `Select(*T)` 类型安全；单选/多选均继承 ComponentSelect 的 Color / Variant / Size / UI，实例覆盖优先；保留稳定 ID、自定义 Option.Build 和已选标签 |

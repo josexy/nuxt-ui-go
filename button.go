@@ -134,7 +134,7 @@ func button(c *ui.Context, t Theme, label string, opts ButtonOptions, chosen Opt
 	styles[Label].apply(labelPart)
 	styles[Leading].apply(leadingPart)
 	styles[Trailing].apply(trailingPart)
-	applyGroup(e, t, styles[Root].Radius.Value)
+	applyGroup(c, e, t, styles[Root].Radius.Value)
 	if opts.Style != nil {
 		opts.Style(e, labelPart, leadingPart, trailingPart)
 	}

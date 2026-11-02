@@ -70,7 +70,16 @@ func Card(c *ui.Context, t Theme, opts CardOptions, body func()) ui.Element {
 	e := ui.Column(c).MinWidth(0).Clip()
 	styles[Root].apply(e)
 	e.Children(func() {
+		// Like Nuxt's divide-y, lines separate only the sections that render.
+		sections := 0
+		divide := func() {
+			if sections > 0 && config.Variant != Solid {
+				ui.Box(c).Height(1).Background(t.Border)
+			}
+			sections++
+		}
 		if opts.Header != nil || opts.Title != "" || opts.Description != "" {
+			divide()
 			h := ui.Column(c)
 			styles[Header].apply(h)
 			h.Children(func() {
@@ -88,22 +97,18 @@ func Card(c *ui.Context, t Theme, opts CardOptions, body func()) ui.Element {
 			if opts.Style != nil {
 				opts.Style(Header, h)
 			}
-			if config.Variant != Solid {
-				ui.Box(c).Height(1).Background(t.Border)
-			}
 		}
-		b := ui.Column(c).MinWidth(0)
-		styles[Body].apply(b)
 		if body != nil {
+			divide()
+			b := ui.Column(c).MinWidth(0)
+			styles[Body].apply(b)
 			b.Children(body)
-		}
-		if opts.Style != nil {
-			opts.Style(Body, b)
+			if opts.Style != nil {
+				opts.Style(Body, b)
+			}
 		}
 		if opts.Footer != nil {
-			if config.Variant != Solid {
-				ui.Box(c).Height(1).Background(t.Border)
-			}
+			divide()
 			f := ui.Row(c).AlignItems(ui.Center).Wrap()
 			styles[Footer].apply(f)
 			f.Children(opts.Footer)

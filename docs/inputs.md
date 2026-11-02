@@ -67,11 +67,11 @@ nui.FieldGroup(c, theme, nui.FieldGroupOptions{Size: nui.MD}, []nui.FieldGroupIt
 }).FillWidth()
 ```
 
-支持 Input、Textarea、InputMenu、Select、Button 的首尾圆角，默认相邻边框重叠 1 DIP；Vertical 改为纵向，Size/Disabled 向内传递。Root slot 可调整间距。保留子控件本来的 Tab 顺序，没有新增整个组的焦点站点。固定 MyGo 没有公开 z-index，焦点环仍按原生兄弟绘制顺序；共享边缘可能被后一个兄弟遮住，不承诺网页 focus-within 的置顶效果。
+支持 Input、Textarea、InputMenu、InputTags、Select、SelectMultiple、SelectMenu、Button、Badge 的首尾圆角，默认相邻边框重叠 1 DIP，项目拉伸到同一高度；圆角按书写方向放在组的外侧，右到左时首项在右端。Vertical 改为纵向，Disabled 向内传递。Size 显式设置时向内传递；未设置时沿用外层 FormField 的尺寸（与 Nuxt 一致），再退回组件默认值。组内控件弹出的面板（如 SelectMenu 的搜索框、InputDate 的日历）不属于该组，保留完整圆角。Root slot 可调整间距。保留子控件本来的 Tab 顺序，没有新增整个组的焦点站点。固定 MyGo 没有公开 z-index，焦点环仍按原生兄弟绘制顺序；共享边缘可能被后一个兄弟遮住，不承诺网页 focus-within 的置顶效果。
 
 ## Checkbox、CheckboxGroup、RadioGroup、Switch
 
-Checkbox/Switch 绑定非 nil `*bool`，共享 ToggleOptions（CheckboxOptions/SwitchOptions 为别名）：Label、Description、ErrorMessage、Disabled、Invalid、Color、Size、OnChange(func(bool))、Decoration。使用公开 Base 的点击、Space、禁用和角色语义；更新即时呈现，暂未增加切换动画。支持 Root、Indicator、Label、Description，Switch 另有 Thumb。三态使用 [CheckboxTri](forms-data.md#数值标签pin评分)。
+Checkbox/Switch 绑定非 nil `*bool`，共享 ToggleOptions（CheckboxOptions/SwitchOptions 为别名）：Label、Description、ErrorMessage、Disabled、Invalid、Color、Size、OnChange(func(bool))、Decoration。Checkbox 的 CheckedIcon 替换勾选图标（默认 Check）；UncheckedIcon 只用于 Switch，三态的横线暂不可替换。Switch 轨道没有描边，只在 Highlight 或出错时画一圈强调色/错误色。CheckboxGroup 的 Root/Item 部件作用于组和每一行，其余部件（Label、Description、Indicator 等）和 Style 回调转交给每个 Checkbox，与 RadioGroup 一致。使用公开 Base 的点击、Space、禁用和角色语义；更新即时呈现，暂未增加切换动画。支持 Root、Indicator、Label、Description，Switch 另有 Thumb。三态使用 [CheckboxTri](forms-data.md#数值标签pin评分)。
 
 CheckboxGroup 绑定 `*[]T`，nil slice 代表空选择，外层指针不可 nil；选项值类型 T 必须 comparable，选项值唯一。选中时追加 ID，取消时移除该 ID；选项重排不改变已选业务值，暂时不在选项集中的值保留，由应用决定何时清理。每个可用复选框独立参与 Tab。
 

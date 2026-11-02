@@ -203,9 +203,22 @@ func drawChartScene(p *ui.Painter, r ui.Rect, t Theme, scene *chartScene, alpha 
 	}
 }
 
+// chartPalettes are Nuxt's --ui-chart-2..6 defaults: blue, violet, amber, rose and cyan.
+var chartPalettes = [5]Palette{BluePalette(), VioletPalette(), AmberPalette(), RosePalette(), CyanPalette()}
+
+// chartColor follows Nuxt's six distinct series colors, starting with primary;
+// the fixed hues use shade 500, or 400 in dark themes.
 func chartColor(t Theme, color Color, index int) ui.Color {
 	if color != ColorDefault {
 		return t.color(color)
 	}
-	return []ui.Color{t.Primary, t.Secondary, t.Warning, t.Error, t.Info}[index%5]
+	i := index % 6
+	if i == 0 {
+		return t.Primary
+	}
+	shade := 500
+	if t.Dark {
+		shade = 400
+	}
+	return chartPalettes[i-1].Shade(shade)
 }

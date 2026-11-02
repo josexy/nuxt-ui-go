@@ -72,7 +72,14 @@ func Alert(c *ui.Context, t Theme, opts AlertOptions) ui.Element {
 			ui.Row(c.Key("actions")).Wrap().Gap(t.spacing(6)).Children(opts.Actions)
 		}
 		if opts.OnClose != nil {
-			close := Button(c, t, "", ButtonOptions{AccessibleLabel: namedMessage(c, "dismissNamed", opts.Title), Color: Neutral, Variant: Ghost, Size: XS, Square: true, Leading: lucide.X(), UI: Styles{Root: {Foreground: styles[Root].Foreground}}}).OnClick(opts.OnClose)
+			// Nuxt uses an unpadded md link button: no hover surface that could
+			// hide the icon. It keeps the alert's text color and dims on hover.
+			fg := styles[Root].Foreground.Value
+			close := Button(c, t, "", ButtonOptions{AccessibleLabel: namedMessage(c, "dismissNamed", opts.Title), Color: Neutral, Variant: LinkVariant, Size: MD, Square: true, Leading: lucide.X(), UI: Styles{Root: {Foreground: Set(fg), PaddingX: Set(float32(0)), PaddingY: Set(float32(0))}}, Style: func(root, label, leading, trailing ui.Element) {
+				if !root.IsDisabled() && (root.Hovered() || root.Pressed()) {
+					root.TextColor(fg.Alpha(.75))
+				}
+			}}).OnClick(opts.OnClose)
 			decorated(Trailing, close, styles, opts.Style)
 		}
 	})

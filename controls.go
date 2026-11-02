@@ -93,10 +93,16 @@ func togglePresentation(c *ui.Context, t Theme, e ui.Element, on bool, id Compon
 		if o.Highlight {
 			border = t.color(v.Color)
 		}
-		if o.Invalid || o.ErrorMessage != "" || t.field.Error != "" {
+		invalid := o.Invalid || o.ErrorMessage != "" || t.field.Error != ""
+		if invalid {
 			border = t.Error
 		}
-		return Styles{rowSlot: {Gap: Set(t.spacing(8)), Font: Set(t.Font), FontSize: Set(t.text([5]float32{12, 12, 14, 14, 16}[sizeIndex(v.Size)])), LineHeight: Set(float32(20.0 / 14))}, Indicator: {Background: Set(bg), BorderWidth: Set(float32(1)), BorderColor: Set(border), Radius: Set(t.radius(3))}, Label: {Foreground: Set(t.Text), Weight: Set(500)}, Description: {Foreground: Set(t.Muted), FontSize: Set(t.text([5]float32{12, 12, 14, 14, 16}[sizeIndex(v.Size)]))}, Thumb: {Background: Set(t.Background)}}
+		indicator := PartStyle{Background: Set(bg), BorderWidth: Set(float32(1)), BorderColor: Set(border), Radius: Set(t.radius(3))}
+		if isSwitch && !o.Highlight && !invalid {
+			// Nuxt's switch track border is transparent; only highlight and errors draw a ring.
+			indicator.BorderWidth = Set(float32(0))
+		}
+		return Styles{rowSlot: {Gap: Set(t.spacing(8)), Font: Set(t.Font), FontSize: Set(t.text([5]float32{12, 12, 14, 14, 16}[sizeIndex(v.Size)])), LineHeight: Set(float32(20.0 / 14))}, Indicator: indicator, Label: {Foreground: Set(t.Text), Weight: Set(500)}, Description: {Foreground: Set(t.Muted), FontSize: Set(t.text([5]float32{12, 12, 14, 14, 16}[sizeIndex(v.Size)]))}, Thumb: {Background: Set(t.Background)}}
 	})
 	e.MinWidth(0).AlignItems(ui.Start)
 	styles[rowSlot].apply(e)
@@ -198,6 +204,9 @@ func togglePresentation(c *ui.Context, t Theme, e ui.Element, on bool, id Compon
 							ui.Box(c).Size(boxSize*.4, boxSize*.4).Radius(999).Background(t.Background)
 						} else {
 							icon := lucide.Check()
+							if o.CheckedIcon != nil {
+								icon = o.CheckedIcon
+							}
 							if o.mixed {
 								icon = lucide.Minus()
 							}
@@ -270,11 +279,26 @@ func CheckboxGroup[T comparable](c *ui.Context, t Theme, selected *[]T, options 
 		e.Row().Wrap()
 	}
 	finish(t, ComponentCheckboxGroup, Root, e, PartStyle{Gap: Set(t.spacing(10))}, o.Decoration)
+	// The group styles its own Root and each row's Item; the remaining parts
+	// (Label, Description, Indicator, ...) style every Checkbox, as in RadioGroup.
+	child := Decoration{UI: cloneStyles(t.components[ComponentCheckboxGroup].UI)}
+	for slot, style := range o.UI {
+		child.UI[slot] = mergeStyle(child.UI[slot], style)
+	}
+	delete(child.UI, Root)
+	delete(child.UI, Item)
+	if o.Style != nil {
+		child.Style = func(slot Slot, part ui.Element) {
+			if slot != Root {
+				o.Style(slot, part)
+			}
+		}
+	}
 	e.Children(func() {
 		for _, option := range options {
 			checked := slices.Contains(*selected, option.Value)
 			limited := o.Max.Set && !checked && len(*selected) >= max(0, o.Max.Value)
-			item := Checkbox(c.Key(optionKey[T]{option.Value}), t, &checked, CheckboxOptions{Label: option.Label, Description: option.Description, Disabled: o.Disabled || option.Disabled || limited, Invalid: o.Invalid || o.ErrorMessage != "", Color: config.Color, Size: config.Size, Variant: o.Variant, Indicator: o.Indicator, Highlight: o.Highlight})
+			item := Checkbox(c.Key(optionKey[T]{option.Value}), t, &checked, CheckboxOptions{Label: option.Label, Description: option.Description, Disabled: o.Disabled || option.Disabled || limited, Invalid: o.Invalid || o.ErrorMessage != "", Color: config.Color, Size: config.Size, Variant: o.Variant, Indicator: o.Indicator, Highlight: o.Highlight, Decoration: child})
 			finish(t, ComponentCheckboxGroup, Item, item, PartStyle{}, o.Decoration)
 			if item.Changed() {
 				next := slices.Clone(*selected)

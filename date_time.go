@@ -157,9 +157,14 @@ func Calendar(c *ui.Context, t Theme, value *DateSelection, s *CalendarState, o 
 	root.Children(func() {
 		ui.Row(c.Key("header")).AlignItems(ui.Center).Children(func() {
 			previous, next := s.Month.AddMonths(-1), s.Month.AddMonths(1)
-			Button(c.Key("previous"), t, "", ButtonOptions{AccessibleLabel: message(c, "previousMonth"), Leading: lucide.ChevronDown(), Variant: Ghost, Size: SM, Disabled: !previous.Valid() || o.Min.Set && previous.AddMonths(1).AddDays(-1).Compare(o.Min.Value) < 0, Style: func(root, label, leading, trailing ui.Element) { leading.Rotate(90) }}).OnClick(func() { s.Month = previous; s.Active = previous })
+			// Earlier months are toward the start of the line: the right, right to left.
+			previousIcon, nextIcon := lucide.ChevronLeft(), lucide.ChevronRight()
+			if c.Direction() == ui.RightToLeft {
+				previousIcon, nextIcon = nextIcon, previousIcon
+			}
+			Button(c.Key("previous"), t, "", ButtonOptions{AccessibleLabel: message(c, "previousMonth"), Leading: previousIcon, Variant: Ghost, Size: SM, Disabled: !previous.Valid() || o.Min.Set && previous.AddMonths(1).AddDays(-1).Compare(o.Min.Value) < 0}).OnClick(func() { s.Month = previous; s.Active = previous })
 			ui.Text(c, i18n.FormatDate(c.Locale(), s.Month.dayTime(), i18n.DateOptions{Skeleton: "yMMMM"})).Grow(1).TextAlign(ui.Center).FontWeight(600)
-			Button(c.Key("next"), t, "", ButtonOptions{AccessibleLabel: message(c, "nextMonth"), Leading: lucide.ChevronDown(), Variant: Ghost, Size: SM, Disabled: !next.Valid() || o.Max.Set && next.Compare(o.Max.Value) > 0, Style: func(root, label, leading, trailing ui.Element) { leading.Rotate(-90) }}).OnClick(func() { s.Month = next; s.Active = next })
+			Button(c.Key("next"), t, "", ButtonOptions{AccessibleLabel: message(c, "nextMonth"), Leading: nextIcon, Variant: Ghost, Size: SM, Disabled: !next.Valid() || o.Max.Set && next.Compare(o.Max.Value) > 0}).OnClick(func() { s.Month = next; s.Active = next })
 		})
 		ui.Row(c.Key("weekdays")).Children(func() {
 			weekdays := i18n.Weekdays(c.Locale(), i18n.Short, true)

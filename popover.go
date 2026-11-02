@@ -160,11 +160,14 @@ func Popover(c *ui.Context, t Theme, anchor ui.Element, open *bool, opts Popover
 	if !*open {
 		return ui.Element{}
 	}
+	// Popup content is not part of the anchor's FieldGroup; its controls keep full corners.
+	inner := t
+	inner.group = groupPart{}
 	panel := ui.PopoverBase(c.Key(identity), anchor, open, func(panel ui.Element) {
 		stylePanel(panel, anchor, t, opts, panelStyle(t))
 		ui.Themed(c, t.Native()).MinWidth(0).Children(func() {
 			if content != nil {
-				content(t)
+				content(inner)
 			}
 		})
 	})

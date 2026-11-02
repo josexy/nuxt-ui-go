@@ -135,19 +135,24 @@ func FieldGroup(c *ui.Context, t Theme, opts FieldGroupOptions, items []FieldGro
 		}
 		seen[item.ID] = true
 	}
-	config := defaults(t, ComponentFieldGroup, ComponentTheme{Size: MD})
-	if opts.Size != SizeDefault {
-		config.Size = opts.Size
+	// Like Nuxt, an unsized group keeps the size of an enclosing FormField.
+	size := t.field.Size
+	if global := t.components[ComponentFieldGroup].Size; global != SizeDefault {
+		size = global
 	}
-	e := ui.Row(c).MinWidth(0).Disabled(opts.Disabled || t.field.Disabled)
+	if opts.Size != SizeDefault {
+		size = opts.Size
+	}
+	// Items stretch like Nuxt's inline-flex group, so a Badge matches its neighbors' height.
+	e := ui.Row(c).MinWidth(0).AlignItems(ui.Stretch).Disabled(opts.Disabled || t.field.Disabled)
 	if opts.Vertical {
-		e.Column().AlignItems(ui.Stretch)
+		e.Column()
 	}
 	finish(t, ComponentFieldGroup, Root, e, PartStyle{Gap: Set(float32(-1))}, opts.Decoration)
 	e.Children(func() {
 		for i, item := range items {
 			inner := t
-			inner.field.Size = config.Size
+			inner.field.Size = size
 			inner.field.Disabled = inner.field.Disabled || opts.Disabled
 			inner.group = groupPart{true, i == 0, i == len(items)-1, opts.Vertical}
 			item.Build(c.Key(fieldGroupKey(item.ID)), inner)
@@ -155,30 +160,27 @@ func FieldGroup(c *ui.Context, t Theme, opts FieldGroupOptions, items []FieldGro
 	})
 	return e
 }
-func applyGroup(e ui.Element, t Theme, radius float32) {
+func applyGroup(c *ui.Context, e ui.Element, t Theme, radius float32) {
 	g := t.group
 	if !g.active {
 		return
 	}
-	if g.vertical {
-		a, b := float32(0), float32(0)
-		if g.first {
-			a = radius
-		}
-		if g.last {
-			b = radius
-		}
-		e.Radius(a, a, b, b)
-	} else {
-		a, b := float32(0), float32(0)
-		if g.first {
-			a = radius
-		}
-		if g.last {
-			b = radius
-		}
-		e.Radius(a, b, b, a)
+	first, last := float32(0), float32(0)
+	if g.first {
+		first = radius
 	}
+	if g.last {
+		last = radius
+	}
+	if g.vertical {
+		e.Radius(first, first, last, last)
+		return
+	}
+	// Radius corners are physical; right to left, the first item is at the right.
+	if c.Direction() == ui.RightToLeft {
+		first, last = last, first
+	}
+	e.Radius(first, last, last, first)
 }
 func inheritedSize(t Theme, size Size) Size {
 	if size == SizeDefault {

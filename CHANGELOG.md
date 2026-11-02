@@ -1,5 +1,24 @@
 # 更新日志
 
+## 未发布
+
+按 Nuxt UI v4.12.0 对齐。以下为可见的行为变化，未列出的公开 API 保持不变。
+
+### 缺陷修复
+
+- CheckboxGroup 的 Label、Description、Indicator 等部件样式和 Style 回调现在作用于每个 Checkbox；Root/Item 仍只作用于组和行。
+- Checkbox 使用 `CheckedIcon` 作为勾选图标（默认 Check）；`UncheckedIcon` 只用于 Switch。
+- Switch 轨道去掉 1 DIP 描边，只在 Highlight 或出错时画一圈强调色/错误色。
+- FieldGroup 未设置 Size 时不再强制 MD，而是沿用外层 FormField 的尺寸；首尾圆角按书写方向镜像；项目拉伸到同一高度。Badge、SelectMenu、SelectMultiple 加入组圆角，Badge 继承字段/组尺寸。组内控件弹出的面板不再套用组圆角。
+- RangeSlider 接入 FormField：点击字段标签聚焦第一个拇指，并带上字段描述和错误。
+- PinInput 在出错的 FormField 中显示错误色边框。
+- Breadcrumb 当前项、FooterColumns 条目显示 `Icon`。
+- Card 没有正文时不再渲染空正文区和多余分隔线；Badge 标签为空时不占间距。
+- Chart 默认系列色改为 Nuxt 的六种不重复颜色：Primary、blue、violet、amber、rose、cyan（浅色 500 / 深色 400）。此前第 2 条和第 5 条系列同为 blue。
+- Banner 关闭按钮悬停改为 10% 背景色；Alert 关闭按钮改为无内边距的 MD link 按钮。两者悬停时不再出现遮住反色图标的不透明底色。
+- CommandPalette 在标签下显示条目描述；Listbox 行可随内容增高。
+- 右到左布局下，Breadcrumb 分隔符、Calendar 翻页按钮、Sidebar 收起按钮的图标随方向镜像；Sidebar 收起按钮改用面板图标，分隔边框放在结束侧。
+
 ## 当前内容
 
 采用 MIT 许可证，提供 Nuxt UI v4 风格的 MyGo 原生组件。
