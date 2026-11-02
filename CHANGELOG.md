@@ -31,6 +31,13 @@
 - 修复 SelectMultiple 选项带 Icon 时图标画了两次。
 - 弹出层和 Tooltip 打开时有 100ms scale-in，Modal 有 200ms 缩放淡入并淡入遮罩；减少动态效果时直接显示。关闭仍立即完成。
 
+### 组件外观
+
+- Slider / RangeSlider 轨道加粗为 6–10；滑块改为背景色圆点加 2 DIP 外圈，焦点环向外偏移 2 DIP。
+- Checkbox、RadioGroup、Switch 的文字行高与指示器容器一致（16/16/20/20/24），SM/LG 的 Checkbox 和 Radio 矮 2 DIP；Radio 内圆点固定为 4/4/6/6/8。
+- CheckboxGroup / RadioGroup 项间距改为横向 8、纵向 2/4/6；ChoiceTable 相邻项共用边框，只有外侧圆角，横向时不换行。
+- FormField 的必填星号改为单独的红色 `*`；描述紧贴标签，内容与标签间距 4，Error/Help 与内容间距 8，横向两列间距 8。
+
 ### 依赖
 
 - MyGo 从 `v0.7.4-0.20261031084912-402a3cf8eb35` 升级到 `v0.7.4` 正式版。新增的 API 只有增量，没有删除导出 API；滚动条统一绘制后仍读取 `Theme.Scrollbar` 和 `ScrollbarWidth`。

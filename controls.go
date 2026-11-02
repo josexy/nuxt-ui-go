@@ -11,6 +11,7 @@ import (
 
 type ToggleOptions struct {
 	mixed                                   bool
+	table                                   choiceTableItem
 	Label, Description, ErrorMessage        string
 	Disabled, Invalid                       bool
 	Color                                   Color
@@ -33,6 +34,52 @@ const (
 	ChoiceCard
 	ChoiceTable
 )
+
+// choiceTableItem places a ChoiceTable item among its group's items.
+type choiceTableItem struct {
+	grouped, first, last, afterChecked, horizontal bool
+}
+
+// tableChoice joins table items as Nuxt's -space-px does: the group overlaps
+// their borders by 1 DIP, and only the group's outer corners are rounded.
+// Without z-index, the next item would cover a checked item's colored edge,
+// so the item after a checked one leaves its leading border out instead.
+func tableChoice(c *ui.Context, e ui.Element, t Theme, p choiceTableItem) {
+	if !p.grouped {
+		p.first, p.last = true, true
+	}
+	r := t.radius(8)
+	first, last := float32(0), float32(0)
+	if p.first {
+		first = r
+	}
+	if p.last {
+		last = r
+	}
+	if p.horizontal {
+		if !p.first && p.afterChecked {
+			e.BorderStartWidth(0).MarginStart(1)
+		}
+		if c.Direction() == ui.RightToLeft {
+			first, last = last, first
+		}
+		e.Radius(first, last, last, first)
+		return
+	}
+	if !p.first && p.afterChecked {
+		e.BorderWidth(0, 1, 1, 1).Margin(1, 0, 0, 0)
+	}
+	e.Radius(first, first, last, last)
+}
+
+// choiceGroupGaps are Nuxt's fieldset gaps: gap-x-2 and gap-y-0.5/1/1.5.
+func choiceGroupGaps(e ui.Element, t Theme, size Size, table bool) {
+	if table {
+		e.Gap(-1)
+		return
+	}
+	e.GapX(t.spacing(8)).GapY(t.spacing([5]float32{2, 2, 4, 4, 6}[sizeIndex(size)]))
+}
 
 type IndicatorPlacement uint8
 
@@ -102,7 +149,10 @@ func togglePresentation(c *ui.Context, t Theme, e ui.Element, on bool, id Compon
 			// Nuxt's switch track border is transparent; only highlight and errors draw a ring.
 			indicator.BorderWidth = Set(float32(0))
 		}
-		return Styles{rowSlot: {Gap: Set(t.spacing(8)), Font: Set(t.Font), FontSize: Set(t.text([5]float32{12, 12, 14, 14, 16}[sizeIndex(v.Size)])), LineHeight: Set(float32(20.0 / 14))}, Indicator: indicator, Label: {Foreground: Set(t.Text), Weight: Set(500)}, Description: {Foreground: Set(t.Muted), FontSize: Set(t.text([5]float32{12, 12, 14, 14, 16}[sizeIndex(v.Size)]))}, Thumb: {Background: Set(t.Background)}}
+		// Text lines match the indicator container: Nuxt's text-xs/sm/base line heights.
+		font := [5]float32{12, 12, 14, 14, 16}[sizeIndex(v.Size)]
+		line := [5]float32{16, 16, 20, 20, 24}[sizeIndex(v.Size)]
+		return Styles{rowSlot: {Gap: Set(t.spacing(8)), Font: Set(t.Font), FontSize: Set(t.text(font)), LineHeight: Set(line / font)}, Indicator: indicator, Label: {Foreground: Set(t.Text), Weight: Set(500)}, Description: {Foreground: Set(t.Muted), FontSize: Set(t.text([5]float32{12, 12, 14, 14, 16}[sizeIndex(v.Size)]))}, Thumb: {Background: Set(t.Background)}}
 	})
 	e.MinWidth(0).AlignItems(ui.Start)
 	styles[rowSlot].apply(e)
@@ -112,7 +162,7 @@ func togglePresentation(c *ui.Context, t Theme, e ui.Element, on bool, id Compon
 	if o.Variant != ChoiceList {
 		e.Padding(t.spacing([5]float32{10, 12, 14, 16, 18}[sizeIndex(config.Size)])).BorderWidth(1).BorderColor(t.Border).Radius(t.radius(8))
 		if o.Variant == ChoiceTable {
-			e.Radius(0)
+			tableChoice(c, e, t, o.table)
 		}
 		if on {
 			e.BorderColor(t.color(config.Color).Alpha(.5)).Background(t.color(config.Color).Alpha(.10))
@@ -145,7 +195,11 @@ func togglePresentation(c *ui.Context, t Theme, e ui.Element, on bool, id Compon
 	line := t.text([5]float32{16, 16, 20, 20, 24}[sizeIndex(config.Size)])
 	e.Children(func() {
 		indicator := func() {
-			ui.Box(c.Key("indicator")).Height(max(line, boxSize+4)).Shrink(0).Center().Children(func() {
+			container := line
+			if isSwitch {
+				container = max(line, boxSize+4)
+			}
+			ui.Box(c.Key("indicator")).Height(container).Shrink(0).Center().Children(func() {
 				box := ui.Box(c).Size(boxSize, boxSize).Center().Shrink(0)
 				styles[Indicator].apply(box)
 				if radio {
@@ -201,7 +255,9 @@ func togglePresentation(c *ui.Context, t Theme, e ui.Element, on bool, id Compon
 				} else if on {
 					box.Children(func() {
 						if radio {
-							ui.Box(c).Size(boxSize*.4, boxSize*.4).Radius(999).Background(t.Background)
+							// Nuxt's after:size-1/1.5/2 dot.
+							dot := t.text([5]float32{4, 4, 6, 6, 8}[sizeIndex(config.Size)])
+							ui.Box(c).Size(dot, dot).Radius(999).Background(t.Background)
 						} else {
 							icon := lucide.Check()
 							if o.CheckedIcon != nil {
@@ -276,9 +332,13 @@ func CheckboxGroup[T comparable](c *ui.Context, t Theme, selected *[]T, options 
 	config := selectedDefaults(t, ComponentCheckboxGroup, o)
 	e := ui.Column(c).MinWidth(0).Role(ui.RoleGroup).Label(o.Label).Description(o.Description).Disabled(o.Disabled || t.field.Disabled)
 	if o.Horizontal {
-		e.Row().Wrap()
+		e.Row()
+		if o.Variant != ChoiceTable {
+			e.Wrap()
+		}
 	}
-	finish(t, ComponentCheckboxGroup, Root, e, PartStyle{Gap: Set(t.spacing(10))}, o.Decoration)
+	choiceGroupGaps(e, t, config.Size, false)
+	finish(t, ComponentCheckboxGroup, Root, e, PartStyle{}, o.Decoration)
 	// The group styles its own Root and each row's Item; the remaining parts
 	// (Label, Description, Indicator, ...) style every Checkbox, as in RadioGroup.
 	child := Decoration{UI: cloneStyles(t.components[ComponentCheckboxGroup].UI)}
@@ -295,10 +355,13 @@ func CheckboxGroup[T comparable](c *ui.Context, t Theme, selected *[]T, options 
 		}
 	}
 	e.Children(func() {
-		for _, option := range options {
+		afterChecked := false
+		for i, option := range options {
 			checked := slices.Contains(*selected, option.Value)
 			limited := o.Max.Set && !checked && len(*selected) >= max(0, o.Max.Value)
-			item := Checkbox(c.Key(optionKey[T]{option.Value}), t, &checked, CheckboxOptions{Label: option.Label, Description: option.Description, Disabled: o.Disabled || option.Disabled || limited, Invalid: o.Invalid || o.ErrorMessage != "", Color: config.Color, Size: config.Size, Variant: o.Variant, Indicator: o.Indicator, Highlight: o.Highlight, Decoration: child})
+			table := choiceTableItem{true, i == 0, i == len(options)-1, afterChecked, o.Horizontal}
+			item := Checkbox(c.Key(optionKey[T]{option.Value}), t, &checked, CheckboxOptions{table: table, Label: option.Label, Description: option.Description, Disabled: o.Disabled || option.Disabled || limited, Invalid: o.Invalid || o.ErrorMessage != "", Color: config.Color, Size: config.Size, Variant: o.Variant, Indicator: o.Indicator, Highlight: o.Highlight, Decoration: child})
+			afterChecked = checked
 			finish(t, ComponentCheckboxGroup, Item, item, PartStyle{}, o.Decoration)
 			if item.Changed() {
 				next := slices.Clone(*selected)
@@ -312,7 +375,7 @@ func CheckboxGroup[T comparable](c *ui.Context, t Theme, selected *[]T, options 
 		}
 	})
 	if o.Variant == ChoiceTable {
-		e.Gap(0)
+		choiceGroupGaps(e, t, config.Size, true)
 	}
 	if o.ErrorMessage != "" {
 		e.Error(o.ErrorMessage)
@@ -332,18 +395,27 @@ func RadioGroup[T comparable](c *ui.Context, t Theme, value *T, options []Option
 	validateOptions(options)
 	changed := false
 	e := ui.RadioGroup(c, func() {
-		for _, option := range options {
+		afterChecked := false
+		for i, option := range options {
 			item := ui.RadioBase(c.Key(optionKey[T]{option.Value}), value, option.Value).Disabled(o.Disabled || option.Disabled || t.field.Disabled).FocusRing(false)
-			togglePresentation(c, t, item, *value == option.Value, ComponentRadioGroup, false, true, ToggleOptions{Label: option.Label, Description: option.Description, Disabled: o.Disabled || option.Disabled, Invalid: o.Invalid || o.ErrorMessage != "", Color: o.Color, Size: o.Size, Variant: o.Variant, Indicator: o.Indicator, Highlight: o.Highlight, Decoration: o.Decoration})
+			on := *value == option.Value
+			table := choiceTableItem{true, i == 0, i == len(options)-1, afterChecked, o.Horizontal}
+			togglePresentation(c, t, item, on, ComponentRadioGroup, false, true, ToggleOptions{table: table, Label: option.Label, Description: option.Description, Disabled: o.Disabled || option.Disabled, Invalid: o.Invalid || o.ErrorMessage != "", Color: o.Color, Size: o.Size, Variant: o.Variant, Indicator: o.Indicator, Highlight: o.Highlight, Decoration: o.Decoration})
 			changed = changed || item.Changed()
+			afterChecked = on
 		}
 	}).MinWidth(0).Label(o.Label).Description(o.Description).Disabled(o.Disabled || t.field.Disabled)
 	if o.Horizontal {
-		e.Row().Wrap()
+		e.Row()
+		if o.Variant != ChoiceTable {
+			e.Wrap()
+		}
 	}
-	finish(t, ComponentRadioGroup, Root, e, PartStyle{Gap: Set(t.spacing(10))}, o.Decoration)
+	size := selectedDefaults(t, ComponentRadioGroup, o).Size
+	choiceGroupGaps(e, t, size, false)
+	finish(t, ComponentRadioGroup, Root, e, PartStyle{}, o.Decoration)
 	if o.Variant == ChoiceTable {
-		e.Gap(0)
+		choiceGroupGaps(e, t, size, true)
 	}
 	if changed {
 		e.SetChanged()
@@ -424,7 +496,7 @@ func Slider(c *ui.Context, t Theme, value *float64, o SliderOptions) ui.Element 
 	bindField(c, e, t)
 	config := selected(defaults(t, ComponentSlider, ComponentTheme{Color: Primary, Size: MD}), ComponentTheme{Color: o.Color, Size: inheritedSize(t, o.Size)})
 	thumb := t.text([5]float32{12, 14, 16, 18, 20}[sizeIndex(config.Size)])
-	thickness := t.spacing([5]float32{2, 3, 4, 5, 6}[sizeIndex(config.Size)])
+	thickness := t.spacing([5]float32{6, 7, 8, 9, 10}[sizeIndex(config.Size)])
 	rootStyle := PartStyle{PaddingX: Set(thumb / 2)}
 	if o.Vertical {
 		e.Vertical().Width(max(24, thumb)).Height(160)
@@ -523,11 +595,7 @@ func Slider(c *ui.Context, t Theme, value *float64, o SliderOptions) ui.Element 
 			dot.Y = r.Y + (r.H-thumb)/2
 		}
 		p.Fill(filled, color, 999)
-		if focus {
-			p.Fill(ui.Rect{X: dot.X - 3, Y: dot.Y - 3, W: dot.W + 6, H: dot.H + 6}, t.focusColor(config.Color), 999)
-		}
-		p.Fill(dot, color, 999)
-		p.Fill(ui.Rect{X: dot.X + 2, Y: dot.Y + 2, W: dot.W - 4, H: dot.H - 4}, thumbColor, 999)
+		sliderThumb(p, dot, color, thumbColor, t.focusColor(config.Color), focus)
 	})
 	if o.Tooltip {
 		position := ratio

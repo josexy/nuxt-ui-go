@@ -52,7 +52,7 @@ Textarea 默认 Rows=3；关闭 AutoResize 时固定显示对应行数。打开�
 
 `FormField(c,t,FormFieldOptions,func(Theme))` 通过本库字段绑定关联首个控件的标签、描述、错误和持久 Handle。Options 包含 Label、Description、Help、Hint、Error、Required、Disabled、Size、Orientation、Decoration。Required 显示星号，并在支持的子控件上追加必填描述；它不执行校验，底层控件未暴露独立的原生 required 标志。错误与必填描述的文案规则见 [国际化](i18n.md)。
 
-Label/Hint/Description 在标签列，输入和 Help/Error 在内容列。默认纵向，Orientation=Horizontal 时两列左右排列。标签激活首个绑定控件，Checkbox/Switch/CheckboxGroup 保留切换与通知；多输入建议分别包 FormField。直接使用自定义 MyGo 控件需自行提供标签关联。可覆盖 Root、Label、Hint、Description、Help、ErrorSlot 部件。
+Label/Hint/Description 在标签列，输入和 Help/Error 在内容列。默认纵向，Orientation=Horizontal 时两列左右排列。间距与 Nuxt 一致：描述紧贴标签，内容在标签列下方 4 DIP，Error/Help 在内容下方 8 DIP，横向排列时两列间距 8。Required 的星号是单独的红色 `*`，在标签后 2 DIP；可访问名称仍为"标签 *"。标签激活首个绑定控件，Checkbox/Switch/CheckboxGroup 保留切换与通知；多输入建议分别包 FormField。直接使用自定义 MyGo 控件需自行提供标签关联。可覆盖 Root、Label、Hint、Description、Help、ErrorSlot 部件。
 
 `FieldGroup` 接收带唯一非空 ID 的同步 builder 列表，重复 ID、nil builder 会 panic：
 
@@ -77,13 +77,13 @@ CheckboxGroup 绑定 `*[]T`，nil slice 代表空选择，外层指针不可 nil
 
 RadioGroup 绑定 `*T`，不保留特殊零值；空选择用 Optional[T] 或明确的“无”选项表达。复用原生 RadioGroup/RadioBase 的分组焦点，方向键、Home/End 跳过禁用项。不存在或被删除的选中值不会自动改为第一项。
 
-两类组共享 ChoiceGroupOptions：Label、Description、ErrorMessage、Disabled、Invalid、Horizontal、Color、Size、OnChange(func())、Decoration。默认纵向，Horizontal 允许换行；禁用项可见但不可修改。选项 Label/Description 作为文本展示；这里不使用 Option.Build/Icon（它们用于 Select/InputMenu）。CheckboxGroup 支持 Root/Item；内部 Checkbox 可通过 ComponentCheckbox 定制。RadioGroup 支持 Root/Item/Indicator/Label/Description。
+两类组共享 ChoiceGroupOptions：Label、Description、ErrorMessage、Disabled、Invalid、Horizontal、Color、Size、OnChange(func())、Decoration。默认纵向，Horizontal 允许换行（ChoiceTable 不换行）；禁用项可见但不可修改。项间距与 Nuxt 一致：横向 8，纵向按尺寸为 2/2/4/4/6。ChoiceTable 的相邻项共用 1 DIP 边框，只有整组的外侧圆角为 8（横向时随书写方向）；MyGo 没有 z-index，选中项之后的一项省去前侧边框，让选中项的彩色边框完整显示。Checkbox/Radio 的指示器容器与文字行同高（16/16/20/20/24），Radio 内圆点固定为 4/4/6/6/8。选项 Label/Description 作为文本展示；这里不使用 Option.Build/Icon（它们用于 Select/InputMenu）。CheckboxGroup 支持 Root/Item；内部 Checkbox 可通过 ComponentCheckbox 定制。RadioGroup 支持 Root/Item/Indicator/Label/Description。
 
 ## Slider
 
 绑定非 nil `*float64`；SliderOptions 包含 Label、Description、Min/Max（Optional[float64]）、Step、Color、Size、Disabled、Vertical、OnChange、Decoration。默认 0..100、水平、MD；边界必须有限且 Max>Min，Step 非负且有限。输入值钳制到范围，NaN/Inf 按 0 再钳制；空值不是 Slider 的模型。
 
-Step=0 表示默认步长 1；PageUp/PageDown 与 Shift+方向键走 10 步，Home/End 到边界。公开 Range/Step 始终表示实际业务值。OnChange 是实时变化，OnCommit 是有变化的按键或拖拽结束通知。默认水平高 24 DIP，垂直高 160 DIP，可后置改宽高。方向、反向、范围滑块及纵向无障碍元数据限制见 [参数与默认值](options.md)。
+Step=0 表示默认步长 1；PageUp/PageDown 与 Shift+方向键走 10 步，Home/End 到边界。公开 Range/Step 始终表示实际业务值。OnChange 是实时变化，OnCommit 是有变化的按键或拖拽结束通知。默认水平高 24 DIP，垂直高 160 DIP，可后置改宽高。轨道粗 6/7/8/9/10（随尺寸）；滑块与 Nuxt 一样是背景色圆点外加 2 DIP 的主题色外圈，键盘焦点的 3 DIP 外环从滑块边缘外 2 DIP 开始。RangeSlider 使用同一配方。方向、反向、范围滑块及纵向无障碍元数据限制见 [参数与默认值](options.md)。
 
 Root slot 和 Style(Root) 控制整体元素；Indicator.Background 控制已选轨道色、Thumb.Background 控制滑块内色。轨道与滑块由同步 Draw 使用数值/颜色快照绘制，没有独立可交互的 Thumb 元素；其他 Thumb/Indicator 样式字段当前无效。
 

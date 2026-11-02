@@ -72,7 +72,7 @@ func RangeSlider(c *ui.Context, t Theme, low, high *float64, o RangeSliderOption
 	*high = max(*low+gap, min(hi, finite(*high)))
 	config := selected(defaults(t, ComponentSlider, ComponentTheme{Color: Primary, Size: MD}), ComponentTheme{Color: o.Color, Size: inheritedSize(t, o.Size)})
 	thumb := t.text([5]float32{12, 14, 16, 18, 20}[sizeIndex(config.Size)])
-	thickness := t.spacing([5]float32{2, 3, 4, 5, 6}[sizeIndex(config.Size)])
+	thickness := t.spacing([5]float32{6, 7, 8, 9, 10}[sizeIndex(config.Size)])
 	root := ui.Box(c).MinWidth(100).Height(max(24, thumb)).Role(ui.RoleGroup).Label(o.Label).Disabled(o.Disabled || t.field.Disabled)
 	if vert {
 		root.MinWidth(0).Width(max(24, thumb)).Height(160)
@@ -235,11 +235,7 @@ func RangeSlider(c *ui.Context, t Theme, low, high *float64, o RangeSliderOption
 				dot.X = r.X + (r.W-thumb)/2
 				dot.Y = track.Y + track.H*f - thumb/2
 			}
-			if focused[k] {
-				p.Fill(ui.Rect{X: dot.X - 3, Y: dot.Y - 3, W: thumb + 6, H: thumb + 6}, t.focusColor(config.Color), 999)
-			}
-			p.Fill(dot, t.color(config.Color), 999)
-			p.Fill(ui.Rect{X: dot.X + 2, Y: dot.Y + 2, W: thumb - 4, H: thumb - 4}, t.Background, 999)
+			sliderThumb(p, dot, t.color(config.Color), t.Background, t.focusColor(config.Color), focused[k])
 		}
 	})
 	if o.Tooltip {
@@ -253,6 +249,20 @@ func RangeSlider(c *ui.Context, t Theme, low, high *float64, o RangeSliderOption
 	}
 	finish(t, ComponentSlider, Root, root, PartStyle{}, o.Decoration)
 	return root
+}
+
+// sliderThumb paints Nuxt's thumb: the background color within a 2 DIP ring
+// of the slider's color drawn outside it, and while focused, a 3 DIP outline
+// 2 DIPs out, which the ring fills.
+func sliderThumb(p *ui.Painter, dot ui.Rect, color, thumb, focusColor ui.Color, focus bool) {
+	grow := func(r ui.Rect, by float32) ui.Rect {
+		return ui.Rect{X: r.X - by, Y: r.Y - by, W: r.W + 2*by, H: r.H + 2*by}
+	}
+	if focus {
+		p.Fill(grow(dot, 5), focusColor, 999)
+	}
+	p.Fill(grow(dot, 2), color, 999)
+	p.Fill(dot, thumb, 999)
 }
 
 func sliderValueTooltip(c *ui.Context, t Theme, focused bool, text string, f float32, vert bool, thumb float32) {

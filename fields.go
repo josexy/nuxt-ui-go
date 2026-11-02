@@ -75,12 +75,21 @@ func FormField(c *ui.Context, t Theme, opts FormFieldOptions, content func(Theme
 		e.Row().Justify(ui.SpaceBetween).AlignItems(ui.Start)
 	}
 	e.Children(func() {
-		ui.Column(c.Key("label")).MinWidth(0).Gap(t.spacing(4)).Children(func() {
+		ui.Column(c.Key("label")).MinWidth(0).Children(func() {
 			ui.Row(c.Key("heading")).Justify(ui.SpaceBetween).AlignItems(ui.Center).Gap(t.spacing(4)).Children(func() {
 				if label != "" {
-					labelPart := ui.Text(c, label).FontWeight(500).OnClick(func() {
+					// The accessible name keeps " *"; the visible asterisk is a
+					// separate red mark 2 DIPs after the label, as Nuxt's.
+					labelPart := ui.Row(c.Key("label-text")).MinWidth(0).AlignItems(ui.Center).FontWeight(500).OnClick(func() {
 						if !inner.field.Disabled {
 							activate()
+						}
+					}).Children(func() {
+						if opts.Label != "" {
+							ui.Text(c, opts.Label).MinWidth(0)
+						}
+						if opts.Required {
+							ui.Text(c, "*").TextColor(t.Error).MarginStart(t.spacing(2)).Role(ui.RoleNone)
 						}
 					})
 					finish(t, ComponentFormField, Label, labelPart, PartStyle{Foreground: Set(t.Text), FontSize: Set(fontSize)}, opts.Decoration)
@@ -93,7 +102,7 @@ func FormField(c *ui.Context, t Theme, opts FormFieldOptions, content func(Theme
 				finish(t, ComponentFormField, Description, ui.Text(c, opts.Description), copyStyle, opts.Decoration)
 			}
 		})
-		ui.Column(c.Key("content")).MinWidth(0).Gap(t.spacing(6)).Children(func() {
+		ui.Column(c.Key("content")).MinWidth(0).Gap(t.spacing(8)).Children(func() {
 			if content != nil {
 				content(inner)
 			}
@@ -112,7 +121,12 @@ func FormField(c *ui.Context, t Theme, opts FormFieldOptions, content func(Theme
 		registered.focused = focused
 	}
 	c.Resolve(*inner.field.Focus).Error(opts.Error)
-	finish(t, ComponentFormField, Root, e, PartStyle{Gap: Set(t.spacing(6))}, opts.Decoration)
+	// Content is 4 DIPs under the label; side by side, the columns are 8 apart.
+	gap := t.spacing(4)
+	if !vertical(valueOr(opts.Orientation, Vertical)) {
+		gap = t.spacing(8)
+	}
+	finish(t, ComponentFormField, Root, e, PartStyle{Gap: Set(gap)}, opts.Decoration)
 	return e
 }
 
