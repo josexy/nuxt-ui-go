@@ -77,10 +77,9 @@ func TestCheckboxGroupForwardsItemPartStyles(t *testing.T) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
 		clear(calls)
 		ui.Column(c).Padding(16).Children(func() {
-			nui.CheckboxGroup(c, th, &selected, []nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}}, nui.CheckboxGroupOptions{Label: "Letters", Decoration: nui.Decoration{
+			nui.CheckboxGroup(c, th, &selected, []nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}}, nui.CheckboxGroupOptions{Label: "Letters",
 				UI:    nui.Styles{nui.Label: {Foreground: nui.Set(marker)}},
-				Style: func(slot nui.Slot, e ui.Element) { calls[slot]++ },
-			}})
+				Style: func(slot nui.Slot, e ui.Element) { calls[slot]++ }})
 		})
 	}, 300, 160)
 	if calls[nui.Root] != 1 || calls[nui.Item] != 2 || calls[nui.Label] != 2 || calls[nui.Indicator] != 2 {
@@ -222,7 +221,7 @@ func TestBadgeAndSelectMenuJoinFieldGroup(t *testing.T) {
 					return nui.Input(c, th, &text, nui.InputOptions{Label: "Name"}).Width(120)
 				}},
 				{ID: "menu", Build: func(c *ui.Context, th nui.Theme) ui.Element {
-					return nui.SelectMenu(c, th, &value, &s, []nui.ListboxItem{{ID: "x", Label: "Xray"}}, nui.SelectMenuOptions{ListboxOptions: nui.ListboxOptions{Label: "Domain"}}).Width(160)
+					return nui.SelectMenu(c, th, &value, &s, []nui.ListboxItem{{ID: "x", Label: "Xray"}}, nui.SelectMenuOptions{Label: "Domain"}).Width(160)
 				}},
 			})
 		})
@@ -300,7 +299,7 @@ func TestPinInputShowsFormFieldError(t *testing.T) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
 		ui.Column(c).Padding(16).Children(func() {
 			// Recolor the error text so that only error-colored slots can match.
-			nui.FormField(c, th, nui.FormFieldOptions{Label: "Code", Error: "Wrong code", Decoration: nui.Decoration{UI: nui.Styles{nui.ErrorSlot: {Foreground: nui.Set(blue)}}}}, func(th nui.Theme) {
+			nui.FormField(c, th, nui.FormFieldOptions{Label: "Code", Error: "Wrong code", UI: nui.Styles{nui.ErrorSlot: {Foreground: nui.Set(blue)}}}, func(th nui.Theme) {
 				nui.PinInput(c, th, &pin, &s, nui.PinInputOptions{Length: 4})
 			})
 		})
@@ -480,7 +479,7 @@ func TestTextInputPlaceholdersUseDimmed(t *testing.T) {
 			th := nui.App(c, nui.AppConfig{Mode: map[bool]nui.Mode{false: nui.LightMode, true: nui.DarkMode}[dark]})
 			ui.Column(c).Padding(16).Gap(16).Children(func() {
 				nui.Input(c, th, &text, nui.InputOptions{Label: "Plain", Placeholder: "Search everything"}).Width(260)
-				nui.InputNumber(c, th, &number, &numberState, nui.InputNumberOptions{InputOptions: nui.InputOptions{Label: "Count", Placeholder: "Enter a number"}}).Width(260)
+				nui.InputNumber(c, th, &number, &numberState, nui.InputNumberOptions{Label: "Count", Placeholder: "Enter a number"}).Width(260)
 			})
 		}, 320, 160)
 		th := nui.Light()

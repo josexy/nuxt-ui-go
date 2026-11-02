@@ -44,7 +44,7 @@ func TestInputTimeFollowsLocaleHourCycle(t *testing.T) {
 	var twelve nui.Optional[bool]
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.InputTime(c, th, &clock, &s, nui.InputTimeOptions{InputOptions: nui.InputOptions{Label: "Time"}, TwelveHour: twelve})
+		nui.InputTime(c, th, &clock, &s, nui.InputTimeOptions{Label: "Time", TwelveHour: twelve})
 	}, 400, 120)
 	tt.SetLocale("en")
 	if s.Text != "01:05 PM" {
@@ -134,11 +134,11 @@ func TestFileUploadAreaIsTheButton(t *testing.T) {
 func TestErrorViewDefaults(t *testing.T) {
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
-		nui.ErrorView(c, th, nui.ErrorOptions{Status: "404", Title: "Not found", OnRetry: func() {}, Decoration: nui.Decoration{Style: func(slot nui.Slot, e ui.Element) {
+		nui.ErrorView(c, th, nui.ErrorOptions{Status: "404", Title: "Not found", OnRetry: func() {}, Style: func(slot nui.Slot, e ui.Element) {
 			if slot == nui.Root {
 				e.Label("Error region")
 			}
-		}}})
+		}})
 	}, 600, 500)
 	// Nuxt's 48 px title with line-height 1; native fonts keep their own
 	// ascent and descent, so the line is at least that tall.
@@ -224,7 +224,7 @@ func TestInputTagsSplitOnCommasOnly(t *testing.T) {
 	var s nui.TagsState
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.InputTags(c, th, &tags, &s, nui.InputTagsOptions{InputOptions: nui.InputOptions{Label: "Tags"}})
+		nui.InputTags(c, th, &tags, &s, nui.InputTagsOptions{Label: "Tags"})
 	}, 400, 200)
 	click(t, tt, "Tags")
 	tt.Type("a;b,")

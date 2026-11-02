@@ -113,7 +113,7 @@ func (a *State) navigationComponents(c *ui.Context, t nui.Theme) {
 		if !p.Recovered {
 			nui.ErrorView(c, t, nui.ErrorOptions{Status: "Unavailable", Title: "Activity details could not load", Description: "The local preview is unavailable. Try loading it again.", OnRetry: func() { p.Recovered = true },
 				// Embedded in a page section, the full-page title and copy are scaled down.
-				Decoration: nui.Decoration{UI: nui.Styles{nui.Label: {FontSize: nui.Set(float32(24))}, nui.Description: {FontSize: nui.Set(float32(14))}}}})
+				UI: nui.Styles{nui.Label: {FontSize: nui.Set(float32(24))}, nui.Description: {FontSize: nui.Set(float32(14))}}})
 		} else {
 			nui.Alert(c, t, nui.AlertOptions{Title: "Activity restored", Description: "The local preview is ready.", Color: nui.Success, Icon: lucide.CircleCheck()})
 		}

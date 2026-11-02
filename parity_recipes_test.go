@@ -18,11 +18,11 @@ func TestPopoverPaddingAndScaleIn(t *testing.T) {
 		th := nui.App(c, nui.AppConfig{})
 		ui.Column(c).Padding(20).Children(func() {
 			anchor := nui.Button(c, th, "Details", nui.ButtonOptions{}).OnClick(func() { open = !open })
-			nui.Popover(c, th, anchor, &open, nui.PopoverOptions{Decoration: nui.Decoration{Style: func(slot nui.Slot, e ui.Element) {
+			nui.Popover(c, th, anchor, &open, nui.PopoverOptions{Style: func(slot nui.Slot, e ui.Element) {
 				if slot == nui.Panel {
 					e.Label("Popover panel")
 				}
-			}}}, func(nui.Theme) { ui.Text(c, "Inside") })
+			}}, func(nui.Theme) { ui.Text(c, "Inside") })
 		})
 	}, 400, 300)
 	click(t, tt, "Details")
@@ -59,11 +59,11 @@ func TestTooltipIsOneTruncatedLine(t *testing.T) {
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		a := nui.Button(c, th, "Anchor", nui.ButtonOptions{}).Absolute().Left(150).Top(100)
-		nui.Tooltip(c, th, a, "A rather long explanation that cannot fit on one tooltip line", nui.TooltipOptions{Open: &open, MaxWidth: nui.Set(float32(160)), Decoration: nui.Decoration{Style: func(slot nui.Slot, e ui.Element) {
+		nui.Tooltip(c, th, a, "A rather long explanation that cannot fit on one tooltip line", nui.TooltipOptions{Open: &open, MaxWidth: nui.Set(float32(160)), Style: func(slot nui.Slot, e ui.Element) {
 			if slot == nui.Panel {
 				e.Label("Tip")
 			}
-		}}})
+		}})
 	}, 500, 300)
 	tt.Advance(time.Second)
 	tip := bounds(t, tt, "Tip")
@@ -137,7 +137,7 @@ func TestListboxRowsRadiusAndEmptyState(t *testing.T) {
 		ui.Column(c).Padding(20).Gap(12).Children(func() {
 			nui.Listbox(c, th, &selected, &s, []nui.ListboxItem{{ID: "a", Label: "Alpha"}}, nui.ListboxOptions{Label: "Letters", Height: 120}).Width(240)
 			nui.Listbox(c, th, &selected, &empty, nil, nui.ListboxOptions{Label: "Nothing", EmptyText: "Nothing here", Height: 120}).Width(240)
-			nui.SelectMenu(c, th, &selected, &menu, []nui.ListboxItem{{ID: "x", Label: "Xray"}}, nui.SelectMenuOptions{ListboxOptions: nui.ListboxOptions{Label: "Small menu"}, Size: nui.XS}).Width(240)
+			nui.SelectMenu(c, th, &selected, &menu, []nui.ListboxItem{{ID: "x", Label: "Xray"}}, nui.SelectMenuOptions{Label: "Small menu", Size: nui.XS}).Width(240)
 		})
 	}, 400, 600)
 	if h := bounds(t, tt, "Alpha").H; h != 32 {
@@ -238,12 +238,12 @@ func TestTitlesUseNuxtsPageSize(t *testing.T) {
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		ui.Row(c).Children(func() {
-			nui.Sidebar(c, th, &collapsed, nui.SidebarOptions{Title: "Side title", Decoration: nui.Decoration{Style: rename(nui.Root, "Sidebar region")}}, nil)
+			nui.Sidebar(c, th, &collapsed, nui.SidebarOptions{Title: "Side title", Style: rename(nui.Root, "Sidebar region")}, nil)
 			ui.Column(c).Padding(12).Children(func() {
 				nui.Card(c, th, nui.CardOptions{Title: "Card title"}, nil).Width(240)
 			})
 		})
-		nui.ModalWithOptions(c, th, &open, nui.ModalOptions{Title: "Modal title", Decoration: nui.Decoration{Style: rename(nui.Label, "Modal heading")}}, nil)
+		nui.ModalWithOptions(c, th, &open, nui.ModalOptions{Title: "Modal title", Style: rename(nui.Label, "Modal heading")}, nil)
 	}, 900, 600)
 	tt.Advance(time.Second)
 	for _, title := range []string{"Side title", "Card title", "Modal heading"} {
@@ -254,7 +254,7 @@ func TestTitlesUseNuxtsPageSize(t *testing.T) {
 	open = false
 	tt2 := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.Drawer(c, th, &drawer, nui.DrawerOptions{ModalOptions: nui.ModalOptions{Title: "Drawer title", Decoration: nui.Decoration{Style: rename(nui.Label, "Drawer heading")}}}, nil)
+		nui.Drawer(c, th, &drawer, nui.DrawerOptions{Title: "Drawer title", Style: rename(nui.Label, "Drawer heading")}, nil)
 	}, 600, 600)
 	tt2.Advance(time.Second)
 	if h := bounds(t, tt2, "Drawer heading").H; h != 24 {

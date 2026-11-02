@@ -95,7 +95,7 @@ func TestToggleLinesMatchIndicatorContainer(t *testing.T) {
 		tt := ui.NewTester(func(c *ui.Context) {
 			th := nui.App(c, nui.AppConfig{})
 			ui.Column(c).Padding(10).AlignItems(ui.Start).Children(func() {
-				nui.Checkbox(c, th, &on, nui.CheckboxOptions{Size: size, Decoration: nui.Decoration{Style: name}})
+				nui.Checkbox(c, th, &on, nui.CheckboxOptions{Size: size, Style: name})
 				nui.Checkbox(c, th, &on, nui.CheckboxOptions{Size: size, Label: "Labeled"})
 			})
 		}, 200, 120)
@@ -281,7 +281,7 @@ func TestTopSlideoverFitsContent(t *testing.T) {
 	open := true
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.Slideover(c, th, &open, nui.SlideoverOptions{ModalOptions: nui.ModalOptions{Title: "Filters"}, Side: nui.SideTop}, func(nui.Theme) { ui.Text(c, "One line") })
+		nui.Slideover(c, th, &open, nui.SlideoverOptions{Title: "Filters", Side: nui.SideTop}, func(nui.Theme) { ui.Text(c, "One line") })
 	}, 800, 700)
 	tt.Advance(time.Second)
 	// Header 64, the divider, and the body: 24 + one 20 DIP line + 24.
@@ -462,7 +462,7 @@ func TestSelectMenuFlatPopup(t *testing.T) {
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
 		ui.Column(c).Padding(20).Children(func() {
-			nui.SelectMenu(c, th, &values, &s, []nui.ListboxItem{{ID: "a", Label: "Alpha"}, {ID: "b", Label: "Beta"}}, nui.SelectMenuOptions{ListboxOptions: nui.ListboxOptions{Label: "Letters"}, Clearable: true, OnCreate: func(v string) { created = v }, Popup: nui.PopoverOptions{Label: "Letters popup"}}).Width(260)
+			nui.SelectMenu(c, th, &values, &s, []nui.ListboxItem{{ID: "a", Label: "Alpha"}, {ID: "b", Label: "Beta"}}, nui.SelectMenuOptions{Label: "Letters", Clearable: true, OnCreate: func(v string) { created = v }, Popup: nui.PopoverOptions{Label: "Letters popup"}}).Width(260)
 		})
 	}, 400, 400)
 	th := nui.Light()
@@ -504,7 +504,7 @@ func TestInputMenuToggleAndTagChips(t *testing.T) {
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		ui.Column(c).Padding(20).Children(func() {
-			nui.InputMenu(c, th, &state, []nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}}, nui.InputMenuOptions{InputOptions: nui.InputOptions{Label: "Letters"}, Multiple: true}).Width(300)
+			nui.InputMenu(c, th, &state, []nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}}, nui.InputMenuOptions{Label: "Letters", Multiple: true}).Width(300)
 		})
 	}, 400, 400)
 	click(t, tt, "Show options")
@@ -539,7 +539,7 @@ func TestInputTagsChipsFollowSize(t *testing.T) {
 		var s nui.TagsState
 		tt := ui.NewTester(func(c *ui.Context) {
 			th := nui.App(c, nui.AppConfig{})
-			nui.InputTags(c, th, &tags, &s, nui.InputTagsOptions{InputOptions: nui.InputOptions{Label: "Tags", Size: size}})
+			nui.InputTags(c, th, &tags, &s, nui.InputTagsOptions{Label: "Tags", Size: size})
 		}, 400, 200)
 		h := bounds(t, tt, "go").H
 		if want := map[nui.Size]float32{nui.MD: 16, nui.XL: 20}[size]; want != 0 && h != want || h <= previous {
@@ -638,11 +638,11 @@ func TestBannerCentersOneLine(t *testing.T) {
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		ui.Column(c).Children(func() {
-			nui.Banner(c, th, &open, nui.BannerOptions{Title: "Maintenance tonight", CloseLabel: "Close banner", Decoration: nui.Decoration{Style: func(slot nui.Slot, e ui.Element) {
+			nui.Banner(c, th, &open, nui.BannerOptions{Title: "Maintenance tonight", CloseLabel: "Close banner", Style: func(slot nui.Slot, e ui.Element) {
 				if slot == nui.Root {
 					e.Label("Banner region")
 				}
-			}}}).FillWidth()
+			}}).FillWidth()
 		})
 	}, 800, 200)
 	banner, title := bounds(t, tt, "Banner region"), bounds(t, tt, "Maintenance tonight")
