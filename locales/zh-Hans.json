@@ -74,6 +74,7 @@
   "progressNamed": "{name}进度",
   "cancel": "取消",
   "cancelNamed": "取消{name}",
+  "fileSize": "{size} · {status}",
   "fileSummary": "{size, number, integer} 字节 · {status}",
   "uploadRunning": "上传中",
   "uploadDone": "已完成",

@@ -108,7 +108,11 @@ func Table[T any](c *ui.Context, t Theme, s *TableState[T], columns []TableColum
 		height = 320
 	}
 	s.CellBuilds = 0
-	root := ui.Themed(c, t.Native()).Background(ui.Transparent).MinWidth(0).MinHeight(0).Height(height).Disabled(o.Disabled)
+	// Nuxt's th is highlighted and its td muted. The native table draws its
+	// header in the theme's TextMuted and its cells in Text, so swap them here.
+	theme := t.Native()
+	theme.TextMuted, theme.Text = t.Highlighted, t.Muted
+	root := ui.Themed(c, theme).Background(ui.Transparent).MinWidth(0).MinHeight(0).Height(height).Disabled(o.Disabled)
 	finish(t, ComponentTable, Root, root, PartStyle{Radius: Set(t.radius(8)), BorderWidth: Set(float32(1)), BorderColor: Set(t.Border)}, o.Decoration)
 	root.Children(func() {
 		if len(s.rows) == 0 {
@@ -320,7 +324,10 @@ func Tree(c *ui.Context, t Theme, s *TreeState, o TreeOptions) ui.Element {
 			row.Children(func() {
 				icon := n.node.Icon
 				if icon == nil && n.children != nil {
-					icon = lucide.FolderOpen()
+					icon = lucide.Folder()
+					if s.Outline.Open.Has(id) {
+						icon = lucide.FolderOpen()
+					}
 				}
 				if icon != nil {
 					ui.Icon(c, icon).Size(16, 16)

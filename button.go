@@ -121,14 +121,15 @@ func button(c *ui.Context, t Theme, label string, opts ButtonOptions, chosen Opt
 		}
 		if label != "" {
 			labelPart = ui.Text(c, label).SingleLine().MinWidth(0)
-			if config.Variant == LinkVariant && hover {
-				labelPart.Underline()
-			}
 		}
 		if opts.Loading && !loadingLeading {
 			trailingPart = loadingSVG(c, spinner, m.Icon, mergeValue(styles[Root].Foreground, styles[Trailing].Foreground).Value, animated, t.Motion.Spin)
 		} else if opts.Trailing != nil {
 			trailingPart = ui.Icon(c, opts.Trailing).Size(m.Icon, m.Icon).Shrink(0)
+		}
+		if opts.Block && trailingPart.Valid() {
+			// Nuxt's ms-auto: a block's trailing icon ends the row.
+			trailingPart.MarginStart(ui.Auto)
 		}
 	})
 	styles[Label].apply(labelPart)
@@ -167,7 +168,7 @@ func Link(c *ui.Context, t Theme, label string, opts LinkOptions) ui.Element {
 		foreground := t.Muted
 		if opts.Active {
 			foreground = t.color(v.Color)
-		} else if !e.IsDisabled() && (e.Hovered() || e.FocusVisible()) {
+		} else if !e.IsDisabled() && e.Hovered() {
 			foreground = t.Text
 		}
 		return Styles{Root: {Foreground: Set(foreground), Font: Set(t.Font), FontSize: Set(t.text(14)), LineHeight: Set(float32(20.0 / 14)), Radius: Set(t.Radius)}}

@@ -170,7 +170,7 @@ func Calendar(c *ui.Context, t Theme, value *DateSelection, s *CalendarState, o 
 			weekdays := i18n.Weekdays(c.Locale(), i18n.Short, true)
 			for i := range 7 {
 				day := time.Weekday((i + int(o.WeekStart)) % 7)
-				ui.Text(c, weekdays[day]).Width(t.text(38)).TextAlign(ui.Center).TextColor(t.Muted).FontSize(t.text(12))
+				ui.Text(c, weekdays[day]).Width(t.text(38)).TextAlign(ui.Center).TextColor(t.Primary).FontSize(t.text(12))
 			}
 		})
 		grid := ui.Column(c.Key("grid")).Focusable().Bind(&s.Handle).Role(ui.RoleTable).Label(o.Label).InputMethod(false)

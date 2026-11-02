@@ -65,7 +65,8 @@ func Card(c *ui.Context, t Theme, opts CardOptions, body func()) ui.Element {
 			muted = t.Dimmed
 		}
 		pad := PartStyle{PaddingX: Set(t.spacing(24)), PaddingY: Set(t.spacing(16)), Gap: Set(t.spacing(8))}
-		return Styles{Root: surface(t, v.Variant), Header: pad, Body: mergeStyle(pad, PartStyle{PaddingY: Set(t.spacing(24))}), Footer: pad, Label: {Foreground: Set(fg), Weight: Set(600), FontSize: Set(t.text(16)), LineHeight: Set(float32(24.0 / 16))}, Description: {Foreground: Set(muted), FontSize: Set(t.text(14))}}
+		header := mergeStyle(pad, PartStyle{Gap: Set(t.spacing(4))})
+		return Styles{Root: surface(t, v.Variant), Header: header, Body: mergeStyle(pad, PartStyle{PaddingY: Set(t.spacing(24))}), Footer: pad, Label: {Foreground: Set(fg), Weight: Set(600), FontSize: Set(t.text(16)), LineHeight: Set(float32(24.0 / 16))}, Description: {Foreground: Set(muted), FontSize: Set(t.text(14))}}
 	})
 	e := ui.Column(c).MinWidth(0).Clip()
 	styles[Root].apply(e)

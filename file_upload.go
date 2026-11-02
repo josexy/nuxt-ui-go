@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -29,6 +30,21 @@ const (
 
 // UploadFile owns metadata only. MIME is advisory (extension-derived by InspectUploadFiles).
 // The application owns file handles, content validation, upload transports and cleanup.
+// formatFileSize is Nuxt's formatFileSize: 1024-based units, whole numbers,
+// no space: "0B", "512B", "12KB", "3MB".
+func formatFileSize(bytes int64) string {
+	if bytes <= 0 {
+		return "0B"
+	}
+	units := []string{"B", "KB", "MB", "GB", "TB"}
+	i := min(int(math.Floor(math.Log(float64(bytes))/math.Log(1024))), len(units)-1)
+	value := float64(bytes) / math.Pow(1024, float64(i))
+	if i == 0 {
+		return strconv.FormatInt(bytes, 10) + units[0]
+	}
+	return strconv.FormatFloat(math.Round(value), 'f', 0, 64) + units[i]
+}
+
 type UploadFile struct {
 	ID, Path, Name, MIME, Error string
 	Size                        int64
@@ -364,18 +380,30 @@ func FileUpload(c *ui.Context, t Theme, s *FileUploadState, o FileUploadOptions)
 		}
 		bg := t.Background
 		if zone.FileDragOver() {
-			bg = t.Elevated
+			bg = t.Elevated.Alpha(.25)
 		}
-		finish(t, ComponentFileUpload, Body, zone, PartStyle{Background: Set(bg), Radius: Set(t.radius(8)), BorderWidth: Set(float32(1)), BorderColor: Set(t.Border), PaddingX: Set(t.spacing(16)), PaddingY: Set(t.spacing(20)), Gap: Set(t.spacing(8))}, o.Decoration)
+		// Nuxt's dashed dropzone. Part borders draw as inset rings, which
+		// cannot dash, so the zone draws its own border from the merged parts.
+		zoneStyle := mergeStyle(mergeStyle(PartStyle{Background: Set(bg), Radius: Set(t.radius(8)), BorderWidth: Set(float32(1)), BorderColor: Set(t.Border), PaddingX: Set(t.spacing(16)), PaddingY: Set(t.spacing(20)), Gap: Set(t.spacing(8))}, t.components[ComponentFileUpload].UI[Body]), o.UI[Body])
+		if w := zoneStyle.BorderWidth.Value; w > 0 && o.Variant == UploadArea {
+			zone.BorderWidth(w).BorderColor(zoneStyle.BorderColor.Value).BorderStyle(ui.BorderDashed)
+		}
+		zoneStyle.BorderWidth = Set(float32(0))
+		zoneStyle.apply(zone)
+		if o.Style != nil {
+			o.Style(Body, zone)
+		}
 		if paths := zone.DroppedFiles(); valueOr(o.Dropzone, true) && o.Variant == UploadArea && !o.Disabled && len(paths) > 0 {
 			paths = slices.Clone(paths)
 			s.load(func(ctx context.Context) ([]UploadFile, error) { return InspectUploadFiles(ctx, paths) })
 		}
 		zone.Children(func() {
 			if o.Variant == UploadArea {
-				Icon(c, t, lucide.FolderOpen(), IconOptions{})
-				ui.Text(c, o.Label).FontWeight(600)
-				ui.Text(c, o.Description).TextColor(t.Muted)
+				Avatar(c.Key("avatar"), t, AvatarOptions{Icon: lucide.Upload(), Size: o.Size}).Margin(0, 0, t.spacing(4), 0)
+				ui.Text(c, o.Label).FontWeight(500).TextColor(t.Text)
+				if o.Description != "" {
+					ui.Text(c, o.Description).TextColor(t.Muted)
+				}
 			}
 			label := o.ChooseLabel
 			if label == "" {
@@ -411,7 +439,7 @@ func FileUpload(c *ui.Context, t Theme, s *FileUploadState, o FileUploadOptions)
 				row.Children(func() {
 					ui.Column(c).Grow(1).MinWidth(0).Gap(4).Children(func() {
 						ui.Text(c, f.Name).SingleLine().Description(f.Path)
-						ui.Text(c, formatMessage(c, "fileSummary", map[string]any{"size": f.Size, "status": uploadStatusLabel(c, f.Status)})).FontSize(t.text(12)).TextColor(t.Muted)
+						ui.Text(c, formatMessage(c, "fileSize", map[string]any{"size": formatFileSize(f.Size), "status": uploadStatusLabel(c, f.Status)})).FontSize(t.text(12)).TextColor(t.Muted)
 						if f.Error != "" {
 							ui.Text(c, f.Error).TextColor(t.Error)
 						}

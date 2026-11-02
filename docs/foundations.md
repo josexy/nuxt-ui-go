@@ -122,7 +122,7 @@ Button 提供 `Style(root, label, leading, trailing ui.Element)` 和直接 `UI` 
 | AvatarGroup / `AvatarGroup` | 稳定 ID、统一尺寸、重叠、Max 未设置时不限数量、剩余数量；Root；单项 AvatarOptions 可配置 | Display |
 | Chip / `Chip` | 四角、Inset、Hidden、颜色/尺寸、可选文字；Root/Indicator；忽略输入不抢宿主点击；无 content 时独立显示 | Display |
 | Separator / `Separator` | 横/纵、Label、Icon；Root/Label/Indicator；纵向默认高 48，可链式修改 | Display |
-| Kbd / `Kbd`、`FormatKey` | 多个字符串键、平台修饰键、尺寸/色/变体；Root/Label；只显示提示，不注册快捷键 | Display Card footer |
+| Kbd / `Kbd`、`FormatKey` | 多个字符串键、平台修饰键、尺寸/色/变体；Root/Label；只显示提示，不注册快捷键。键名按 Nuxt 转大写，并把 tab、backspace、delete、capslock、方向键、pageup/pagedown、home/end 显示为符号（⇥ ⌫ ⌦ ⇪ ↑→↓← ⇞⇟ ↖↘）。修饰键保留桌面习惯：非 macOS 上 meta 显示 Win、shift 显示 Shift，Nuxt 分别显示 Ctrl 和 ⇧ | Display Card footer |
 | Skeleton / `Skeleton` | Width/Height、圆角、可选动画；Root；默认 160×16 | Feedback |
 | Progress / `Progress` | 确定/不确定、横/纵、五档粗细、颜色、Max、Label、动画；Root；Indicator 的 Background 定义自绘填色 | Feedback |
 | ProgressGroup / `ProgressGroup` | 横向多段进度、稳定 ID、段颜色、Max、尺寸、说明列表可隐藏；Root/Indicator（轨道）；不承担任务调度 | Feedback、Workspace |

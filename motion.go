@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"github.com/josexy/nuxt-ui-go/icons/lucide"
 )
 
 // motionVisible uses committed window geometry. Applications must also set Active=false
@@ -89,7 +90,7 @@ func Drawer(c *ui.Context, t Theme, s *DrawerState, o DrawerOptions, content fun
 	originalHeader := mo.Header
 	mo.Header = func(c *ui.Context, t Theme) {
 		handle := ui.Box(c.Key("drawer-handle")).Size(64, 16).AlignSelf(ui.Center).Focusable().FocusRing(true).Role(ui.RoleSlider).Label(namedMessage(c, "resizeNamed", o.Title)).Range(0, float64(h*points[len(points)-1]), float64(s.height)).Cursor(ui.CursorResizeNS)
-		handle.Children(func() { ui.Box(c).Width(40).Height(4).Margin(6, 12).Radius(2).Background(t.BorderAccented) })
+		handle.Children(func() { ui.Box(c).Width(48).Height(6).Margin(5, 8).Radius(999).Background(t.Accented) })
 		dx, dy, held := handle.Dragged()
 		_ = dx
 		if held {
@@ -207,7 +208,12 @@ func Carousel(c *ui.Context, t Theme, s *CarouselState, items []CarouselItem, o 
 		s.last = c.Now()
 	}
 	root.Children(func() {
-		view := ui.Box(c).Height(height).MinWidth(0).Clip().Focusable().FocusRing(true).Bind(&s.handle).Label(namedMessage(c, "slidesNamed", o.Label))
+		// The arrows are siblings over the viewport, so pressing them never drags it.
+		stage := ui.Box(c.Key("stage")).MinWidth(0)
+		var view ui.Element
+		stage.Children(func() {
+			view = ui.Box(c).Height(height).MinWidth(0).FillWidth().Clip().Focusable().FocusRing(true).Bind(&s.handle).Label(namedMessage(c, "slidesNamed", o.Label))
+		})
 		finish(t, ComponentCarousel, Body, view, PartStyle{Radius: Set(t.radius(8)), Background: Set(t.Elevated)}, o.Decoration)
 		back, next := ui.KeyLeft, ui.KeyRight
 		if vert {
@@ -314,31 +320,58 @@ func Carousel(c *ui.Context, t Theme, s *CarouselState, items []CarouselItem, o 
 		} else {
 			s.last = time.Time{}
 		}
-		ui.Row(c).Wrap().AlignItems(ui.Center).Gap(8).Children(func() {
-			if valueOr(o.Arrows, false) {
-				Button(c.Key("previous"), t, message(c, "previous"), ButtonOptions{AccessibleLabel: namedMessage(c, "previousNamed", o.Label), Variant: Outline, Color: Neutral, Disabled: !o.Wrap && s.Index == 0}).OnClick(func() { change(s.Index - 1) })
+		if valueOr(o.Arrows, false) {
+			stage.Children(func() {
+				// Nuxt's round outline arrows, 16 DIPs in from the viewport's
+				// sides (or its top and bottom), centered across it.
+				previous, following := lucide.ChevronLeft(), lucide.ChevronRight()
+				if vert {
+					previous, following = lucide.ChevronUp(), lucide.ChevronDown()
+				} else if c.Direction() == ui.RightToLeft {
+					previous, following = following, previous
+				}
+				arrow := func(key, label string, icon *ui.SVG, disabled bool, delta int, start bool) {
+					b := Button(c.Key(key), t, "", ButtonOptions{AccessibleLabel: label, Leading: icon, Variant: Outline, Color: Neutral, Square: true, Disabled: disabled, UI: Styles{Root: {Radius: Set(float32(999))}}}).Absolute().OnClick(func() { change(s.Index + delta) })
+					size := buttonMetrics(t, MD).Icon + 2*buttonMetrics(t, MD).Y
+					switch {
+					case vert && start:
+						b.LeftPercent(50).Top(t.spacing(16)).Translate(-size/2, 0)
+					case vert:
+						b.LeftPercent(50).Bottom(t.spacing(16)).Translate(-size/2, 0)
+					case start:
+						b.Start(t.spacing(16)).TopPercent(50).Translate(0, -size/2)
+					default:
+						b.End(t.spacing(16)).TopPercent(50).Translate(0, -size/2)
+					}
+				}
+				arrow("previous", namedMessage(c, "previousNamed", o.Label), previous, !o.Wrap && s.Index == 0, -1, true)
+				arrow("next", namedMessage(c, "nextNamed", o.Label), following, !o.Wrap && s.Index == len(items)-1, 1, false)
+			})
+		}
+		ui.Row(c).Wrap().AlignItems(ui.Center).Justify(ui.Center).Gap(t.spacing(12)).Children(func() {
+			ui.Text(c, fmt.Sprintf("%d / %d", s.Index+1, len(items))).Role(ui.RoleStatus).TextColor(t.Muted)
+			if o.Dots {
+				// Nuxt's 12 DIP dots, accented, and inverted for the current slide.
+				ui.Row(c.Key("dots")).Wrap().AlignItems(ui.Center).Gap(t.spacing(12)).Children(func() {
+					for i, it := range items {
+						dot := ui.ButtonBase(c.Key("dot:"+it.ID)).Label(formatMessage(c, "goToSlide", map[string]any{"number": i + 1})).Selected(s.Index == i).FocusRing(false).Size(12, 12).Radius(999).OnClick(func() { change(i) })
+						color := t.Accented
+						if s.Index == i {
+							color = t.InvertedBackground
+						}
+						dot.Background(color)
+						if dot.FocusVisible() {
+							dot.Shadow(0, 0, 0, 3, t.InvertedBackground.Alpha(.25))
+						}
+					}
+				})
 			}
-			ui.Text(c, fmt.Sprintf("%d / %d", s.Index+1, len(items))).Grow(1).Role(ui.RoleStatus).TextColor(t.Muted)
 			if o.Autoplay > 0 {
 				label := namedMessage(c, "pauseNamed", o.Label)
 				if s.Paused {
 					label = namedMessage(c, "playNamed", o.Label)
 				}
 				Button(c.Key("play-pause"), t, label, ButtonOptions{Variant: Ghost, Color: Neutral}).OnClick(func() { s.Paused = !s.Paused; s.last = time.Time{} })
-			}
-			if valueOr(o.Arrows, false) {
-				Button(c.Key("next"), t, message(c, "next"), ButtonOptions{AccessibleLabel: namedMessage(c, "nextNamed", o.Label), Variant: Outline, Color: Neutral, Disabled: !o.Wrap && s.Index == len(items)-1}).OnClick(func() { change(s.Index + 1) })
-			}
-			if o.Dots {
-				for i, it := range items {
-					button(c.Key("dot:"+it.ID), t, "", ButtonOptions{AccessibleLabel: formatMessage(c, "goToSlide", map[string]any{"number": i + 1}), Square: true, Variant: Ghost, Color: Neutral}, Set(s.Index == i)).Size(20, 20).OnClick(func() { change(i) }).Children(func() {
-						color := t.BorderAccented
-						if s.Index == i {
-							color = t.Primary
-						}
-						ui.Box(c).Size(6, 6).Radius(999).Background(color)
-					})
-				}
 			}
 		})
 	})

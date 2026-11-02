@@ -182,14 +182,14 @@ type HeaderOptions struct {
 
 // HeaderLayout is the Header component; Header remains the public slot constant.
 func HeaderLayout(c *ui.Context, t Theme, o HeaderOptions) ui.Element {
-	root := ui.Row(c).Wrap().MinWidth(0).AlignItems(ui.Center).BorderWidth(0, 0, 1, 0).BorderColor(t.Border)
-	finish(t, ComponentHeader, Root, root, PartStyle{PaddingX: Set(t.spacing(20)), PaddingY: Set(t.spacing(16)), Gap: Set(t.spacing(12)), Background: Set(t.Background)}, o.Decoration)
+	root := ui.Row(c).Wrap().MinWidth(0).MinHeight(t.spacing(64)).AlignItems(ui.Center).BorderWidth(0, 0, 1, 0).BorderColor(t.Border)
+	finish(t, ComponentHeader, Root, root, PartStyle{PaddingX: Set(t.spacing(24)), PaddingY: Set(t.spacing(8)), Gap: Set(t.spacing(12)), Background: Set(t.Background)}, o.Decoration)
 	root.Children(func() {
 		if o.Leading != nil {
 			o.Leading(c, t)
 		}
 		ui.Column(c).MinWidth(0).Grow(1).Children(func() {
-			finish(t, ComponentHeader, Label, ui.Text(c, o.Title).Role(ui.RoleHeading).Level(1), PartStyle{Foreground: Set(t.Highlighted), FontSize: Set(t.text(18)), Weight: Set(600)}, o.Decoration)
+			finish(t, ComponentHeader, Label, ui.Text(c, o.Title).Role(ui.RoleHeading).Level(1), PartStyle{Foreground: Set(t.Highlighted), FontSize: Set(t.text(20)), LineHeight: Set(float32(28.0 / 20)), Weight: Set(700)}, o.Decoration)
 			if o.Description != "" {
 				finish(t, ComponentHeader, Description, ui.Text(c, o.Description), PartStyle{Foreground: Set(t.Muted), FontSize: Set(t.text(12))}, o.Decoration)
 			}
@@ -210,7 +210,7 @@ type FooterOptions struct {
 }
 
 func FooterLayout(c *ui.Context, t Theme, o FooterOptions) ui.Element {
-	root := ui.Row(c).Wrap().MinWidth(0).AlignItems(ui.Center).BorderWidth(1, 0, 0, 0).BorderColor(t.Border)
+	root := ui.Row(c).Wrap().MinWidth(0).AlignItems(ui.Center)
 	finish(t, ComponentFooter, Root, root, PartStyle{PaddingX: Set(t.spacing(20)), PaddingY: Set(t.spacing(12)), Gap: Set(t.spacing(12)), Foreground: Set(t.Muted)}, o.Decoration)
 	root.Children(func() {
 		finish(t, ComponentFooter, Label, ui.Text(c, o.Text).Grow(1).MinWidth(0), PartStyle{}, o.Decoration)
@@ -242,19 +242,22 @@ func FooterColumns(c *ui.Context, t Theme, columns []FooterColumn, o FooterColum
 	root.Children(func() {
 		for _, col := range columns {
 			checkID(seen, col.ID, "FooterColumns")
-			ui.Column(c.Key(col.ID)).Width(w).Grow(1).Gap(8).Children(func() {
+			ui.Column(c.Key(col.ID)).Width(w).Grow(1).Gap(t.spacing(24)).Children(func() {
 				finish(t, ComponentFooterColumns, Label, ui.Text(c, col.Title).FontWeight(600), PartStyle{Foreground: Set(t.Highlighted)}, o.Decoration)
 				ids := map[string]bool{}
-				for _, it := range col.Items {
-					checkID(ids, it.ID, "FooterColumns item")
-					b := Button(c.Key(it.ID), t, it.Label, ButtonOptions{Variant: LinkVariant, Color: Neutral, Leading: it.Icon, Disabled: it.Disabled}).Justify(ui.Start)
-					finish(t, ComponentFooterColumns, Item, b, PartStyle{}, o.Decoration)
-					b.OnClick(func() {
-						if o.OnNavigate != nil {
-							o.OnNavigate(it.ID)
-						}
-					})
-				}
+				list := ui.Column(c.Key("links")).MinWidth(0).Gap(t.spacing(16)).AlignItems(ui.Start)
+				list.Children(func() {
+					for _, it := range col.Items {
+						checkID(ids, it.ID, "FooterColumns item")
+						b := Button(c.Key(it.ID), t, it.Label, ButtonOptions{Variant: LinkVariant, Color: Neutral, Leading: it.Icon, Disabled: it.Disabled, UI: Styles{Root: {PaddingX: Set(float32(0)), PaddingY: Set(float32(0))}}}).Justify(ui.Start)
+						finish(t, ComponentFooterColumns, Item, b, PartStyle{}, o.Decoration)
+						b.OnClick(func() {
+							if o.OnNavigate != nil {
+								o.OnNavigate(it.ID)
+							}
+						})
+					}
+				})
 			})
 		}
 	})

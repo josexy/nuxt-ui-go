@@ -74,6 +74,7 @@
   "progressNamed": "Progress {name}",
   "cancel": "Cancel",
   "cancelNamed": "Cancel {name}",
+  "fileSize": "{size} · {status}",
   "fileSummary": "{size, number, integer} bytes · {status}",
   "uploadRunning": "Uploading",
   "uploadDone": "Complete",

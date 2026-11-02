@@ -9,6 +9,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	nui "github.com/josexy/nuxt-ui-go"
+	"github.com/josexy/nuxt-ui-go/icons/lucide"
 )
 
 // Per-component visual alignment with Nuxt UI v4.12.
@@ -549,5 +550,131 @@ func TestInputTagsChipsFollowSize(t *testing.T) {
 		if len(tags) != 0 {
 			t.Errorf("size %v: the x did not remove the tag", size)
 		}
+	}
+}
+
+func TestButtonLinkAndBlockRecipe(t *testing.T) {
+	tt := ui.NewTester(func(c *ui.Context) {
+		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
+		ui.Column(c).Padding(20).Gap(12).Children(func() {
+			nui.Button(c, th, "Docs", nui.ButtonOptions{Variant: nui.LinkVariant})
+			nui.Button(c, th, "Continue", nui.ButtonOptions{Block: true, Trailing: lucide.ArrowRight(), AccessibleLabel: "Wide"}).Width(300)
+		})
+	}, 400, 200)
+	r := bounds(t, tt, "Docs")
+	tt.Move(r.X+r.W/2, r.Y+r.H/2)
+	tt.Advance(time.Second)
+	// The hover color changes, but no underline appears below the text.
+	text := bounds(t, tt, "Docs")
+	under := ui.Rect{X: text.X, Y: text.Y + text.H - 3, W: text.W, H: 3}
+	if countWhere(tt.Image(), under, func(c color.RGBA) bool { return c.R < 200 }) != 0 {
+		t.Fatal("the link button is underlined on hover")
+	}
+	wide, label := bounds(t, tt, "Wide"), bounds(t, tt, "Continue")
+	// Label centered in the remaining space; the icon pinned to the end padding.
+	icon := ui.Rect{X: wide.X + wide.W - 10 - 20, Y: wide.Y + 6, W: 20, H: 20}
+	if countWhere(tt.Image(), icon, func(c color.RGBA) bool { return c.R > 200 && c.G > 200 && c.B > 200 && c != rgba(nui.Light().Primary) }) == 0 || label.X+label.W > icon.X-20 {
+		t.Fatalf("block trailing icon is not at the end: button %v label %v", wide, label)
+	}
+}
+
+func TestSkeletonEmptyAndKbdRecipes(t *testing.T) {
+	tt := ui.NewTester(func(c *ui.Context) {
+		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
+		ui.Column(c).Padding(20).Gap(12).AlignItems(ui.Start).Children(func() {
+			nui.Skeleton(c, th, nui.SkeletonOptions{Animate: nui.Set(false)})
+			nui.Empty(c, th, nui.EmptyOptions{Title: "No projects", Description: "Create one to start.", Icon: lucide.Folder()}).Width(300)
+			nui.Kbd(c, th, []string{"tab", "k", "pageup"}, nui.KbdOptions{Platform: "linux"})
+		})
+	}, 500, 500)
+	th := nui.Light()
+	skeleton := bounds(t, tt, "Loading…")
+	if c := tt.Image().RGBAAt(int(skeleton.X+skeleton.W/2), int(skeleton.Y+skeleton.H/2)); c != rgba(th.Elevated) {
+		t.Fatalf("skeleton is %v, want elevated", c)
+	}
+	title, description := bounds(t, tt, "No projects"), bounds(t, tt, "Create one to start.")
+	if description.Y-(title.Y+title.H) != 8 {
+		t.Fatalf("empty title to description gap %v, want 8", description.Y-(title.Y+title.H))
+	}
+	// The icon sits on an elevated 40 DIP circle above the title.
+	if c := tt.Image().RGBAAt(int(title.X+title.W/2)-12, int(title.Y)-16-20); c != rgba(th.Elevated) {
+		t.Fatalf("no elevated circle behind the empty icon: %v", c)
+	}
+	for _, key := range []string{"⇥", "K", "⇞"} {
+		if _, found := tt.Find(key); !found {
+			t.Errorf("Kbd does not show %q: %v", key, tt.Texts())
+		}
+	}
+}
+
+func TestLayoutChromeRecipes(t *testing.T) {
+	tt := ui.NewTester(func(c *ui.Context) {
+		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
+		ui.Column(c).Children(func() {
+			nui.HeaderLayout(c, th, nui.HeaderOptions{Title: "Workspace"})
+			nui.FooterLayout(c, th, nui.FooterOptions{Text: "Ready"})
+			nui.FooterColumns(c, th, []nui.FooterColumn{{ID: "docs", Title: "Docs", Items: []nui.NavigationItem{{ID: "a", Label: "Intro"}, {ID: "b", Label: "Guide"}}}}, nui.FooterColumnsOptions{})
+		})
+	}, 600, 400)
+	title, ready := bounds(t, tt, "Workspace"), bounds(t, tt, "Ready")
+	if title.H != 28 {
+		t.Fatalf("header title line %v, want the 20/28 title", title.H)
+	}
+	// The 64 DIP header with its bottom border, and no border above the footer.
+	if c := tt.Image().RGBAAt(300, 63); c != rgba(nui.Light().Border) {
+		t.Fatalf("header is not 64 DIPs with a bottom border: %v", c)
+	}
+	if ready.Y < 64 || countColor(tt.Image(), ui.Rect{X: 0, Y: 64, W: 600, H: ready.Y - 64}, rgba(nui.Light().Border)) != 0 {
+		t.Fatal("the footer still has a top border")
+	}
+	docs, intro, guide := bounds(t, tt, "Docs"), bounds(t, tt, "Intro"), bounds(t, tt, "Guide")
+	if intro.Y-(docs.Y+docs.H) != 24 || guide.Y-(intro.Y+intro.H) != 16 || intro.X != docs.X {
+		t.Fatalf("footer columns: title %v, links %v %v; want gaps 24 and 16, aligned", docs, intro, guide)
+	}
+}
+
+func TestBannerCentersOneLine(t *testing.T) {
+	open := true
+	tt := ui.NewTester(func(c *ui.Context) {
+		th := nui.App(c, nui.AppConfig{})
+		ui.Column(c).Children(func() {
+			nui.Banner(c, th, &open, nui.BannerOptions{Title: "Maintenance tonight", CloseLabel: "Close banner", Decoration: nui.Decoration{Style: func(slot nui.Slot, e ui.Element) {
+				if slot == nui.Root {
+					e.Label("Banner region")
+				}
+			}}}).FillWidth()
+		})
+	}, 800, 200)
+	banner, title := bounds(t, tt, "Banner region"), bounds(t, tt, "Maintenance tonight")
+	if banner.H != 48 || title.H != 20 {
+		t.Fatalf("banner %v with title %v; want a 48 DIP row with one 14/20 line", banner, title)
+	}
+	if center := title.X + title.W/2; center < 390 || center > 410 {
+		t.Fatalf("banner title %v is not centered in 800 DIPs", title)
+	}
+}
+
+func TestFileUploadDashedZoneAndSizes(t *testing.T) {
+	var s nui.FileUploadState
+	tt := ui.NewTester(func(c *ui.Context) {
+		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
+		ui.Column(c).Padding(20).Children(func() {
+			nui.FileUpload(c, th, &s, nui.FileUploadOptions{Label: "Attachments", Description: "Drop files here"}).Width(300)
+		})
+	}, 400, 400)
+	zone := bounds(t, tt, "Attachments")
+	th := nui.Light()
+	// A dashed edge alternates the border color with the background.
+	border, gaps := 0, 0
+	for x := int(zone.X) + 20; x < int(zone.X+zone.W)-20; x++ {
+		switch tt.Image().RGBAAt(x, int(zone.Y)) {
+		case rgba(th.Border):
+			border++
+		case white:
+			gaps++
+		}
+	}
+	if border == 0 || gaps == 0 {
+		t.Fatalf("drop zone edge has %d border and %d gap pixels; want dashes", border, gaps)
 	}
 }

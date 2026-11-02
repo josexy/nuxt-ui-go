@@ -20,43 +20,49 @@ func Banner(c *ui.Context, t Theme, open *bool, o BannerOptions) ui.Element {
 		return ui.Element{}
 	}
 	color := selected(defaults(t, ComponentBanner, ComponentTheme{Color: Primary}), ComponentTheme{Color: o.Color}).Color
-	root := ui.Row(c).MinWidth(0).AlignItems(ui.Center).Role(ui.RoleStatus).Label(o.Title)
-	finish(t, ComponentBanner, Root, root, PartStyle{Background: Set(t.color(color)), Foreground: Set(t.Inverted), PaddingX: Set(t.spacing(16)), PaddingY: Set(t.spacing(12)), Gap: Set(t.spacing(12))}, o.Decoration)
+	root := ui.Row(c).MinWidth(0).MinHeight(t.spacing(48)).AlignItems(ui.Center).Role(ui.RoleStatus).Label(o.Title)
+	finish(t, ComponentBanner, Root, root, PartStyle{Background: Set(t.color(color)), Foreground: Set(t.Inverted), PaddingX: Set(t.spacing(16)), PaddingY: Set(t.spacing(6)), Gap: Set(t.spacing(12))}, o.Decoration)
 	root.Children(func() {
-		if o.Icon != nil {
-			finish(t, ComponentBanner, Leading, ui.Icon(c, o.Icon).Size(20, 20).Shrink(0), PartStyle{Foreground: Set(t.Inverted)}, o.Decoration)
-		}
-		ui.Column(c).Grow(1).MinWidth(0).Gap(4).Children(func() {
-			finish(t, ComponentBanner, Label, ui.Text(c, o.Title), PartStyle{Foreground: Set(t.Inverted), Weight: Set(500)}, o.Decoration)
+		// Nuxt's banner centers its content between equal side regions.
+		ui.Box(c.Key("start")).Grow(1).Shrink(1).Basis(0)
+		ui.Row(c.Key("center")).MinWidth(0).Shrink(1).AlignItems(ui.Center).Gap(t.spacing(6)).Children(func() {
+			if o.Icon != nil {
+				finish(t, ComponentBanner, Leading, ui.Icon(c, o.Icon).Size(20, 20).Shrink(0), PartStyle{Foreground: Set(t.Inverted)}, o.Decoration)
+			}
+			finish(t, ComponentBanner, Label, ui.Text(c, o.Title).SingleLine().MinWidth(0), PartStyle{Foreground: Set(t.Inverted), Weight: Set(500), FontSize: Set(t.text(14)), LineHeight: Set(float32(20.0 / 14))}, o.Decoration)
 			if o.Description != "" {
-				finish(t, ComponentBanner, Description, ui.Text(c, o.Description), PartStyle{Foreground: Set(t.Inverted)}, o.Decoration)
+				finish(t, ComponentBanner, Description, ui.Text(c, o.Description).SingleLine().MinWidth(0), PartStyle{Foreground: Set(t.Inverted.Alpha(.9))}, o.Decoration)
+			}
+			if o.Actions != nil {
+				actions := ui.Row(c).Shrink(0).Gap(t.spacing(6))
+				finish(t, ComponentBanner, Actions, actions, PartStyle{}, o.Decoration)
+				// Actions default to Nuxt's neutral XS buttons.
+				actionTheme := t.WithComponent(ComponentButton, ComponentTheme{Color: Neutral, Size: XS})
+				actions.Children(func() { o.Actions(c, actionTheme) })
 			}
 		})
-		if o.Actions != nil {
-			actions := ui.Row(c).Wrap().Gap(8)
-			finish(t, ComponentBanner, Actions, actions, PartStyle{}, o.Decoration)
-			actions.Children(func() { o.Actions(c, t) })
-		}
-		if open != nil {
-			label := o.CloseLabel
-			if label == "" {
-				label = message(c, "dismissBanner")
+		ui.Row(c.Key("end")).Grow(1).Shrink(1).Basis(0).Justify(ui.End).Children(func() {
+			if open != nil {
+				label := o.CloseLabel
+				if label == "" {
+					label = message(c, "dismissBanner")
+				}
+				// Nuxt's hover:bg-default/10 keeps the inverted icon readable on the banner color.
+				close := Button(c, t, "", ButtonOptions{Leading: lucide.X(), Variant: Ghost, Color: Neutral, Square: true, AccessibleLabel: label, UI: Styles{Root: {Foreground: Set(t.Inverted)}}, Style: func(root, label, leading, trailing ui.Element) {
+					if !root.IsDisabled() && (root.Hovered() || root.Pressed() || root.FocusVisible()) {
+						root.Background(t.Background.Alpha(.10))
+					} else {
+						root.Background(ui.Transparent)
+					}
+				}}).OnClick(func() {
+					*open = false
+					if o.OnClose != nil {
+						o.OnClose()
+					}
+				})
+				finish(t, ComponentBanner, Close, close, PartStyle{}, o.Decoration)
 			}
-			// Nuxt's hover:bg-default/10 keeps the inverted icon readable on the banner color.
-			close := Button(c, t, "", ButtonOptions{Leading: lucide.X(), Variant: Ghost, Color: Neutral, Square: true, AccessibleLabel: label, UI: Styles{Root: {Foreground: Set(t.Inverted)}}, Style: func(root, label, leading, trailing ui.Element) {
-				if !root.IsDisabled() && (root.Hovered() || root.Pressed() || root.FocusVisible()) {
-					root.Background(t.Background.Alpha(.10))
-				} else {
-					root.Background(ui.Transparent)
-				}
-			}}).OnClick(func() {
-				*open = false
-				if o.OnClose != nil {
-					o.OnClose()
-				}
-			})
-			finish(t, ComponentBanner, Close, close, PartStyle{}, o.Decoration)
-		}
+		})
 	})
 	return root
 }

@@ -65,7 +65,7 @@ func Alert(c *ui.Context, t Theme, opts AlertOptions) ui.Element {
 				decorated(Description, ui.Text(c, opts.Description), styles, opts.Style)
 			}
 			if opts.Actions != nil && stacked {
-				ui.Row(c).Wrap().Gap(t.spacing(6)).Margin(8, 0, 0, 0).Children(opts.Actions)
+				ui.Row(c).Wrap().Gap(t.spacing(6)).Margin(t.spacing(6), 0, 0, 0).Children(opts.Actions)
 			}
 		})
 		if opts.Actions != nil && !stacked {
@@ -120,22 +120,31 @@ func Empty(c *ui.Context, t Theme, opts EmptyOptions) ui.Element {
 	e := ui.Column(c).FillWidth().MinWidth(0).AlignItems(ui.Center)
 	styles[Root].apply(e)
 	e.Children(func() {
-		if opts.Loading {
-			icon := opts.LoadingIcon
-			if icon == nil {
-				icon = lucide.LoaderCircle()
-			}
-			size := t.text([5]float32{32, 36, 40, 44, 48}[sizeIndex(config.Size)])
-			decorated(Leading, loadingSVG(c, icon, size, t.Muted, t.motion(c), t.Motion.Spin), styles, opts.Style)
-		} else if opts.Icon != nil {
-			size := t.text([5]float32{32, 36, 40, 44, 48}[sizeIndex(config.Size)])
-			decorated(Leading, ui.Icon(c, opts.Icon).Size(size, size).TextColor(t.Muted), styles, opts.Style)
+		// Nuxt's empty avatar: the icon at half the size of an elevated circle.
+		size := t.text([5]float32{32, 36, 40, 44, 48}[sizeIndex(config.Size)])
+		if opts.Loading || opts.Icon != nil {
+			circle := ui.Box(c.Key("avatar")).Size(size, size).Radius(999).Background(t.Elevated).Center().Shrink(0)
+			circle.Children(func() {
+				if opts.Loading {
+					icon := opts.LoadingIcon
+					if icon == nil {
+						icon = lucide.LoaderCircle()
+					}
+					decorated(Leading, loadingSVG(c, icon, size/2, t.Muted, t.motion(c), t.Motion.Spin), styles, opts.Style)
+				} else {
+					decorated(Leading, ui.Icon(c, opts.Icon).Size(size/2, size/2).TextColor(t.Muted), styles, opts.Style)
+				}
+			})
 		}
-		if opts.Title != "" {
-			decorated(Label, ui.Text(c, opts.Title).TextAlign(ui.Center), styles, opts.Style)
-		}
-		if opts.Description != "" {
-			decorated(Description, ui.Text(c, opts.Description).MaxWidth(384).TextAlign(ui.Center), styles, opts.Style)
+		if opts.Title != "" || opts.Description != "" {
+			ui.Column(c.Key("header")).MinWidth(0).AlignItems(ui.Center).Gap(t.spacing(8)).Children(func() {
+				if opts.Title != "" {
+					decorated(Label, ui.Text(c, opts.Title).TextAlign(ui.Center), styles, opts.Style)
+				}
+				if opts.Description != "" {
+					decorated(Description, ui.Text(c, opts.Description).MaxWidth(384).TextAlign(ui.Center), styles, opts.Style)
+				}
+			})
 		}
 		if opts.Actions != nil {
 			ui.Row(c).Wrap().Justify(ui.Center).Gap(t.spacing(8)).Children(opts.Actions)
@@ -164,12 +173,12 @@ func Skeleton(c *ui.Context, t Theme, opts SkeletonOptions) ui.Element {
 	if opts.Height.Set {
 		h = opts.Height.Value
 	}
-	e := ui.Box(c).Size(w, h)
+	e := ui.Box(c).Size(w, h).Role(ui.RoleStatus).Label(message(c, "loading"))
 	animated := t.motion(c)
 	if opts.Animate.Set {
 		animated = animated && opts.Animate.Value
 	}
-	style := mergeStyle(PartStyle{Radius: Set(t.Radius), Background: Set(t.Accented)}, t.components[ComponentSkeleton].UI[Root])
+	style := mergeStyle(PartStyle{Radius: Set(t.Radius), Background: Set(t.Elevated)}, t.components[ComponentSkeleton].UI[Root])
 	style = mergeStyle(style, opts.UI[Root])
 	color := style.Background.Value
 	radius := style.Radius.Value
@@ -257,6 +266,9 @@ func Progress(c *ui.Context, t Theme, value float64, opts ProgressOptions) ui.El
 	reverse := opts.Inverted
 	if !opts.Vertical && c.Direction() == ui.RightToLeft {
 		reverse = !reverse
+	}
+	if animated && !opts.Indeterminate {
+		ratio = e.AnimateWith("nui-progress", ratio, 200*time.Millisecond, ui.EaseOut)
 	}
 	e.Draw(func(p *ui.Painter, r ui.Rect) {
 		fraction, start := ratio, float32(0)

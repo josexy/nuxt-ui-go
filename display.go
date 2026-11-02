@@ -112,7 +112,7 @@ func Avatar(c *ui.Context, t Theme, opts AvatarOptions) ui.Element {
 		if opts.Image != nil {
 			ui.Image(c, opts.Image).Size(size, size).Fit(ui.Cover)
 		} else if opts.Icon != nil {
-			decorated(Leading, ui.Icon(c, opts.Icon).Size(size*.6, size*.6), styles, opts.Style)
+			decorated(Leading, ui.Icon(c, opts.Icon).Size(size*.5, size*.5), styles, opts.Style)
 		} else {
 			text := opts.Text
 			if text == "" {
@@ -298,6 +298,30 @@ func FormatKey(key, goos string) string {
 		return "↵"
 	case "escape", "esc":
 		return "Esc"
+	case "tab":
+		return "⇥"
+	case "backspace":
+		return "⌫"
+	case "delete", "del":
+		return "⌦"
+	case "capslock":
+		return "⇪"
+	case "arrowup", "up":
+		return "↑"
+	case "arrowright", "right":
+		return "→"
+	case "arrowdown", "down":
+		return "↓"
+	case "arrowleft", "left":
+		return "←"
+	case "pageup":
+		return "⇞"
+	case "pagedown":
+		return "⇟"
+	case "home":
+		return "↖"
+	case "end":
+		return "↘"
 	}
 	return key
 }
@@ -325,7 +349,8 @@ func Kbd(c *ui.Context, t Theme, keys []string, opts KbdOptions) ui.Element {
 		for _, key := range keys {
 			chip := ui.Box(c).Height(height).MinWidth(height).PaddingX(t.spacing(4)).Radius(t.radius(4)).Center()
 			decorated(Label, chip, styles, opts.Style)
-			chip.Children(func() { ui.Text(c, FormatKey(key, platform)).SingleLine() })
+			// Nuxt's Kbd text is uppercase.
+			chip.Children(func() { ui.Text(c, strings.ToUpper(FormatKey(key, platform))).SingleLine() })
 		}
 	})
 	finish(t, ComponentKbd, Root, e, PartStyle{}, opts.Decoration)

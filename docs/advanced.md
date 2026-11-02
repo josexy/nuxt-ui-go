@@ -64,7 +64,7 @@ Sidebar 是侧栏内容区，有标题、Header/Footer builder、可滚动 body 
 
 只在独立手柄拖动，因此正文滚动不会被抽屉抢走。向下拖动减小高度，松开后按高度与速度投影选择停靠点；高度低于最小停靠点的一半，或移动超过默认 80 DIP 且速度超过 900 DIP/s，可关闭。`DismissDistance/DismissVelocity` 可配置；`Dismissible=false` 禁止拖拽、遮罩与 Escape 关闭，仍保留显式关闭操作。
 
-手柄可聚焦：Up/Down 切换停靠点，Home/End 到首尾；关闭按钮与 Escape 提供替代路径。失去捕获、失焦取消恢复原停靠点。尺寸停靠立即完成，打开/关闭继承 Slideover 过渡及 reduced motion。组件应包括关闭状态每帧调用。
+手柄为 Nuxt 的 48×6 Accented 圆角条。手柄可聚焦：Up/Down 切换停靠点，Home/End 到首尾；关闭按钮与 Escape 提供替代路径。失去捕获、失焦取消恢复原停靠点。尺寸停靠立即完成，打开/关闭继承 Slideover 过渡及 reduced motion。组件应包括关闭状态每帧调用。
 
 Drawer 仅支持底部手柄拖拽，不提供四边拖拽、连续弹簧吸附或与正文滚动联动的触屏手势。需要从其他方向打开面板时使用 Slideover。
 

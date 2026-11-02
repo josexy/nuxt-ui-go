@@ -51,6 +51,18 @@
 - SelectMenu 弹层改为平铺：搜索框为 None 变体加底部分隔线，列表无边框，默认最大高 240（此前 400）；占位文字改为 Dimmed；Subtle 变体悬停加深；清空按钮移到触发器尾部；创建项放进列表，方向键可以选到。
 - InputMenu 输入框尾部增加 chevron 开关按钮；多选的已选值和 InputTags 的标签改为小芯片（水平内边距 6、垂直 2，字号随字段尺寸），只有 × 能删除。新增文案键 `showOptions`。
 
+- Button 的 Link 变体悬停不再加下划线；Block 按钮的尾部图标推到最右端。Link 键盘聚焦时只显示焦点环，不改文字色。
+- Skeleton 底色改为 Elevated，并以 RoleStatus 和"加载中…"名称告知读屏。
+- Kbd 转大写，补齐 tab、backspace、delete、capslock、方向键、pageup/pagedown、home/end 的符号。
+- Empty 的图标放进 Elevated 圆形底（32–48），标题到描述间距 8。Card 标题到描述间距 4；Alert 纵向操作区上边距改为 6（与标题到描述的 4 合计为 Nuxt 的 10）；Avatar 图标为直径的 0.5 倍。
+- Carousel 前后箭头改为叠在视口两侧的 Outline 圆形图标按钮（RTL 时交换），圆点为 12 DIP、间距 12，当前页为 inverted 色。
+- Drawer 手柄改为 48×6、Accented 色。
+- FileUpload 拖放区改为虚线边框，拖入时底色为 Elevated 25%；图标改为圆形 Avatar 底上的 upload 图标；文件大小按 Nuxt 格式显示为 B/KB/MB 等（新增文案键 `fileSize`，参数 `size` 为已格式化的字符串；原 `fileSummary` 键保留但不再使用，覆盖过它的应用需要改为覆盖 `fileSize`）。
+- Header 最低高 64，标题 20 DIP 粗体；Footer 去掉顶部边框；FooterColumns 标题到列表间距 24、条目间距 16，链接去掉内边距。
+- Banner 内容居中、单行、高 48；Actions 默认使用 Neutral XS 按钮。
+- Calendar 星期表头改用 Primary 色；Tree 的文件夹图标随展开状态在 folder / folder-open 之间切换；Table 表头使用 Highlighted 色、单元格使用 Muted 色。
+- Progress 数值变化有 200ms 过渡，减少动态效果时立即到位。
+
 ### 依赖
 
 - MyGo 从 `v0.7.4-0.20261031084912-402a3cf8eb35` 升级到 `v0.7.4` 正式版。新增的 API 只有增量，没有删除导出 API；滚动条统一绘制后仍读取 `Theme.Scrollbar` 和 `ScrollbarWidth`。
