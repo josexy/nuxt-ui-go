@@ -116,6 +116,29 @@ func optionContent[T comparable](c *ui.Context, t Theme, o Option[T], chosen, hi
 	}
 }
 
+// tagChip is Nuxt's tag: an elevated chip with an accented inset ring, sized
+// with its field, whose x alone removes it. Pressing the x keeps the focus
+// in the editor; it stays a keyboard stop, as MyGo has no arrow keys between tags.
+func tagChip(c *ui.Context, t Theme, label, removeLabel string, size Size, disabled bool, remove func()) (chip, del ui.Element) {
+	i := sizeIndex(size)
+	font := t.text([5]float32{10, 10, 12, 12, 14}[i])
+	line := t.text([5]float32{12, 12, 16, 16, 20}[i])
+	icon := t.text([5]float32{12, 12, 14, 14, 16}[i])
+	chip = ui.Row(c).MinWidth(0).AlignItems(ui.Center).Gap(t.spacing(2)).PaddingX(t.spacing(6)).PaddingY(t.spacing(2)).Radius(t.radius(4)).
+		Background(t.Elevated).TextColor(t.Text).FontSize(font).LineHeight(line/font).FontWeight(500).InsetShadow(0, 0, 0, 1, t.BorderAccented)
+	chip.Children(func() {
+		ui.Text(c, label).SingleLine().MinWidth(0)
+		del = ui.ButtonBase(c.Key("remove")).Label(removeLabel).Disabled(disabled).KeepFocus().FocusRing(true).Radius(t.radius(2)).Shrink(0).OnClick(remove)
+		color := t.Dimmed
+		if del.Hovered() && !del.IsDisabled() {
+			color = t.Text
+			del.Background(t.Accented.Alpha(.75))
+		}
+		del.Children(func() { ui.Icon(c, lucide.X()).Size(icon, icon).TextColor(color) })
+	})
+	return chip, del
+}
+
 // optionEmptyStyle is a popup list's centered, muted empty state.
 func optionEmptyStyle(t Theme, size Size) PartStyle {
 	m := optionRecipe(t, size)
@@ -373,6 +396,12 @@ func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[stri
 	if !o.AllowCustom {
 		input.OnSubmit = nil
 	}
+	// The chevron is the list's toggle, drawn in place of a Trailing icon.
+	trailingIcon := input.Trailing
+	if trailingIcon == nil {
+		trailingIcon = lucide.ChevronDown()
+	}
+	input.Trailing = nil
 	createID := "\x00nui:create"
 	root := inputShell(c, t, &state.Query, input, ComponentInputMenu, 0, 0, func() ui.Element {
 		editor = ui.TextInputBase(c.Key("input"), &state.Query).Role(ui.RoleComboBox)
@@ -398,6 +427,18 @@ func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[stri
 		return editor
 	}, func(anchor ui.Element) {
 		memory.selection.update(state.SelectedValues)
+		size := inputDefaults(t, ComponentInputMenu, input).Size
+		m := buttonMetrics(t, size)
+		// Nuxt shows its clear button in place of the chevron while there is a value.
+		if clearable := o.Clearable && state.Query != "" && !o.ReadOnly; !clearable {
+			toggle := ui.Box(c.Key("toggle")).Role(ui.RoleButton).Label(message(c, "showOptions")).KeepFocus().Shrink(0).Cursor(ui.CursorDefault).OnClick(func() {
+				if !o.ReadOnly {
+					memory.open, memory.filtering = !memory.open, false
+					editor.Focus()
+				}
+			})
+			toggle.Children(func() { ui.Icon(c, trailingIcon).Size(m.Icon, m.Icon).TextColor(t.Dimmed) })
+		}
 		if o.Multiple {
 			anchor.Wrap()
 			seen := map[string]bool{}
@@ -410,7 +451,8 @@ func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[stri
 				if i, ok := memory.data.index[id]; ok {
 					label = options[i].Label
 				}
-				Button(c.Key("selected:"+id), t, label, ButtonOptions{AccessibleLabel: namedMessage(c, "removeNamed", label), Size: XS, Variant: Subtle, Color: Neutral, Trailing: lucide.X(), Disabled: o.ReadOnly}).OnClick(func() {
+				c.Key("selected:" + id)
+				tagChip(c, t, label, namedMessage(c, "removeNamed", label), size, o.ReadOnly, func() {
 					state.SelectedValues = slices.DeleteFunc(slices.Clone(state.SelectedValues), func(v string) bool { return v == id })
 					if o.OnValuesChange != nil {
 						o.OnValuesChange(slices.Clone(state.SelectedValues))

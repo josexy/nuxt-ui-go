@@ -48,6 +48,9 @@
 - Tabs underline 变体增加贯穿列表的基线，活动指示线压在基线上；触发器间距随尺寸变化。
 - Accordion / Collapsible 触发器去掉悬停底色和水平内边距，上下内边距 14，图标 20；Accordion 正文改为默认文字色，只保留 14 的下边距。
 
+- SelectMenu 弹层改为平铺：搜索框为 None 变体加底部分隔线，列表无边框，默认最大高 240（此前 400）；占位文字改为 Dimmed；Subtle 变体悬停加深；清空按钮移到触发器尾部；创建项放进列表，方向键可以选到。
+- InputMenu 输入框尾部增加 chevron 开关按钮；多选的已选值和 InputTags 的标签改为小芯片（水平内边距 6、垂直 2，字号随字段尺寸），只有 × 能删除。新增文案键 `showOptions`。
+
 ### 依赖
 
 - MyGo 从 `v0.7.4-0.20261031084912-402a3cf8eb35` 升级到 `v0.7.4` 正式版。新增的 API 只有增量，没有删除导出 API；滚动条统一绘制后仍读取 `Theme.Scrollbar` 和 `ScrollbarWidth`。

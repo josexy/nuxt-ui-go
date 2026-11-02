@@ -40,6 +40,7 @@
   "chooseOptions": "Choose options",
   "optionsNamed": "{name} options",
   "resultsNamed": "{name} results",
+  "showOptions": "Show options",
   "clearSelection": "Clear selection",
   "createItem": "Create “{name}”",
   "commandPalette": "Command palette",

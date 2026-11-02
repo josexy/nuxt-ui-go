@@ -86,6 +86,7 @@ func InputTags(c *ui.Context, t Theme, value *[]string, s *TagsState, o InputTag
 	// Text editing always indicates focus; tag buttons only do so when reached
 	// by keyboard. Match Nuxt's has-focus-visible on the outer field.
 	focusVisible := false
+	size := selected(defaults(t, ComponentInputTags, ComponentTheme{Size: MD}), ComponentTheme{Size: inheritedSize(t, o.Size)}).Size
 	root.Children(func() {
 		ui.Row(c.Key("tags")).Wrap().Gap(t.spacing(4)).Children(func() {
 			occurrences := map[string]int{}
@@ -95,8 +96,9 @@ func InputTags(c *ui.Context, t Theme, value *[]string, s *TagsState, o InputTag
 					Occurrence int
 				}{tag, occurrences[tag]}
 				occurrences[tag]++
-				button := Button(c.Key(key), t, tag, ButtonOptions{AccessibleLabel: namedMessage(c, "removeNamed", tag), Variant: Subtle, Color: Neutral, Size: XS, Trailing: lucide.X(), Disabled: o.ReadOnly}).OnClick(func() { emit(slices.Delete(slices.Clone(*value), i, i+1)) })
-				focusVisible = focusVisible || button.FocusVisible()
+				c.Key(key)
+				_, del := tagChip(c, t, tag, namedMessage(c, "removeNamed", tag), size, o.ReadOnly, func() { emit(slices.Delete(slices.Clone(*value), i, i+1)) })
+				focusVisible = focusVisible || del.FocusVisible()
 			}
 		})
 		in := o.InputOptions

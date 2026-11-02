@@ -453,3 +453,101 @@ func TestAccordionTriggerAndBodyRecipe(t *testing.T) {
 		t.Fatalf("hovered trigger has a surface: %v", c)
 	}
 }
+
+func TestSelectMenuFlatPopup(t *testing.T) {
+	var values []string
+	var s nui.SelectMenuState
+	created := ""
+	tt := ui.NewTester(func(c *ui.Context) {
+		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
+		ui.Column(c).Padding(20).Children(func() {
+			nui.SelectMenu(c, th, &values, &s, []nui.ListboxItem{{ID: "a", Label: "Alpha"}, {ID: "b", Label: "Beta"}}, nui.SelectMenuOptions{ListboxOptions: nui.ListboxOptions{Label: "Letters"}, Clearable: true, OnCreate: func(v string) { created = v }, Popup: nui.PopoverOptions{Label: "Letters popup"}}).Width(260)
+		})
+	}, 400, 400)
+	th := nui.Light()
+	// No selection: the placeholder is dimmed, without the value's dark text.
+	dark := func(c color.RGBA) bool { return c.R < 120 && c.G < 120 && c.B < 120 }
+	if countWhere(tt.Image(), bounds(t, tt, "Choose options"), dark) != 0 {
+		t.Fatal("the placeholder is not dimmed")
+	}
+	click(t, tt, "Letters")
+	tt.Advance(time.Second)
+	panel, alpha := bounds(t, tt, "Letters popup"), bounds(t, tt, "Alpha")
+	// The search field is a 32 DIP None field on a 1 DIP divider; the
+	// unbordered list insets its two 32 DIP rows by 4: 33 + 4 + 64 + 4.
+	if panel.H != 33+72 || alpha.Y != panel.Y+33+4 || alpha.X != panel.X+4 {
+		t.Fatalf("popup %v with first row %v; want a flat 105 DIP popup", panel, alpha)
+	}
+	im := tt.Image()
+	if c := im.RGBAAt(int(panel.X+panel.W/2), int(panel.Y)+32); c != rgba(th.Border) {
+		t.Fatalf("no divider under the search field: %v", c)
+	}
+	// An unmatched query offers creation as a list row the arrow keys reach.
+	tt.Type("Gamma")
+	tt.Key(0, ui.KeyDown)
+	tt.Key(0, ui.KeyEnter)
+	if created != "Gamma" || len(values) != 0 {
+		t.Fatalf("create row: created %q, values %v", created, values)
+	}
+	values = []string{"a"}
+	s.Open = false
+	tt.Frame()
+	click(t, tt, "Clear selection")
+	if len(values) != 0 || s.Open {
+		t.Fatalf("trigger clear: values %v, open %v", values, s.Open)
+	}
+}
+
+func TestInputMenuToggleAndTagChips(t *testing.T) {
+	state := nui.SearchState{SelectedValues: []string{"b"}}
+	tt := ui.NewTester(func(c *ui.Context) {
+		th := nui.App(c, nui.AppConfig{})
+		ui.Column(c).Padding(20).Children(func() {
+			nui.InputMenu(c, th, &state, []nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}}, nui.InputMenuOptions{InputOptions: nui.InputOptions{Label: "Letters"}, Multiple: true}).Width(300)
+		})
+	}, 400, 400)
+	click(t, tt, "Show options")
+	if !tt.HasText("Alpha") || !tt.Focused("Letters") {
+		t.Fatalf("the chevron did not open the list: %v", tt.Texts())
+	}
+	click(t, tt, "Show options")
+	if _, open := tt.Find("Alpha"); open {
+		t.Fatal("the chevron did not close the list")
+	}
+	// MD chips: a 12/16 line with py-0.5; only the x removes.
+	beta := bounds(t, tt, "Beta")
+	if beta.H != 16 {
+		t.Fatalf("chip text line %v, want 16", beta.H)
+	}
+	tt.ClickAt(beta.X+2, beta.Y+beta.H/2)
+	if len(state.SelectedValues) != 1 {
+		t.Fatal("clicking the chip's text removed it")
+	}
+	click(t, tt, "Remove Beta")
+	if len(state.SelectedValues) != 0 {
+		t.Fatal("the chip's x did not remove it")
+	}
+}
+
+func TestInputTagsChipsFollowSize(t *testing.T) {
+	// Nuxt's 10/12/14 chip text on 12/16/20 lines. The native font cannot draw
+	// 10 DIP text on a line shorter than its own metrics, so SM only grows.
+	previous := float32(0)
+	for _, size := range []nui.Size{nui.SM, nui.MD, nui.XL} {
+		tags := []string{"go"}
+		var s nui.TagsState
+		tt := ui.NewTester(func(c *ui.Context) {
+			th := nui.App(c, nui.AppConfig{})
+			nui.InputTags(c, th, &tags, &s, nui.InputTagsOptions{InputOptions: nui.InputOptions{Label: "Tags", Size: size}})
+		}, 400, 200)
+		h := bounds(t, tt, "go").H
+		if want := map[nui.Size]float32{nui.MD: 16, nui.XL: 20}[size]; want != 0 && h != want || h <= previous {
+			t.Errorf("size %v: chip line %v after %v", size, h, previous)
+		}
+		previous = h
+		click(t, tt, "Remove go")
+		if len(tags) != 0 {
+			t.Errorf("size %v: the x did not remove the tag", size)
+		}
+	}
+}

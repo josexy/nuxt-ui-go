@@ -40,6 +40,7 @@
   "chooseOptions": "请选择",
   "optionsNamed": "{name}选项",
   "resultsNamed": "{name}结果",
+  "showOptions": "显示选项",
   "clearSelection": "清空选择",
   "createItem": "创建“{name}”",
   "commandPalette": "命令面板",

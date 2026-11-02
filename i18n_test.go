@@ -164,11 +164,15 @@ func TestLocaleSwitchRefreshesExistingFormErrors(t *testing.T) {
 }
 
 func TestLocaleSwitchInsideSelectMenu(t *testing.T) {
-	state := nui.SelectMenuState{}
-	selected := []string{"go"}
+	state, plain := nui.SelectMenuState{}, nui.SelectMenuState{Open: true, Query: "draft"}
+	selected, none := []string{"go"}, []string(nil)
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.SelectMenu(c, th, &selected, &state, []nui.ListboxItem{{ID: "go", Label: "Go"}}, nui.SelectMenuOptions{Label: "Choices", Clearable: true, OnCreate: func(string) {}})
+		ui.Column(c).Gap(8).Children(func() {
+			nui.SelectMenu(c, th, &selected, &state, []nui.ListboxItem{{ID: "go", Label: "Go"}}, nui.SelectMenuOptions{Label: "Choices", Clearable: true, OnCreate: func(string) {}})
+			// Without OnCreate, an unmatched query shows the empty state.
+			nui.SelectMenu(c, th, &none, &plain, []nui.ListboxItem{{ID: "go", Label: "Go"}}, nui.SelectMenuOptions{Label: "Plain", Popup: nui.PopoverOptions{Placement: nui.TopStart}})
+		})
 	}, 500, 460)
 	click(t, tt, "Choices")
 	tt.Type("draft")
@@ -176,6 +180,9 @@ func TestLocaleSwitchInsideSelectMenu(t *testing.T) {
 	if !state.Open || !tt.Focused("搜索Choices") || state.Query != "draft" || !slices.Equal(selected, []string{"go"}) {
 		t.Fatal("open search lost state or focus during language change")
 	}
+	// Clicking the first menu dismissed the second, which reset its search.
+	plain.Open, plain.Query = true, "draft"
+	tt.Frame()
 	for _, text := range []string{"暂无结果", "创建“draft”", "清空选择"} {
 		if !tt.HasText(text) {
 			t.Fatalf("missing %q: %v", text, tt.Texts())

@@ -189,6 +189,11 @@ func positionPanel(panel, anchor ui.Element, t Theme, opts PopoverOptions) {
 // Popover is non-modal: outside presses dismiss it and continue to their target.
 // The anchor and panel are build values; open is caller-owned window state.
 func Popover(c *ui.Context, t Theme, anchor ui.Element, open *bool, opts PopoverOptions, content func(Theme)) ui.Element {
+	return popover(c, t, anchor, open, opts, popupStyle(t), content)
+}
+
+// popover is Popover on a base recipe of the caller's, before theme and instance parts.
+func popover(c *ui.Context, t Theme, anchor ui.Element, open *bool, opts PopoverOptions, recipe PartStyle, content func(Theme)) ui.Element {
 	host := ui.Box(c).Absolute().Size(0, 0).IgnoreInput(true)
 	identity := ui.Local(host, "popover", func() popoverMemory { return popoverMemory{} })
 	if opts.Mode > PopoverHover {
@@ -239,7 +244,7 @@ func Popover(c *ui.Context, t Theme, anchor ui.Element, open *bool, opts Popover
 	inner := t
 	inner.group = groupPart{}
 	panel := ui.PopoverBase(c.Key(identity), anchor, open, func(panel ui.Element) {
-		stylePanel(c, panel, anchor, t, opts, popupStyle(t))
+		stylePanel(c, panel, anchor, t, opts, recipe)
 		ui.Themed(c, t.Native()).MinWidth(0).Children(func() {
 			if content != nil {
 				content(inner)

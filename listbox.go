@@ -48,6 +48,10 @@ type ListboxOptions struct {
 	OnChange           func([]string)
 	OnSelect           func(string) // Activation, including selecting an unchanged value.
 	Decoration
+	// embedded lists draw no focus ring of their own, as in SelectMenu's popup.
+	embedded bool
+	// activate, when it reports true, handles an activation instead of selection.
+	activate func(id string) bool
 }
 
 func nextListIndex(items []ListboxItem, at, delta int) int {
@@ -90,6 +94,9 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 	}
 	choose := func(id string, toggle bool) {
 		if o.Disabled || t.field.Disabled {
+			return
+		}
+		if o.activate != nil && o.activate(id) {
 			return
 		}
 		next := slices.Clone(*selected)
@@ -162,6 +169,9 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 			list = ui.ScrollHorizontal(c.Key("list")).TrackScroll(&s.horizontal).Bind(&s.List.Handle).Role(ui.RoleList)
 		}
 		list.Fill().Focusable().FocusRing(false).Label(o.Label).InputMethod(false)
+		if vert {
+			list.Padding(t.spacing(4))
+		}
 		bindField(c, list, t)
 		move := func(i int) {
 			if i >= 0 && i < len(items) && !items[i].Disabled {
@@ -330,12 +340,35 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 		}
 	})
 	// Nuxt rings the list in its color while it has keyboard focus.
-	if list.FocusVisible() {
+	if list.FocusVisible() && !o.embedded {
 		rootStyle.BorderColor = Set(t.color(config.Color))
 		root.Shadow(0, 0, 0, 3, t.focusColor(config.Color))
 	}
 	finish(t, ComponentListbox, Root, root, rootStyle, o.Decoration)
 	return root
+}
+
+// listboxContentHeight is the height a vertical Listbox lays its rows out in:
+// items and their descriptions, group headings, the p-1 inset, or the empty state.
+func listboxContentHeight(t Theme, size Size, items []ListboxItem) float32 {
+	m := optionRecipe(t, size)
+	label := optionLabelStyle(t, size)
+	heading := 2*m.Pad + label.FontSize.Value*label.LineHeight.Value
+	if len(items) == 0 {
+		return 2*t.spacing([5]float32{12, 16, 24, 28, 32}[sizeIndex(size)]) + m.Line
+	}
+	h, group := 2*t.spacing(4), ""
+	for _, it := range items {
+		if it.Group != "" && it.Group != group {
+			h += heading
+		}
+		group = it.Group
+		h += m.Line + 2*m.Pad
+		if it.Description != "" {
+			h += m.Line
+		}
+	}
+	return h
 }
 
 type SelectMenuState struct {
@@ -397,7 +430,8 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 	finish(t, ComponentSelectMenu, Root, root, PartStyle{Gap: Set(t.spacing(4))}, o.Decoration)
 	root.Children(func() {
 		label := s.selectionLabel(*value, dataChanged)
-		if label == "" {
+		placeholder := label == ""
+		if placeholder {
 			label = o.Placeholder
 			if label == "" {
 				label = message(c, "chooseOptions")
@@ -413,8 +447,13 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 		hover := anchor.Hovered() && !anchor.IsDisabled()
 		styles := inputRecipe(t, config, anchor.FocusVisible(), hover, fieldInvalid(t, field))
 		style := styles[Root]
-		if hover && config.Variant == Outline {
-			style.Background = Set(t.Elevated)
+		if hover {
+			switch config.Variant {
+			case Outline:
+				style.Background = Set(t.Elevated)
+			case Subtle:
+				style.Background = Set(t.Accented.Alpha(.75))
+			}
 		}
 		style.apply(anchor)
 		if anchor.FocusVisible() && config.Variant != None {
@@ -425,9 +464,28 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 			anchor.Shadow(0, 0, 0, 3, t.focusColor(color))
 		}
 		anchor.Children(func() {
-			finish(t, ComponentSelectMenu, Label, ui.Text(c, label).SingleLine().MinWidth(0).Grow(1), PartStyle{}, o.Decoration)
+			text := ui.Text(c, label).SingleLine().MinWidth(0).Grow(1)
+			if placeholder {
+				text.TextColor(t.Dimmed)
+			}
+			finish(t, ComponentSelectMenu, Label, text, PartStyle{}, o.Decoration)
 			m := buttonMetrics(t, config.Size)
-			finish(t, ComponentSelectMenu, Trailing, ui.Icon(c, lucide.ChevronDown()).Size(m.Icon, m.Icon).TextColor(t.Dimmed).Shrink(0), PartStyle{}, o.Decoration)
+			if o.Clearable && len(*value) > 0 && !anchor.IsDisabled() {
+				// Nuxt's trailing clear: an unpadded neutral link button in place of the chevron.
+				clear := ui.ButtonBase(c.Key("clear")).Label(message(c, "clearSelection")).KeepFocus().FocusRing(true).Shrink(0).OnClick(func() {
+					*value = nil
+					if o.OnChange != nil {
+						o.OnChange(nil)
+					}
+				})
+				color := t.Muted
+				if clear.Hovered() {
+					color = t.Text
+				}
+				clear.Children(func() { ui.Icon(c, lucide.X()).Size(m.Icon, m.Icon).TextColor(color) })
+			} else {
+				finish(t, ComponentSelectMenu, Trailing, ui.Icon(c, lucide.ChevronDown()).Size(m.Icon, m.Icon).TextColor(t.Dimmed).Shrink(0), PartStyle{}, o.Decoration)
+			}
 		})
 		fieldSemantics(c, anchor, t, field)
 		anchor.OnClick(func() { s.Open = !s.Open }).OnShortcut(0, ui.KeyDown, func() { s.Open = true }).OnShortcut(0, ui.KeyUp, func() { s.Open = true })
@@ -441,23 +499,33 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 		popup := o.Popup
 		popup.MatchAnchor = true
 		if !popup.MaxHeight.Set {
-			popup.MaxHeight = Set(float32(400))
+			popup.MaxHeight = Set(float32(240)) // Nuxt's max-h-60
 		}
-		Popover(c.Key("popup"), t, anchor, &s.Open, popup, func(inner Theme) {
+		// Nuxt's combobox content is flat: no padding around the search field and list.
+		recipe := popupStyle(t)
+		recipe.PaddingX, recipe.PaddingY, recipe.Gap = Set(float32(0)), Set(float32(0)), Set(float32(0))
+		popover(c.Key("popup"), t, anchor, &s.Open, popup, recipe, func(inner Theme) {
 			// The search field and list take the menu's Size and Color.
 			inner.field.Size = config.Size
 			inner = inner.WithComponent(ComponentListbox, ComponentTheme{Color: config.Color})
+			m := optionRecipe(t, config.Size)
+			used := float32(0)
 			if search {
-				in := Input(c.Key("search"), inner, &s.Query, InputOptions{Label: namedMessage(c, "searchNamed", o.Label), Placeholder: o.SearchPlaceholder, Leading: lucide.Search(), OnChange: o.OnQuery, Style: func(root, editor, leading, trailing ui.Element) {
-					editor.Bind(&s.queryHandle).OnTextKey(func(k ui.TextKey) bool {
-						if k.Mods == 0 && (k.Key == ui.KeyDown || k.Key == ui.KeyUp) {
-							s.Listbox.List.Handle.Focus(c)
-							return true
-						}
-						return false
-					})
-				}})
-				_ = in
+				bar := ui.Column(c.Key("search-bar")).MinWidth(0).Shrink(0).BorderWidth(0, 0, 1, 0).BorderColor(t.Border)
+				bar.Children(func() {
+					Input(c.Key("search"), inner, &s.Query, InputOptions{Label: namedMessage(c, "searchNamed", o.Label), Placeholder: o.SearchPlaceholder, Leading: lucide.Search(), Variant: None, OnChange: o.OnQuery, Style: func(root, editor, leading, trailing ui.Element) {
+						root.FillWidth()
+						editor.Bind(&s.queryHandle).OnTextKey(func(k ui.TextKey) bool {
+							if k.Mods == 0 && (k.Key == ui.KeyDown || k.Key == ui.KeyUp) {
+								s.Listbox.List.Handle.Focus(c)
+								return true
+							}
+							return false
+						})
+					}})
+				})
+				bm := buttonMetrics(t, config.Size)
+				used += bm.Line + 2*bm.Y + 1
 				if !s.wasOpen {
 					s.queryHandle.Focus(c)
 				}
@@ -468,14 +536,23 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 			if search && !o.ExternalFilter && s.Query != "" {
 				filtered = s.filter(s.Query, o.FilterFields)
 			}
+			status := func(text string, color ui.Color) {
+				e := ui.Text(c, text).Role(ui.RoleStatus).TextColor(color).Shrink(0)
+				optionItemStyle(t, m, false).apply(e)
+				e.TextColor(color)
+				used += m.Line + 2*m.Pad
+			}
 			if o.Loading {
-				ui.Text(c, message(c, "loading")).Role(ui.RoleStatus)
+				status(message(c, "loading"), t.Muted)
 			}
 			if o.Error != "" {
-				ui.Text(c, o.Error).Role(ui.RoleStatus).TextColor(t.Error)
+				status(o.Error, t.Error)
 			}
 			opts := o.ListboxOptions
 			opts.Label = namedMessage(c, "optionsNamed", o.Label)
+			opts.embedded = true
+			opts.UI = cloneStyles(opts.UI)
+			opts.UI[Root] = mergeStyle(PartStyle{BorderWidth: Set(float32(0)), Radius: Set(float32(0)), Background: Set(ui.Transparent)}, opts.UI[Root])
 			if !o.Multiple {
 				opts.SelectionBehavior = SelectionReplace
 			}
@@ -492,26 +569,32 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 			}
 			create := o.OnCreate != nil && strings.TrimSpace(s.Query) != "" && (o.CreateWhenAlways || len(filtered) == 0)
 			create = create && !slices.ContainsFunc(filtered, func(it ListboxItem) bool { return it.ID == s.Query })
-			buildCreate := func() {
-				if create {
-					Button(c.Key("create"), inner, namedMessage(c, "createItem", s.Query), ButtonOptions{Variant: Ghost}).OnClick(func() { o.OnCreate(strings.TrimSpace(s.Query)) })
+			if create {
+				// The create entry is a row of the list, which the arrow keys reach,
+				// as in Nuxt; activating it requests creation instead of selecting.
+				createID := "\x00nui:create"
+				for slices.ContainsFunc(items, func(it ListboxItem) bool { return it.ID == createID }) {
+					createID += "_"
+				}
+				entry := ListboxItem{ID: createID, Label: namedMessage(c, "createItem", s.Query)}
+				if o.CreateAtTop {
+					filtered = append([]ListboxItem{entry}, filtered...)
+				} else {
+					filtered = append(slices.Clone(filtered), entry)
+				}
+				opts.activate = func(id string) bool {
+					if id != createID {
+						return false
+					}
+					o.OnCreate(strings.TrimSpace(s.Query))
+					return true
 				}
 			}
-			if o.CreateAtTop {
-				buildCreate()
+			if opts.Height <= 0 {
+				// The list fits its rows within the popup's maximum height.
+				opts.Height = max(0, min(listboxContentHeight(t, config.Size, filtered), popup.MaxHeight.Value-used))
 			}
 			Listbox(c.Key("choices"), inner, value, &s.Listbox, filtered, opts).FillWidth()
-			if !o.CreateAtTop {
-				buildCreate()
-			}
-			if o.Clearable && len(*value) > 0 {
-				Button(c.Key("clear"), inner, message(c, "clearSelection"), ButtonOptions{Variant: Ghost}).OnClick(func() {
-					*value = nil
-					if o.OnChange != nil {
-						o.OnChange(nil)
-					}
-				})
-			}
 		})
 		if s.wasOpen && !s.Open && valueOr(o.ResetSearchTermOnBlur, true) {
 			resetQuery()
