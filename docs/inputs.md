@@ -112,7 +112,7 @@ Select、InputMenu、SelectMenu、Listbox、菜单和 CommandPalette 共用 Nuxt
 | 字号 / 行高 | 12/16 | 12/16 | 14/20 | 14/20 | 16/24 |
 | 图标 | 16 | 16 | 20 | 20 | 24 |
 
-行圆角 6；高亮行用 Elevated 的 50% 底色，文字变为 Highlighted，前导图标从 Dimmed 变为 Text。描述在标签下一行，字号与标签相同，Muted 色。选中项的对勾放在行尾，尺寸同图标，颜色跟随文字。组标题为半粗体、比条目小一档。空状态居中、Muted 色。
+行圆角 6；高亮行用 Elevated 的 50% 底色，文字变为 Highlighted，前导图标从 Dimmed 变为 Text。描述在标签下一行，字号与标签相同，Muted 色。选中项不铺底色，只在行尾显示对勾，尺寸同图标，颜色跟随文字；底色只表示高亮。组标题为半粗体、比条目小一档。空状态居中、Muted 色。
 
 InputMenu 绑定 `*SearchState`，其中 Query 是编辑草稿，Selected 是单选的稳定 string ID；Selected="" 表示未选，所以选项 ID 不允许空字符串。默认仅按 Label 忽略大小写包含匹配，可显式设置 FilterFields；SearchSelect 兼容入口保留 Label+Description。多选以 SelectedValues 为唯一选中来源。应用删除选项时不自动清理模型。
 

@@ -1,6 +1,7 @@
 package nui_test
 
 import (
+	"image/color"
 	"slices"
 	"testing"
 	"time"
@@ -276,4 +277,88 @@ func TestSelectMultipleDrawsOneIcon(t *testing.T) {
 	if offset := bounds(t, tt, "First").X - bounds(t, tt, "Alpha").X; offset != 32 {
 		t.Fatalf("option text starts %v DIPs into its row, want 32 after a single icon", offset)
 	}
+}
+
+// Selected rows show only their trailing check: MyGo's Selected paints the
+// accent color, which the option recipe must replace when the row is not
+// highlighted, as in Nuxt, where only highlighted rows have a surface.
+func TestSelectedOptionRowsHaveNoAccentSurface(t *testing.T) {
+	members := []nui.ListboxItem{{ID: "lin", Label: "Lin Chen", Group: "Design"}, {ID: "ada", Label: "Ada Lovelace", Group: "Engineering"}, {ID: "grace", Label: "Grace Hopper", Group: "Engineering"}, {ID: "guest", Label: "Guest account", Group: "External", Disabled: true}}
+	th := nui.Light()
+	// surface samples a row just inside its start edge, away from text and the check.
+	surface := func(tt *ui.Tester, label string) color.RGBA {
+		r := bounds(t, tt, label)
+		return tt.Image().RGBAAt(int(r.X)+2, int(r.Y+r.H/2))
+	}
+	accent := func(c color.RGBA) bool { return near(c, rgba(th.Primary), 24) }
+
+	t.Run("listbox", func(t *testing.T) {
+		var chosen []string
+		var s nui.ListboxState
+		tt := ui.NewTester(func(c *ui.Context) {
+			th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
+			ui.Column(c).Padding(20).Children(func() {
+				nui.Listbox(c, th, &chosen, &s, members, nui.ListboxOptions{Label: "Members list", Multiple: true, Height: 230}).Width(300)
+			})
+		}, 400, 320)
+		click(t, tt, "Lin Chen")
+		click(t, tt, "Grace Hopper")
+		ada := bounds(t, tt, "Ada Lovelace")
+		tt.Move(ada.X+ada.W/2, ada.Y+ada.H/2)
+		tt.Frame()
+		parityScreenshot(t, tt, "listbox-selected-rows")
+		if !slices.Equal(chosen, []string{"lin", "grace"}) {
+			t.Fatalf("chosen %v", chosen)
+		}
+		for _, label := range []string{"Lin Chen", "Grace Hopper"} {
+			if c := surface(tt, label); accent(c) {
+				t.Errorf("selected, unhighlighted %s row is filled with the accent color: %v", label, c)
+			}
+		}
+		if c := surface(tt, "Ada Lovelace"); c == white || accent(c) {
+			t.Errorf("the hovered row lost its elevated/50 highlight: %v", c)
+		}
+	})
+
+	t.Run("select", func(t *testing.T) {
+		value := "a"
+		tt := ui.NewTester(func(c *ui.Context) {
+			th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
+			ui.Column(c).Padding(20).Children(func() {
+				nui.Select(c, th, &value, []nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}}, nui.SelectOptions{Label: "Letter"}).Width(240)
+			})
+		}, 400, 300)
+		click(t, tt, "Letter")
+		tt.Advance(time.Second)
+		beta := bounds(t, tt, "Beta")
+		tt.Move(beta.X+beta.W/2, beta.Y+beta.H/2)
+		tt.Frame()
+		// The trigger also shows "Alpha"; the popup row is the second match.
+		alpha := ui.Rect{X: beta.X, Y: beta.Y - beta.H, W: beta.W, H: beta.H}
+		if c := tt.Image().RGBAAt(int(alpha.X)+2, int(alpha.Y+alpha.H/2)); accent(c) {
+			t.Errorf("the selected Select option is filled with the accent color once unhighlighted: %v", c)
+		}
+	})
+
+	t.Run("input-menu", func(t *testing.T) {
+		state := nui.SearchState{SelectedValues: []string{"a", "b"}}
+		tt := ui.NewTester(func(c *ui.Context) {
+			th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
+			ui.Column(c).Padding(20).Children(func() {
+				nui.InputMenu(c, th, &state, []nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}, {Value: "c", Label: "Gamma"}}, nui.InputMenuOptions{Label: "Letters", Multiple: true}).Width(300)
+			})
+		}, 400, 400)
+		click(t, tt, "Show options")
+		tt.Advance(time.Second)
+		gamma := bounds(t, tt, "Gamma")
+		tt.Move(gamma.X+gamma.W/2, gamma.Y+gamma.H/2)
+		tt.Frame()
+		// Chips repeat the selected labels; the popup rows sit above Gamma.
+		for i, label := range []string{"Alpha", "Beta"} {
+			y := gamma.Y - float32(2-i)*gamma.H + gamma.H/2
+			if c := tt.Image().RGBAAt(int(gamma.X)+2, int(y)); accent(c) {
+				t.Errorf("selected %s option is filled with the accent color: %v", label, c)
+			}
+		}
+	})
 }

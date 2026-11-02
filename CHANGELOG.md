@@ -49,6 +49,7 @@
 - 圆角对齐 Nuxt：Badge XS/SM、Kbd、Checkbox 改为 4；Listbox 改为 8。
 - 标题字号对齐 Nuxt 继承的 16px：Card 由 14、Modal/Slideover/Drawer 由 18、Sidebar 由 14 改为 16。Drawer 的默认标题和描述现在使用 Label/Description 部件样式。
 - 修复 SelectMultiple 选项带 Icon 时图标画了两次。
+- 修复 Select、InputMenu 弹层中已选中但未高亮的行被填成强调色（MyGo 的 Selected 默认外观）；现在与 Nuxt 一样只显示行尾对勾。
 - 弹出层和 Tooltip 打开时有 100ms scale-in，Modal 有 200ms 缩放淡入并淡入遮罩；减少动态效果时直接显示。关闭仍立即完成。
 
 ### 组件外观

@@ -62,8 +62,10 @@ func optionRecipe(t Theme, size Size) optionMetrics {
 
 // optionItemStyle is the row: rounded-md; a highlighted row has an
 // elevated/50 surface and highlighted text, which its icons follow.
+// The surface is always set: MyGo's Selected fills a selected row with the
+// accent color, where Nuxt shows a selected row only by its trailing check.
 func optionItemStyle(t Theme, m optionMetrics, highlighted bool) PartStyle {
-	s := PartStyle{PaddingX: Set(m.Pad), PaddingY: Set(m.Pad), Gap: Set(m.Gap), Radius: Set(t.radius(6)), Foreground: Set(t.Text), FontSize: Set(m.Font), LineHeight: Set(m.Line / m.Font)}
+	s := PartStyle{Background: Set(ui.Transparent), PaddingX: Set(m.Pad), PaddingY: Set(m.Pad), Gap: Set(m.Gap), Radius: Set(t.radius(6)), Foreground: Set(t.Text), FontSize: Set(m.Font), LineHeight: Set(m.Line / m.Font)}
 	if highlighted {
 		s.Background = Set(t.Elevated.Alpha(.5))
 		s.Foreground = Set(t.Highlighted)
