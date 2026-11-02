@@ -72,7 +72,7 @@ type popInKey struct{}
 // transparent to its place, scaled around (originX, originY), the side
 // toward its anchor. Each newly shown panel plays it once. Closing is
 // immediate: a popup's overlay leaves with it, so no exit can be drawn.
-// It returns the progress, 1 once settled or while motion is reduced.
+// It returns the progress for finishPanel's fade, 1 once settled or while motion is reduced.
 func popIn(c *ui.Context, t Theme, panel ui.Element, d time.Duration, originX, originY float32) float32 {
 	if !panel.Valid() || !t.motion(c) {
 		return 1
@@ -84,8 +84,19 @@ func popIn(c *ui.Context, t Theme, panel ui.Element, d time.Duration, originX, o
 	}
 	v := panel.AnimateWith(popInKey{}, 1, d, ui.EaseOut)
 	scale := .95 + .05*v
-	panel.Opacity(v).TransformOrigin(originX, originY).Scale(scale, scale)
+	panel.TransformOrigin(originX, originY).Scale(scale, scale)
 	return v
+}
+
+// finishPanel fades toward the resolved opacity and keeps Style as the final override.
+func finishPanel(t Theme, id Component, panel ui.Element, base PartStyle, d Decoration, shown float32) {
+	base = mergeStyle(base, t.components[id].UI[Panel])
+	base = mergeStyle(base, d.UI[Panel])
+	base.Opacity = Set(valueOr(base.Opacity, float32(1)) * shown)
+	base.apply(panel)
+	if d.Style != nil {
+		d.Style(Panel, panel)
+	}
 }
 
 // popupOrigin is the panel's point nearest its anchor for a placement.
@@ -123,9 +134,9 @@ func popupOrigin(p Placement, rtl bool) (x, y float32) {
 
 func stylePanel(c *ui.Context, panel, anchor ui.Element, t Theme, opts PopoverOptions, recipe PartStyle) {
 	positionPanel(panel, anchor, t, opts)
-	finish(t, ComponentPopover, Panel, panel, recipe, opts.Decoration)
 	x, y := popupOrigin(opts.Placement, c.Direction() == ui.RightToLeft)
-	popIn(c, t, panel, popupMotion, x, y)
+	shown := popIn(c, t, panel, popupMotion, x, y)
+	finishPanel(t, ComponentPopover, panel, recipe, opts.Decoration, shown)
 }
 func positionPanel(panel, anchor ui.Element, t Theme, opts PopoverOptions) {
 	at, self := ui.AnchorBottomStart, ui.AnchorTopStart

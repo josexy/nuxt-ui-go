@@ -69,7 +69,7 @@ func ModalWithOptions(c *ui.Context, t Theme, open *bool, o ModalOptions, conten
 			recipe.Radius, recipe.BorderWidth = Set(float32(0)), Set(float32(0))
 		}
 		recipe.PaddingX, recipe.PaddingY = Set(float32(0)), Set(float32(0))
-		finish(t, ComponentModal, Panel, panel, recipe, o.Decoration)
+		finishPanel(t, ComponentModal, panel, recipe, o.Decoration, shown)
 		dialogContent(c, t, panel, open, o, ComponentModal, max(0, maximum), content)
 	})
 	if panel.Valid() && panel.Dismissed() {
@@ -328,9 +328,9 @@ func Tooltip(c *ui.Context, t Theme, anchor ui.Element, text string, o TooltipOp
 		positionPanel(tip, anchor, t, PopoverOptions{Placement: placement, Offset: o.Offset})
 		// Nuxt's tooltip: one truncated 24 DIP line, rounded-sm, px-2.5, shadow-sm.
 		tip.Height(t.text(24)).Justify(ui.Center)
-		finish(t, ComponentTooltip, Panel, tip, PartStyle{Background: Set(t.Background), Foreground: Set(t.Highlighted), BorderWidth: Set(float32(1)), BorderColor: Set(t.Border), Radius: Set(t.radius(4)), PaddingX: Set(t.spacing(10)), PaddingY: Set(t.spacing(4)), FontSize: Set(t.text(12)), LineHeight: Set(float32(16.0 / 12)), Shadow: Set(tooltipShadow)}, o.Decoration)
 		originX, originY := popupOrigin(placement, c.Direction() == ui.RightToLeft)
-		popIn(c, t, tip, popupMotion, originX, originY)
+		shown := popIn(c, t, tip, popupMotion, originX, originY)
+		finishPanel(t, ComponentTooltip, tip, PartStyle{Background: Set(t.Background), Foreground: Set(t.Highlighted), BorderWidth: Set(float32(1)), BorderColor: Set(t.Border), Radius: Set(t.radius(4)), PaddingX: Set(t.spacing(10)), PaddingY: Set(t.spacing(4)), FontSize: Set(t.text(12)), LineHeight: Set(float32(16.0 / 12)), Shadow: Set(tooltipShadow)}, o.Decoration, shown)
 		tip.Children(func() {
 			ui.Row(c).MinWidth(0).Gap(t.spacing(4)).AlignItems(ui.Center).Children(func() {
 				if text != "" {

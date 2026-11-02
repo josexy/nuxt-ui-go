@@ -379,6 +379,15 @@ func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[stri
 			}
 			return false
 		})
+		// Keep the toggle in the normal Trailing styling and callback pipeline.
+		trailing.Role(ui.RoleButton).Label(message(c, "showOptions")).KeepFocus().Cursor(ui.CursorDefault).
+			Hidden(o.Clearable && state.Query != "" && !o.ReadOnly).
+			OnClick(func() {
+				if !o.ReadOnly {
+					memory.open, memory.filtering = !memory.open, false
+					in.Focus()
+				}
+			})
 		if style != nil {
 			style(root, in, leading, trailing)
 		}
@@ -398,12 +407,9 @@ func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[stri
 	if !o.AllowCustom {
 		input.OnSubmit = nil
 	}
-	// The chevron is the list's toggle, drawn in place of a Trailing icon.
-	trailingIcon := input.Trailing
-	if trailingIcon == nil {
-		trailingIcon = lucide.ChevronDown()
+	if input.Trailing == nil {
+		input.Trailing = lucide.ChevronDown()
 	}
-	input.Trailing = nil
 	createID := "\x00nui:create"
 	root := inputShell(c, t, &state.Query, input, ComponentInputMenu, 0, 0, func() ui.Element {
 		editor = ui.TextInputBase(c.Key("input"), &state.Query).Role(ui.RoleComboBox)
@@ -430,17 +436,6 @@ func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[stri
 	}, func(anchor ui.Element) {
 		memory.selection.update(state.SelectedValues)
 		size := inputDefaults(t, ComponentInputMenu, input).Size
-		m := buttonMetrics(t, size)
-		// Nuxt shows its clear button in place of the chevron while there is a value.
-		if clearable := o.Clearable && state.Query != "" && !o.ReadOnly; !clearable {
-			toggle := ui.Box(c.Key("toggle")).Role(ui.RoleButton).Label(message(c, "showOptions")).KeepFocus().Shrink(0).Cursor(ui.CursorDefault).OnClick(func() {
-				if !o.ReadOnly {
-					memory.open, memory.filtering = !memory.open, false
-					editor.Focus()
-				}
-			})
-			toggle.Children(func() { ui.Icon(c, trailingIcon).Size(m.Icon, m.Icon).TextColor(t.Dimmed) })
-		}
 		if o.Multiple {
 			anchor.Wrap()
 			seen := map[string]bool{}

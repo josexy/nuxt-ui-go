@@ -50,8 +50,9 @@ type ListboxOptions struct {
 	Decoration
 	// embedded lists draw no focus ring of their own, as in SelectMenu's popup.
 	embedded bool
-	// activate, when it reports true, handles an activation instead of selection.
-	activate func(id string) bool
+	// actionID identifies a focusable action row, excluded from selection and Build.
+	actionID string
+	activate func()
 }
 
 func nextListIndex(items []ListboxItem, at, delta int) int {
@@ -96,7 +97,8 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 		if o.Disabled || t.field.Disabled {
 			return
 		}
-		if o.activate != nil && o.activate(id) {
+		if id == o.actionID && o.activate != nil {
+			o.activate()
 			return
 		}
 		next := slices.Clone(*selected)
@@ -224,7 +226,7 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 			if o.Multiple && ev.Key == ui.KeyA && (ev.Mods == ui.Ctrl || ev.Mods == ui.Super) {
 				all := []string{}
 				for _, it := range items {
-					if !it.Disabled {
+					if !it.Disabled && it.ID != o.actionID {
 						all = append(all, it.ID)
 					}
 				}
@@ -263,7 +265,7 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 				if anchor >= 0 && to >= 0 {
 					rangeIDs := []string{}
 					for i := min(anchor, to); i <= max(anchor, to); i++ {
-						if !items[i].Disabled {
+						if !items[i].Disabled && items[i].ID != o.actionID {
 							rangeIDs = append(rangeIDs, items[i].ID)
 						}
 					}
@@ -288,7 +290,7 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 				return
 			}
 			it := items[entry.item]
-			chosen := s.selection.set[it.ID]
+			chosen := it.ID != o.actionID && s.selection.set[it.ID]
 			highlighted := it.ID == s.Active
 			// Rows take their content's height; the list measures each row it shows.
 			row := ui.Row(r.Context).MinWidth(0).AlignItems(ui.Center).Role(ui.RoleListItem).Label(it.Label).Description(it.Description).Selected(chosen).Disabled(it.Disabled)
@@ -314,7 +316,7 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 				if it.Icon != nil {
 					ui.Icon(r.Context, it.Icon).Size(m.Icon, m.Icon).TextColor(optionLeadingColor(t, highlighted)).Shrink(0)
 				}
-				if o.Build != nil {
+				if o.Build != nil && it.ID != o.actionID {
 					o.Build(r.Context, t, it)
 				} else {
 					optionTexts(r.Context, t, it.Label, it.Description)
@@ -585,12 +587,9 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 				} else {
 					filtered = append(slices.Clone(filtered), entry)
 				}
-				opts.activate = func(id string) bool {
-					if id != createID {
-						return false
-					}
+				opts.actionID = createID
+				opts.activate = func() {
 					o.OnCreate(strings.TrimSpace(s.Query))
-					return true
 				}
 			}
 			if opts.Height <= 0 {

@@ -26,6 +26,9 @@
 
 ### 缺陷修复
 
+- SelectMenu 的创建行不再进入全选或范围选择的结果，也不再传给业务条目的自定义 `Build`；仍支持鼠标、Enter 和 Space 创建。
+- InputMenu 的尾部切换图标恢复主题、实例 `UI[Trailing]` 和 `Style` 回调的样式覆盖。
+- Popover、菜单和 Tooltip 的打开动画保留自定义面板透明度；Modal 同样按目标透明度淡入，`Style` 回调仍为最终覆盖。
 - CheckboxGroup 的 Label、Description、Indicator 等部件样式和 Style 回调现在作用于每个 Checkbox；Root/Item 仍只作用于组和行。
 - Checkbox 使用 `CheckedIcon` 作为勾选图标（默认 Check）；`UncheckedIcon` 只用于 Switch。
 - Switch 轨道去掉 1 DIP 描边，只在 Highlight 或出错时画一圈强调色/错误色。
