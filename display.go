@@ -385,12 +385,15 @@ func User(c *ui.Context, t Theme, opts UserOptions) ui.Element {
 		e.Shadow(0, 0, 0, 3, t.focusColor(Primary))
 	}
 	e.Children(func() {
-		avatar := opts.Avatar
-		avatar.Size = config.Size
-		if avatar.Alt == "" {
-			avatar.Alt = opts.Name
+		// As Nuxt's, a User without avatar options shows no avatar.
+		if a := opts.Avatar; a.Image != nil || a.Icon != nil || a.Text != "" || a.Alt != "" || a.Color != ColorDefault || a.Size != SizeDefault || len(a.UI) > 0 || a.Style != nil {
+			avatar := opts.Avatar
+			avatar.Size = config.Size
+			if avatar.Alt == "" {
+				avatar.Alt = opts.Name
+			}
+			Avatar(c, t, avatar)
 		}
-		Avatar(c, t, avatar)
 		wrapper := ui.Column(c).MinWidth(0).Grow(1)
 		if config.Size == XS {
 			wrapper.Row().AlignItems(ui.Center).Gap(t.spacing(6))

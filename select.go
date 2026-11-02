@@ -267,7 +267,7 @@ func Select[T comparable](c *ui.Context, t Theme, selected *T, options []Option[
 		selectionPanel(c, panel, e, t, o.Popup)
 		finish(t, ComponentSelect, Panel, panel, PartStyle{}, o.Decoration)
 		if len(options) == 0 {
-			finish(t, ComponentSelect, EmptySlot, ui.Text(c, message(c, "noOptions")).Role(ui.RoleStatus).TextAlign(ui.Center), optionEmptyStyle(t, config.Size), o.Decoration)
+			finish(t, ComponentSelect, EmptySlot, ui.Text(c, emptyMessage(c, "noData", "noOptions")).Role(ui.RoleStatus).TextAlign(ui.Center), optionEmptyStyle(t, config.Size), o.Decoration)
 		}
 		optionList(c, t, &memory.list, e, len(options), func(i int) Option[T] { return options[i] }, selectionHeight(o.Popup), ComponentSelect, o.Decoration, config.Size, func(v T) bool { return v == *selected }, choose)
 	})
@@ -543,7 +543,11 @@ func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[stri
 				if memory.list.enabledCount == 0 && !create {
 					text := o.EmptyText
 					if text == "" {
-						text = message(c, "noResultsFound")
+						key := "noData"
+						if len(options) > 0 && strings.TrimSpace(state.Query) != "" {
+							key = "noMatch"
+						}
+						text = emptyMessage(c, key, "noResultsFound")
 					}
 					finish(t, ComponentInputMenu, EmptySlot, ui.Text(c, text).Role(ui.RoleStatus).TextAlign(ui.Center), optionEmptyStyle(t, config.Size), Decoration{UI: input.UI})
 				}

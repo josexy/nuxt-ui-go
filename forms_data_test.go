@@ -84,7 +84,7 @@ func TestTagsPinRatingTriAndRange(t *testing.T) {
 		})
 	}, 500, 600)
 	click(t, tt, "Tags")
-	tt.SetClipboard("Go, Vue\n原生")
+	tt.SetClipboard("Go, Vue, 原生")
 	tt.Command("paste")
 	if !slices.Equal(tags, []string{"Go", "Vue", "原生"}) {
 		t.Fatalf("tags %v", tags)

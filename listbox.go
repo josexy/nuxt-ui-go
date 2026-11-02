@@ -136,7 +136,7 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 		if len(items) == 0 {
 			text := o.EmptyText
 			if text == "" {
-				text = message(c, "noResults")
+				text = emptyMessage(c, "noData", "noResults")
 			}
 			pad := t.spacing([5]float32{12, 16, 24, 28, 32}[sizeIndex(config.Size)])
 			finish(t, ComponentListbox, EmptySlot, ui.Text(c, text).Role(ui.RoleStatus).TextAlign(ui.Center), PartStyle{Foreground: Set(t.Muted), FontSize: Set(m.Font), LineHeight: Set(m.Line / m.Font), PaddingX: Set(m.Pad), PaddingY: Set(pad)}, o.Decoration)
@@ -550,6 +550,9 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 			}
 			opts := o.ListboxOptions
 			opts.Label = namedMessage(c, "optionsNamed", o.Label)
+			if opts.EmptyText == "" && len(items) > 0 && len(filtered) == 0 {
+				opts.EmptyText = emptyMessage(c, "noMatch", "noResults")
+			}
 			opts.embedded = true
 			opts.UI = cloneStyles(opts.UI)
 			opts.UI[Root] = mergeStyle(PartStyle{BorderWidth: Set(float32(0)), Radius: Set(float32(0)), Background: Set(ui.Transparent)}, opts.UI[Root])

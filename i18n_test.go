@@ -183,7 +183,7 @@ func TestLocaleSwitchInsideSelectMenu(t *testing.T) {
 	// Clicking the first menu dismissed the second, which reset its search.
 	plain.Open, plain.Query = true, "draft"
 	tt.Frame()
-	for _, text := range []string{"暂无结果", "创建“draft”", "清空选择"} {
+	for _, text := range []string{"没有匹配的数据", "创建“draft”", "清空选择"} {
 		if !tt.HasText(text) {
 			t.Fatalf("missing %q: %v", text, tt.Texts())
 		}
@@ -234,7 +234,8 @@ func TestLocaleSwitchUploadErrorsAndActiveJob(t *testing.T) {
 	defer state.Dispose()
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.FileUpload(c, th, &state, nui.FileUploadOptions{Label: "Attachments", ChooseLabel: "Browse my files"})
+		// The button variant shows the application's ChooseLabel.
+		nui.FileUpload(c, th, &state, nui.FileUploadOptions{Label: "Attachments", ChooseLabel: "Browse my files", Variant: nui.UploadButton})
 	}, 560, 600)
 	tt.SetLocale("zh-Hans")
 	for _, text := range []string{"文件大小超过 10 字节", "Storage denied", "Browse my files", "上传中", "取消ok.txt"} {

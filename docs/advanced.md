@@ -54,7 +54,7 @@ nui.CommandPalette(c, theme, &state.Commands,
 
 水平导航的子级使用已有 DropdownMenu（多层菜单、Escape、焦点恢复）；纵向采用内联展开层级。方向键、Home/End 和 Tab 使用 MyGo FocusGroup；禁用项不激活。父项用于展开，不同时跳转。全树 ID 唯一，删除项目后清理菜单状态。
 
-Sidebar 是侧栏内容区，有标题、Header/Footer builder、可滚动 body 和收起按钮，默认宽 224/64 DIP。收起按钮使用 Nuxt 的面板图标（panel-left-close / open），分隔边框在结束侧；右到左时图标和边框一起镜像。`content(c,t,compact)` 中可组合 NavigationMenu；紧凑模式隐藏有图标项目的文字，但保留可访问名称。没有图标的项仍显示标签。长文本按可用宽度省略；应用应在更窄的窗口主动收起，或把导航放进 Drawer。
+Sidebar 是侧栏内容区，有标题、Header/Footer builder、可滚动 body 和收起按钮，默认宽 256/64 DIP（展开宽度与 Nuxt 一致）。收起按钮使用 Nuxt 的面板图标（panel-left-close / open），分隔边框在结束侧；右到左时图标和边框一起镜像。`content(c,t,compact)` 中可组合 NavigationMenu；紧凑模式隐藏有图标项目的文字，但保留可访问名称。没有图标的项仍显示标签。长文本按可用宽度省略；应用应在更窄的窗口主动收起，或把导航放进 Drawer。
 
 不包含 DashboardSidebar、路由匹配、Web mega menu、移动端断点系统，也不要求 URL。导航的原生无障碍角色为 Group（MyGo 没有公开 Navigation landmark 枚举）。
 
@@ -143,11 +143,11 @@ nui.Chart(c, theme, &state.Activity, nui.ChartOptions{
 
 ## Carousel 与 Marquee
 
-CarouselItem 使用稳定 ID、Label 和同步 Build。`CarouselState.Index/Paused` 可控；每次只构建当前及相邻项，裁剪内沿 Orientation 拖拽，位移超过视口 20% 或速度超过 600 DIP/s 时换页，释放后吸附到页。Previous/Next、水平 Left/Right 或纵向 Up/Down、Home/End 可操作；Arrows 可隐藏按钮，Dots 可开启圆点导航。`Wrap=true` 让按钮、键盘与自动播放到尾后回到首项；拖拽边缘有界，不是无缝克隆循环。索引以位置为控制值；重排业务数据时由应用决定新的 Index。
+CarouselItem 使用稳定 ID、Label 和同步 Build。`CarouselState.Index/Paused` 可控；每次只构建当前及相邻项，裁剪内沿 Orientation 拖拽，位移超过视口 20% 或速度超过 600 DIP/s 时换页，释放后吸附到页。Previous/Next、水平 Left/Right 或纵向 Up/Down、Home/End 可操作；Arrows 可隐藏按钮，Dots 可开启圆点导航。与 Nuxt 一样不显示可见的"1 / N"计数；当前位置写进根元素的可访问值（"1 of 3"/"第 1 张，共 3 张"，文案键 `slidePosition`）。`Wrap=true` 让按钮、键盘与自动播放到尾后回到首项；拖拽边缘有界，不是无缝克隆循环。索引以位置为控制值；重排业务数据时由应用决定新的 Index。
 
 默认无自动播放；设置 Autoplay 才启用。悬停、焦点在幻灯片、手动暂停、Active=false、窗口外不可见、reduced motion 都停止推进。移除项会修正索引，拖拽取消归零。相邻项禁用交互，但其 builder 仍会执行；不要在 builder 启动副作用。
 
-Marquee 支持水平/垂直、Reverse、DIP/s Speed、Gap、Height、内容重复和 Space 暂停。ContentKey 改变重置相位；内容短于容器时不滚动；PauseOnHover=true 时悬停暂停（默认 false）；焦点、Paused、Active=false、reduced motion 始终停止。Orientation 与 Vertical 都可选择方向，水平运动随 RTL 镜像。内容 builder 只放展示元素，会被调用两次，不能放业务按钮、输入或有副作用的内容。底层没有整棵子树的 accessibility-hidden 接口，重复内容的读屏呈现仍需在目标读屏工具中验证。
+Marquee 支持水平/垂直、Reverse、DIP/s Speed、Gap（默认 64，Nuxt 的 `--gap`）、Height、内容重复和 Space 暂停。与 Nuxt 一样内容重复 4 份，每份至少与容器等长、内部条目均匀分布，因此内容较短时也会滚动；`Overlay` 默认在两端各三分之一处渐隐到背景色，`Overlay: nui.Set(false)` 关闭。ContentKey 改变重置相位；PauseOnHover=true 时悬停暂停（默认 false）；焦点、Paused、Active=false、reduced motion 始终停止。Orientation 与 Vertical 都可选择方向，水平运动随 RTL 镜像。内容 builder 只放展示元素，每次构建会被调用四次，不能放业务按钮、输入或有副作用的内容。底层没有整棵子树的 accessibility-hidden 接口，重复内容的读屏呈现仍需在目标读屏工具中验证。
 
 两者没有定时 goroutine。可见性判断使用已提交窗口矩形；对仍挂载但被应用自定义裁剪/隐藏的容器，调用方必须同步 `Active=false`，或者不构建组件；窗口隐藏/最小化可由应用事件传入 Active。卸载后不再申请帧，不累积暂停时间。不要将停止申请帧误解为可随意持续构建隐藏动画。
 

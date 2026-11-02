@@ -127,7 +127,7 @@ Button 提供 `Style(root, label, leading, trailing ui.Element)` 和直接 `UI` 
 | Progress / `Progress` | 确定/不确定、横/纵、五档粗细、颜色、Max、Label、动画；Root；Indicator 的 Background 定义自绘填色 | Feedback |
 | ProgressGroup / `ProgressGroup` | 横向多段进度、稳定 ID、段颜色、Max、尺寸、说明列表可隐藏；Root/Indicator（轨道）；不承担任务调度 | Feedback、Workspace |
 | Empty / `Empty` | 四种表面变体、尺寸、图标/标题/说明/Actions/Footer；Root/Leading/Label/Description | Workspace |
-| User / `User` | Avatar、Name/Description、尺寸、Vertical、Disabled、OnActivate；Root/Label/Description；长文本省略 | Display、Workspace |
+| User / `User` | Avatar、Name/Description、尺寸、Vertical、Disabled、OnActivate；Root/Label/Description；长文本省略。与 Nuxt 一样，AvatarOptions 各字段都为空时不显示头像；需要首字母头像时设置 `Avatar: nui.AvatarOptions{Alt: name}` 或 Text | Display、Workspace |
 
 Separator 支持 Color、Size（XS..XL 对应 1..5 DIP）、Type（SeparatorSolid/Dashed/Dotted）、Position（Center/Start/End）、Avatar、Content、Orientation。内容优先级为 Content → Label → Icon → Avatar；Body 为内容容器，Indicator 为分隔线。默认标签 14 DIP、图标 20 DIP；Avatar 默认映射到本库最小 XS（上游 2xs 无同名尺寸）。
 

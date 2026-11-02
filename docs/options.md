@@ -46,7 +46,7 @@ nui.RangeSlider(c, t, &state.Low, &state.High, nui.RangeSliderOptions{
 | 组件 | 入口与约定 |
 | --- | --- |
 | Switch | Loading 阻止鼠标和键盘切换；LoadingIcon / CheckedIcon / UncheckedIcon 自定义图标；减少动态效果时停止转动。Checkbox 只使用 CheckedIcon |
-| Checkbox / CheckboxGroup / RadioGroup | Variant 使用 ChoiceList / ChoiceCard / ChoiceTable；Indicator 使用 IndicatorStart / End / Hidden。卡片选择后自动着色，隐藏指示器仍可辨认；Highlight 强制强调边框/指示器，未选中也生效。CheckboxGroup.Max 达上限只禁用未选项 |
+| Checkbox / CheckboxGroup / RadioGroup | Variant 使用 ChoiceList / ChoiceCard / ChoiceTable；Indicator 使用 IndicatorStart / End / Hidden。卡片选择后自动着色，隐藏指示器仍可辨认；Highlight 强制强调边框/指示器，未选中也生效。CheckboxGroup.Max 达上限后，未选项与 Nuxt 一样仍可聚焦，但拒绝勾选（可访问状态为只读） |
 | SelectMenu | SearchInput、Color、Variant、Size、两个 ResetSearchTerm 选项；SearchInput=false 不构建搜索，也不按保留的 Query 过滤。Invalid / ErrorMessage 与字段错误语义和边框对齐 |
 | Select | `SelectMultiple[T](c,t,*[]T,[]Option[T],SelectOptions)` 保持原 `Select(*T)` 类型安全；单选/多选均继承 ComponentSelect 的 Color / Variant / Size / UI，实例覆盖优先；保留稳定 ID、自定义 Option.Build 和已选标签 |
 | InputMenu | Multiple、ExternalFilter、FilterFields、Mode、OpenOnClick / OpenOnFocus、两个 ResetSearchTerm 选项、OnCreate / CreateWhenAlways、OnValuesChange；见下一节 |
@@ -62,7 +62,7 @@ nui.RangeSlider(c, t, &state.Low, &state.High, nui.RangeSliderOptions{
 | InputRating | Clearable 点击当前评分归零；Hoverable 默认 false，开启后悬停只预览；EmptyIcon 未指定时继承 Icon。横向 ←→（RTL 镜像）、纵向 ↑↓ 按项导航并循环；忽略另一轴，Home/PageUp 到 1，End/PageDown 到 Max |
 | Slider / RangeSlider | PageUp/PageDown 与 Shift+方向键走 10 个 Step，方向按横纵、反向、RTL 映射；OnChange 报告实时变化，OnCommit 在有变化的按键/拖拽结束时通知。范围拇指可越过彼此，自动排序并跟随焦点；不满足 Step × MinStepsBetweenThumbs 的移动被拒绝。Tooltip 挂在每个拇指上显示各自值 |
 | Listbox | Loop、HighlightOnHover、SelectionBehavior；SelectionToggle（默认）在单选/多选下都能取消当前项，SelectionReplace 激活时替换；SelectMenu 单选固定使用替换语义。SelectionReplace 多选模式支持 Shift+方向键/Home/End 扩展连续范围并跳过禁用项；Ctrl/Cmd+A 选择可用项 |
-| FileUpload | Variant=UploadArea / UploadButton；Layout=UploadList / UploadGrid；Dropzone、Interactive、FileDelete、Preview 及 Color / Size。Interactive 控制区域点击，Choose 按钮仍可用；关闭 Preview 只隐藏预览，不删除数据 |
+| FileUpload | Variant=UploadArea / UploadButton；Layout=UploadList / UploadGrid；Dropzone、Interactive、FileDelete、Preview 及 Color / Size。与 Nuxt 一样，可交互的 UploadArea 整个区域就是可聚焦的按钮（名称取 Label，Enter/Space 或点击打开选择器），不再显示 Choose 按钮；Choose 按钮只在 UploadButton 或 `Interactive: nui.Set(false)` 时显示。关闭 Preview 只隐藏预览，不删除数据 |
 
 `Optional` 的未设置和显式 false/0 有区别：`nui.Set(false)` 关闭默认开启项。当前默认值：Pagination PageSize=10、Siblings=2、ShowEdges=false、ShowControls=true、Size=MD；Carousel.Arrows=false；InputTags.AddOnPaste=false；InputRating.Hoverable=false；FileUpload.Layout=UploadGrid；Slider.Step=1。UploadLayout 的零值为 UploadLayoutDefault；使用枚举名，不依赖底层数字序号。
 

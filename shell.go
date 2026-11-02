@@ -126,7 +126,7 @@ func Sidebar(c *ui.Context, t Theme, collapsed *bool, o SidebarOptions, content 
 	if collapsed == nil {
 		panic("nui: Sidebar requires collapsed state")
 	}
-	w := float32(224)
+	w := float32(256)
 	if o.Width.Set {
 		w = o.Width.Value
 	}

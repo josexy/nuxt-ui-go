@@ -9,6 +9,21 @@
 - `StepperOptions.Linear` 由 `bool` 改为 `Optional[bool]`，未设置时为 true（Nuxt 的 `linear: true`）。迁移：`Linear: true` 可直接删除或改为 `Linear: nui.Set(true)`；原来依赖默认非线性的 Stepper 需要显式写 `Linear: nui.Set(false)`。
 - `InputTimeOptions.TwelveHour` 由 `bool` 改为 `Optional[bool]`，未设置时随语言和用户区域格式（en 为 12 小时，zh-Hans 为 24 小时）。迁移：`TwelveHour: true` 改为 `TwelveHour: nui.Set(true)`；原来依赖默认 24 小时的英文界面需要显式写 `TwelveHour: nui.Set(false)`。
 
+### 默认值变更（D2–D15）
+
+- D2：Toast 的 Actions 默认改为 XS、Solid、通知自身的颜色（此前 Neutral/Outline/SM）。
+- D3：Popover 默认内边距改为 16（见"共享配方"）。D4：Modal/Slideover 的 Footer 保持右对齐，作为文档化差异。
+- D6：User 的 AvatarOptions 各字段都为空时不再显示首字母头像。
+- D7：FileUpload 的可交互 UploadArea 整个区域成为可聚焦按钮，Enter/Space 打开选择器，不再显示 Choose 按钮；Choose 按钮只在 UploadButton 或 `Interactive: nui.Set(false)` 时显示。
+- D8：ErrorView 只在传入 Icon 时显示图标并改用 Primary 色；状态码、标题、说明改为 16 半粗体 Primary / 48 粗体 / 18；默认重试按钮改为 LG Primary Solid。
+- D9：Kbd 修饰键保留桌面习惯（Win、Shift），只补齐按键符号并转大写。
+- D10：空状态文案改为 Nuxt 的 `noData`（No data）和 `noMatch`（No matching data），新增两个文案键；旧键保留，应用对旧键的覆盖继续生效。
+- D11：Marquee 默认间距 64，两端渐隐（新增 `Overlay Optional[bool]`，默认 true），内容重复 4 份并始终滚动；builder 每次构建调用 4 次。
+- D12：Sidebar 默认宽 256（此前 224）。
+- D13：CheckboxGroup 达到 Max 后未选项仍可聚焦，只是不能勾选。
+- D14：InputTags 默认分隔符改为 `,`（此前 `,;\n`）。
+- D15：Carousel 去掉可见的"1 / N"计数，当前位置写进根元素的可访问值（新增文案键 `slidePosition`）。
+
 ### 缺陷修复
 
 - CheckboxGroup 的 Label、Description、Indicator 等部件样式和 Style 回调现在作用于每个 Checkbox；Root/Item 仍只作用于组和行。

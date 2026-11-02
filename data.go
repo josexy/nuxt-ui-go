@@ -118,7 +118,7 @@ func Table[T any](c *ui.Context, t Theme, s *TableState[T], columns []TableColum
 		if len(s.rows) == 0 {
 			text := o.EmptyText
 			if text == "" {
-				text = message(c, "noRecords")
+				text = emptyMessage(c, "noData", "noRecords")
 			}
 			finish(t, ComponentTable, EmptySlot, ui.Text(c, text).Padding(16).Role(ui.RoleStatus), PartStyle{Foreground: Set(t.Muted)}, o.Decoration)
 		}
@@ -312,7 +312,7 @@ func Tree(c *ui.Context, t Theme, s *TreeState, o TreeOptions) ui.Element {
 		if len(s.roots) == 0 {
 			text := o.EmptyText
 			if text == "" {
-				text = message(c, "noItems")
+				text = emptyMessage(c, "noData", "noItems")
 			}
 			finish(t, ComponentTree, EmptySlot, ui.Text(c, text).Padding(12).Role(ui.RoleStatus), PartStyle{Foreground: Set(t.Muted)}, o.Decoration)
 		}

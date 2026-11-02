@@ -360,10 +360,14 @@ func CheckboxGroup[T comparable](c *ui.Context, t Theme, selected *[]T, options 
 			checked := slices.Contains(*selected, option.Value)
 			limited := o.Max.Set && !checked && len(*selected) >= max(0, o.Max.Value)
 			table := choiceTableItem{true, i == 0, i == len(options)-1, afterChecked, o.Horizontal}
-			item := Checkbox(c.Key(optionKey[T]{option.Value}), t, &checked, CheckboxOptions{table: table, Label: option.Label, Description: option.Description, Disabled: o.Disabled || option.Disabled || limited, Invalid: o.Invalid || o.ErrorMessage != "", Color: config.Color, Size: config.Size, Variant: o.Variant, Indicator: o.Indicator, Highlight: o.Highlight, Decoration: child})
+			item := Checkbox(c.Key(optionKey[T]{option.Value}), t, &checked, CheckboxOptions{table: table, Label: option.Label, Description: option.Description, Disabled: o.Disabled || option.Disabled, Invalid: o.Invalid || o.ErrorMessage != "", Color: config.Color, Size: config.Size, Variant: o.Variant, Indicator: o.Indicator, Highlight: o.Highlight, Decoration: child})
 			afterChecked = checked
 			finish(t, ComponentCheckboxGroup, Item, item, PartStyle{}, o.Decoration)
-			if item.Changed() {
+			if limited {
+				// As Nuxt's, the item stays focusable; checking it is refused.
+				item.ReadOnly(true)
+			}
+			if refused := limited && checked; item.Changed() && !refused {
 				next := slices.Clone(*selected)
 				next = slices.DeleteFunc(next, func(v T) bool { return v == option.Value })
 				if checked {

@@ -188,17 +188,17 @@ func TestSelectMenuCachesTrackLabelsAndFilterFields(t *testing.T) {
 	}
 	click(t, tt, "Menu")
 	tt.Type("Two")
-	if !tt.HasText("No results") {
+	if !tt.HasText("No matching data") {
 		t.Fatalf("label-only filter: %v", tt.Texts())
 	}
 	fields[0] = "description"
 	tt.Frame()
-	if tt.HasText("No results") {
+	if tt.HasText("No matching data") {
 		t.Fatal("filter field change did not invalidate the cached results")
 	}
 	items[0].Description = "Changed"
 	tt.Frame()
-	if !tt.HasText("No results") {
+	if !tt.HasText("No matching data") {
 		t.Fatal("in-place item edit did not invalidate filtering")
 	}
 }

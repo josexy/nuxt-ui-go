@@ -348,8 +348,8 @@ func Carousel(c *ui.Context, t Theme, s *CarouselState, items []CarouselItem, o 
 				arrow("next", namedMessage(c, "nextNamed", o.Label), following, !o.Wrap && s.Index == len(items)-1, 1, false)
 			})
 		}
+		root.Value(formatMessage(c, "slidePosition", map[string]any{"index": s.Index + 1, "total": len(items)}))
 		ui.Row(c).Wrap().AlignItems(ui.Center).Justify(ui.Center).Gap(t.spacing(12)).Children(func() {
-			ui.Text(c, fmt.Sprintf("%d / %d", s.Index+1, len(items))).Role(ui.RoleStatus).TextColor(t.Muted)
 			if o.Dots {
 				// Nuxt's 12 DIP dots, accented, and inverted for the current slide.
 				ui.Row(c.Key("dots")).Wrap().AlignItems(ui.Center).Gap(t.spacing(12)).Children(func() {
@@ -391,6 +391,8 @@ type MarqueeOptions struct {
 	PauseOnHover       bool
 	Speed, Gap, Height float32
 	Active             Optional[bool]
+	// Overlay fades the content in and out at both edges; defaults to true.
+	Overlay Optional[bool]
 	// ContentKey resets the phase when content changes. Children must be presentation-only.
 	ContentKey string
 	Decoration
@@ -414,7 +416,7 @@ func Marquee(c *ui.Context, t Theme, s *MarqueeState, o MarqueeOptions, content 
 	}
 	gap := o.Gap
 	if gap <= 0 {
-		gap = 24
+		gap = t.spacing(64)
 	}
 	root := ui.Box(c).MinWidth(0).Height(h).Clip().Focusable().FocusRing(true).Label(o.Label).Role(ui.RoleGroup)
 	finish(t, ComponentMarquee, Root, root, PartStyle{}, o.Decoration)
@@ -426,25 +428,33 @@ func Marquee(c *ui.Context, t Theme, s *MarqueeState, o MarqueeOptions, content 
 	}
 	var measure ui.Element
 	root.Children(func() {
-		measure = ui.Row(c.Key("content")).Absolute().Left(0).Top(0).Gap(gap).IgnoreInput(true)
-		if o.Vertical {
-			measure.Column()
-		}
-		measure.Children(func() {
-			if content != nil {
-				content()
-			}
-		})
-		length := measure.Bounds().W
-		if o.Vertical {
-			length = measure.Bounds().H
-		}
 		extent := root.Bounds().W
 		if o.Vertical {
 			extent = root.Bounds().H
 		}
+		// Each copy is at least as long as the marquee, its items spread
+		// around, as Nuxt's w-full min-w-max justify-around content.
+		copyOf := func(key string) ui.Element {
+			e := ui.Row(c.Key(key)).Absolute().Left(0).Top(0).Gap(gap).IgnoreInput(true).Justify(ui.SpaceAround).AlignItems(ui.Center)
+			if o.Vertical {
+				e.Column().MinHeight(extent)
+			} else {
+				e.MinWidth(extent)
+			}
+			e.Children(func() {
+				if content != nil {
+					content()
+				}
+			})
+			return e
+		}
+		measure = copyOf("content")
+		length := measure.Bounds().W
+		if o.Vertical {
+			length = measure.Bounds().H
+		}
 		period := length + gap
-		running := period > gap && length > extent && !s.Paused && (!o.PauseOnHover || !root.Hovered()) && !root.FocusWithin() && !t.Motion.Reduce && !c.Preferences().ReduceMotion && motionVisible(c, root, o.Active)
+		running := period > gap && !s.Paused && (!o.PauseOnHover || !root.Hovered()) && !root.FocusWithin() && !t.Motion.Reduce && !c.Preferences().ReduceMotion && motionVisible(c, root, o.Active)
 		if running {
 			if !s.last.IsZero() {
 				delta := min(c.Now().Sub(s.last), 100*time.Millisecond)
@@ -459,7 +469,7 @@ func Marquee(c *ui.Context, t Theme, s *MarqueeState, o MarqueeOptions, content 
 		if o.Reverse {
 			offset = period - offset
 		}
-		if t.Motion.Reduce || c.Preferences().ReduceMotion || length <= extent {
+		if t.Motion.Reduce || c.Preferences().ReduceMotion {
 			offset = 0
 			s.Offset = 0
 		}
@@ -468,19 +478,52 @@ func Marquee(c *ui.Context, t Theme, s *MarqueeState, o MarqueeOptions, content 
 		} else {
 			measure.Translate(-offset, 0)
 		}
-		if length > extent && period > gap {
-			copy := ui.Row(c.Key("repeat")).Absolute().Left(0).Top(0).Gap(gap).Role(ui.RoleNone).IgnoreInput(true)
-			if o.Vertical {
-				copy.Column().Translate(0, period-offset)
-			} else {
-				copy.Translate(period-offset, 0)
-			}
-			copy.Children(func() {
-				if content != nil {
-					content()
+		// Nuxt repeats the content four times; the copies are presentation only.
+		if period > gap {
+			for i := 1; i < marqueeRepeat; i++ {
+				copy := copyOf(fmt.Sprintf("repeat-%d", i)).Role(ui.RoleNone)
+				at := float32(i)*period - offset
+				if o.Vertical {
+					copy.Translate(0, at)
+				} else {
+					copy.Translate(at, 0)
 				}
-			})
+			}
+		}
+		if valueOr(o.Overlay, true) {
+			// The edges fade into the background over a third of the marquee.
+			fade := func(key string, start bool) {
+				e := ui.Box(c.Key(key)).Absolute().IgnoreInput(true).Role(ui.RoleNone)
+				angle := float32(90)
+				if o.Vertical {
+					e.Left(0).Right(0).HeightPercent(33.33)
+					angle = 180
+					if start {
+						e.Top(0)
+					} else {
+						e.Bottom(0)
+						angle = 0
+					}
+				} else {
+					e.Top(0).Bottom(0).WidthPercent(33.33)
+					toward := start != (c.Direction() == ui.RightToLeft)
+					if start {
+						e.Start(0)
+					} else {
+						e.End(0)
+					}
+					if !toward {
+						angle = 270
+					}
+				}
+				e.LinearGradient(ui.LinearGradient{From: t.Background, To: t.Background.Alpha(0), Angle: angle})
+			}
+			fade("fade-start", true)
+			fade("fade-end", false)
 		}
 	})
 	return root
 }
+
+// marqueeRepeat is how many copies of its content a Marquee shows, as Nuxt's repeat.
+const marqueeRepeat = 4

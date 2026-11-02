@@ -374,12 +374,23 @@ func FileUpload(c *ui.Context, t Theme, s *FileUploadState, o FileUploadOptions)
 	}
 	finish(t, ComponentFileUpload, Root, root, PartStyle{Gap: Set(t.spacing(8))}, o.Decoration)
 	root.Children(func() {
+		chooseLabel := o.ChooseLabel
+		if chooseLabel == "" {
+			chooseLabel = message(c, "chooseFiles")
+		}
 		zone := ui.Column(c).MinWidth(0).AlignItems(ui.Center).Label(o.Label).Role(ui.RoleGroup)
-		if valueOr(o.Interactive, true) && o.Variant == UploadArea {
-			zone.OnClick(choose)
+		// Nuxt's interactive area is itself the picker's button.
+		area := o.Variant == UploadArea && valueOr(o.Interactive, true)
+		if area {
+			name := o.Label
+			if name == "" {
+				name = chooseLabel
+			}
+			zone.Role(ui.RoleButton).Label(name).Description(o.Description).Focusable().FocusRing(false).Cursor(ui.CursorPointer).
+				OnClick(choose).OnShortcut(0, ui.KeyEnter, choose).OnShortcut(0, ui.KeySpace, choose)
 		}
 		bg := t.Background
-		if zone.FileDragOver() {
+		if zone.FileDragOver() || area && zone.Hovered() && !zone.IsDisabled() {
 			bg = t.Elevated.Alpha(.25)
 		}
 		// Nuxt's dashed dropzone. Part borders draw as inset rings, which
@@ -390,6 +401,9 @@ func FileUpload(c *ui.Context, t Theme, s *FileUploadState, o FileUploadOptions)
 		}
 		zoneStyle.BorderWidth = Set(float32(0))
 		zoneStyle.apply(zone)
+		if area && zone.FocusVisible() {
+			zone.Shadow(0, 0, 0, 3, t.focusColor(o.Color))
+		}
 		if o.Style != nil {
 			o.Style(Body, zone)
 		}
@@ -405,11 +419,9 @@ func FileUpload(c *ui.Context, t Theme, s *FileUploadState, o FileUploadOptions)
 					ui.Text(c, o.Description).TextColor(t.Muted)
 				}
 			}
-			label := o.ChooseLabel
-			if label == "" {
-				label = message(c, "chooseFiles")
+			if !area {
+				Button(c.Key("choose"), t, chooseLabel, ButtonOptions{Variant: Outline, Color: o.Color, Size: o.Size, Disabled: s.Pending()}).OnClick(choose)
 			}
-			Button(c.Key("choose"), t, label, ButtonOptions{Variant: Outline, Color: o.Color, Size: o.Size, Disabled: s.Pending()}).OnClick(choose)
 		})
 		if o.Variant == UploadButton {
 			zone.BorderWidth(0).Padding(0).AlignItems(ui.Start)

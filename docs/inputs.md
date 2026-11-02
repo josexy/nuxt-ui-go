@@ -102,7 +102,7 @@ nui.Select(c, theme, &app.Region, []nui.Option[nui.Optional[string]]{
 }, nui.SelectOptions{Label: "地区", Placeholder: "选择地区"}).FillWidth()
 ```
 
-SelectOptions 有 Label、Placeholder、ErrorMessage、Disabled、Invalid、Color、Variant、Size、Popup、OnChange(func())、Decoration。无选项时显示 No options；未匹配值保留并显示占位。打开时使用方向键/Home/End、Enter 选择、Escape 关闭；动态重排按业务 ID 恢复高亮，原高亮被删除时退到当前有效选中项或首个可用项。UI slots 为 Root、Label、Trailing、Panel、Item、EmptySlot。
+SelectOptions 有 Label、Placeholder、ErrorMessage、Disabled、Invalid、Color、Variant、Size、Popup、OnChange(func())、Decoration。无选项时显示 No data（Nuxt 的 `noData`）；未匹配值保留并显示占位。打开时使用方向键/Home/End、Enter 选择、Escape 关闭；动态重排按业务 ID 恢复高亮，原高亮被删除时退到当前有效选中项或首个可用项。UI slots 为 Root、Label、Trailing、Panel、Item、EmptySlot。
 
 Select、InputMenu、SelectMenu、Listbox、菜单和 CommandPalette 共用 Nuxt 的选项行配方，随 Size 变化：
 
@@ -118,7 +118,7 @@ InputMenu 绑定 `*SearchState`，其中 Query 是编辑草稿，Selected 是单
 
 InputMenuOptions 嵌入 InputOptions，增加 EmptyText、Popup、AllowCustom、OnSelect(func(string))。输入框尾部与 Nuxt 一样有 chevron 开关按钮（名称"Show options"/"显示选项"），点击打开或关闭列表、焦点留在输入框；Trailing 可替换该图标；Clearable 且有文字时显示清空按钮代替 chevron。多选的已选值显示为与 InputTags 相同的小芯片，只有 × 能删除；芯片的 × 仍是 Tab 站点（MyGo 没有标签间的方向键导航）。默认只允许选候选，不执行自由文本 OnSubmit；AllowCustom=true 时，无候选选择的 Enter 执行 InputOptions.OnSubmit(Query)，不会伪造 Selected 或触发 OnSelect。选择候选只触发一次 OnSelect，不同时提交自由文本。Clearable 清空 Query 和 Selected，并调用 OnClear；一般输入的 OnChange 用于草稿变化，业务选择监听 OnSelect。
 
-没有匹配/只有禁用候选时，显示 EmptyText（默认 No results found）状态。输入使用 TextInputBase，面板使用 PopoverBase 与 List；空状态无可选哨兵、不抢焦点、不吃外部点击。上下键可移动到屏幕外候选，选择时焦点保留在输入框；Escape 或失焦关闭面板。选项的 ID、Label、Description、Disabled 集合变化时关闭正在显示的面板，重新打开后使用新集合，避免接受旧数据中的候选；没有实现异步请求取消/加载状态。
+没有匹配/只有禁用候选时，显示 EmptyText 状态：默认在有查询词时为 No matching data，没有选项时为 No data（Nuxt 的 `noMatch` / `noData`）。输入使用 TextInputBase，面板使用 PopoverBase 与 List；空状态无可选哨兵、不抢焦点、不吃外部点击。上下键可移动到屏幕外候选，选择时焦点保留在输入框；Escape 或失焦关闭面板。选项的 ID、Label、Description、Disabled 集合变化时关闭正在显示的面板，重新打开后使用新集合，避免接受旧数据中的候选；没有实现异步请求取消/加载状态。
 
 InputMenu 的 UI 包含 Input 的四个 slot 及 Panel、Item、EmptySlot；继承的 Style 回调仍只接收输入外壳/编辑器/两侧图标，面板可用 Popup.Decoration.Style。SearchSelect 是便捷入口，内部转到 InputMenu；新代码使用完整 Options。
 

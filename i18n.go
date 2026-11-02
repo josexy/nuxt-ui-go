@@ -35,6 +35,28 @@ var componentMessages = sync.OnceValue(func() *i18n.Catalog {
 // Applications with catalogs declare their own languages instead.
 func SupportedLocales() []string { return componentMessages().Languages() }
 
+// bundledMessages are the library's own messages, without application overrides.
+var bundledMessages = sync.OnceValue(func() *i18n.Catalog {
+	files, err := fs.Sub(localeFiles, "locales")
+	if err != nil {
+		panic(err)
+	}
+	catalog, err := i18n.NewCatalog(files, "en")
+	if err != nil {
+		panic(err)
+	}
+	return catalog
+})
+
+// emptyMessage is key, Nuxt's "noData" or "noMatch", unless the application
+// overrides legacy, the key the component used before, which it keeps.
+func emptyMessage(c *ui.Context, key, legacy string) string {
+	if text := message(c, legacy); text != bundledMessages().Format(c.Locale(), legacy, nil) {
+		return text
+	}
+	return message(c, key)
+}
+
 func message(c *ui.Context, key string) string {
 	return componentMessages().Format(c.Locale(), key, nil)
 }

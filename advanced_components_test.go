@@ -157,7 +157,8 @@ func TestUploadsValidationDropAndTasks(t *testing.T) {
 			return nui.InspectUploadFiles(ctx, []string{path})
 		}, OnChange: func([]nui.UploadFile) { chooseCalls++ }}).Width(450)
 	}, 500, 600)
-	click(t, tt, "Choose files")
+	// The interactive area is the picker's button (D7).
+	click(t, tt, "Attachments")
 	awaitCommandResults(t, tt, func() bool { return !s.Pending() })
 	if len(s.Files) != 1 || s.Files[0].Status != nui.UploadReady || chooseCalls != 1 {
 		t.Fatalf("picker %+v", s.Files)
@@ -214,7 +215,7 @@ func TestUploadDisposeIgnoresLatePicker(t *testing.T) {
 			return []nui.UploadFile{{Name: "late.txt", Size: 1}}, nil
 		}})
 	}, 500, 400)
-	click(t, tt, "Choose files")
+	click(t, tt, "Files")
 	<-started
 	s.Dispose()
 	close(release)

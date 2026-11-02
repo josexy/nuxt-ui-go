@@ -373,7 +373,11 @@ func CommandPalette(c *ui.Context, t Theme, s *CommandPaletteState, o CommandPal
 			items = append(items, ListboxItem{ID: a.ID, Label: a.Label, Description: a.Description, Group: a.Group, Icon: a.Icon, Disabled: a.Disabled})
 			matches[a.ID] = m
 		}
-		Listbox(c, t, &s.selected, &s.list, items, ListboxOptions{Style: func(slot Slot, e ui.Element) { finish(t, ComponentCommandPalette, slot, e, PartStyle{}, o.Decoration) }, Label: namedMessage(c, "resultsNamed", title), Height: 280, OnChange: func(ids []string) {
+		empty := ""
+		if strings.TrimSpace(s.Query) != "" {
+			empty = emptyMessage(c, "noMatch", "noResults")
+		}
+		Listbox(c, t, &s.selected, &s.list, items, ListboxOptions{EmptyText: empty, Style: func(slot Slot, e ui.Element) { finish(t, ComponentCommandPalette, slot, e, PartStyle{}, o.Decoration) }, Label: namedMessage(c, "resultsNamed", title), Height: 280, OnChange: func(ids []string) {
 			if len(ids) > 0 {
 				activate(ids[0])
 			}

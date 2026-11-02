@@ -141,7 +141,7 @@ Accordion 与 Collapsible 的内置触发器使用 Nuxt 的 Accordion 配方：�
 
 默认只构建活动 Tabs 正文；默认折叠正文在退出过渡完成后卸载。应用数据始终由模型持有，卸载不承诺保留编辑器选区、撤销栈或局部 UI 状态。`KeepMounted=true` 每帧构建所有正文，以 Hidden 隐藏；保留 MyGo 局部状态，隐藏项不参与布局/焦点，代价是继续执行 builder。折叠保留模式的正文即时隐藏，箭头仍遵循 Base 进度。删除整个条目仍会卸载，不等于缓存已删条目。
 
-Tabs 的 pill 活动项使用语义色背景/反色文字，水平列表填充宽度；underline 变体的列表与 Nuxt 一样有一条贯穿的 1 DIP 基线（横向在底边，纵向在起始侧，随 RTL 镜像），活动项的 1 DIP 指示线压在基线上。触发器间距随尺寸为 4/6/6/8/8。Banner 使用对应语义色的 solid 表面。Toast 未传 Icon 时不自动添加状态图标；Actions 中的按钮默认 Neutral/Outline/SM。
+Tabs 的 pill 活动项使用语义色背景/反色文字，水平列表填充宽度；underline 变体的列表与 Nuxt 一样有一条贯穿的 1 DIP 基线（横向在底边，纵向在起始侧，随 RTL 镜像），活动项的 1 DIP 指示线压在基线上。触发器间距随尺寸为 4/6/6/8/8。Banner 使用对应语义色的 solid 表面。Toast 未传 Icon 时不自动添加状态图标；Actions 中的按钮与 Nuxt 一致，默认使用 XS、Solid 和通知自身的 Color，可在各项的 ButtonOptions 中覆盖。
 
 ## Breadcrumb、Pagination、Stepper、Timeline
 
@@ -154,7 +154,7 @@ Tabs 的 pill 活动项使用语义色背景/反色文字，水平列表填充�
 
 `Banner(c,t,open *bool,BannerOptions)` 是容器内状态通知。open=false 不显示；nil 表示常驻且无关闭按钮；非 nil 显示可关闭按钮，悬停或键盘聚焦时铺 10% 的背景色（Nuxt 的 `bg-default/10`），反色图标保持可读。Options：Title、Description、CloseLabel、Color、Icon、Actions builder、OnClose、Decoration。应用安排其位置，不自动固定在窗口顶部。长文本换行，操作区支持多按钮；极窄容器应由应用减少操作或改为纵向组合。
 
-Nuxt 的 Error 入口在 Go 命名为 `ErrorView`，保留既有语义色 `nui.Error`。`ErrorOptions` 提供 Status、Title、Description、RetryLabel、Icon、OnRetry、Actions、Decoration。默认警告图标与居中标题，Actions 优先于默认重试按钮；没有 OnRetry 时不生成重试按钮。不接管 panic、请求、路由或重试状态机。
+Nuxt 的 Error 入口在 Go 命名为 `ErrorView`，保留既有语义色 `nui.Error`。`ErrorOptions` 提供 Status、Title、Description、RetryLabel、Icon、OnRetry、Actions、Decoration。外观与 Nuxt 的错误页一致：只有传入 Icon 才显示图标（Primary 色）；状态码为 16 DIP 半粗体 Primary 色，标题为 48 DIP 粗体，说明为 18 DIP Muted；默认重试按钮为 LG、Primary、Solid，文案保留"Try again"/"重试"（Nuxt 的"Back to home"依赖路由）。嵌入页面局部时可用 `UI[Label]` 等缩小字号。Actions 优先于默认重试按钮；没有 OnRetry 时不生成重试按钮。不接管 panic、请求、路由或重试状态机。
 
 ## 部件索引
 

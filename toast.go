@@ -123,15 +123,16 @@ func ToastViewport(c *ui.Context, t Theme, o ToastViewportOptions) ui.Element {
 							action.Children(func() { ui.Text(c, ts.Action).FontWeight(500) })
 						}
 						for i, action := range appearance.Actions {
+							// Nuxt's toast actions: xs solid buttons in the toast's color.
 							opts := action.ButtonOptions
 							if opts.Variant == VariantDefault {
-								opts.Variant = Outline
+								opts.Variant = Solid
 							}
 							if opts.Color == ColorDefault {
-								opts.Color = Neutral
+								opts.Color = appearance.Color
 							}
 							if opts.Size == SizeDefault {
-								opts.Size = SM
+								opts.Size = XS
 							}
 							Button(c.Key(i), inner, action.Label, opts).OnClick(func() {
 								if action.OnAction != nil {

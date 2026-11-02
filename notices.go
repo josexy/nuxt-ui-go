@@ -80,19 +80,18 @@ func ErrorView(c *ui.Context, t Theme, o ErrorOptions) ui.Element {
 	root := ui.Column(c).MinWidth(0).AlignItems(ui.Center).Role(ui.RoleGroup).Label(o.Title)
 	finish(t, ComponentError, Root, root, PartStyle{PaddingX: Set(t.spacing(24)), PaddingY: Set(t.spacing(32)), Gap: Set(t.spacing(12))}, o.Decoration)
 	root.Children(func() {
-		icon := o.Icon
-		if icon == nil {
-			icon = lucide.CircleAlert()
+		if o.Icon != nil {
+			finish(t, ComponentError, Leading, ui.Icon(c, o.Icon).Size(36, 36), PartStyle{Foreground: Set(t.Primary)}, o.Decoration)
 		}
-		finish(t, ComponentError, Leading, ui.Icon(c, icon).Size(36, 36), PartStyle{Foreground: Set(t.Error)}, o.Decoration)
 		if o.Status != "" {
-			ui.Text(c, o.Status).FontSize(t.text(14)).FontWeight(500).TextColor(t.Muted)
+			ui.Text(c, o.Status).FontSize(t.text(16)).LineHeight(24.0 / 16).FontWeight(600).TextColor(t.Primary)
 		}
-		finish(t, ComponentError, Label, ui.Text(c, o.Title).Role(ui.RoleHeading).Level(2).TextAlign(ui.Center), PartStyle{Foreground: Set(t.Highlighted), FontSize: Set(t.text(24)), Weight: Set(600)}, o.Decoration)
+		// Nuxt's text-4xl sm:text-5xl title, at desktop width.
+		finish(t, ComponentError, Label, ui.Text(c, o.Title).Role(ui.RoleHeading).Level(2).TextAlign(ui.Center), PartStyle{Foreground: Set(t.Highlighted), FontSize: Set(t.text(48)), LineHeight: Set(float32(1)), Weight: Set(700)}, o.Decoration)
 		if o.Description != "" {
-			finish(t, ComponentError, Description, ui.Text(c, o.Description).MaxWidth(480).TextAlign(ui.Center), PartStyle{Foreground: Set(t.Muted)}, o.Decoration)
+			finish(t, ComponentError, Description, ui.Text(c, o.Description).MaxWidth(480).TextAlign(ui.Center), PartStyle{Foreground: Set(t.Muted), FontSize: Set(t.text(18)), LineHeight: Set(float32(28.0 / 18))}, o.Decoration)
 		}
-		actions := ui.Row(c).Wrap().Justify(ui.Center).Gap(8)
+		actions := ui.Row(c).Wrap().Justify(ui.Center).Gap(8).Margin(t.spacing(12), 0, 0, 0)
 		finish(t, ComponentError, Actions, actions, PartStyle{}, o.Decoration)
 		actions.Children(func() {
 			if o.Actions != nil {
@@ -102,7 +101,7 @@ func ErrorView(c *ui.Context, t Theme, o ErrorOptions) ui.Element {
 				if label == "" {
 					label = message(c, "tryAgain")
 				}
-				Button(c, t, label, ButtonOptions{Color: Neutral, Variant: Outline}).OnClick(o.OnRetry)
+				Button(c, t, label, ButtonOptions{Color: Primary, Variant: Solid, Size: LG}).OnClick(o.OnRetry)
 			}
 		})
 	})

@@ -270,7 +270,7 @@ func TestSelectStableHighlightDisabledAndEmptyValue(t *testing.T) {
 	options = nil
 	tt.Frame()
 	click(t, tt, "Region")
-	if !tt.HasText("No options") {
+	if !tt.HasText("No data") {
 		t.Fatal("empty select hidden")
 	}
 	tt.Key(0, ui.KeyEscape)
@@ -296,7 +296,7 @@ func TestInputMenuEmptyDisabledCustomAndReorder(t *testing.T) {
 	}
 	tt.Key(ui.Ctrl, ui.KeyA)
 	tt.Type("missing")
-	if !tt.HasText("No results found") {
+	if !tt.HasText("No matching data") {
 		t.Fatal("empty popup missing")
 	}
 	tt.Key(0, ui.KeyEnter)
@@ -305,7 +305,7 @@ func TestInputMenuEmptyDisabledCustomAndReorder(t *testing.T) {
 	}
 	tt.Key(ui.Ctrl, ui.KeyA)
 	tt.Type("Blocked")
-	if !tt.HasText("No results found") {
+	if !tt.HasText("No matching data") {
 		t.Fatal("disabled-only popup missing")
 	}
 	tt.Key(0, ui.KeyEnter)
@@ -378,11 +378,12 @@ func TestPopoverNestedDismissAndEdgePosition(t *testing.T) {
 	click(t, tt, "Dialog")
 	click(t, tt, "Empty search")
 	tt.Type("missing")
-	if !tt.HasText("No results found") {
+	// Without options, the query cannot match anything: "No data" (D10).
+	if !tt.HasText("No data") {
 		t.Fatal("nested empty search hidden")
 	}
 	tt.Key(0, ui.KeyEscape)
-	if !dialog || tt.HasText("No results found") {
+	if !dialog || tt.HasText("No data") {
 		t.Fatal("empty search Escape must close only the child popup")
 	}
 	click(t, tt, "Nested select")

@@ -45,7 +45,7 @@ nui.Form(c, theme, &form, nui.FormOptions{
 | 入口 / 状态 | 值与行为 | 边界 |
 | --- | --- | --- |
 | `InputNumber` / `NumberState` | `*Optional[float64]`；Text 与有效数值分离；空值、负号中间态、有限数值、Min/Max、Step（默认 1）、上下箭头及按钮；horizontal/vertical 布局；Enter 恢复/格式化最后有效值 | 小数点为 `.`，无货币/区域格式；NaN/Inf 模型及非法边界拒绝；不把 float64 当精确货币类型 |
-| `InputTags` / `TagsState` | `*[]string`；Query 独立；Enter、空输入 Backspace 删除末项、标签上的 × 删除、trim/去重、MaxTags；标签为 Nuxt 的 Elevated 底加 Accented 内描边小芯片，字号随字段尺寸，只有 × 能删除；设置 `AddOnPaste: nui.Set(true)` 启用批量粘贴 | 批量粘贴默认关闭；开启后按 `,;\n` 分隔，保留已有草稿；按大小写区分去重；不提供拖拽排序与远程实体匹配；受已知输入法取消问题影响 |
+| `InputTags` / `TagsState` | `*[]string`；Query 独立；Enter、空输入 Backspace 删除末项、标签上的 × 删除、trim/去重、MaxTags；标签为 Nuxt 的 Elevated 底加 Accented 内描边小芯片，字号随字段尺寸，只有 × 能删除；设置 `AddOnPaste: nui.Set(true)` 启用批量粘贴 | 批量粘贴默认关闭；开启后按 Separators 分隔（默认与 Nuxt 一样只有 `,`；需要分号或换行时设 `Separators: ",;\n"`），保留已有草稿；按大小写区分去重；不提供拖拽排序与远程实体匹配；受已知输入法取消问题影响 |
 | `PinInput` / `PinState` | `*string`；默认 5 格文本，Numeric=true 为 ASCII 数字；1–32 格、按 rune 截断、退格、遮罩、ReadOnly、Placeholder、Separator/SeparatorEvery、OnChange/OnComplete | 一个真实编辑器配多个可视槽位，Tab 只进入一次；长度满且值变化才触发完成；不做短信读取或自动提交 |
 | `InputRating` | `*int`，默认 Max=5、0 表示未评分；整数星级、只读/禁用、方向键/Home/End | 不支持半星、任意精度或拖拽评分 |
 

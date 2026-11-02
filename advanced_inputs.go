@@ -31,7 +31,7 @@ func AddTags(tags []string, text, separators string, limit int) []string {
 }
 func addTags(tags []string, text, separators string, limit int, duplicate bool) []string {
 	if separators == "" {
-		separators = ",;\n"
+		separators = ","
 	}
 	out := slices.Clone(tags)
 	for _, v := range strings.FieldsFunc(text, func(r rune) bool { return strings.ContainsRune(separators, r) }) {
@@ -115,7 +115,7 @@ func InputTags(c *ui.Context, t Theme, value *[]string, s *TagsState, o InputTag
 			}
 			sep := o.Separators
 			if sep == "" {
-				sep = ",;\n"
+				sep = ","
 			}
 			if !s.pasted && insertedSeparator(previousQuery, text, sep) {
 				add(text)
