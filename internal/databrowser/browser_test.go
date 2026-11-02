@@ -30,7 +30,7 @@ func TestDataBrowserFilterPageEditIdentity(t *testing.T) {
 	// The top-right notification includes a progress bar and overlaps the toolbar.
 	click("Dismiss Task updated")
 	tt.Advance(200 * time.Millisecond)
-	click("Page Next")
+	click("Next page")
 	if s.Page != 2 || s.Table.Len() != 100 {
 		t.Fatal("page")
 	}

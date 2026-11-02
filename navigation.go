@@ -65,11 +65,20 @@ func Tabs(c *ui.Context, t Theme, value *string, items []TabItem, o TabsOptions)
 		} else {
 			list.FillWidth()
 		}
-		bg := t.Elevated
+		// Pill lists are an elevated rounded-lg surface; underline lists have
+		// Nuxt's border-b (border-s when vertical), which the indicator covers.
+		listStyle := PartStyle{Background: Set(t.Elevated), Radius: Set(t.radius(8)), PaddingX: Set(t.spacing(4)), PaddingY: Set(t.spacing(4))}
 		if o.Underline {
-			bg = ui.Transparent
+			listStyle.Background, listStyle.Radius = Set(ui.Transparent), Set(float32(0))
+			if o.Vertical {
+				list.BorderStartWidth(1)
+			} else {
+				list.BorderWidth(0, 0, 1, 0)
+			}
+			list.BorderColor(t.Border)
 		}
-		finish(t, ComponentTabs, List, list, PartStyle{Background: Set(bg), Radius: Set(t.radius(8)), PaddingX: Set(t.spacing(4)), PaddingY: Set(t.spacing(4))}, o.Decoration)
+		finish(t, ComponentTabs, List, list, listStyle, o.Decoration)
+		listStyle = mergeStyle(mergeStyle(listStyle, t.components[ComponentTabs].UI[List]), o.UI[List])
 		list.Children(func() {
 			for _, it := range items {
 				var trigger ui.Element
@@ -103,18 +112,6 @@ func Tabs(c *ui.Context, t Theme, value *string, items []TabItem, o TabsOptions)
 				if trigger.Hovered() && !it.Disabled && !active {
 					foreground = t.Text
 				}
-				if o.Underline && active {
-					if o.Vertical {
-						if c.Direction() == ui.RightToLeft {
-							trigger.BorderWidth(0, 1, 0, 0)
-						} else {
-							trigger.BorderWidth(0, 0, 0, 1)
-						}
-					} else {
-						trigger.BorderWidth(0, 0, 1, 0)
-					}
-					trigger.BorderColor(t.color(config.Color))
-				}
 				metrics := buttonMetrics(t, config.Size)
 				if config.Size == MD {
 					metrics.X = t.spacing(12)
@@ -122,12 +119,22 @@ func Tabs(c *ui.Context, t Theme, value *string, items []TabItem, o TabsOptions)
 				if !o.Underline {
 					trigger.Grow(1).Justify(ui.Center)
 				}
-				finish(t, ComponentTabs, Trigger, trigger, PartStyle{Background: Set(background), Foreground: Set(foreground), Radius: Set(t.radius(6)), PaddingX: Set(metrics.X), PaddingY: Set(metrics.Y), Gap: Set(t.spacing(6)), FontSize: Set(metrics.Font), Weight: Set(500)}, o.Decoration)
+				gap := t.spacing([5]float32{4, 6, 6, 8, 8}[sizeIndex(config.Size)])
+				finish(t, ComponentTabs, Trigger, trigger, PartStyle{Background: Set(background), Foreground: Set(foreground), Radius: Set(t.radius(6)), PaddingX: Set(metrics.X), PaddingY: Set(metrics.Y), Gap: Set(gap), FontSize: Set(metrics.Font), Weight: Set(500)}, o.Decoration)
 				trigger.Children(func() {
 					if it.Icon != nil {
 						finish(t, ComponentTabs, Leading, ui.Icon(c, it.Icon).Size(metrics.Icon, metrics.Icon), PartStyle{}, o.Decoration)
 					}
 					finish(t, ComponentTabs, Label, ui.Text(c, it.Label).SingleLine().MinWidth(0), PartStyle{}, o.Decoration)
+					if o.Underline && active {
+						// Past the list's padding, on its border line.
+						line := ui.Box(c.Key("indicator")).Absolute().IgnoreInput(true).Background(t.color(config.Color))
+						if o.Vertical {
+							line.Top(0).Bottom(0).Width(1).Start(-listStyle.PaddingX.Value - 1)
+						} else {
+							line.Left(0).Right(0).Height(1).Bottom(-listStyle.PaddingY.Value - 1)
+						}
+					}
 				})
 			}
 		})
@@ -172,12 +179,14 @@ func Breadcrumb(c *ui.Context, t Theme, items []BreadcrumbItem, o BreadcrumbOpti
 		checkID(seen, it.ID, "Breadcrumb")
 	}
 	root := ui.Row(c).Wrap().MinWidth(0).AlignItems(ui.Center).Role(ui.RoleGroup).Label(o.Label)
-	finish(t, ComponentBreadcrumb, Root, root, PartStyle{Gap: Set(t.spacing(8))}, o.Decoration)
+	finish(t, ComponentBreadcrumb, Root, root, PartStyle{Gap: Set(t.spacing(6))}, o.Decoration)
+	m := buttonMetrics(t, MD)
+	current := t.color(defaults(t, ComponentBreadcrumb, ComponentTheme{Color: Primary}).Color)
 	root.Children(func() {
 		for i, it := range items {
 			if o.MaxItems >= 2 && len(items) > o.MaxItems && i > 0 && i < len(items)-o.MaxItems+1 {
 				if i == 1 {
-					ui.Icon(c, lucide.Ellipsis()).Size(16, 16).TextColor(t.Muted)
+					ui.Icon(c, lucide.Ellipsis()).Size(m.Icon, m.Icon).TextColor(t.Muted)
 				}
 				continue
 			}
@@ -186,20 +195,19 @@ func Breadcrumb(c *ui.Context, t Theme, items []BreadcrumbItem, o BreadcrumbOpti
 				if c.Direction() == ui.RightToLeft {
 					separator = lucide.ChevronLeft()
 				}
-				ui.Icon(c, separator).Size(14, 14).TextColor(t.Dimmed)
+				ui.Icon(c, separator).Size(m.Icon, m.Icon).Shrink(0).TextColor(t.Muted)
 			}
 			if i == len(items)-1 {
-				m := buttonMetrics(t, SM)
-				current := ui.Row(c.Key(it.ID)).MinWidth(0).AlignItems(ui.Center).Gap(m.Gap)
-				current.Children(func() {
+				item := ui.Row(c.Key(it.ID)).MinWidth(0).AlignItems(ui.Center).Gap(m.Gap)
+				item.Children(func() {
 					if it.Icon != nil {
 						ui.Icon(c, it.Icon).Size(m.Icon, m.Icon).Shrink(0)
 					}
 					ui.Text(c, it.Label).SingleLine().MinWidth(0).Description(message(c, "currentPage"))
 				})
-				finish(t, ComponentBreadcrumb, Item, current, PartStyle{Foreground: Set(t.Highlighted), Weight: Set(500)}, o.Decoration)
+				finish(t, ComponentBreadcrumb, Item, item, PartStyle{Foreground: Set(current), Weight: Set(600), FontSize: Set(m.Font), LineHeight: Set(m.Line / m.Font)}, o.Decoration)
 			} else {
-				e := Button(c.Key(it.ID), t, it.Label, ButtonOptions{Variant: LinkVariant, Color: Neutral, Leading: it.Icon, Disabled: it.Disabled, Size: SM}).Role(ui.RoleLink).OnClick(it.OnSelect)
+				e := Button(c.Key(it.ID), t, it.Label, ButtonOptions{Variant: LinkVariant, Color: Neutral, Leading: it.Icon, Disabled: it.Disabled, Size: MD, UI: Styles{Root: {PaddingX: Set(float32(0)), PaddingY: Set(float32(0))}}}).Role(ui.RoleLink).OnClick(it.OnSelect)
 				finish(t, ComponentBreadcrumb, Item, e, PartStyle{}, o.Decoration)
 			}
 		}
@@ -255,6 +263,11 @@ func Pagination(c *ui.Context, t Theme, page *int, o PaginationOptions) ui.Eleme
 			o.OnChange(next)
 		}
 	}
+	first, previous, next, last := lucide.ChevronsLeft(), lucide.ChevronLeft(), lucide.ChevronRight(), lucide.ChevronsRight()
+	if c.Direction() == ui.RightToLeft {
+		first, previous, next, last = last, next, previous, first
+	}
+	icons := map[string]*ui.SVG{"first": first, "previous": previous, "next": next, "last": last}
 	root.Children(func() {
 		pageButton := func(key, label string, next int, disabled, active bool) {
 			variant := config.Variant
@@ -262,6 +275,13 @@ func Pagination(c *ui.Context, t Theme, page *int, o PaginationOptions) ui.Eleme
 			if active {
 				variant = activeConfig.Variant
 				color = activeConfig.Color
+			}
+			opts := ButtonOptions{Variant: variant, Color: color, Size: config.Size, Disabled: disabled || o.Disabled, Square: true, Leading: icons[key]}
+			if opts.Leading == nil {
+				// Page numbers are square buttons with a centered label at least 20 wide.
+				opts.Style = func(root, label, leading, trailing ui.Element) { label.MinWidth(t.text(20)).TextAlign(ui.Center) }
+			} else {
+				label = ""
 			}
 			accessible := formatMessage(c, "pageNumber", map[string]any{"number": next})
 			switch key {
@@ -274,25 +294,32 @@ func Pagination(c *ui.Context, t Theme, page *int, o PaginationOptions) ui.Eleme
 			case "last":
 				accessible = message(c, "pageLast")
 			}
-			e := button(c.Key(key), t, label, ButtonOptions{Variant: variant, Color: color, Size: config.Size, Disabled: disabled || o.Disabled, AccessibleLabel: accessible}, Set(active)).OnClick(func() { choose(next) })
+			opts.AccessibleLabel = accessible
+			e := button(c.Key(key), t, label, opts, Set(active)).OnClick(func() { choose(next) })
 			finish(t, ComponentPagination, Item, e, PartStyle{}, o.Decoration)
 		}
 		if valueOr(o.ShowControls, true) {
-			pageButton("first", message(c, "first"), 1, *page == 1, false)
-			pageButton("previous", message(c, "previous"), max(1, *page-1), *page == 1, false)
+			pageButton("first", "", 1, *page == 1, false)
+			pageButton("previous", "", max(1, *page-1), *page == 1, false)
 		}
 		candidates := paginationPages(*page, pages, siblings, valueOr(o.ShowEdges, false))
-		previous := 0
+		before := 0
 		for _, n := range candidates {
-			if previous > 0 && n-previous > 1 {
-				ui.Icon(c.Key(fmt.Sprintf("gap-%d", n)), lucide.Ellipsis()).Size(16, 16).TextColor(t.Muted)
+			if before > 0 && n-before > 1 {
+				// A non-interactive square with the buttons' look, as Nuxt's.
+				m := buttonMetrics(t, config.Size)
+				gap := ui.Row(c.Key(fmt.Sprintf("gap-%d", n))).Shrink(0).AlignItems(ui.Center).IgnoreInput(true)
+				style := mergeStyle(controlStyle(t, m), appearance(t, config.Color, config.Variant, false, false))
+				style.PaddingX = style.PaddingY
+				style.apply(gap)
+				gap.Children(func() { ui.Icon(c, lucide.Ellipsis()).Size(m.Icon, m.Icon) })
 			}
 			pageButton(fmt.Sprint(n), fmt.Sprint(n), n, false, n == *page)
-			previous = n
+			before = n
 		}
 		if valueOr(o.ShowControls, true) {
-			pageButton("next", message(c, "next"), min(pages, *page+1), *page == pages, false)
-			pageButton("last", message(c, "last"), pages, *page == pages, false)
+			pageButton("next", "", min(pages, *page+1), *page == pages, false)
+			pageButton("last", "", pages, *page == pages, false)
 		}
 	})
 	return root

@@ -129,6 +129,8 @@ ToastViewportOptions：Position（右下默认，另有左下/中下/右上/左�
 
 ## Tabs、Collapsible 与 Accordion
 
+Accordion 与 Collapsible 的内置触发器使用 Nuxt 的 Accordion 配方：没有悬停底色和水平内边距，上下内边距 14，图标 20 并跟随文字色，图标与文字间距 6。Accordion 正文使用默认文字色，只有 14 DIP 的下边距。
+
 | 入口与状态 | Options / 条目 | 行为 |
 | --- | --- | --- |
 | `Tabs(c,t,*string,[]TabItem,TabsOptions)` | TabItem：ID、Label、Icon、Disabled、Content；Options：Label、Color、Size、Underline、Vertical、KeepMounted、OnChange | 默认 pill，支持 underline/纵向；ID 映射为 Base 内部索引，方向键跳过禁用项；选中项删除/禁用后归到首个可用项，无可用项时保留业务 ID 且不显示激活正文 |
@@ -139,12 +141,12 @@ ToastViewportOptions：Position（右下默认，另有左下/中下/右上/左�
 
 默认只构建活动 Tabs 正文；默认折叠正文在退出过渡完成后卸载。应用数据始终由模型持有，卸载不承诺保留编辑器选区、撤销栈或局部 UI 状态。`KeepMounted=true` 每帧构建所有正文，以 Hidden 隐藏；保留 MyGo 局部状态，隐藏项不参与布局/焦点，代价是继续执行 builder。折叠保留模式的正文即时隐藏，箭头仍遵循 Base 进度。删除整个条目仍会卸载，不等于缓存已删条目。
 
-Tabs 的 pill 活动项使用语义色背景/反色文字，水平列表填充宽度；underline 为 1 DIP，纵向位置随 RTL 镜像。Banner 使用对应语义色的 solid 表面。Toast 未传 Icon 时不自动添加状态图标；Actions 中的按钮默认 Neutral/Outline/SM。
+Tabs 的 pill 活动项使用语义色背景/反色文字，水平列表填充宽度；underline 变体的列表与 Nuxt 一样有一条贯穿的 1 DIP 基线（横向在底边，纵向在起始侧，随 RTL 镜像），活动项的 1 DIP 指示线压在基线上。触发器间距随尺寸为 4/6/6/8/8。Banner 使用对应语义色的 solid 表面。Toast 未传 Icon 时不自动添加状态图标；Actions 中的按钮默认 Neutral/Outline/SM。
 
 ## Breadcrumb、Pagination、Stepper、Timeline
 
-- **Breadcrumb**：`[]BreadcrumbItem{ID,Label,Icon,Disabled,OnSelect}`，Options 为 Label、MaxItems。最后一项作为当前页文本，不可点击，同样显示 Icon；祖先为 Link 语义。分隔符为 chevron-right，右到左时换成 chevron-left。MaxItems≥2 时保留第一项和末尾若干项，中间显示不可交互省略号；不实现省略项下拉或路由系统。当前路径需由应用提供。
-- **Pagination**：绑定 `*int`，页码从 1 开始。Total 为总条数、PageSize≤0 默认 10、Siblings≤0 默认 2（最大 10），`SiblingCount: nui.Set(0)` 可显式指定零邻页。ShowEdges 默认 false，Size 默认 MD；总数减少会静默夹紧 page。边界按钮禁用；OnChange 仅在用户切到不同页时执行，不执行查询。按钮与可访问名称跟随 MyGo 全局语言，支持中英文，见 [i18n](i18n.md)。
+- **Breadcrumb**：`[]BreadcrumbItem{ID,Label,Icon,Disabled,OnSelect}`，Options 为 Label、MaxItems。最后一项作为当前页文本，不可点击，同样显示 Icon，使用 Primary 色加半粗体（`WithComponent(ComponentBreadcrumb, …)` 的 Color 可改）；祖先为 Link 语义，14 DIP 无内边距的 Muted 链接，悬停变为 Text 色。分隔符 20 DIP、Muted，项间距 6。分隔符为 chevron-right，右到左时换成 chevron-left。MaxItems≥2 时保留第一项和末尾若干项，中间显示不可交互省略号；不实现省略项下拉或路由系统。当前路径需由应用提供。
+- **Pagination**：绑定 `*int`，页码从 1 开始。Total 为总条数、PageSize≤0 默认 10、Siblings≤0 默认 2（最大 10），`SiblingCount: nui.Set(0)` 可显式指定零邻页。ShowEdges 默认 false，Size 默认 MD；总数减少会静默夹紧 page。边界按钮禁用；OnChange 仅在用户切到不同页时执行，不执行查询。首页/上一页/下一页/末页与 Nuxt 一样是 chevron 图标方形按钮，右到左时镜像；页码按钮为方形（标签至少 20 DIP 宽、居中）；省略号是与按钮同样外观的不可交互方块。可访问名称为"First page / Previous page / Next page / Last page""Page N"（中文"第一页""上一页""下一页""最后一页""第 N 页"），跟随 MyGo 全局语言，见 [i18n](i18n.md)。
 - **Stepper**：绑定当前 `*string`，`[]StepItem{ID,Title,Description,Icon,Disabled}`；Options：Label、Vertical、Linear、Disabled、Color、Size、CanSelect、OnChange。横向默认等宽排列，圆点居中，标题与描述在下方，圆点之间有连接线；Vertical 将文字放在圆点旁，并改为纵向连线。Size 默认 MD，XS/SM/MD/LG/XL 的圆点直径为 24/32/40/48/56 DIP（随 Density 缩放）。当前位置以前的圆点及其后连接线显示完成色，当前位置圆点高亮；图标或数字保留，不自动替换成勾号。点击圆点激活步骤。默认允许任意可用步骤；Linear 允许返回和前进至下一个位置，CanSelect 在实际激活时可否决。方向键只移动焦点，Enter/Space 才激活；不自动跳过线性流程中的禁用业务步骤，应用应提供正确流程。未知 ID 表示尚未开始，不静默选中第一项。
 - **Timeline**：`[]TimelineItem{ID,Title,Description,Time,Icon,Color,Content}`；Options：Label、Horizontal、Color、Size、Current、CurrentID、Reverse、OnSelect。默认纵向；横向将指标/连接线放在上方，文字放在下方。Current 为可选零基步骤索引，CurrentID 优先；未设置时无活动/完成项；Reverse 改变进度解释而不重排。点击只通知 OnSelect，不改受控进度。条目可带 Avatar/UI。Time 为应用格式化字符串。RoleList/ListItem，不自动排序、格式化时区或调度动画。
 

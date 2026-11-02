@@ -586,15 +586,15 @@ func TestPaginationStepperAndRecovery(t *testing.T) {
 			nui.ErrorView(c, theme, nui.ErrorOptions{Title: "Could not load", Description: "Try loading the local draft again.", OnRetry: func() { retried++ }})
 		})
 	}, 800, 620)
-	click(t, tt, "Page Last")
+	click(t, tt, "Last page")
 	if page != 100 {
 		t.Fatal("last page")
 	}
-	click(t, tt, "Page Next")
+	click(t, tt, "Next page")
 	if page != 100 {
 		t.Fatal("disabled next")
 	}
-	click(t, tt, "Page First")
+	click(t, tt, "First page")
 	if page != 1 {
 		t.Fatal("first page")
 	}

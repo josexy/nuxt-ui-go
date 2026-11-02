@@ -48,17 +48,15 @@ func Collapsible(c *ui.Context, t Theme, open *bool, o CollapsibleOptions, conte
 }
 func disclosureTrigger(c *ui.Context, t Theme, e ui.Element, progress float32, o CollapsibleOptions, id Component) {
 	e.Label(o.Label).Disabled(o.Disabled).MinWidth(0).AlignItems(ui.Center).FocusRing(true)
-	bg := ui.Transparent
-	if e.Hovered() && !e.IsDisabled() {
-		bg = t.Elevated
-	}
-	finish(t, id, Trigger, e, PartStyle{Background: Set(bg), PaddingY: Set(t.spacing(12)), PaddingX: Set(t.spacing(4)), Gap: Set(t.spacing(8)), Radius: Set(t.radius(6)), Foreground: Set(t.Text)}, o.Decoration)
+	// Nuxt's accordion trigger: no surface or side padding, py-3.5, gap-1.5,
+	// and 20 DIP icons in the text color.
+	finish(t, id, Trigger, e, PartStyle{Background: Set(ui.Transparent), PaddingY: Set(t.spacing(14)), PaddingX: Set(float32(0)), Gap: Set(t.spacing(6)), Radius: Set(t.radius(6)), Foreground: Set(t.Text)}, o.Decoration)
 	e.Children(func() {
 		if o.Icon != nil {
-			finish(t, id, Leading, ui.Icon(c, o.Icon).Size(20, 20).Shrink(0), PartStyle{Foreground: Set(t.Muted)}, o.Decoration)
+			finish(t, id, Leading, ui.Icon(c, o.Icon).Size(20, 20).Shrink(0), PartStyle{}, o.Decoration)
 		}
 		finish(t, id, Label, ui.Text(c, o.Label).Grow(1).MinWidth(0), PartStyle{Weight: Set(500)}, o.Decoration)
-		finish(t, id, Trailing, ui.Icon(c, lucide.ChevronDown()).Size(18, 18).Rotate(180*progress).Shrink(0), PartStyle{Foreground: Set(t.Muted)}, o.Decoration)
+		finish(t, id, Trailing, ui.Icon(c, lucide.ChevronDown()).Size(20, 20).Rotate(180*progress).Shrink(0), PartStyle{}, o.Decoration)
 	})
 }
 
@@ -163,7 +161,9 @@ func Accordion(c *ui.Context, t Theme, open *[]string, items []AccordionItem, o 
 				} else {
 					body = p.Panel(build)
 				}
-				finish(t, ComponentAccordion, Body, body, PartStyle{PaddingY: Set(t.spacing(12)), Gap: Set(t.spacing(12)), Foreground: Set(t.Muted)}, o.Decoration)
+				// Nuxt's body: the default text color and only pb-3.5.
+				body.Padding(0, 0, t.spacing(14), 0)
+				finish(t, ComponentAccordion, Body, body, PartStyle{Gap: Set(t.spacing(12)), Foreground: Set(t.Text)}, o.Decoration)
 			})
 		}
 	})

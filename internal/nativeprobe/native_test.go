@@ -545,7 +545,7 @@ func TestNativeGallery(t *testing.T) {
 	c.press("Sharing permissions")
 	c.capture("navigation-light")
 	c.press("Activity")
-	c.press("Page Next")
+	c.press("Next page")
 	c.find("Activity page 2")
 	c.capture("timeline-light")
 	c.press("Try again")

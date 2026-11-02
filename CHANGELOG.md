@@ -43,6 +43,11 @@
 - Tooltip 在文字和快捷键之间显示"·"。
 - DropdownMenu / ContextMenu 默认按内容宽度（至少 128，此前固定 240）；选中项的对勾移到行尾、跟随文字色；Shortcut 按 `+` 拆成多个 Kbd 显示。
 
+- Pagination 的首页/上一页/下一页/末页改为 chevron 图标方形按钮并随 RTL 镜像；页码按钮为方形；省略号改为与按钮同样外观的方块。英文可访问名称由 "Page First" 等改为 "First page"、"Previous page"、"Next page"、"Last page"（行为变化：按名称查找控件的测试或自动化脚本需要更新）。
+- Breadcrumb 祖先链接改为 14 DIP 无内边距；当前项使用 Primary 色加半粗体；分隔符 20 DIP、Muted；间距 6。
+- Tabs underline 变体增加贯穿列表的基线，活动指示线压在基线上；触发器间距随尺寸变化。
+- Accordion / Collapsible 触发器去掉悬停底色和水平内边距，上下内边距 14，图标 20；Accordion 正文改为默认文字色，只保留 14 的下边距。
+
 ### 依赖
 
 - MyGo 从 `v0.7.4-0.20261031084912-402a3cf8eb35` 升级到 `v0.7.4` 正式版。新增的 API 只有增量，没有删除导出 API；滚动条统一绘制后仍读取 `Theme.Scrollbar` 和 `ScrollbarWidth`。

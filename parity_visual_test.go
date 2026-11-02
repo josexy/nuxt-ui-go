@@ -3,6 +3,7 @@ package nui_test
 import (
 	"image"
 	"image/color"
+	"slices"
 	"testing"
 	"time"
 
@@ -348,5 +349,107 @@ func TestMenuWidthChecksAndKeys(t *testing.T) {
 	// Each key of the shortcut is its own chip.
 	if !tt.HasText("O") || tt.HasText("Ctrl+O") {
 		t.Fatalf("shortcut not split into keys: %v", tt.Texts())
+	}
+}
+
+func TestPaginationIconControlsAndSquares(t *testing.T) {
+	page := 5
+	tt := ui.NewTester(func(c *ui.Context) {
+		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
+		ui.Column(c).Padding(20).AlignItems(ui.Start).Children(func() {
+			nui.Pagination(c, th, &page, nui.PaginationOptions{Total: 200, PageSize: 10, SiblingCount: nui.Set(1), ShowEdges: nui.Set(true)})
+		})
+	}, 700, 120)
+	for _, label := range []string{"First page", "Previous page", "Next page", "Last page", "Page 5"} {
+		if r := bounds(t, tt, label); r.W != 32 || r.H != 32 {
+			t.Errorf("%s is %v; want a 32 DIP square", label, r)
+		}
+	}
+	if texts := tt.Texts(); slices.Contains(texts, "First") || slices.Contains(texts, "Next") {
+		t.Fatalf("controls still show text labels: %v", tt.Texts())
+	}
+	for _, dir := range []ui.Direction{ui.LeftToRight, ui.RightToLeft} {
+		tt.SetDirection(dir)
+		tt.Frame()
+		im := tt.Image()
+		inner := func(r ui.Rect) ui.Rect { return ui.Rect{X: r.X + 6, Y: r.Y + 6, W: r.W - 12, H: r.H - 12} }
+		if chevronPointsRight(t, im, inner(bounds(t, tt, "Next page"))) != (dir == ui.LeftToRight) {
+			t.Errorf("%v: the next page chevron should point toward the line's end", dir)
+		}
+	}
+}
+
+func TestBreadcrumbRecipe(t *testing.T) {
+	tt := ui.NewTester(func(c *ui.Context) {
+		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
+		ui.Column(c).Padding(20).AlignItems(ui.Start).Children(func() {
+			nui.Breadcrumb(c, th, []nui.BreadcrumbItem{{ID: "home", Label: "Home", OnSelect: func() {}}, {ID: "here", Label: "Here"}}, nui.BreadcrumbOptions{})
+		})
+	}, 400, 100)
+	home, here := bounds(t, tt, "Home"), bounds(t, tt, "Here")
+	if home.H != 20 {
+		t.Fatalf("ancestor link is %v DIPs tall; want an unpadded 14/20 line", home.H)
+	}
+	// A 20 DIP separator with 6 DIP gaps on either side.
+	if gap := here.X - (home.X + home.W); gap != 6+20+6 {
+		t.Fatalf("link to current item distance %v, want 32", gap)
+	}
+	green := func(c color.RGBA) bool { return int(c.G) > int(c.R)+60 && int(c.G) > int(c.B)+30 }
+	if countWhere(tt.Image(), here, green) == 0 {
+		t.Fatal("the current item is not drawn in the primary color")
+	}
+}
+
+func TestUnderlineTabsBaseline(t *testing.T) {
+	value := "one"
+	tt := ui.NewTester(func(c *ui.Context) {
+		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
+		ui.Column(c).Padding(20).Children(func() {
+			nui.Tabs(c, th, &value, []nui.TabItem{{ID: "one", Label: "One"}, {ID: "two", Label: "Two"}}, nui.TabsOptions{Label: "Sections", Underline: true}).Width(300)
+		})
+	}, 400, 150)
+	th := nui.Light()
+	one, two := bounds(t, tt, "One"), bounds(t, tt, "Two")
+	im := tt.Image()
+	// Below the triggers and the list's 4 DIP padding, a baseline runs under
+	// every trigger, and the active one's indicator covers it.
+	y := -1
+	for row := int(one.Y + one.H); row < int(one.Y+one.H)+8; row++ {
+		if im.RGBAAt(int(two.X+two.W/2), row) == rgba(th.Border) {
+			y = row
+			break
+		}
+	}
+	if y < int(one.Y+one.H)+3 {
+		t.Fatalf("no baseline 4 DIPs under the inactive tab (row %d)", y)
+	}
+	if c := im.RGBAAt(int(one.X+one.W/2), y); !near(c, rgba(th.Primary), 8) {
+		t.Fatalf("active indicator %v is not on the list's border line", c)
+	}
+	if c := im.RGBAAt(int(two.X+two.W/2), int(two.Y+two.H)-1); c == rgba(th.Primary) {
+		t.Fatal("the indicator is still drawn at the trigger's own edge")
+	}
+}
+
+func TestAccordionTriggerAndBodyRecipe(t *testing.T) {
+	open := []string{"a"}
+	tt := ui.NewTester(func(c *ui.Context) {
+		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
+		ui.Column(c).Padding(20).Children(func() {
+			nui.Accordion(c, th, &open, []nui.AccordionItem{{ID: "a", Label: "Shipping", Content: func(c *ui.Context, th nui.Theme) { ui.Text(c, "Ships in two days") }}, {ID: "b", Label: "Returns"}}, nui.AccordionOptions{}).Width(300)
+		})
+	}, 400, 300)
+	tt.Advance(time.Second)
+	trigger, text, next := bounds(t, tt, "Shipping"), bounds(t, tt, "Ships in two days"), bounds(t, tt, "Returns")
+	if trigger.H != 48 || trigger.X != 20 {
+		t.Fatalf("trigger %v; want py-3.5 (48 DIPs) without side padding", trigger)
+	}
+	if text.Y != trigger.Y+trigger.H || next.Y-(text.Y+text.H) != 14+1 {
+		t.Fatalf("body text %v between %v and %v; want no top padding and 14 below", text, trigger, next)
+	}
+	tt.Move(trigger.X+trigger.W/2, trigger.Y+trigger.H/2)
+	tt.Advance(time.Second)
+	if c := tt.Image().RGBAAt(int(trigger.X)+2, int(trigger.Y)+2); c != white {
+		t.Fatalf("hovered trigger has a surface: %v", c)
 	}
 }
