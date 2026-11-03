@@ -12,6 +12,8 @@ Read the files relevant to the task; a full repository scan is not required for 
 | --- | --- |
 | Root Go files and corresponding `*_test.go` files | Public components, themes, state models, and regression tests |
 | [docs/](docs/README.md) | Component APIs, options, internationalization, and compatibility |
+| [website/](website/README.md) | Bilingual component website, parameter editors, and live WASM previews |
+| [internal/showcase/](internal/showcase/) | Shared website examples, API descriptions, configuration, and Go preview tests |
 | [examples/](examples/) | Runnable minimal app, Gallery, settings app, and data browser |
 | [internal/](internal/) | Example implementations, generators, and native test tools; not public APIs |
 | [locales/](locales/) | English and Simplified Chinese component messages |
@@ -49,6 +51,12 @@ See the [README](README.md) for installation and complete examples, and the [com
 - Components use a library catalog. Follow the [internationalization guide](docs/i18n.md) for language setup and message overrides.
 - Document differences from Nuxt UI according to the actual native APIs. Visual similarity does not establish equivalent behavior or accessibility. Keep platform limitations accurate when verification is incomplete.
 
+## Website synchronization
+
+- When component APIs, defaults, behavior, or appearance change, synchronize affected website demos, controls, bilingual documentation, and copyable Go examples. Briefly explain if no website changes are needed.
+- Update sources in `internal/showcase/` and `website/`; follow [website/README.md](website/README.md) for regeneration and which outputs to include. Do not edit generated files directly.
+- For component or website code changes, run `task website:check` and `task website:build` alongside Go checks, then verify affected interactions in the browser.
+
 ## Formatting and verification
 
 Use the commands in [Taskfile.yml](Taskfile.yml). Formatting requires goimports; linting requires golangci-lint v2. System packages used by Linux checks are listed in the [CI configuration](.github/workflows/check.yml).
@@ -64,6 +72,8 @@ Use the commands in [Taskfile.yml](Taskfile.yml). Formatting requires goimports;
 | `task verify` | Check formatting, tests, Go vet, MyGo lifecycle rules, generated source consistency, and cross-platform builds |
 | `task test:native` | Run native Gallery interaction tests; requires a desktop session |
 | `task test:native:smoke` | Check the first frame of a hidden window; also requires a desktop session |
+| `task website:check` | Check website formatting, types, Go previews, and standalone examples |
+| `task website:build` | Generate the static website, API pages, and WASM previews |
 
 - For code changes, run relevant tests first, then `task lint:go` and `task verify`. Regression tests should cover observable failures rather than duplicate implementation details.
 - Prefer `ui.NewTester` for UI regressions, covering relevant focus, input, shortcuts, and unmount/rebuild behavior. Layout or platform interaction changes also require inspecting rendered output and the corresponding native behavior. A first-frame check alone does not validate interactions.
