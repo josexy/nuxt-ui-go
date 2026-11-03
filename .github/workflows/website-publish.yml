@@ -1,0 +1,59 @@
+name: Publish component website
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_path:
+        description: 'Base path; blank uses /repository-name/, use / for a root domain'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: component-website-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CGO_ENABLED: "0"
+      NUXT_APP_BASE_URL: ${{ inputs.base_path || format('/{0}/', github.event.repository.name) }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: website/package.json
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: website/.node-version
+          cache: pnpm
+          cache-dependency-path: website/pnpm-lock.yaml
+      - run: pnpm --dir website install --frozen-lockfile
+      - run: pnpm --dir website check
+      - run: git diff --exit-code -- internal/showcase/preview/generated.go
+      - run: pnpm --dir website generate
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: website/.output/public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

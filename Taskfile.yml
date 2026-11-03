@@ -40,6 +40,26 @@ tasks:
       - cmd: bash scripts/test-native.sh --hidden-smoke
         platforms: [linux]
 
+  website:dev:
+    desc: Runs the bilingual component website and builds its Go previews
+    cmds:
+      - pnpm --dir website dev
+
+  website:build:
+    desc: Generates the static component website, API docs and WASM previews
+    cmds:
+      - pnpm --dir website generate
+
+  website:check:
+    desc: Checks website formatting, types and standalone Go examples
+    cmds:
+      - pnpm --dir website check
+
+  fmt:website:
+    desc: Formats website source with Prettier
+    cmds:
+      - pnpm --dir website format
+
   fmt:go:
     desc: Formats Go code and organizes imports with goimports
     summary: Recursively formats Go source files, adding missing imports and removing unused imports.

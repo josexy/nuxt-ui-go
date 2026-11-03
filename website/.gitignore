@@ -1,0 +1,8 @@
+node_modules/
+.nuxt/
+.output/
+dist/
+.data/
+public/preview/
+app/data/catalog.json
+content/*/components/

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1"
+    />
+    <meta
+      name="robots"
+      content="noindex"
+    />
+    <title>NuxtUI Go preview</title>
+    <style>
+      html,
+      body,
+      #mygo {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        font: 14px system-ui;
+      }
+      #mygo {
+        position: relative;
+      }
+      #status {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        color: #64748b;
+        padding: 24px;
+        text-align: center;
+      }
+      html[data-mygo-theme='dark'] {
+        color-scheme: dark;
+        background: #0f172a;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="mygo"></div>
+    <div
+      id="status"
+      role="status"
+    >
+      Loading Go preview…
+    </div>
+    <script src="./wasm_exec.js"></script>
+    <script>
+      const params = new URLSearchParams(location.search)
+      const origin = location.origin
+      const status = document.getElementById('status')
+      if (params.get('mode') !== 'system')
+        document.documentElement.dataset.mygoTheme =
+          params.get('mode') === 'dark' ? 'dark' : 'light'
+      document.documentElement.lang = params.get('locale') || 'zh-Hans'
+      if (document.documentElement.lang === 'zh-Hans') status.textContent = '正在加载 Go 预览…'
+      addEventListener('message', event => {
+        if (
+          event.origin !== origin ||
+          event.source !== parent ||
+          event.data?.channel !== 'nuxt-ui-go'
+        )
+          return
+        if (event.data.type === 'configure') {
+          const mode = event.data.config?.mode
+          if (mode === 'light' || mode === 'dark') document.documentElement.dataset.mygoTheme = mode
+          else delete document.documentElement.dataset.mygoTheme
+          document.documentElement.lang = event.data.config?.locale || 'zh-Hans'
+          status.hidden = true
+          status.style.display = 'none'
+        }
+      })
+      function failed(error) {
+        status.hidden = false
+        status.style.display = 'grid'
+        status.textContent =
+          document.documentElement.lang === 'zh-Hans'
+            ? '预览加载失败，请点击上方重试。'
+            : 'The preview failed to load. Use Retry above.'
+        parent.postMessage({ channel: 'nuxt-ui-go', type: 'fatal', message: String(error) }, origin)
+      }
+      const go = new Go()
+      go.argv = ['sitepreview', params.get('component') || 'button']
+      fetch('./__WASM_FILE__')
+        .then(async response => {
+          if (!response.ok) throw new Error('WASM HTTP ' + response.status)
+          return WebAssembly.instantiate(await response.arrayBuffer(), go.importObject)
+        })
+        .then(result => go.run(result.instance))
+        .then(() => failed(new Error('Go preview stopped')))
+        .catch(failed)
+    </script>
+  </body>
+</html>

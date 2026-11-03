@@ -97,6 +97,8 @@ Gallery 的 Theme 菜单可以切换 Primary、Neutral 及 Light/Dark/System。E
 
 ## 文档
 
+组件网站源码位于 [website/](website/README.md)，提供 73 项组件的中英文说明、实时 Go/WASM 预览、常用参数配置和可复制的 Go 示例。安装网站依赖后可用 `task website:dev` 本地查看；构建和手动 GitHub Pages 发布见网站说明。
+
 - [组件指南](docs/README.md)：按用途查找组件和 Go API。
 - [主题与样式](docs/foundations.md)：色板、系统模式、局部主题和部件覆盖。
 - [参数与默认值](docs/options.md)：方向、选择策略、加载态和弹层配置。
