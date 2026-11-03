@@ -708,16 +708,25 @@ func TestNativeGallery(t *testing.T) {
 	c.press("Loading switch")
 	c.capture("props-forms-light")
 	c.press("Grouped PIN")
+	c.capture("pin-empty-caret-light")
 	c.key("Ctrl+A")
 	c.call("input", map[string]any{"events": []any{map[string]any{"type": "text", "text": "123456"}}}, nil)
 	c.key("Home")
 	c.key("Right")
 	c.key("Right")
-	c.key("Shift+Right")
 	c.call("input", map[string]any{"events": []any{map[string]any{"type": "text", "text": "9"}}}, nil)
 	c.idle()
 	if n := c.find("Grouped PIN"); n.Value != "129456" {
 		t.Fatalf("native grouped PIN replacement: %+v", n)
+	}
+	c.call("input", map[string]any{"events": []any{map[string]any{"type": "text", "text": "8"}}}, nil)
+	c.idle()
+	if n := c.find("Grouped PIN"); n.Value != "129856" {
+		t.Fatalf("native sequential PIN replacement shifted the suffix: %+v", n)
+	}
+	c.key("Ctrl+Z")
+	if n := c.find("Grouped PIN"); n.Value != "129456" {
+		t.Fatalf("native PIN replacement undo: %+v", n)
 	}
 	c.capture("pin-grouped-focus-light")
 	c.key("Tab")

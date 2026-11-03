@@ -36,6 +36,7 @@
 - RangeSlider 接入 FormField：点击字段标签聚焦第一个拇指，并带上字段描述和错误。
 - PinInput 在出错的 FormField 中显示错误色边框。
 - PinInput 分隔符改为垂直居中的 Dimmed 色圆点，按文字宽度计算分组间距；当前槽位补齐鼠标和键盘聚焦时的 3 DIP 半透明外圈。
+- PinInput 显示当前槽位的输入光标；连续输入和多字符粘贴逐格覆盖，避免后续字符被插入操作挤动或截断，保留撤销/重做。
 - Breadcrumb 当前项、FooterColumns 条目显示 `Icon`。
 - Card 没有正文时不再渲染空正文区和多余分隔线；Badge 标签为空时不占间距。
 - Chart 默认系列色改为 Nuxt 的六种不重复颜色：Primary、blue、violet、amber、rose、cyan（浅色 500 / 深色 400）。此前第 2 条和第 5 条系列同为 blue。

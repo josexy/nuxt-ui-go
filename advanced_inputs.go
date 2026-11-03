@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/egoist/mygo/ui"
@@ -194,9 +195,18 @@ func InputTags(c *ui.Context, t Theme, value *[]string, s *TagsState, o InputTag
 }
 
 type PinState struct {
-	text   string
-	seen   string
-	Handle ui.Handle
+	text       string
+	seen       string
+	start, end int
+	backward   bool
+	Handle     ui.Handle
+}
+
+type pinCaretState struct {
+	focused    bool
+	start, end int
+	text       string
+	since      time.Time
 }
 type PinInputOptions struct {
 	Label                string
@@ -223,6 +233,26 @@ func normalizePIN(v string, n int, numeric bool) string {
 		}
 	}
 	return b.String()
+}
+
+// Native text insertion replaces the selection and shifts its suffix. A PIN
+// instead overwrites as many slots as the accepted input occupies. Recognize
+// that insertion from its old selection and new caret; leave deletion and
+// restored undo/redo selections to the native editor.
+func replacePINSlots(previous, next string, start, end, caret, n int, numeric bool) (string, int) {
+	old, raw := []rune(previous), []rune(next)
+	start, end = min(start, len(old)), min(end, len(old))
+	added := len(raw) - len(old) + end - start
+	if added > 0 && caret == start+added && caret <= len(raw) &&
+		string(raw[:start]) == string(old[:start]) && string(raw[caret:]) == string(old[end:]) {
+		insert := []rune(normalizePIN(string(raw[start:caret]), n-start, numeric))
+		if len(insert) == 0 {
+			return previous, start
+		}
+		tail := min(max(end, start+len(insert)), len(old))
+		return normalizePIN(string(old[:start])+string(insert)+string(old[tail:]), n, numeric), start + len(insert)
+	}
+	return normalizePIN(next, n, numeric), caret
 }
 
 // PinInput uses one real editor, preserving paste, selection and Backspace across all slots.
@@ -275,10 +305,23 @@ func PinInput(c *ui.Context, t Theme, value *string, s *PinState, o PinInputOpti
 	characters := []rune(*value)
 	caret := len(characters)
 	focused := s.Handle.Focused(c)
+	previousStart, previousEnd := s.start, s.end
+	resetCaret := false
+	caretState := ui.Local(root, "caret", func() pinCaretState { return pinCaretState{} })
 	finish(t, ComponentPinInput, Root, root, PartStyle{}, o.Decoration)
 	root.Children(func() {
 		Input(c.Key("pin"), t, &s.text, InputOptions{Label: label, Placeholder: o.Placeholder, Password: o.Mask, ReadOnly: o.ReadOnly, OnChange: func(v string) {
-			v = normalizePIN(v, n, o.Numeric)
+			editor := c.Resolve(s.Handle)
+			start, end := editor.TextSelection()
+			if start == end {
+				v, start = replacePINSlots(*value, v, previousStart, previousEnd, start, n, o.Numeric)
+				length := len([]rune(v))
+				start = min(start, length, n-1)
+				end = min(start+1, length)
+				editor.SetTextSelection(start, end)
+			} else {
+				v = normalizePIN(v, n, o.Numeric)
+			}
 			s.text = v
 			if v != *value {
 				*value = v
@@ -291,9 +334,34 @@ func PinInput(c *ui.Context, t Theme, value *string, s *PinState, o PinInputOpti
 				}
 			}
 		}, Style: func(root, editor, leading, trailing ui.Element) {
-			editor.Bind(&s.Handle).InputMethod(!o.Numeric)
-			caret, _ = editor.TextSelection()
+			editor.Bind(&s.Handle).InputMethod(!o.Numeric).OnTextKey(func(k ui.TextKey) bool {
+				s.backward = k.Mods == 0 && k.Key == ui.KeyLeft
+				return false
+			})
+			start, end := editor.TextSelection()
+			// Selecting the current occupied slot makes the next keystroke a
+			// replacement, including after typing, arrows and keyboard focus.
+			if focused && !o.ReadOnly && !editor.IsDisabled() && !editor.Composing() && s.text == *value && start == end {
+				// Left first collapses the native one-character selection. Move
+				// one additional position to reach the preceding PIN slot.
+				if s.backward && previousEnd == previousStart+1 {
+					start = max(start-1, 0)
+				}
+				start = min(start, len(characters), n-1)
+				end = min(start+1, len(characters))
+				if start != end {
+					editor.SetTextSelection(start, end)
+					resetCaret = true
+				}
+			}
+			s.backward = false
+			s.start, s.end = start, end
+			caret = start
 		}}).Absolute().Left(0).Top(0).Fill().Opacity(.001)
+		editing := focused && !o.ReadOnly && !root.IsDisabled()
+		if resetCaret || editing != caretState.focused || s.start != caretState.start || s.end != caretState.end || *value != caretState.text {
+			*caretState = pinCaretState{focused: editing, start: s.start, end: s.end, text: *value, since: c.Now()}
+		}
 		ui.Row(c.Key("slots")).Absolute().Left(0).Top(0).Height(slotSize).AlignItems(ui.Center).Gap(t.spacing(6)).Cursor(ui.CursorText).OnClick(func() {
 			length := len([]rune(*value))
 			c.Resolve(s.Handle).Focus().SetTextSelection(length, length)
@@ -302,7 +370,11 @@ func PinInput(c *ui.Context, t Theme, value *string, s *PinState, o PinInputOpti
 				if separators[i] {
 					ui.Text(c.Key(fmt.Sprintf("separator:%d", i)), "•").Font(t.Font).FontSize(t.text(16)).TextColor(t.Dimmed).Shrink(0).IgnoreInput(true).Role(ui.RoleNone)
 				}
+				active := focused && !root.IsDisabled() && i == min(caret, n-1)
 				v := o.Placeholder
+				if active {
+					v = ""
+				}
 				if i < len(characters) {
 					v = string(characters[i])
 					if o.Mask {
@@ -317,7 +389,6 @@ func PinInput(c *ui.Context, t Theme, value *string, s *PinState, o PinInputOpti
 					end := min(i+1, length)
 					c.Resolve(s.Handle).Focus().SetTextSelection(start, end)
 				}).Children(func() { ui.Text(c, v).Role(ui.RoleNone).IgnoreInput(true) })
-				active := focused && !e.IsDisabled() && i == min(caret, n-1)
 				invalid := fieldInvalid(t, InputOptions{})
 				recipe := inputRecipe(t, config, active, e.Hovered() && !e.IsDisabled(), invalid)[Root]
 				recipe.PaddingX, recipe.PaddingY = Set(float32(0)), Set(float32(0))
@@ -327,6 +398,24 @@ func PinInput(c *ui.Context, t Theme, value *string, s *PinState, o PinInputOpti
 						color = Error
 					}
 					e.Shadow(0, 0, 0, 3, t.focusColor(color))
+				}
+				if active && editing {
+					var textWidth float32
+					if i < len(characters) {
+						textWidth, _ = c.MeasureText(0, ui.Span{Text: v, Font: t.Font, Size: buttonMetrics(t, config.Size).Font})
+					}
+					since, motion := caretState.since, t.motion(c)
+					height := buttonMetrics(t, config.Size).Line
+					e.DrawOver(func(p *ui.Painter, r ui.Rect) {
+						const blink = 530 * time.Millisecond
+						phase := p.Now().Sub(since)
+						if !motion || (phase/blink)%2 == 0 {
+							p.Fill(ui.Rect{X: r.X + (r.W+textWidth)/2, Y: r.Y + (r.H-height)/2, W: 1, H: height}, t.Highlighted, 0)
+						}
+						if motion && phase < 30*time.Second {
+							p.After(blink - phase%blink)
+						}
+					})
 				}
 				finish(t, ComponentPinInput, Item, e, recipe, o.Decoration)
 			}
