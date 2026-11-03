@@ -138,6 +138,16 @@ func fieldSchemas(t reflect.Type) []ValueField {
 			description = specific
 		}
 		editor := ValueField{Name: field.Name, Type: goType(field.Type), Description: description, Choices: choices}
+		if t == reflect.TypeFor[nui.InputDateOptions]() || t == reflect.TypeFor[nui.InputTimeOptions]() {
+			switch field.Name {
+			case "Placeholder", "Password", "MaxLength":
+				editor.Hint = &Text{ZH: "分段输入不适用", EN: "Not used by segments"}
+			case "UI":
+				editor.Slots = []string{"root", "editor", "segment", "leading", "trailing"}
+			case "Style":
+				editor.Slots = []string{"root", "editor", "leading", "trailing"}
+			}
+		}
 		if t == reflect.TypeFor[nui.PopoverOptions]() {
 			switch field.Name {
 			case "Label":

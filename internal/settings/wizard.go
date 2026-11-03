@@ -82,7 +82,7 @@ func (a *State) wizard(c *ui.Context, t nui.Theme) {
 					value, input, name = &s.End, &s.EndInput, "end"
 				}
 				nui.FormField(c.Key(name), inner, nui.FormFieldOptions{Name: name, Value: value.Value.String(), Label: label, Required: true}, func(ft nui.Theme) {
-					nui.InputDate(c, ft, value, input, nui.InputDateOptions{Label: label, Calendar: nui.CalendarOptions{Today: nui.Set(nui.Date{Year: 2026, Month: time.November, Day: 1})}})
+					nui.InputDate(c, ft, value, input, nui.InputDateOptions{ShowCalendar: true, Label: label, Calendar: nui.CalendarOptions{Today: nui.Set(nui.Date{Year: 2026, Month: time.November, Day: 1})}})
 				})
 			}
 		}

@@ -127,7 +127,14 @@ func TestLocaleSwitchRefreshesExistingFormErrors(t *testing.T) {
 					})
 				})
 			}, 600, 240)
-			click(t, tt, "Editor")
+			editorLabel := "Editor"
+			if kind == "date" {
+				editorLabel += " month"
+			}
+			if kind == "time" {
+				editorLabel += " hour"
+			}
+			click(t, tt, editorLabel)
 			tt.Key(ui.Ctrl, ui.KeyA)
 			tt.Type("-")
 			tt.Frame()
@@ -136,14 +143,20 @@ func TestLocaleSwitchRefreshesExistingFormErrors(t *testing.T) {
 			}
 			tt.Frame()
 			english := form.Field("value").Error
-			want := map[string]string{"number": "请输入允许范围内的数字", "date": "请输入可用日期（YYYY-MM-DD）", "time": "请输入有效时间"}[kind]
+			want := map[string]string{"number": "请输入允许范围内的数字", "date": "请输入可用日期", "time": "请输入有效时间"}[kind]
 			before := changes
 			form.BeginAsync()
 			tt.SetLocale("zh-Hans")
 			if form.Field("value").Error != want || !tt.HasText(want) || tt.HasText(english) {
 				t.Fatalf("stored error did not translate: %q, text=%v", form.Field("value").Error, tt.Texts())
 			}
-			if !tt.Focused("Editor") || !form.Submitting || changes != before || number.Value != 2 || date.Value.Day != 1 || clock.Value.Hour != 10 {
+			if kind == "date" {
+				editorLabel = "Editor 月"
+			}
+			if kind == "time" {
+				editorLabel = "Editor 时"
+			}
+			if !tt.Focused(editorLabel) || !form.Submitting || changes != before || number.Value != 2 || date.Value.Day != 1 || clock.Value.Hour != 10 {
 				t.Fatal("language change altered focus, form ticket, callbacks or model")
 			}
 			draft := map[string]string{"number": ns.Text, "date": ds.Text, "time": ts.Text}[kind]

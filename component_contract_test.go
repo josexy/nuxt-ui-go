@@ -161,7 +161,7 @@ func TestCalendarDirectionAndHiddenRange(t *testing.T) {
 	hidden := false
 	tt = ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.InputDateRange(c, th, &selected, &rangeState, nui.InputDateOptions{Label: "Travel", HideCalendar: hidden})
+		nui.InputDateRange(c, th, &selected, &rangeState, nui.InputDateOptions{Label: "Travel", ShowCalendar: true, HideCalendar: hidden})
 	}, 600, 500)
 	click(t, tt, "Choose Travel")
 	if !rangeState.Open {

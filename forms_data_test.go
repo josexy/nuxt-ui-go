@@ -577,7 +577,7 @@ func TestDateRangeInputSynchronizesEndpoints(t *testing.T) {
 	var state nui.DateRangeInputState
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.InputDateRange(c, th, &value, &state, nui.InputDateOptions{Label: "Period"})
+		nui.InputDateRange(c, th, &value, &state, nui.InputDateOptions{Label: "Period", ShowCalendar: true})
 	}, 600, 500)
 	click(t, tt, "Period start")
 	tt.Key(ui.Ctrl, ui.KeyA)

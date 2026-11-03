@@ -1166,5 +1166,73 @@
   "Type": {
     "zh": "分隔线的样式类型，例如实线或虚线。",
     "en": "Separator line style, such as solid or dashed."
+  },
+  "InputDateOptions.ShowCalendar": {
+    "zh": "显式显示日历按钮和弹层；默认 false，仅显示分段日期输入。",
+    "en": "Show the calendar button and popover explicitly; false by default, leaving a segmented date field."
+  },
+  "InputDateOptions.HideCalendar": {
+    "zh": "兼容旧调用的关闭开关；优先于 ShowCalendar，并收起已打开的日历。",
+    "en": "Compatibility switch that overrides ShowCalendar and closes an open calendar."
+  },
+  "InputDateOptions.Calendar": {
+    "zh": "日期边界和禁用规则始终生效；其余日历外观和交互选项用于 ShowCalendar 开启的弹层。范围变更通过 Calendar.OnChange 通知。",
+    "en": "Date bounds and disabled-date rules always apply; other calendar settings configure the ShowCalendar popover. Range changes use Calendar.OnChange."
+  },
+  "InputTimeOptions.TwelveHour": {
+    "zh": "未设置时跟随窗口语言及系统区域小时制；true 为 12 小时，false 为 24 小时。切换保留业务值和草稿。",
+    "en": "Unset follows the window locale and regional hour cycle; true selects 12 hours and false selects 24. Switching preserves values and drafts."
+  },
+  "InputTimeOptions.Seconds": {
+    "zh": "显示秒分段；隐藏后编辑时／分仍保留原秒值。",
+    "en": "Show the seconds segment. Editing hours or minutes with seconds hidden preserves their value."
+  },
+  "InputDateOptions.Placeholder": {
+    "zh": "不适用于分段输入；各段占位符使用组件语言目录中的 Placeholder 键。",
+    "en": "Not used by segmented inputs; segment placeholders come from the component locale catalog."
+  },
+  "InputDateOptions.Password": {
+    "zh": "不适用于分段日期／时间输入，不会遮罩字段。",
+    "en": "Not used by segmented date/time inputs; segments are not masked."
+  },
+  "InputDateOptions.MaxLength": {
+    "zh": "不适用于分段输入；各段按日期／时间范围限制位数和值。",
+    "en": "Not used by segmented inputs; each segment restricts its digits and value to date/time bounds."
+  },
+  "InputDateOptions.Style": {
+    "zh": "同步接收 root、editor、leading、trailing；editor 是第一个可聚焦分段，不是原生文本编辑器。",
+    "en": "Synchronously receives root, editor, leading and trailing; editor is the first focusable segment, not a native text editor."
+  },
+  "InputDateOptions.UI": {
+    "zh": "可覆盖 root/editor/segment/leading/trailing。segment 控制各段的占位文字颜色、焦点背景和圆角。",
+    "en": "Override root/editor/segment/leading/trailing. The segment slot controls placeholder color, focus background and corners."
+  },
+  "InputDateOptions.OnChange": {
+    "zh": "草稿变化时回调；返回规范格式的草稿或被拒绝的粘贴原文，未完成的输入不会提交业务值。",
+    "en": "Called when the draft changes, with canonical draft text or rejected pasted text. Incomplete input does not commit a value."
+  },
+  "InputTimeOptions.Placeholder": {
+    "zh": "不适用于分段输入；各段占位符使用组件语言目录中的 Placeholder 键。",
+    "en": "Not used by segmented inputs; segment placeholders come from the component locale catalog."
+  },
+  "InputTimeOptions.Password": {
+    "zh": "不适用于分段日期／时间输入，不会遮罩字段。",
+    "en": "Not used by segmented date/time inputs; segments are not masked."
+  },
+  "InputTimeOptions.MaxLength": {
+    "zh": "不适用于分段输入；各段按日期／时间范围限制位数和值。",
+    "en": "Not used by segmented inputs; each segment restricts its digits and value to date/time bounds."
+  },
+  "InputTimeOptions.Style": {
+    "zh": "同步接收 root、editor、leading、trailing；editor 是第一个可聚焦分段，不是原生文本编辑器。",
+    "en": "Synchronously receives root, editor, leading and trailing; editor is the first focusable segment, not a native text editor."
+  },
+  "InputTimeOptions.UI": {
+    "zh": "可覆盖 root/editor/segment/leading/trailing。segment 控制各段的占位文字颜色、焦点背景和圆角。",
+    "en": "Override root/editor/segment/leading/trailing. The segment slot controls placeholder color, focus background and corners."
+  },
+  "InputTimeOptions.OnChange": {
+    "zh": "草稿变化时回调；返回规范格式的草稿或被拒绝的粘贴原文，未完成的输入不会提交业务值。",
+    "en": "Called when the draft changes, with canonical draft text or rejected pasted text. Incomplete input does not commit a value."
   }
 }

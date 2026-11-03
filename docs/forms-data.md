@@ -9,6 +9,7 @@
 - InputNumber/InputDate/InputTime 继承 Input 的五种尺寸、outline/soft/subtle/ghost/none、颜色、只读、禁用、前后图标、错误与同步 Style 回调。
 - 其余组件使用各自的原生配方，支持明暗主题、密度/字体比例、实例 `UI`/`Style` 和全局 `WithComponent` 的 **已列出 slots**；尺寸与变体支持范围见各组件 Options。
 - Form：Root；Listbox：Root/Label（组标题）/Item/EmptySlot；SelectMenu：Root/Trigger，选择面板通过嵌入 ListboxOptions 和 Popup 定制。
+- InputDate/InputTime：Root/Editor/Segment/Leading/Trailing；InputDateRange 共用 InputDate 的 slots。
 - PinInput：Root/Item；InputRating：Root/Item；Calendar：Root/Item；Table、Tree：Root/Item/EmptySlot；ColorPicker、RangeSlider：Root。
 - Table、Tree、ColorPicker、RangeSlider 的内部原生区域由 `Theme.Native()` 控制，未暴露的原生部件不能通过不存在的 slot 覆盖。Table 单元格可完全自定义。
 
@@ -51,7 +52,7 @@ nui.Form(c, theme, &form, nui.FormOptions{
 
 InputNumber、InputDate、InputTime 和 Numeric=true 的 PinInput 使用固定格式并关闭 IME；PinInput 文本模式及其他普通文本入口启用 IME。PIN 可视槽位跟随编辑器光标显示焦点，编辑、粘贴和撤销由单个原生编辑器承担。放在有 Error 的 FormField 中时，各槽位改用错误色边框。
 
-InputNumber/InputDate/InputTime 的文本编辑器与 Input 共用鼠标、Tab 聚焦高亮。InputTags 的外框使用字段变体配方：编辑器聚焦或标签按钮键盘聚焦时显示强调色和外圈，支持 Color/Variant 与错误色；None 不显示焦点外圈。
+InputNumber 的文本编辑器及 InputDate/InputTime 的分段外框与 Input 共用鼠标、Tab 聚焦高亮。InputTags 的外框使用字段变体配方：编辑器聚焦或标签按钮键盘聚焦时显示强调色和外圈，支持 Color/Variant 与错误色；None 不显示焦点外圈。
 
 `InputNumberOptions.Orientation` 使用 `nui.Orientation`：零值 `nui.Horizontal`（默认）或 `nui.Vertical`。对应 Nuxt UI 4.12.0 的 InputNumber 方向：horizontal 为左侧减号、居中数值、右侧加号；vertical 为数值靠左、右侧上增下减的 chevron。RTL 下按逻辑 start/end 镜像。按钮使用 link 外观，颜色和尺寸继承字段；两种方向保持相同字段高度。未设置 Orientation 时使用水平布局。
 
@@ -112,9 +113,17 @@ Listbox 支持同步 Build、SelectionBehavior、Loop 和 HighlightOnHover；`Se
 
 首次构建可显式设置 CalendarState.Month/Active。之后外部更新 Start 会同步高亮及显示月份；Start 不变而 End 更新时跟随有效 End。外部赋值不触发 OnChange；清空选择保留浏览位置。普通翻月和组件内部完成范围选择不会在后续构建中跳回范围起点。
 
-`InputDate` 接收 `*Optional[Date]` 与 `DateInputState`，ISO `YYYY-MM-DD` 文本与单日 Calendar 共用业务值。非法/未完成文本保留在 Text/Error，最后有效值不变；空文本清空，弹层选择回写文本并关闭。HideCalendar 对单日与范围输入均生效，隐藏触发器并关闭现有面板。范围输入使用同组件的 `InputDateRange` 入口、`DateRangeInputState` 和 `*DateSelection`：两个 ISO 编辑器共享范围面板；起点改到终点之后会清空终点，终点不能早于起点，第二次日历点击完成范围后关闭。作为一个 FormField 使用时错误聚焦到起点；需要独立端点错误聚焦时分别注册两个 InputDate。
+`InputDate` 接收 `*Optional[Date]` 与 `DateInputState`，按窗口语言及系统区域格式排列年、月、日分段。每段独立聚焦；左右键切换，Tab / Shift+Tab 按视觉顺序进入下一段或离开，数字输入达到位数或数值上限时自动跳段，上下键在当前段内循环增减，Home / End 到当前段最小／最大值。年份按四位输入，修改年月会将月底裁至目标月最后一天。Backspace / Delete 清空当前段，Ctrl/Cmd+A 后删除清空当前端点；Ctrl/Cmd+C/X/V 复制、剪切或粘贴当前端点，也支持系统编辑命令。粘贴接受 ISO 日期或当前区域顺序的数字日期。
 
-`ClockTime{Hour,Minute,Second}` 为不含日期、时区的墙上时间；小时 0–23。`InputTime` 使用 `*Optional[ClockTime]` 与 `TimeInputState`，支持 24 小时或 `hh:mm AM/PM`、可选秒。`TwelveHour` 是 `Optional[bool]`：未设置时与 Nuxt 一样随语言决定（en 为 12 小时，zh-Hans 为 24 小时），并优先采用用户系统区域格式里的小时制（`Context.Region().HourCycle`）；`nui.Set(true/false)` 固定格式。12/24 格式切换（包括切换语言）保留值并按新格式重写；正在输入的无效草稿和错误提示保持不变。隐藏秒后编辑小时/分钟仍保留原秒。无时区选择器、夏令时推算、分段旋钮或时间弹层。
+`DateInputState.Text` 保持 ISO 草稿格式，与显示顺序分离；未填完的段使用 `-`，非法粘贴保留原文及 Error，业务值保留最后有效值。非法粘贴不会覆盖屏幕上的最后一组分段值；通过字段错误状态提示失败。全部日期段清空时才清空业务值。语言切换保留草稿和当前字段焦点；外部赋值刷新分段但不触发 OnValueChange。OnChange 提供规范草稿或被拒绝的粘贴文本；只读时允许导航与复制，禁止编辑。
+
+默认 InputDate 不显示日历。设置 `ShowCalendar: true` 添加日历图标与 Popover，选择后同步分段并关闭；`HideCalendar` 保留兼容入口，优先于 ShowCalendar，关闭时同时收起面板。迁移旧应用时，原来依赖默认日历的调用需要显式设置 ShowCalendar。
+
+范围入口 `InputDateRange` 使用 `DateRangeInputState` 和 `*DateSelection`，起止日期分段共享同一个外框，以减号分隔，左右键和 Tab 可以跨越端点。起点改到终点之后会清空终点，终点不能早于起点；可选的范围日历在第二次选择完成后关闭。范围变更仍通过 `Calendar.OnChange` 通知。作为一个 FormField 使用时错误聚焦到起点的首段；需要独立端点错误聚焦时分别注册两个 InputDate。
+
+`ClockTime{Hour,Minute,Second}` 为不含日期、时区的墙上时间；小时 0–23。`InputTime` 使用 `*Optional[ClockTime]` 与 `TimeInputState`，分段编辑小时、分钟、可选秒及上下午；上下键在当前段循环，A/P 选择 AM/PM。`TwelveHour` 为 `Optional[bool]`：未设置时随窗口语言和用户系统区域格式（`Context.Region().HourCycle`）决定，`nui.Set(true/false)` 固定格式。分段顺序、分隔符和上下午文字跟随区域格式，Text 使用固定 `HH:MM[:SS]` 或 `hh:mm[:ss] AM/PM` 草稿格式。切换小时制保留业务值和未完成草稿；隐藏秒后编辑小时／分钟仍保留原秒，隐藏正在聚焦的秒或上下午段时将焦点移至分钟或小时。完整时间粘贴使用与 Text 相同的格式。
+
+这三个入口复用 Input 的尺寸、变体、颜色、图标、加载状态、禁用／只读和 Clearable；`Root` 定义共同外框，`Editor` 定义分段文字基础样式，新增 `Segment` slot 可覆盖分段的占位、焦点背景及圆角。`Style` 的 editor 参数为当前排列的第一个可聚焦分段，可以绑定 Handle；它不再是原生 TextInputBase，原生文本选区 API 不适用。`Placeholder`、`Password`、`MaxLength` 不适用于分段编辑；占位符通过语言目录覆盖。支持公历与 ASCII 数字输入，尚不提供撤销／重做、时间范围、时间弹层、多历法或时区选择器；完整读屏体验尚未验证。
 
 尚不支持日历多选、年/月选择面板、多月并排、周序号、其他历法及时间范围输入。
 

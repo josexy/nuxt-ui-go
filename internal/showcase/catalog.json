@@ -6295,16 +6295,16 @@
     "name": "InputDate",
     "category": "data",
     "description": {
-      "zh": "输入日期并通过日历选择。",
-      "en": "Type a date or choose one from a calendar."
+      "zh": "按区域格式分段编辑日期，可选日历弹层。",
+      "en": "Edit date segments in regional order, with an optional calendar."
     },
     "guide": {
-      "zh": "上方编辑单个日期，下方 InputDateRange 编辑日期区间。可以输入日期或展开日历；两个示例共用外观、禁用、只读和 hideCalendar 快捷参数，值和编辑状态分别持久保存。",
-      "en": "The upper control edits one date and InputDateRange below edits an interval. Type a date or open the calendar. Both controls share the appearance, disabled, read-only and hideCalendar quick settings; values and editor state are retained separately."
+      "zh": "上方编辑单日，下方在同一外框内编辑日期范围。左右键切换字段，上下键增减，数字输入自动跳段；showCalendar 显式开启日历。值与未完成草稿分别保存。",
+      "en": "Edit a single date above and a range within one field below. Use arrows to navigate and increment segments; typing advances automatically. Enable showCalendar for a calendar. Values and incomplete drafts are retained separately."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "日期／时间使用分段输入，Placeholder、Password 和 MaxLength 不适用。Style 的 editor 为首个分段。尚不支持分段撤销／重做、多历法或时区选择；浏览器预览不等同于原生读屏验证。 日历默认关闭，设置 ShowCalendar=true 开启；HideCalendar 优先关闭。",
+      "en": "Date/time fields use segments; Placeholder, Password and MaxLength do not apply. The Style editor is the first segment. Segment undo/redo, alternative calendars and timezone selection are not supported; browser previews do not validate native screen readers. The calendar is off by default; enable ShowCalendar. HideCalendar takes precedence."
     },
     "symbols": [
       "InputDate",
@@ -6321,16 +6321,7 @@
           "en": "Label"
         },
         "kind": "text",
-        "default": "Project name"
-      },
-      {
-        "key": "placeholder",
-        "label": {
-          "zh": "占位文字",
-          "en": "Placeholder"
-        },
-        "kind": "text",
-        "default": "Type something…"
+        "default": "Date"
       },
       {
         "key": "color",
@@ -6476,10 +6467,10 @@
         "default": false
       },
       {
-        "key": "hideCalendar",
+        "key": "showCalendar",
         "label": {
-          "zh": "隐藏日历按钮",
-          "en": "HideCalendar"
+          "zh": "显示日历按钮",
+          "en": "Show calendar"
         },
         "kind": "boolean",
         "default": false
@@ -6487,7 +6478,7 @@
     ],
     "state": "Value nui.Optional[nui.Date];Date nui.DateInputState;Range nui.DateSelection;RangeInput nui.DateRangeInputState",
     "setup": "s.Value=nui.Set(nui.Date{Year:2026,Month:time.November,Day:2})",
-    "body": "nui.InputDate(c.Key(\"date\"),t,&s.Value,&s.Date,nui.InputDateOptions{InputOptions:nui.InputOptions{Label: {{label}}, Placeholder: {{placeholder}}, Color: {{color}}, Size: {{size}}, Variant: {{variant}}, Disabled: {{disabled}}, ReadOnly: {{readOnly}}, Loading: {{loading}}},HideCalendar:{{hideCalendar}}})\nnui.InputDateRange(c.Key(\"range\"),t,&s.Range,&s.RangeInput,nui.InputDateOptions{InputOptions:nui.InputOptions{Label:\"Date range\",Placeholder:{{placeholder}},Color:{{color}},Size:{{size}},Variant:{{variant}},Disabled:{{disabled}},ReadOnly:{{readOnly}},Loading:{{loading}}},HideCalendar:{{hideCalendar}}})",
+    "body": "nui.InputDate(c.Key(\"date\"),t,&s.Value,&s.Date,nui.InputDateOptions{InputOptions:nui.InputOptions{Label: {{label}}, Color: {{color}}, Size: {{size}}, Variant: {{variant}}, Disabled: {{disabled}}, ReadOnly: {{readOnly}}, Loading: {{loading}}},ShowCalendar:{{showCalendar}}})\nnui.InputDateRange(c.Key(\"range\"),t,&s.Range,&s.RangeInput,nui.InputDateOptions{InputOptions:nui.InputOptions{Label:\"Date range\",Color:{{color}},Size:{{size}},Variant:{{variant}},Disabled:{{disabled}},ReadOnly:{{readOnly}},Loading:{{loading}}},ShowCalendar:{{showCalendar}}})",
     "height": 440
   },
   {
@@ -6499,12 +6490,12 @@
       "en": "Enter a time using a 12- or 24-hour clock."
     },
     "guide": {
-      "zh": "编辑时间并比较十二小时制和秒字段。InputTimeState 保存输入草稿，业务时间值独立管理；应用负责时区与日期语义。",
-      "en": "Edit the time and compare twelve-hour display and seconds. InputTimeState retains the draft while the time value stays separate; applications own timezone and date semantics."
+      "zh": "分段编辑时、分、可选秒和上下午。左右键切换字段，上下键增减，A/P 切换 AM/PM。TimeInputState 保存草稿，隐藏秒字段后仍保留秒值。应用负责时区与日期语义。",
+      "en": "Edit hours, minutes, optional seconds and the day period. Use arrows to navigate and increment; A/P selects AM/PM. TimeInputState retains drafts and hidden seconds. Applications own timezone and date semantics."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "日期／时间使用分段输入，Placeholder、Password 和 MaxLength 不适用。Style 的 editor 为首个分段。尚不支持分段撤销／重做、多历法或时区选择；浏览器预览不等同于原生读屏验证。 时间范围尚未提供。",
+      "en": "Date/time fields use segments; Placeholder, Password and MaxLength do not apply. The Style editor is the first segment. Segment undo/redo, alternative calendars and timezone selection are not supported; browser previews do not validate native screen readers. Time ranges are not yet supported."
     },
     "symbols": [
       "InputTime"
@@ -6520,16 +6511,7 @@
           "en": "Label"
         },
         "kind": "text",
-        "default": "Project name"
-      },
-      {
-        "key": "placeholder",
-        "label": {
-          "zh": "占位文字",
-          "en": "Placeholder"
-        },
-        "kind": "text",
-        "default": "Type something…"
+        "default": "Time"
       },
       {
         "key": "color",
@@ -6695,7 +6677,7 @@
     ],
     "state": "Value nui.Optional[nui.ClockTime];Time nui.TimeInputState",
     "setup": "s.Value=nui.Set(nui.ClockTime{Hour:9,Minute:30})",
-    "body": "nui.InputTime(c.Key(\"time\"),t,&s.Value,&s.Time,nui.InputTimeOptions{InputOptions:nui.InputOptions{Label: {{label}}, Placeholder: {{placeholder}}, Color: {{color}}, Size: {{size}}, Variant: {{variant}}, Disabled: {{disabled}}, ReadOnly: {{readOnly}}, Loading: {{loading}}},TwelveHour:{{twelveHour}},Seconds:{{seconds}}})",
+    "body": "nui.InputTime(c.Key(\"time\"),t,&s.Value,&s.Time,nui.InputTimeOptions{InputOptions:nui.InputOptions{Label: {{label}}, Color: {{color}}, Size: {{size}}, Variant: {{variant}}, Disabled: {{disabled}}, ReadOnly: {{readOnly}}, Loading: {{loading}}},TwelveHour:{{twelveHour}},Seconds:{{seconds}}})",
     "height": 360
   },
   {

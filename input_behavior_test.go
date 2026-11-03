@@ -71,10 +71,17 @@ func TestTextFieldPointerAndKeyboardFocus(t *testing.T) {
 						nui.Button(c.Key("after"), th, "After", nui.ButtonOptions{})
 					})
 				}, 420, 360)
+				editorLabel := "Editor"
+				if kind == "date" {
+					editorLabel += " month"
+				}
+				if kind == "time" {
+					editorLabel += " hour"
+				}
 				idle := fieldPixels(t, tt, "Field")
 				click(t, tt, "Before")
 				tt.Key(0, ui.KeyTab)
-				if !tt.Focused("Editor") {
+				if !tt.Focused(editorLabel) {
 					t.Fatal("Tab did not focus the text editor")
 				}
 				keyboard := fieldPixels(t, tt, "Field")
@@ -83,9 +90,9 @@ func TestTextFieldPointerAndKeyboardFocus(t *testing.T) {
 				}
 				tt.Key(0, ui.KeyEscape)
 				click(t, tt, "After")
-				click(t, tt, "Editor")
+				click(t, tt, editorLabel)
 				tt.Frame()
-				if !tt.Focused("Editor") || fieldPixels(t, tt, "Field") != keyboard {
+				if !tt.Focused(editorLabel) || fieldPixels(t, tt, "Field") != keyboard {
 					t.Fatalf("pointer focus should match keyboard focus: pointer=%v keyboard=%v", fieldPixels(t, tt, "Field"), keyboard)
 				}
 				if dir := os.Getenv("NUI_ARTIFACTS"); dir != "" && (kind == "input" || kind == "tags") {
@@ -104,8 +111,8 @@ func TestTextFieldPointerAndKeyboardFocus(t *testing.T) {
 				}
 				disabled = true
 				tt.Frame()
-				click(t, tt, "Editor")
-				if tt.Focused("Editor") {
+				click(t, tt, editorLabel)
+				if tt.Focused(editorLabel) {
 					t.Fatal("disabled editor retained focus")
 				}
 				shown = false
@@ -113,8 +120,8 @@ func TestTextFieldPointerAndKeyboardFocus(t *testing.T) {
 				tt.Frame()
 				shown, disabled = true, false
 				tt.Frame()
-				click(t, tt, "Editor")
-				if !tt.Focused("Editor") || fieldPixels(t, tt, "Field") != keyboard {
+				click(t, tt, editorLabel)
+				if !tt.Focused(editorLabel) || fieldPixels(t, tt, "Field") != keyboard {
 					t.Fatal("remounted editor lost pointer focus styling")
 				}
 			})

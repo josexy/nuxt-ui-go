@@ -101,12 +101,12 @@ func (a *State) dateComponents(c *ui.Context, t nui.Theme) {
 		}
 		column.Children(func() {
 			nui.FormField(c, t, nui.FormFieldOptions{Label: "Release date"}, func(ft nui.Theme) {
-				nui.InputDate(c, ft, &s.Date, &s.DateInput, nui.InputDateOptions{Label: "Release date"})
+				nui.InputDate(c, ft, &s.Date, &s.DateInput, nui.InputDateOptions{ShowCalendar: true, Label: "Release date"})
 			})
 			nui.FormField(c, t, nui.FormFieldOptions{Label: "Reminder"}, func(ft nui.Theme) {
 				nui.InputTime(c, ft, &s.Time, &s.TimeInput, nui.InputTimeOptions{Label: "Reminder"})
 			})
-			nui.InputDateRange(c, t, &s.Range, &s.RangeInput, nui.InputDateOptions{Label: "Release window"})
+			nui.InputDateRange(c, t, &s.Range, &s.RangeInput, nui.InputDateOptions{ShowCalendar: true, Label: "Release window"})
 			nui.Calendar(c, t, &s.Range, &s.Calendar, nui.CalendarOptions{Label: "Release range", Range: true, Today: nui.Set(nui.Date{Year: 2026, Month: 11, Day: 1})})
 		})
 		nui.ColorPicker(c, t, &s.Color, &s.ColorState, nui.ColorPickerOptions{Label: "Accent color"})

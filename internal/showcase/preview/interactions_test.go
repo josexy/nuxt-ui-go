@@ -211,10 +211,22 @@ func TestExampleDateRangeRespectsQuickControls(t *testing.T) {
 			if tester.Clipboard() != "2030-11-06" {
 				t.Fatal("enabled range did not accept text")
 			}
-			cfg.Values["hideCalendar"] = true
+			cfg.Values["showCalendar"] = true
 			tester.Frame()
-			if tester.HasText("Choose Date range") {
+			if _, found := tester.Find("Choose Date range"); !found {
+				t.Fatal("ShowCalendar did not enable the range trigger")
+			}
+			clickExample(t, tester, "Choose Date range")
+			if _, found := tester.Find("Date range calendar"); !found {
+				t.Fatal("range calendar did not open")
+			}
+			cfg.Values["showCalendar"] = false
+			tester.Frame()
+			if _, found := tester.Find("Choose Date range"); found {
 				t.Fatal("range calendar trigger remained visible")
+			}
+			if _, found := tester.Find("Date range calendar"); found {
+				t.Fatal("range calendar remained open after ShowCalendar was disabled")
 			}
 		})
 	}

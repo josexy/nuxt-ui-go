@@ -167,6 +167,7 @@ const (
 	ErrorSlot     Slot = "error"
 	Indicator     Slot = "indicator"
 	Editor        Slot = "editor"
+	Segment       Slot = "segment"
 	Panel         Slot = "panel"
 	Item          Slot = "item"
 	EmptySlot     Slot = "empty"

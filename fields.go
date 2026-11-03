@@ -114,7 +114,9 @@ func FormField(c *ui.Context, t Theme, opts FormFieldOptions, content func(Theme
 		})
 	})
 	if registered != nil {
-		focused := registered.Handle.Focused(c)
+		// A composite input can move focus between its segments without
+		// leaving the field. The handle remains the first-error focus target.
+		focused := e.FocusWithin()
 		if registered.focused && !focused {
 			registered.Touched = true
 		}

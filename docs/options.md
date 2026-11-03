@@ -88,3 +88,5 @@ Listbox 两个方向均限制实际构建数量；横向项目与组标题采用
 Go Options 与 Nuxt Vue Props 使用不同的数据模型，支持字段以各 API 文档为准。滑块值提示按拇指定位，未提供 Tooltip 延迟配置对象。FormField 通过本库控件的字段绑定处理标签激活；直接传入自定义 MyGo 控件时，需由应用处理其标签关联。表单校验、日期/数字格式与 Table/Tree 的支持范围见 [表单与数据](forms-data.md)，读屏、输入法与 DPI 的验证范围见 [兼容性说明](compatibility.md)。
 
 Toast 的动作回调和 ButtonOptions.Style 会随通知保存，不能捕获临时 Element / Parts / Context；Style 的参数仅在当次构建有效。平台支持和输入法问题见 [兼容性说明](compatibility.md)。
+
+日期／时间分段输入的键盘操作、主题 slot 与旧版迁移见 [Calendar、InputDate、InputTime](forms-data.md#calendarinputdateinputtime)。`InputDateOptions.ShowCalendar` 默认 false，需要日历时显式启用；`HideCalendar` 优先关闭。

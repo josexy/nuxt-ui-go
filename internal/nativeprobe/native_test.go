@@ -590,8 +590,36 @@ func TestNativeGallery(t *testing.T) {
 	c.press("Dates & color")
 	c.press("Choose Release date")
 	c.press("Release date calendar 2026-11-15")
-	if n := c.find("Release date"); n.Value != "2026-11-15" {
+	if n := c.find("Release date day"); n.Value != "15" {
 		t.Fatalf("native date: %+v", n)
+	}
+	day := c.find("Release date day")
+	c.call("act", map[string]any{"id": day.ID, "action": "focus"}, nil)
+	c.key("Up")
+	if n := c.find("Release date day"); n.Value != "16" {
+		t.Fatalf("native date increment: %+v", n)
+	}
+	c.key("Left")
+	if tr := c.tree(); tr.Focus != c.find("Release date month").ID {
+		t.Fatal("native segment navigation")
+	}
+	hour := c.find("Reminder hour")
+	c.call("act", map[string]any{"id": hour.ID, "action": "focus"}, nil)
+	c.key("Right")
+	c.call("input", map[string]any{"events": []any{map[string]any{"type": "text", "text": "45"}}}, nil)
+	c.idle()
+	if n := c.find("Reminder minute"); n.Value != "45" {
+		t.Fatalf("native time typing: %+v", n)
+	}
+	start := c.find("Release window start month")
+	c.call("act", map[string]any{"id": start.ID, "action": "focus"}, nil)
+	c.call("input", map[string]any{"events": []any{map[string]any{"type": "text", "text": "2026-11-10"}}}, nil)
+	c.idle()
+	startYear := c.find("Release window start year")
+	c.call("act", map[string]any{"id": startYear.ID, "action": "focus"}, nil)
+	c.key("Right")
+	if tr := c.tree(); tr.Focus != c.find("Release window end month").ID {
+		t.Fatal("native range navigation")
 	}
 	c.press("Accent color A")
 	c.key("Ctrl+A")
