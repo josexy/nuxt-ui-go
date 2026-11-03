@@ -4,6 +4,12 @@
 
 按 Nuxt UI v4.12.0 对齐。以下为可见的行为变化，未列出的公开 API 保持不变。
 
+### Sidebar 改造
+
+- 保留 `Sidebar` 名称和原调用签名，新增可选 `SidebarState`、拖动和键盘调宽、双击复位、展开宽度记忆、左右侧栏和 RTL 适配。
+- 新增收起感知的 HeaderContent/FooterContent/ToggleContent、窗口 DIP 断点、Slideover/Modal/Drawer 模式、NavigationKey 自动关闭与变更回调。默认不开启断点和调宽，现有调用继续有效。
+- 纵向紧凑 NavigationMenu 默认提供 Tooltip 和侧向子菜单 Popover；导航项铺满可用宽度，选中子项的祖先高亮。可显式关闭 Tooltip/Popover，展开模式的分组状态保留。
+
 ### 破坏性变更与迁移
 
 - `StepperOptions.Linear` 由 `bool` 改为 `Optional[bool]`，未设置时为 true（Nuxt 的 `linear: true`）。迁移：`Linear: true` 可直接删除或改为 `Linear: nui.Set(true)`；原来依赖默认非线性的 Stepper 需要显式写 `Linear: nui.Set(false)`。

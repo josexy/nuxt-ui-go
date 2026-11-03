@@ -1064,17 +1064,56 @@ func (s *splitterExample) Configure(cfg showcase.Config) error { return nil }
 func (s *splitterExample) Dispose()                            {}
 
 type sidebarExample struct {
-	Live      showcase.Runtime
-	Collapsed bool
+	Live           showcase.Runtime
+	Collapsed      bool
+	Sidebar        nui.SidebarState
+	Navigation     nui.NavigationState
+	Active, Result string
 }
 
 func (s *sidebarExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	ui.Row(c.Key("layout")).FillWidth().Height(260).Children(func() {
-		nui.Sidebar(c.Key("sidebar"), t, &s.Collapsed, showcase.Options(cfg, "SidebarOptions", nui.SidebarOptions{Title: cfg.String("label"), Width: nui.Set(float32(cfg.Number("width")))}, c, t, &s.Live), func(c *ui.Context, t nui.Theme, collapsed bool) {
-			nui.Button(c.Key("home"), t, "Home", nui.ButtonOptions{Variant: nui.Ghost, Leading: lucide.House()})
+	options := showcase.Options(cfg, "SidebarOptions", nui.SidebarOptions{
+		Title: cfg.String("label"), State: &s.Sidebar, Resizable: cfg.Bool("resizable"), Collapsible: cfg.OptionalBool("collapsible"),
+		Width: nui.Set(float32(cfg.Number("width"))), MinWidth: nui.Set(float32(160)), MaxWidth: nui.Set(float32(360)),
+		Side: nui.Set(showcase.Select(cfg, "side", map[string]nui.Side{"left": nui.SideLeft, "right": nui.SideRight})), Breakpoint: nui.Set(float32(cfg.Number("breakpoint"))), Mode: showcase.Select(cfg, "mode", map[string]nui.SidebarMode{"slideover": nui.SidebarSlideover, "modal": nui.SidebarModal, "drawer": nui.SidebarDrawer}), NavigationKey: s.Active,
+		FooterContent: func(c *ui.Context, t nui.Theme, scope nui.SidebarScope) {
+			label := "Account"
+			if scope.Collapsed {
+				label = ""
+			}
+			nui.Button(c.Key("account"), t, label, nui.ButtonOptions{Leading: lucide.User(), AccessibleLabel: "Account", Variant: nui.Ghost, Color: nui.Neutral, Block: true}).OnClick(func() { s.Active = "account"; s.Result = "Account selected" })
+		},
+		OnResize: func(width float32) { s.Result = fmt.Sprintf("Resized to %.0f DIP", width) },
+	}, c, t, &s.Live)
+	right := options.Side.Set && options.Side.Value == nui.SideRight
+	workspace := func() {
+		ui.Column(c.Key("workspace")).Grow(1).MinWidth(0).Padding(20).Gap(12).Children(func() {
+			ui.Text(c, "Workspace overview").FontSize(20).FontWeight(600)
+			ui.Textf(c, "Current page: %s", s.Active)
+			ui.Textf(c, "Collapsed: %t", s.Collapsed).TextColor(t.Muted)
+			ui.Text(c, s.Result).TextColor(t.Muted)
+			nui.Button(c.Key("reset-width"), t, "Reset width", nui.ButtonOptions{Variant: nui.Outline, Color: nui.Neutral}).OnClick(func() { s.Sidebar.Width = nui.Optional[float32]{}; s.Result = "Configured width restored" })
 		})
-		ui.Text(c, "Workspace").Padding(20)
+	}
+	ui.Row(c.Key("layout")).FillWidth().Height(360).MinWidth(0).MinHeight(0).Border(1, t.Border).Radius(t.Radius).Children(func() {
+		if right {
+			workspace()
+		}
+		nui.Sidebar(c.Key("sidebar"), t, &s.Collapsed, options, func(c *ui.Context, t nui.Theme, collapsed bool) {
+			placement := nui.RightStart
+			if right != (c.Direction() == ui.RightToLeft) {
+				placement = nui.LeftStart
+			}
+			nui.NavigationMenu(c.Key("navigation"), t, &s.Active, &s.Navigation, []nui.NavigationItem{
+				{ID: "overview", Label: "Overview", Icon: lucide.LayoutDashboard()},
+				{ID: "projects", Label: "Projects", Icon: lucide.Folder()},
+				{ID: "settings", Label: "Settings", Icon: lucide.Settings(), Children: []nui.NavigationItem{{ID: "members", Label: "Members"}, {ID: "permissions", Label: "Permissions"}}},
+			}, nui.NavigationOptions{Vertical: true, Compact: collapsed, PopupPlacement: nui.Set(placement)})
+		})
+		if !right {
+			workspace()
+		}
 	})
 }
 func (s *sidebarExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
@@ -1360,6 +1399,8 @@ func New(id string) (Example, error) {
 		return s, nil
 	case "sidebar":
 		s := &sidebarExample{}
+		s.Active = "overview"
+		s.Result = "Drag the sidebar edge to resize."
 		return s, nil
 	case "header":
 		s := &headerExample{}

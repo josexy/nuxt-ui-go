@@ -17,6 +17,7 @@ type advancedState struct {
 	Files                    nui.FileUploadState
 	Chart                    nui.ChartState
 	Navigation               nui.NavigationState
+	Sidebar                  nui.SidebarState
 	Active                   string
 	Collapsed                bool
 	Split                    float32
@@ -106,7 +107,13 @@ func (a *State) shellComponents(c *ui.Context, t nui.Theme) {
 			nui.Button(c, t, "Workspace actions", nui.ButtonOptions{Variant: nui.Outline, Color: nui.Neutral}).OnClick(func() { a.Advanced.Command.Open = true })
 		}})
 		ui.Row(c).Grow(1).MinHeight(0).MinWidth(0).AlignItems(ui.Stretch).Children(func() {
-			nui.Sidebar(c, t, &a.Advanced.Collapsed, nui.SidebarOptions{Title: "Workspace", Width: nui.Set(float32(180))}, func(c *ui.Context, t nui.Theme, compact bool) {
+			nui.Sidebar(c.Key("workspace-sidebar"), t, &a.Advanced.Collapsed, nui.SidebarOptions{Title: "Workspace", State: &a.Advanced.Sidebar, Width: nui.Set(float32(220)), MaxWidth: nui.Set(float32(360)), Resizable: true, Breakpoint: nui.Set(float32(900)), NavigationKey: a.Advanced.Active, FooterContent: func(c *ui.Context, t nui.Theme, scope nui.SidebarScope) {
+				label := "Workspace account"
+				if scope.Collapsed {
+					label = ""
+				}
+				nui.Button(c, t, label, nui.ButtonOptions{Leading: lucide.User(), AccessibleLabel: "Workspace account", Variant: nui.Ghost, Color: nui.Neutral}).FillWidth()
+			}}, func(c *ui.Context, t nui.Theme, compact bool) {
 				nui.NavigationMenu(c, t, &a.Advanced.Active, &a.Advanced.Navigation, shellNavigation, nui.NavigationOptions{Label: "Workspace navigation", Vertical: true, Compact: compact, OnNavigate: func(id string) { a.Advanced.Result = "Opened " + id }})
 			})
 			nui.Splitter(c, t, &a.Advanced.Split, nui.SplitterOptions{Percent: true, Min: nui.Set(float32(25)), Max: nui.Set(float32(80))}, func() {

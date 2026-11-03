@@ -55,19 +55,19 @@ func (e *extractor) print(n any) string {
 	}
 	return out.String()
 }
-func (e *extractor) fields(expr ast.Expr, seen map[string]bool) []field {
+func (e *extractor) fields(expr ast.Expr, seen map[string]bool, owner string) []field {
 	switch v := expr.(type) {
 	case *ast.Ident:
 		if seen[v.Name] {
 			return nil
 		}
 		seen[v.Name] = true
-		return e.fields(e.types[v.Name], seen)
+		return e.fields(e.types[v.Name], seen, owner)
 	case *ast.StructType:
 		var result []field
 		for _, f := range v.Fields.List {
 			if len(f.Names) == 0 {
-				result = append(result, e.fields(f.Type, seen)...)
+				result = append(result, e.fields(f.Type, seen, owner)...)
 				continue
 			}
 			for _, name := range f.Names {
@@ -98,7 +98,11 @@ func (e *extractor) fields(expr ast.Expr, seen map[string]bool) []field {
 				case strings.HasPrefix(typeName, "int") || strings.HasPrefix(typeName, "float") || typeName == "time.Duration":
 					zero = "0"
 				}
-				result = append(result, field{Name: name.Name, Type: typeName, Comment: comment, Description: e.notes[name.Name], Zero: zero})
+				description := e.notes[name.Name]
+				if specific, ok := e.notes[owner+"."+name.Name]; ok {
+					description = specific
+				}
+				result = append(result, field{Name: name.Name, Type: typeName, Comment: comment, Description: description, Zero: zero})
 			}
 		}
 		return result
@@ -186,7 +190,7 @@ func main() {
 			if !ok {
 				log.Fatalf("%s: missing public API %s", demo.ID, name)
 			}
-			a.Fields = e.fields(e.types[name], map[string]bool{})
+			a.Fields = e.fields(e.types[name], map[string]bool{}, name)
 			for i := range a.Fields {
 				if description, ok := e.notes[name+"."+a.Fields[i].Name]; ok {
 					a.Fields[i].Description = description
@@ -209,7 +213,7 @@ func main() {
 			titleJSON, _ := json.Marshal(demo.Name)
 			descJSON, _ := json.Marshal(description)
 			content := fmt.Sprintf("---\ntitle: %s\ndescription: %s\ncomponent: %s\n---\n\n%s\n", titleJSON, descJSON, demo.ID, guide)
-			if demo.ID == "file-upload" {
+			if demo.ID == "file-upload" || demo.ID == "sidebar" {
 				content += fmt.Sprintf("\n### %s\n\n%s\n", noteTitle, note)
 			}
 			write(filepath.Join(*root, "website/content", language, "components", demo.ID+".md"), []byte(content))

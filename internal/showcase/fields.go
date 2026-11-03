@@ -164,6 +164,9 @@ func fieldSchemas(t reflect.Type) []ValueField {
 }
 
 func enumNames(t reflect.Type, owner, field string) []string {
+	if t == reflect.TypeFor[nui.Side]() && owner == "SidebarOptions" {
+		return []string{"nui.SideLeft", "nui.SideRight"}
+	}
 	var values []string
 	for _, v := range enumValues[t] {
 		values = append(values, v.Name)

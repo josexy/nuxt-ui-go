@@ -30,6 +30,10 @@ type State struct {
 	Settings                            *settings.State
 	Dark                                bool
 	Page                                int
+	Sidebar                             nui.SidebarState
+	SidebarCollapsed                    bool
+	Navigation                          nui.NavigationState
+	navigationActive                    string
 	Name, Invalid, ReadOnly             string
 	Saved                               int
 	Plan                                string
@@ -120,21 +124,9 @@ func (a *State) View(c *ui.Context) {
 				nui.Button(c.Key("new-window"), s, "New window", nui.ButtonOptions{Variant: nui.Outline, Neutral: true}).OnClick(a.NewWindow)
 			}
 		})
-		ui.Row(c).Grow(1).AlignItems(ui.Stretch).Children(func() {
-			ui.Scroll(c.Key("gallery-index")).Width(188).MinHeight(0).Padding(20, 12).Gap(6).BorderWidth(0, 1, 0, 0).BorderColor(t.Border).Children(func() {
-				for index, name := range []string{"Components", "Inputs & overlays", "Data & menus", "Theme & buttons", "Display", "Feedback", "Workspace", "Forms & settings", "Form states", "Overlays & menus", "Navigation & disclosure", "Advanced forms", "Dates & color", "Task browser", "Advanced interactions", "Activity & attachments", "Application layout", "Props & behavior", "Orientation"} {
-					page := index
-					opts := nui.ButtonOptions{Variant: nui.Outline, Neutral: true}
-					if a.Page == page {
-						opts = nui.ButtonOptions{Variant: nui.Soft}
-					}
-					nui.Button(c.Key(fmt.Sprintf("nav-%d", page)), s, name, opts).FillWidth().Justify(ui.Start).OnClick(func() { a.Page = page })
-				}
-				ui.Box(c).Grow(1)
-				ui.Text(c, "Component gallery").FontSize(12).TextColor(t.Muted)
-				ui.Text(c, "MyGo native UI").FontSize(12).TextColor(t.Muted)
-			})
-			ui.Scroll(c.Key(fmt.Sprintf("page-%d", a.Page))).Grow(1).Padding(28).Gap(24).Children(func() {
+		ui.Row(c).Grow(1).MinWidth(0).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
+			a.sidebar(c, s)
+			ui.Scroll(c.Key(fmt.Sprintf("page-%d", a.Page))).Grow(1).MinWidth(0).MinHeight(0).Padding(28).Gap(24).Children(func() {
 				switch a.Page {
 				case 0:
 					a.components(c, s)

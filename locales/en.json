@@ -85,6 +85,8 @@
   "playNamed": "Play {name}",
   "resizeNamed": "Resize {name}",
   "toggleSidebar": "Toggle sidebar",
+  "resizeSidebar": "Resize sidebar",
+  "closeSidebar": "Close sidebar",
   "inProgress": "In progress",
   "chooseFiles": "Choose files",
   "readingFiles": "Reading file information…",

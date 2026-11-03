@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"image/png"
+	"math"
 	"net"
 	"os"
 	"path/filepath"
@@ -111,6 +112,82 @@ func (c *client) press(label string) {
 func (c *client) key(key string) {
 	c.call("input", map[string]any{"events": []any{map[string]any{"type": "key", "key": key}}}, nil)
 	c.idle()
+}
+
+func (c *client) checkSidebar() {
+	c.press("Workspace settings")
+	c.find("Access permissions and sharing")
+	c.capture("shell-compact-submenu")
+	c.press("Access permissions and sharing")
+	c.find("Opened permissions")
+	c.key("Escape")
+	c.press("Toggle sidebar")
+	handle := c.find("Resize sidebar")
+	initial := handle.Bounds.X
+	c.call("act", map[string]any{"id": handle.ID, "action": "focus"}, nil)
+	c.key("Right")
+	if n := c.find("Resize sidebar"); math.Abs(n.Bounds.X-initial-10) > .1 {
+		c.t.Fatalf("sidebar keyboard resize: %+v", n)
+	}
+	handle = c.find("Resize sidebar")
+	x, y := handle.Bounds.X+handle.Bounds.Width/2, handle.Bounds.Y+handle.Bounds.Height/2
+	c.call("input", map[string]any{"events": []any{map[string]any{"type": "pointerDown", "x": x, "y": y}}}, nil)
+	c.idle()
+	c.call("input", map[string]any{"events": []any{map[string]any{"type": "pointerMove", "x": x + 40, "y": y}}}, nil)
+	c.idle()
+	c.call("input", map[string]any{"events": []any{map[string]any{"type": "pointerUp", "x": x + 40, "y": y}}}, nil)
+	if n := c.find("Resize sidebar"); math.Abs(n.Bounds.X-initial-50) > .1 {
+		c.t.Fatalf("sidebar pointer resize: %+v", n)
+	}
+	c.capture("shell-resized")
+	handle = c.find("Resize sidebar")
+	x = handle.Bounds.X + handle.Bounds.Width/2
+	c.call("input", map[string]any{"events": []any{map[string]any{"type": "click", "clicks": 2, "x": x, "y": y}}}, nil)
+	if n := c.find("Resize sidebar"); math.Abs(n.Bounds.X-initial) > .1 {
+		c.t.Fatalf("sidebar double-click reset: %+v", n)
+	}
+	c.press("Toggle sidebar")
+}
+
+func (c *client) checkGallerySidebar() {
+	if width := c.find("Gallery sidebar").Bounds.Width; math.Abs(width-256) > .1 {
+		c.t.Fatalf("Gallery initial width: %v", width)
+	}
+	handle := c.find("Resize gallery sidebar")
+	c.call("act", map[string]any{"id": handle.ID, "action": "focus"}, nil)
+	c.key("Right")
+	if width := c.find("Gallery sidebar").Bounds.Width; math.Abs(width-266) > .1 {
+		c.t.Fatalf("Gallery keyboard resize: %v", width)
+	}
+	handle = c.find("Resize gallery sidebar")
+	x, y := handle.Bounds.X+handle.Bounds.Width/2, handle.Bounds.Y+handle.Bounds.Height/2
+	c.call("input", map[string]any{"events": []any{map[string]any{"type": "pointerDown", "x": x, "y": y}}}, nil)
+	c.idle()
+	c.call("input", map[string]any{"events": []any{map[string]any{"type": "pointerMove", "x": x + 34, "y": y}}}, nil)
+	c.idle()
+	c.call("input", map[string]any{"events": []any{map[string]any{"type": "pointerUp", "x": x + 34, "y": y}}}, nil)
+	if width := c.find("Gallery sidebar").Bounds.Width; math.Abs(width-300) > .1 {
+		c.t.Fatalf("Gallery pointer resize: %v", width)
+	}
+	c.press("Toggle gallery sidebar")
+	if width := c.find("Gallery sidebar").Bounds.Width; math.Abs(width-64) > .1 {
+		c.t.Fatalf("Gallery compact width: %v", width)
+	}
+	c.press("Inputs & overlays")
+	c.find("Workspace name")
+	c.capture("gallery-sidebar-compact")
+	c.press("Toggle gallery sidebar")
+	if width := c.find("Gallery sidebar").Bounds.Width; math.Abs(width-300) > .1 {
+		c.t.Fatalf("Gallery page switch lost width: %v", width)
+	}
+	c.capture("gallery-sidebar-resized")
+	handle = c.find("Resize gallery sidebar")
+	x = handle.Bounds.X + handle.Bounds.Width/2
+	c.call("input", map[string]any{"events": []any{map[string]any{"type": "click", "clicks": 2, "x": x, "y": y}}}, nil)
+	if width := c.find("Gallery sidebar").Bounds.Width; math.Abs(width-256) > .1 {
+		c.t.Fatalf("Gallery double-click reset: %v", width)
+	}
+	c.press("Components")
 }
 
 func (c *client) theme(mode string) {
@@ -227,6 +304,7 @@ func TestNativeGallery(t *testing.T) {
 		t.Log("hidden window: first-frame smoke only; run without the hidden-smoke option for interaction")
 		return
 	}
+	c.checkGallerySidebar()
 	c.checkThemePalettes()
 	c.press("Save changes")
 	c.find("Saved 1 times")
@@ -727,6 +805,7 @@ func TestNativeGallery(t *testing.T) {
 	c.capture("shell-light")
 	c.press("Toggle sidebar")
 	c.capture("shell-compact-light")
+	c.checkSidebar()
 
 	c.press("Props & behavior")
 	c.press("Loading switch")

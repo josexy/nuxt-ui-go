@@ -7355,29 +7355,31 @@
     "name": "Sidebar",
     "category": "advanced",
     "description": {
-      "zh": "组合可折叠的应用侧边栏。",
-      "en": "Compose a collapsible application sidebar."
+      "zh": "组合可折叠、可调宽度的原生应用侧边栏。",
+      "en": "Compose a collapsible, resizable application sidebar."
     },
     "guide": {
-      "zh": "切换侧边栏折叠状态，并调整展开宽度。示例把 Sidebar 与工作区放在同一 Row 中；应用导航可以在内容回调中根据 collapsed 状态调整展示。",
-      "en": "Toggle the sidebar and change its expanded width. Sidebar and workspace share a Row; navigation content can adapt to the collapsed value supplied to its callback."
+      "zh": "拖动侧栏边缘调宽，双击边缘或点击 Reset width 恢复配置宽度。收起后悬停图标可查看提示，Settings 会打开侧向子菜单；选中项目会更新右侧页面。底部 Account 会随收起状态隐藏文字。可切换左右位置、关闭调宽或收起，并设置断点测试 Slideover、Modal、Drawer。",
+      "en": "Drag the sidebar edge to resize; double-click it or use Reset width to restore the configured width. Collapsed icons show tooltips, and Settings opens a side popover. Navigation updates the workspace; the Account footer hides its label when collapsed. Try either side, disable resizing or collapse, and set a breakpoint to test Slideover, Modal or Drawer."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "展开宽度默认为 256 DIP，本例限制为 160–360 DIP，收起为 64 DIP。断点 0 保持桌面布局；设为大于预览区域宽度的值可显示打开按钮。弹层导航后自动关闭，桌面的收起状态与展开宽度保留。修改初始宽度不会覆盖已拖动的宽度，请点击 Reset width。状态持久化由应用负责。",
+      "en": "The expanded width defaults to 256 DIP, constrained to 160–360 DIP in this example; collapsed width is 64 DIP. A zero breakpoint keeps desktop layout. Set it above the preview width to show the opener. Navigation closes the overlay while preserving desktop collapse and width. Changing the initial width does not replace a resized width: use Reset width. Persistence is application-owned."
     },
     "symbols": [
       "Sidebar"
     ],
     "types": [
-      "SidebarOptions"
+      "SidebarOptions",
+      "SidebarState",
+      "SidebarScope"
     ],
     "controls": [
       {
         "key": "label",
         "label": {
           "zh": "标题",
-          "en": "Label"
+          "en": "Title"
         },
         "kind": "text",
         "default": "Workspace"
@@ -7385,20 +7387,94 @@
       {
         "key": "width",
         "label": {
-          "zh": "侧栏宽度",
-          "en": "Width"
+          "zh": "初始展开宽度",
+          "en": "Initial expanded width"
         },
         "kind": "number",
-        "default": 220.0,
-        "min": 150,
-        "max": 300
+        "default": 256.0,
+        "min": 160,
+        "max": 360
+      },
+      {
+        "key": "resizable",
+        "label": {
+          "zh": "拖动调宽",
+          "en": "Resizable"
+        },
+        "kind": "boolean",
+        "default": true
+      },
+      {
+        "key": "collapsible",
+        "label": {
+          "zh": "允许收起",
+          "en": "Collapsible"
+        },
+        "kind": "optionalBoolean",
+        "default": true
+      },
+      {
+        "key": "side",
+        "label": {
+          "zh": "位置",
+          "en": "Side"
+        },
+        "kind": "select",
+        "default": "left",
+        "goType": "nui.Side",
+        "choices": [
+          {
+            "value": "left",
+            "go": "nui.SideLeft"
+          },
+          {
+            "value": "right",
+            "go": "nui.SideRight"
+          }
+        ]
+      },
+      {
+        "key": "breakpoint",
+        "label": {
+          "zh": "弹层断点（0 关闭）",
+          "en": "Overlay breakpoint (0 disables)"
+        },
+        "kind": "number",
+        "default": 0.0,
+        "min": 0,
+        "max": 1200
+      },
+      {
+        "key": "mode",
+        "label": {
+          "zh": "窄窗口弹层",
+          "en": "Narrow-window overlay"
+        },
+        "kind": "select",
+        "default": "slideover",
+        "goType": "nui.SidebarMode",
+        "choices": [
+          {
+            "value": "slideover",
+            "go": "nui.SidebarSlideover"
+          },
+          {
+            "value": "modal",
+            "go": "nui.SidebarModal"
+          },
+          {
+            "value": "drawer",
+            "go": "nui.SidebarDrawer"
+          }
+        ]
       }
     ],
-    "state": "Collapsed bool",
-    "setup": "",
-    "body": "ui.Row(c.Key(\"layout\")).FillWidth().Height(260).Children(func(){nui.Sidebar(c.Key(\"sidebar\"),t,&s.Collapsed,nui.SidebarOptions{Title:{{label}},Width:nui.Set(float32({{width}}))},func(c *ui.Context,t nui.Theme,collapsed bool){nui.Button(c.Key(\"home\"),t,\"Home\",nui.ButtonOptions{Variant:nui.Ghost,Leading:lucide.House()})});ui.Text(c,\"Workspace\").Padding(20)})",
-    "height": 360
+    "state": "Collapsed bool\nSidebar nui.SidebarState\nNavigation nui.NavigationState\nActive, Result string",
+    "setup": "s.Active=\"overview\"\ns.Result=\"Drag the sidebar edge to resize.\"",
+    "body": "options := nui.SidebarOptions{\n    Title:{{label}}, State:&s.Sidebar, Resizable:{{resizable}}, Collapsible:{{collapsible}},\n    Width:nui.Set(float32({{width}})), MinWidth:nui.Set(float32(160)), MaxWidth:nui.Set(float32(360)),\n    Side:nui.Set({{side}}), Breakpoint:nui.Set(float32({{breakpoint}})), Mode:{{mode}}, NavigationKey:s.Active,\n    FooterContent:func(c *ui.Context,t nui.Theme,scope nui.SidebarScope){\n        label:=\"Account\"\n        if scope.Collapsed {label=\"\"}\n        nui.Button(c.Key(\"account\"),t,label,nui.ButtonOptions{Leading:lucide.User(),AccessibleLabel:\"Account\",Variant:nui.Ghost,Color:nui.Neutral,Block:true}).OnClick(func(){s.Active=\"account\";s.Result=\"Account selected\"})\n    },\n    OnResize:func(width float32){s.Result=fmt.Sprintf(\"Resized to %.0f DIP\",width)},\n}\nright:=options.Side.Set && options.Side.Value==nui.SideRight\nworkspace:=func(){\n    ui.Column(c.Key(\"workspace\")).Grow(1).MinWidth(0).Padding(20).Gap(12).Children(func(){\n        ui.Text(c,\"Workspace overview\").FontSize(20).FontWeight(600)\n        ui.Textf(c,\"Current page: %s\",s.Active)\n        ui.Textf(c,\"Collapsed: %t\",s.Collapsed).TextColor(t.Muted)\n        ui.Text(c,s.Result).TextColor(t.Muted)\n        nui.Button(c.Key(\"reset-width\"),t,\"Reset width\",nui.ButtonOptions{Variant:nui.Outline,Color:nui.Neutral}).OnClick(func(){s.Sidebar.Width=nui.Optional[float32]{};s.Result=\"Configured width restored\"})\n    })\n}\nui.Row(c.Key(\"layout\")).FillWidth().Height(360).MinWidth(0).MinHeight(0).Border(1,t.Border).Radius(t.Radius).Children(func(){\n    if right {workspace()}\n    nui.Sidebar(c.Key(\"sidebar\"),t,&s.Collapsed,options,func(c *ui.Context,t nui.Theme,collapsed bool){\n        placement:=nui.RightStart\n        if right!=(c.Direction()==ui.RightToLeft) {placement=nui.LeftStart}\n        nui.NavigationMenu(c.Key(\"navigation\"),t,&s.Active,&s.Navigation,[]nui.NavigationItem{\n            {ID:\"overview\",Label:\"Overview\",Icon:lucide.LayoutDashboard()},\n            {ID:\"projects\",Label:\"Projects\",Icon:lucide.Folder()},\n            {ID:\"settings\",Label:\"Settings\",Icon:lucide.Settings(),Children:[]nui.NavigationItem{{ID:\"members\",Label:\"Members\"},{ID:\"permissions\",Label:\"Permissions\"}}},\n        },nui.NavigationOptions{Vertical:true,Compact:collapsed,PopupPlacement:nui.Set(placement)})\n    })\n    if !right {workspace()}\n})",
+    "height": 440
   },
+
   {
     "id": "header",
     "name": "Header",

@@ -891,6 +891,102 @@
     "zh": "折叠或展开操作的可访问名称。",
     "en": "Accessible name for the collapse/expand action."
   },
+  "ResizeLabel": {
+    "zh": "侧栏调宽手柄的可访问名称；默认跟随当前语言。",
+    "en": "Accessible name for the sidebar resize handle; localized by default."
+  },
+  "SidebarOptions.Collapsible": {
+    "zh": "允许用户收起整个侧栏；默认 true，显式 false 关闭收起操作。",
+    "en": "Allow the user to collapse the sidebar; true by default. Explicit false disables collapse actions."
+  },
+  "SidebarOptions.Side": {
+    "zh": "SideLeft 默认位于阅读方向起始侧，SideRight 位于结束侧；RTL 时镜像。应用负责调整侧栏在布局中的顺序。",
+    "en": "SideLeft is the leading side by default; SideRight is trailing. Both mirror in RTL. The application places the sidebar in layout order."
+  },
+  "SidebarOptions.Mode": {
+    "zh": "窄窗口模式：SidebarSlideover（默认）、SidebarModal（全屏）或 SidebarDrawer（底部）。",
+    "en": "Narrow-window mode: SidebarSlideover (default), SidebarModal (fullscreen), or SidebarDrawer (bottom sheet)."
+  },
+  "SidebarOptions.Toggle": {
+    "zh": "显示内置收起或窄窗口打开按钮；默认 true。隐藏后可使用外部按钮控制状态。",
+    "en": "Show the built-in collapse or narrow-window opener; true by default. An external button can control state when hidden."
+  },
+  "SidebarOptions.Width": {
+    "zh": "未设置 State.Width 时的展开宽度，默认 256 DIP；双击手柄以此值复位。",
+    "en": "Expanded width when State.Width is unset, defaulting to 256 DIP; double-click restores this value."
+  },
+  "SidebarOptions.State": {
+    "zh": "按窗口、按侧栏持有的宽度和弹层状态；未传入时使用挂载期间的局部状态。",
+    "en": "Per-window, per-sidebar width and overlay state; omitted state lives only while the widget remains mounted."
+  },
+  "SidebarState.Width": {
+    "zh": "记住的展开宽度；未设置时读取 Options.Width。清为未设置可恢复配置宽度。",
+    "en": "Remembered expanded width; unset reads Options.Width. Clear it to restore the configured width."
+  },
+  "SidebarState.Open": {
+    "zh": "窄窗口弹层的受控打开状态，与桌面收起状态独立。",
+    "en": "Controlled narrow-window overlay visibility, independent of desktop collapse."
+  },
+  "SidebarScope.Collapsed": {
+    "zh": "当前内容是否使用收起布局；窄窗口弹层始终为 false。",
+    "en": "Whether this content uses collapsed layout; always false in the narrow-window overlay."
+  },
+  "SidebarScope.Mobile": {
+    "zh": "当前窗口宽度是否低于断点，使用弹层布局。",
+    "en": "Whether the window is below the breakpoint and uses overlay layout."
+  },
+  "SidebarScope.Collapse": {
+    "zh": "在操作回调中请求展开或收起，遵守禁用及 Collapsible 配置。",
+    "en": "Request expansion or collapse from an action callback, respecting disabled and Collapsible settings."
+  },
+  "SidebarScope.SetOpen": {
+    "zh": "在操作回调中打开或关闭窄窗口侧栏。",
+    "en": "Open or close the narrow-window sidebar from an action callback."
+  },
+  "Resizable": {
+    "zh": "允许拖动或使用键盘调整侧栏宽度；默认 false。双击手柄恢复配置宽度。",
+    "en": "Enable pointer and keyboard resizing; false by default. Double-click the handle to restore the configured width."
+  },
+  "Breakpoint": {
+    "zh": "窗口宽度低于此 DIP 值时使用弹层；未设置或 0 保持桌面布局。网站预览以 iframe 宽度为准。",
+    "en": "Use an overlay below this window width in DIP; unset or zero keeps desktop layout. Website previews use the iframe width."
+  },
+  "NavigationKey": {
+    "zh": "应用的当前页面或活动 ID；变化时默认关闭窄窗口弹层，不解析 URL。",
+    "en": "Application page or active ID; changes close the narrow-window overlay by default, without URL parsing."
+  },
+  "AutoClose": {
+    "zh": "NavigationKey 变化时关闭窄窗口侧栏；默认 true。",
+    "en": "Close the narrow-window sidebar when NavigationKey changes; true by default."
+  },
+  "HeaderContent": {
+    "zh": "自定义标题区域，接收 Collapsed/Open/Mobile 状态和操作；优先于旧 Header。",
+    "en": "Customize the heading with Collapsed/Open/Mobile state and actions; takes precedence over Header."
+  },
+  "FooterContent": {
+    "zh": "自定义底部区域并按收起状态调整内容；优先于旧 Footer。",
+    "en": "Customize the footer and adapt it to collapse state; takes precedence over Footer."
+  },
+  "ToggleContent": {
+    "zh": "替换内置展开/收起或窄窗口打开按钮，使用 Scope 的操作修改状态。",
+    "en": "Replace the built-in collapse or narrow-window opener using the scope's state actions."
+  },
+  "OnResize": {
+    "zh": "用户调宽使展开宽度改变时通知，单位 DIP；收起不会覆盖记住的宽度。",
+    "en": "Notify when user resizing changes the expanded width in DIP; collapse preserves the remembered width."
+  },
+  "OnCollapsedChange": {
+    "zh": "展开/收起操作使状态改变时通知；外部直接赋值不触发。",
+    "en": "Notify when collapse actions change state; direct external assignment does not emit."
+  },
+  "OnOpenChange": {
+    "zh": "窄窗口侧栏打开或关闭时通知；外部直接赋值不触发。",
+    "en": "Notify when the narrow-window sidebar is opened or closed; direct external assignment does not emit."
+  },
+  "PopupPlacement": {
+    "zh": "紧凑导航子菜单和提示的位置，默认在阅读方向结束侧；右侧栏可显式改为 LeftStart。",
+    "en": "Compact navigation popup and tooltip placement; defaults to the reading direction's trailing side. Right sidebars can use LeftStart."
+  },
   "MinColumnWidth": {
     "zh": "导航栏目最小宽度。",
     "en": "Minimum navigation column width."

@@ -56,6 +56,8 @@ nui.RangeSlider(c, t, &state.Low, &state.High, nui.RangeSliderOptions{
 | Accordion | Collapsible 为 Optional[bool]，默认 true；单开模式设置 false 后，激活已开项不收起，仍可切换到另一项；Multiple 模式不受此选项限制 |
 | Popover | Mode=PopoverClick（默认）/ PopoverHover；OpenDelay / CloseDelay 仅作用于 Hover，使用 time.Duration，默认 0；网站面板以毫秒输入。Dismissible 默认 true，控制 Escape / 外部点击关闭，不阻止应用主动修改 open。Hover 跨锚点间隙进入面板保持打开，Escape 关闭后不因鼠标仍停留原地而立即重开 |
 | Tooltip | Placement / Offset、受控 Open *bool、Kbds；受控状态同样响应原生悬停延迟、键盘聚焦、失焦、触发器点击和 Escape；外部 false 在仍聚焦/悬停时不立即重开，新的提示关闭旧受控提示 |
+| Sidebar | State 保存展开 Width 与窄窗口 Open；Resizable 默认 false，Collapsible/Toggle/AutoClose 默认 true；MinWidth/MaxWidth 默认 160/480 DIP，Width/CollapsedWidth 默认 256/64 DIP；Breakpoint 未设置或 0 保持桌面布局。模式、区域回调及键盘操作见 [Sidebar](advanced.md#sidebar-状态与尺寸) |
+| NavigationMenu | 纵向 Compact 默认开启 Tooltip 与子级 Popover，使用 Optional[bool] 可关闭；PopupPlacement 可覆盖侧向弹层方向 |
 | Carousel | Arrows 为 Optional[bool]；Dots 开启圆点导航，圆点有本地化的页码名称 |
 | Toast | Close / Progress、Actions []ToastActionOptions；每项含 Label、OnAction、ButtonOptions 和 Close（默认 true）；Close=false 的操作执行后保留通知；持续时间条复用原生暂停时钟，常驻通知不显示倒计时 |
 | PinInput | Color / Variant / Size；Separator []int 在指定的第几个槽位后插入间隔，例如 `{3}` 表示三位后分组；保留单个编辑器和 Tab 停靠点 |

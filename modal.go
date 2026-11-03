@@ -84,7 +84,7 @@ func ModalWithOptions(c *ui.Context, t Theme, open *bool, o ModalOptions, conten
 func dialogContent(c *ui.Context, t Theme, panel ui.Element, open *bool, o ModalOptions, id Component, available float32, content func(Theme)) {
 	panel.Label(o.Title).Description(o.Description)
 	container := ui.Themed(c, t.Native()).Background(ui.Transparent).MinWidth(0).MinHeight(0).MaxHeight(available)
-	if id == ComponentSlideover {
+	if id == ComponentSlideover || o.Fullscreen {
 		container.Grow(1)
 	}
 	container.Children(func() {
@@ -123,7 +123,7 @@ func dialogContent(c *ui.Context, t Theme, panel ui.Element, open *bool, o Modal
 		// Like Nuxt's, the body exists only with content.
 		if content != nil {
 			body := ui.Scroll(c).MinWidth(0).MinHeight(0).MaxHeight(available).Shrink(1)
-			if id == ComponentSlideover {
+			if id == ComponentSlideover || o.Fullscreen {
 				body.Grow(1)
 			}
 			finish(t, id, Body, body, PartStyle{PaddingX: Set(t.spacing(24)), PaddingY: Set(t.spacing(24)), Gap: Set(t.spacing(16))}, o.Decoration)

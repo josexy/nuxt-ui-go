@@ -156,6 +156,16 @@ func TestAllFieldEditorsUpdateRealViews(t *testing.T) {
 					name := binding.ID + "." + field.Name
 					t.Run(name, func(t *testing.T) {
 						raw := editorSample(schemas, field.Type, field.Name, field.Choices)
+						if binding.ID == "SidebarOptions" {
+							switch field.Name {
+							case "MinWidth":
+								raw = float64(160)
+							case "MaxWidth":
+								raw = float64(480)
+							case "CollapsedWidth":
+								raw = float64(64)
+							}
+						}
 						input := showcase.Config{Options: map[string]any{binding.ID: map[string]any{field.Name: raw}}}
 						next, err := demo.Normalize(input)
 						if err != nil {

@@ -14,7 +14,7 @@
 | Carousel | `Carousel` / `CarouselState` | Root、Body、Item |
 | Marquee | `Marquee` / `MarqueeState` | Root |
 | Splitter | `Splitter` / `*float32` | Root、Leading（第一面板）、Trailing（第二面板） |
-| Sidebar | `Sidebar` / `*bool` collapsed | Root、Body；Header/Footer 是内容 builder |
+| Sidebar | `Sidebar` / `*bool` collapsed、可选 `SidebarState` | Root、Header、Label、Trigger、Body、Footer、SeparatorSlot；弹层还包括 Panel、Backdrop、Close |
 | Header | `HeaderLayout` / `HeaderOptions` | Root、Label、Description、Actions |
 | Footer | `FooterLayout` / `FooterOptions` | Root、Label；Actions 是内容 builder |
 | FooterColumns | `FooterColumns` / `[]FooterColumn` | Root、Label、Item |
@@ -22,6 +22,8 @@
 每个 Options 的 Decoration 支持组件主题 defaults → 实例 UI → 同步 Style 回调。Header、Footer 是 slot 常量，对应布局函数命名为 `HeaderLayout`、`FooterLayout`。布局尺寸仍可通过返回的当前帧 Element 调整；不得保存 Element 或 Context 到模型/工作线程。
 
 Gallery 的 Advanced interactions、Activity & attachments、Application layout 展示这些组件，Props & behavior 和 Orientation 展示可选配置。Carousel / FileUpload 参数见 [参数与默认值](options.md)。
+
+Gallery 最左侧目录也使用 `Sidebar + NavigationMenu`：默认宽 256 DIP，可在 200–360 DIP 间拖动调整，收起为 64 DIP 图标栏并显示悬停提示。按钮名为 `Toggle gallery sidebar`，调宽手柄名为 `Resize gallery sidebar`；与 Application layout 示例内的侧栏状态独立。页面切换保留宽度和收起状态，每个 Gallery 窗口分别持有状态。
 
 ## CommandPalette
 
@@ -54,9 +56,56 @@ nui.CommandPalette(c, theme, &state.Commands,
 
 水平导航的子级使用已有 DropdownMenu（多层菜单、Escape、焦点恢复）；纵向采用内联展开层级。方向键、Home/End 和 Tab 使用 MyGo FocusGroup；禁用项不激活。父项用于展开，不同时跳转。全树 ID 唯一，删除项目后清理菜单状态。
 
-Sidebar 是侧栏内容区，有标题、Header/Footer builder、可滚动 body 和收起按钮，默认宽 256/64 DIP（展开宽度与 Nuxt 一致）。收起按钮使用 Nuxt 的面板图标（panel-left-close / open），分隔边框在结束侧；右到左时图标和边框一起镜像。`content(c,t,compact)` 中可组合 NavigationMenu；紧凑模式隐藏有图标项目的文字，但保留可访问名称。没有图标的项仍显示标签。长文本按可用宽度省略；应用应在更窄的窗口主动收起，或把导航放进 Drawer。
+`Sidebar` 保持原有函数名和 `Sidebar(c,t,&collapsed,options,content)` 签名。它组合固定头尾、可滚动正文和收起按钮，默认展开 / 收起宽度为 256 / 64 DIP。`content(c,t,compact)` 可组合 NavigationMenu；紧凑模式隐藏有图标项目的文字并居中图标，保留可访问名称，没有图标的项仍显示标签。选中子项时，其祖先也高亮；展开模式用箭头标记层级。
 
-不包含 DashboardSidebar、路由匹配、Web mega menu、移动端断点系统，也不要求 URL。导航的原生无障碍角色为 Group（MyGo 没有公开 Navigation landmark 枚举）。
+纵向紧凑导航默认提供 Tooltip 和侧向 Popover，分别可用 `NavigationOptions.Tooltip/Popover = Set(false)` 关闭。Popover 支持悬停进入、跨越锚点间隙、点击或朝向弹层的方向键打开；键盘打开聚焦第一个可用子项。Escape、反向方向键、选中项目关闭并恢复触发项焦点；禁用项不触发导航。弹层中的子级可以继续内联展开。`PopupPlacement` 可覆盖默认阅读方向结束侧的位置，适合右侧栏。收起时，原先聚焦在隐藏子项上的焦点移到父项，展开状态和活动 ID 保留。
+
+### Sidebar 状态与尺寸
+
+`SidebarOptions.State` 可传入按窗口、按实例持有的 `SidebarState`：
+
+- `Width Optional[float32]` 是记住的展开宽度；未设置时读取 Options.Width，用户调宽后更新该值。收起不会覆盖展开宽度。双击手柄恢复 Options.Width，应用也可将 State.Width 清为未设置。
+- `Open bool` 是窄窗口弹层的打开状态，与桌面的 `collapsed` 独立。应用可直接设置，例如在顶栏按钮中打开侧栏。
+- 未传 State 时，组件使用当前稳定 Key 下的局部状态；若要跨卸载保留宽度或保存到文件，请传入 State。持久化由应用负责，不会在构建时访问磁盘。
+
+`Resizable: true` 开启调宽手柄，默认最小 / 最大展开宽度为 160 / 480 DIP；可用 `MinWidth/MaxWidth` 覆盖。拖动至 `CollapsedWidth + 4 DIP` 以下收起，再向外拖动展开。手柄支持 Left/Right（10 DIP）、Shift+Left/Right（50 DIP）、Home（收起或最小宽度）、End（最大宽度）、Enter（展开/收起）和双击复位。方向键按屏幕方向移动边缘，适配左右侧栏及 RTL。尺寸须有限且非负，最大值不得小于最小值；启用调宽时收起宽度不得大于最小展开宽度。
+
+`Collapsible` 默认 true，设为 `Set(false)` 关闭用户收起操作；`Toggle` 默认 true，设为 `Set(false)` 隐藏内置按钮，允许在其他区域提供控制。`Disabled` 禁用内置交互，也继承外层禁用状态。`OnResize`、`OnCollapsedChange` 和 `OnOpenChange` 只在用户操作或组件自动关闭导致值实际变化时通知，应用直接写入受控状态不回调。`OnResize` 报告记住的展开宽度，收起单独报告 `OnCollapsedChange`。
+
+`Side` 为 `Set(SideLeft)`（默认，阅读方向起始侧）或 `Set(SideRight)`（结束侧）；RTL 时边框、按钮图标、手柄和 Slideover 一起镜像。应用负责将右侧栏放在 Row 的主内容之后。宽度使用 DIP，不使用网页的 `%/rem/px` 布局存储协议；当前 Nuxt UI 的默认尺寸依赖 DashboardGroup 单位，并非固定 256px。
+
+### 内容区域和窄窗口
+
+旧 `Header/Footer` builder 仍有效。新增 `HeaderContent/FooterContent/ToggleContent(c,t,SidebarScope)` 分别定制标题区、底部区和触发按钮；HeaderContent 优先于旧 Header，FooterContent 优先于旧 Footer。Scope 提供 `Collapsed/Open/Mobile` 和 `Collapse(bool)/SetOpen(bool)` 动作。头尾应主动适配紧凑宽度；需要完整自定义标题区时可设 `Toggle: Set(false)`。构建回调同步运行，不得保存 Element 或 Context。
+
+`Breakpoint: Set(float32(900))` 表示窗口宽度小于 900 DIP 时隐藏桌面侧栏并显示打开按钮。未设置 / 0 保持旧版仅桌面布局。窄窗口的 `Mode` 可选 `SidebarSlideover`（默认）、`SidebarModal`（全屏）或 `SidebarDrawer`（底部，85% 高度）；内容始终按展开模式构建，沿用相应弹层的 Escape、遮罩关闭、滚动和焦点约束。返回桌面立即移除弹层焦点约束；普通关闭保留 Slideover/Drawer 的退出动画与 reduced motion 行为。
+
+`NavigationKey` 接收应用的当前页面或活动 ID；其变化默认关闭窄窗口弹层，`AutoClose: Set(false)` 可关闭该行为。它不解析 URL，也不绑定路由框架。自定义 / 外部打开按钮可通过 `ReturnFocus` 指定关闭后的焦点目标。应持续调用 Sidebar，包括关闭期间，以完成退出和焦点恢复。
+
+```go
+// model fields: Collapsed bool; Sidebar nui.SidebarState;
+// Active string; Navigation nui.NavigationState
+nui.Sidebar(c.Key("workspace-sidebar"), theme, &state.Collapsed,
+    nui.SidebarOptions{
+        Title: "Workspace", State: &state.Sidebar,
+        Resizable: true, Breakpoint: nui.Set(float32(900)),
+        NavigationKey: state.Active,
+        FooterContent: func(c *ui.Context, t nui.Theme, scope nui.SidebarScope) {
+            label := "Account"
+            if scope.Collapsed { label = "" }
+            nui.Button(c, t, label, nui.ButtonOptions{
+                Leading: lucide.User(), AccessibleLabel: "Account",
+                Variant: nui.Ghost, Color: nui.Neutral,
+            })
+        },
+    }, func(c *ui.Context, t nui.Theme, compact bool) {
+        nui.NavigationMenu(c.Key("navigation"), t, &state.Active,
+            &state.Navigation, items,
+            nui.NavigationOptions{Vertical: true, Compact: compact})
+    })
+```
+
+窗口断点切换会卸载一侧的控件树，并在另一侧构建；输入草稿、导航状态等应由应用持有，MyGo 的局部滚动状态不会跨这次卸载迁移。没有 Web mega menu、CSS 断点或 NuxtLink 兼容层，也不提供 DashboardGroup 多面板协调。导航的原生无障碍角色为 Group（MyGo 没有公开 Navigation landmark 枚举）。
 
 ## Drawer
 

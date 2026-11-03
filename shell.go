@@ -1,6 +1,8 @@
 package nui
 
 import (
+	"time"
+
 	"github.com/egoist/mygo/ui"
 	"github.com/josexy/nuxt-ui-go/icons/lucide"
 )
@@ -14,11 +16,24 @@ type NavigationItem struct {
 type NavigationState struct {
 	menus    map[string]*MenuState
 	expanded map[string]bool
+	popovers map[string]*navigationPopover
+	handles  map[string]*ui.Handle
+	compact  bool
+}
+type navigationPopover struct {
+	open, pinned, focus   bool
+	suppressed, restoring bool
+	state                 NavigationState
+	panel                 ui.Handle
 }
 type NavigationOptions struct {
 	Label             string
 	Vertical, Compact bool
-	OnNavigate        func(string)
+	// Tooltip and Popover default to true for compact vertical navigation.
+	Tooltip, Popover Optional[bool]
+	// PopupPlacement defaults to the reading direction's trailing side.
+	PopupPlacement Optional[Placement]
+	OnNavigate     func(string)
 	Decoration
 }
 
@@ -42,13 +57,57 @@ func NavigationMenu(c *ui.Context, t Theme, active *string, s *NavigationState, 
 	if s.menus == nil {
 		s.menus = map[string]*MenuState{}
 		s.expanded = map[string]bool{}
+		s.popovers = map[string]*navigationPopover{}
+		s.handles = map[string]*ui.Handle{}
 	}
 	for id := range s.menus {
 		if !seen[id] {
 			delete(s.menus, id)
 			delete(s.expanded, id)
+			delete(s.popovers, id)
+			delete(s.handles, id)
 		}
 	}
+	compact := o.Vertical && o.Compact
+	if compact != s.compact {
+		for id, popup := range s.popovers {
+			if popup.open && popup.panel.FocusWithin(c) {
+				s.handles[id].Focus(c)
+			}
+			popup.open = false
+			popup.pinned = false
+			popup.suppressed, popup.restoring = false, false
+		}
+	}
+	var containsActive func(NavigationItem) bool
+	containsActive = func(it NavigationItem) bool {
+		if it.ID == *active {
+			return true
+		}
+		for _, child := range it.Children {
+			if containsActive(child) {
+				return true
+			}
+		}
+		return false
+	}
+	var focusedChild func([]NavigationItem) bool
+	focusedChild = func(items []NavigationItem) bool {
+		for _, it := range items {
+			if handle := s.handles[it.ID]; handle != nil && handle.Focused(c) {
+				return true
+			}
+			if focusedChild(it.Children) {
+				return true
+			}
+		}
+		return false
+	}
+	placement := RightStart
+	if c.Direction() == ui.RightToLeft {
+		placement = LeftStart
+	}
+	placement = valueOr(o.PopupPlacement, placement)
 	choose := func(id string) {
 		*active = id
 		if o.OnNavigate != nil {
@@ -65,7 +124,7 @@ func NavigationMenu(c *ui.Context, t Theme, active *string, s *NavigationState, 
 	}
 	root := ui.Row(c).Wrap().MinWidth(0).Role(ui.RoleGroup).Label(o.Label)
 	if o.Vertical {
-		root.Column().AlignItems(ui.Stretch).FocusGroup(ui.Vertical)
+		root.Column().FillWidth().AlignItems(ui.Stretch).FocusGroup(ui.Vertical)
 	}
 	finish(t, ComponentNavigationMenu, Root, root, PartStyle{Gap: Set(t.spacing(4))}, o.Decoration)
 	var render func([]NavigationItem, int)
@@ -73,31 +132,117 @@ func NavigationMenu(c *ui.Context, t Theme, active *string, s *NavigationState, 
 		group := ""
 		for _, it := range items {
 			if it.Group != "" && it.Group != group && !o.Compact {
-				finish(t, ComponentNavigationMenu, Label, ui.Text(c, it.Group).Padding(8, 10).FontSize(t.text(12)).FontWeight(600), PartStyle{Foreground: Set(t.Muted)}, o.Decoration)
+				finish(t, ComponentNavigationMenu, Label, ui.Text(c.Key(struct{ Group string }{it.ID}), it.Group).Padding(8, 10).FontSize(t.text(12)).FontWeight(600), PartStyle{Foreground: Set(t.Muted)}, o.Decoration)
 			}
 			group = it.Group
 			if s.menus[it.ID] == nil {
 				s.menus[it.ID] = &MenuState{}
+				s.popovers[it.ID] = &navigationPopover{}
+				s.handles[it.ID] = &ui.Handle{}
 			}
-			ui.Column(c.Key(it.ID)).MinWidth(0).Children(func() {
+			if compact && !s.compact && focusedChild(it.Children) {
+				s.handles[it.ID].Focus(c)
+			}
+			item := ui.Column(c.Key(it.ID)).MinWidth(0)
+			if o.Vertical {
+				item.FillWidth()
+			}
+			item.Children(func() {
 				variant := Ghost
-				if *active == it.ID {
+				if containsActive(it) {
 					variant = Soft
 				}
 				label := it.Label
 				if o.Compact && it.Icon != nil {
 					label = ""
 				}
-				b := Button(c, t, label, ButtonOptions{AccessibleLabel: it.Label, Leading: it.Icon, Variant: variant, Color: Neutral, Disabled: it.Disabled}).Description(it.Description)
+				var trailing *ui.SVG
+				if o.Vertical && !compact && len(it.Children) > 0 {
+					trailing = lucide.ChevronRight()
+					if c.Direction() == ui.RightToLeft {
+						trailing = lucide.ChevronLeft()
+					}
+					if s.expanded[it.ID] {
+						trailing = lucide.ChevronDown()
+					}
+				}
+				b := Button(c.Key("trigger"), t, label, ButtonOptions{AccessibleLabel: it.Label, Leading: it.Icon, Trailing: trailing, Block: o.Vertical, Variant: variant, Color: Neutral, Disabled: it.Disabled}).Description(it.Description).Bind(s.handles[it.ID])
 				if o.Vertical {
 					b.FillWidth().Justify(ui.Start)
+					if compact {
+						b.Justify(ui.Center)
+					}
 				}
 				finish(t, ComponentNavigationMenu, Item, b, PartStyle{}, o.Decoration)
+				if compact && valueOr(o.Tooltip, true) && (len(it.Children) == 0 || !valueOr(o.Popover, true)) {
+					Tooltip(c.Key("tooltip"), t, b, it.Label, TooltipOptions{Placement: Set(placement)})
+				}
 				if len(it.Children) == 0 {
 					b.OnClick(func() { choose(it.ID) })
 					return
 				}
-				if o.Vertical {
+				if compact && valueOr(o.Popover, true) {
+					popup := s.popovers[it.ID]
+					if popup.restoring && s.handles[it.ID].Focused(c) {
+						popup.restoring = false
+					}
+					if !popup.restoring && !b.Hovered() && !b.FocusVisible() {
+						popup.suppressed = false
+					}
+					open := func() {
+						popup.open, popup.pinned, popup.focus = true, true, true
+						popup.suppressed, popup.restoring = false, false
+					}
+					close := func() {
+						popup.open, popup.pinned, popup.focus, popup.suppressed = false, false, false, true
+						popup.restoring = true
+						s.handles[it.ID].Focus()
+					}
+					b.Expanded(popup.open).OnClick(func() {
+						if popup.open && popup.pinned {
+							close()
+						} else {
+							open()
+						}
+					})
+					forward := ui.KeyRight
+					if placement == LeftStart || placement == LeftCenter || placement == LeftEnd {
+						forward = ui.KeyLeft
+					}
+					b.OnShortcut(0, forward, open)
+					mode := PopoverHover
+					if popup.pinned || popup.suppressed {
+						mode = PopoverClick
+					}
+					panel := Popover(c.Key("popover"), t, b, &popup.open, PopoverOptions{Label: it.Label, Placement: placement, Mode: mode, CloseDelay: 150 * time.Millisecond, Width: Set(float32(224))}, func(t Theme) {
+						ui.Text(c.Key("label"), it.Label).FontWeight(600).TextColor(t.Muted)
+						NavigationMenu(c.Key("children"), t, active, &popup.state, it.Children, NavigationOptions{Label: it.Label, Vertical: true, OnNavigate: func(id string) {
+							choose(id)
+							close()
+						}, Decoration: o.Decoration})
+						if popup.focus {
+							for _, child := range it.Children {
+								if !child.Disabled {
+									popup.state.handles[child.ID].Focus(c)
+									break
+								}
+							}
+							popup.focus = false
+						}
+					})
+					panel.Bind(&popup.panel)
+					back := ui.KeyLeft
+					if forward == ui.KeyLeft {
+						back = ui.KeyRight
+					}
+					panel.OnShortcut(0, back, close)
+					if panel.Dismissed() && popup.panel.FocusWithin(c) {
+						s.handles[it.ID].Focus(c)
+					}
+					if !popup.open {
+						popup.pinned, popup.focus = false, false
+					}
+				} else if o.Vertical {
 					b.Expanded(s.expanded[it.ID]).OnClick(func() { s.expanded[it.ID] = !s.expanded[it.ID] })
 					if s.expanded[it.ID] {
 						ui.Column(c).Padding(0, 0, 0, 12).Gap(4).Disabled(it.Disabled).Children(func() { render(it.Children, depth+1) })
@@ -112,65 +257,7 @@ func NavigationMenu(c *ui.Context, t Theme, active *string, s *NavigationState, 
 		root.FocusGroup(ui.Horizontal)
 	}
 	root.Children(func() { render(items, 0) })
-	return root
-}
-
-type SidebarOptions struct {
-	Title, ToggleLabel    string
-	Width, CollapsedWidth Optional[float32]
-	Header, Footer        func(*ui.Context, Theme)
-	Decoration
-}
-
-func Sidebar(c *ui.Context, t Theme, collapsed *bool, o SidebarOptions, content func(*ui.Context, Theme, bool)) ui.Element {
-	if collapsed == nil {
-		panic("nui: Sidebar requires collapsed state")
-	}
-	w := float32(256)
-	if o.Width.Set {
-		w = o.Width.Value
-	}
-	if *collapsed {
-		w = 64
-		if o.CollapsedWidth.Set {
-			w = o.CollapsedWidth.Value
-		}
-	}
-	root := ui.Column(c).Width(max(0, w)).AlignSelf(ui.Stretch).MinWidth(0).MinHeight(0).Shrink(0).Role(ui.RoleGroup).Label(o.Title).BorderEndWidth(1).BorderColor(t.Border)
-	finish(t, ComponentSidebar, Root, root, PartStyle{Background: Set(t.Background), PaddingX: Set(t.spacing(8)), PaddingY: Set(t.spacing(12)), Gap: Set(t.spacing(12))}, o.Decoration)
-	root.Children(func() {
-		ui.Row(c).MinWidth(0).AlignItems(ui.Center).Children(func() {
-			if !*collapsed {
-				ui.Text(c, o.Title).Grow(1).MinWidth(0).SingleLine().FontSize(t.text(16)).LineHeight(24.0 / 16).FontWeight(600).TextColor(t.Highlighted)
-			}
-			label := o.ToggleLabel
-			if label == "" {
-				label = message(c, "toggleSidebar")
-			}
-			// Panel icons point toward the sidebar's edge, which is the right edge right to left.
-			icon := lucide.PanelLeftClose()
-			switch rtl := c.Direction() == ui.RightToLeft; {
-			case *collapsed && rtl:
-				icon = lucide.PanelRightOpen()
-			case *collapsed:
-				icon = lucide.PanelLeftOpen()
-			case rtl:
-				icon = lucide.PanelRightClose()
-			}
-			Button(c, t, "", ButtonOptions{Leading: icon, AccessibleLabel: label, Square: true, Variant: Ghost, Color: Neutral}).Expanded(!*collapsed).OnClick(func() { *collapsed = !*collapsed })
-		})
-		if o.Header != nil {
-			o.Header(c, t)
-		}
-		body := ui.Scroll(c).Grow(1).MinWidth(0).MinHeight(0)
-		finish(t, ComponentSidebar, Body, body, PartStyle{}, o.Decoration)
-		if content != nil {
-			body.Children(func() { content(c, t, *collapsed) })
-		}
-		if o.Footer != nil {
-			o.Footer(c, t)
-		}
-	})
+	s.compact = compact
 	return root
 }
 

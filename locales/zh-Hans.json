@@ -85,6 +85,8 @@
   "playNamed": "播放{name}",
   "resizeNamed": "调整{name}大小",
   "toggleSidebar": "切换侧边栏",
+  "resizeSidebar": "调整侧边栏宽度",
+  "closeSidebar": "关闭侧边栏",
   "inProgress": "进行中",
   "chooseFiles": "选择文件",
   "readingFiles": "正在读取文件信息…",

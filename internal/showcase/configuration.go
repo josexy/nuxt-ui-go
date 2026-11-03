@@ -160,6 +160,16 @@ func validateResolved(t reflect.Type, spec any, path string) error {
 			return fallback
 		}
 		switch t.Name() {
+		case "SidebarOptions":
+			if num("MaxWidth", 480) < num("MinWidth", 160) || (m["Resizable"] == true && num("CollapsedWidth", 64) > num("MinWidth", 160)) {
+				return fmt.Errorf("%s: require CollapsedWidth <= MinWidth <= MaxWidth when resizable", path)
+			}
+			if side, ok := m["Side"].(string); ok && side != "nui.SideLeft" && side != "nui.SideRight" {
+				return fmt.Errorf("%s: Sidebar side must be SideLeft or SideRight", path)
+			}
+			if num("Breakpoint", 0) < 0 || num("CollapsedWidth", 64) < 0 {
+				return fmt.Errorf("%s: Sidebar dimensions must be non-negative", path)
+			}
 		case "SliderOptions", "RangeSliderOptions":
 			if num("Max", 100) <= num("Min", 0) {
 				return fmt.Errorf("%s: Max must exceed Min", path)

@@ -36,7 +36,7 @@ API 和默认行为可能随更新调整，后续变化会记录在 [更新日�
 | Chart | 支持 6 类图、分类/数值/时间轴、堆叠和图例；使用 Go 数据模型，不覆盖全部 Unovis 功能、双 Y 轴、对数轴或刷选缩放 |
 | Drawer / Carousel / Splitter | Drawer 仅底部手柄拖拽；Carousel Wrap 是有界翻页，不是无缝克隆循环；Splitter 为双面板，不提供多面板布局协议 |
 | FileUpload | 提供原生文件选择、规则检查、进度和取消状态；网络上传、内容验证、文件流和持久化由应用实现 |
-| NavigationMenu / 应用布局 | 导航路由由应用管理；没有 Web mega menu、移动断点、DOM 插槽或 NuxtLink 属性兼容层 |
+| NavigationMenu / Sidebar | 支持紧凑图标导航、Tooltip、子级 Popover、侧栏调宽及窗口 DIP 断点弹层；路由与持久化由应用管理，没有 Web mega menu、CSS 断点、DOM 插槽或 NuxtLink 属性兼容层。断点切换保留应用模型，不迁移控件树局部滚动状态 |
 | 高级界面 | 未提供完整 Page、Dashboard、AI Chat、Editor、Content、颜色模式专用组件或 LocaleSelect；可直接使用主题和语言 API |
 
 每个组件的 Options、默认值、键盘行为和部件范围以 [组件文档](README.md) 为准。
