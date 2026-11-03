@@ -68,7 +68,7 @@ nui.InputNumber(c, theme, &value, &numberState, nui.InputNumberOptions{
 
 `Style` 接收 root/editor/leading/trailing；这些 leading/trailing 是调用方图标，增减按钮没有独立的公开 slot。组件先预留按钮空间，最后调用实例 Style；定制 root padding 时需保留增减按钮的空间。Gallery 的 **Advanced forms → Orientation** 可在同一个 Seats 字段上切换两种布局。
 
-六位数字验证码使用 `PinInputOptions{Numeric: true, Length: 6}`；文本模式启用 IME，受已知输入法取消问题影响。InputRating 五档星标尺寸为 12/16/20/24/28 DIP，间距 2 DIP。
+六位数字验证码使用 `PinInputOptions{Numeric: true, Length: 6}`；添加 `SeparatorEvery: 2` 可按两位分组，也可用 `Separator: []int{3}` 只在第三位后分组。相邻槽位间距为 6 DIP（随 Density 缩放），分隔符为垂直居中的 Dimmed 色圆点，按文字宽度布局、两侧各保留相同间距。鼠标或键盘聚焦的当前槽位显示 3 DIP、不透明度为 25% 的主题色外圈，错误时使用 Error 色；高对比度模式使用不透明外圈，None 变体不显示外圈。文本模式启用 IME，受已知输入法取消问题影响。InputRating 五档星标尺寸为 12/16/20/24/28 DIP，间距 2 DIP。
 
 PIN 点击已有字符会选中该位，随后输入替换该位、Backspace 删除该位；点击空槽或槽间空隙将光标放在已有内容末尾。槽位不会增加 Tab 停靠点，文字缩放与遮罩不影响点击映射。InputRating 横向左右箭头随 LTR/RTL 镜像，纵向 ↓ 下一项、↑ 上一项，忽略另一轴。与 Nuxt 一样，方向键到首尾停止、不循环，← 不会把评分降到 0（只有清零能回到 0）；空评分按 → 得 1。空格作用于当前星：空评分得 1，Clearable 时清零当前评分；回车不做处理。Home/End（及 PageUp/PageDown）直接设为 1/Max：Nuxt 只把焦点移到首尾的星，需再按空格确认，这里保持滑块的按键习惯。键盘焦点环画在当前星上（空评分时为第 1 颗），组件按星星大小排布，不随容器拉伸。可交互时，悬停的星放大到 1.1 倍；Hoverable 的预览划过星间空隙时保持，指针离开组件或点击清零后消失。放在出错的 FormField 中时，实心星和焦点环使用 Error 色。只读评分仍可通过 Tab 聚焦，按键无效（Nuxt 会跳过只读评分）。
 

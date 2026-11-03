@@ -35,6 +35,7 @@
 - FieldGroup 未设置 Size 时不再强制 MD，而是沿用外层 FormField 的尺寸；首尾圆角按书写方向镜像；项目拉伸到同一高度。Badge、SelectMenu、SelectMultiple 加入组圆角，Badge 继承字段/组尺寸。组内控件弹出的面板不再套用组圆角。
 - RangeSlider 接入 FormField：点击字段标签聚焦第一个拇指，并带上字段描述和错误。
 - PinInput 在出错的 FormField 中显示错误色边框。
+- PinInput 分隔符改为垂直居中的 Dimmed 色圆点，按文字宽度计算分组间距；当前槽位补齐鼠标和键盘聚焦时的 3 DIP 半透明外圈。
 - Breadcrumb 当前项、FooterColumns 条目显示 `Icon`。
 - Card 没有正文时不再渲染空正文区和多余分隔线；Badge 标签为空时不占间距。
 - Chart 默认系列色改为 Nuxt 的六种不重复颜色：Primary、blue、violet、amber、rose、cyan（浅色 500 / 深色 400）。此前第 2 条和第 5 条系列同为 blue。

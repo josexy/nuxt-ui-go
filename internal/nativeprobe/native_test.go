@@ -707,6 +707,23 @@ func TestNativeGallery(t *testing.T) {
 	}
 	c.press("Loading switch")
 	c.capture("props-forms-light")
+	c.press("Grouped PIN")
+	c.key("Ctrl+A")
+	c.call("input", map[string]any{"events": []any{map[string]any{"type": "text", "text": "123456"}}}, nil)
+	c.key("Home")
+	c.key("Right")
+	c.key("Right")
+	c.key("Shift+Right")
+	c.call("input", map[string]any{"events": []any{map[string]any{"type": "text", "text": "9"}}}, nil)
+	c.idle()
+	if n := c.find("Grouped PIN"); n.Value != "129456" {
+		t.Fatalf("native grouped PIN replacement: %+v", n)
+	}
+	c.capture("pin-grouped-focus-light")
+	c.key("Tab")
+	if tr := c.tree(); tr.Focus == c.find("Grouped PIN").ID {
+		t.Fatal("grouped PIN retained focus after Tab")
+	}
 	c.press("Selection policies")
 	c.press("Team menu")
 	c.call("input", map[string]any{"events": []any{map[string]any{"type": "text", "text": "Alpha"}}}, nil)

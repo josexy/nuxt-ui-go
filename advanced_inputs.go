@@ -265,7 +265,13 @@ func PinInput(c *ui.Context, t Theme, value *string, s *PinState, o PinInputOpti
 			separators[at] = true
 		}
 	}
-	root := ui.Column(c).Width(float32(n)*slotSize + float32(n-1)*t.spacing(6) + float32(len(separators))*(t.text(12)+t.spacing(6))).Height(slotSize).Disabled(o.Disabled || t.field.Disabled)
+	// Match the separator's text advance instead of reserving a fixed-width
+	// dash box. Keep both layers absolute so slots receive pointer input.
+	var separatorWidth float32
+	if len(separators) > 0 {
+		separatorWidth, _ = c.MeasureText(0, ui.Span{Text: "•", Font: t.Font, Size: t.text(16)})
+	}
+	root := ui.Column(c).Width(float32(n)*slotSize + float32(n-1)*t.spacing(6) + float32(len(separators))*(separatorWidth+t.spacing(6))).Height(slotSize).Disabled(o.Disabled || t.field.Disabled)
 	characters := []rune(*value)
 	caret := len(characters)
 	focused := s.Handle.Focused(c)
@@ -288,13 +294,13 @@ func PinInput(c *ui.Context, t Theme, value *string, s *PinState, o PinInputOpti
 			editor.Bind(&s.Handle).InputMethod(!o.Numeric)
 			caret, _ = editor.TextSelection()
 		}}).Absolute().Left(0).Top(0).Fill().Opacity(.001)
-		ui.Row(c.Key("slots")).Absolute().Left(0).Top(0).Gap(t.spacing(6)).Cursor(ui.CursorText).OnClick(func() {
+		ui.Row(c.Key("slots")).Absolute().Left(0).Top(0).Height(slotSize).AlignItems(ui.Center).Gap(t.spacing(6)).Cursor(ui.CursorText).OnClick(func() {
 			length := len([]rune(*value))
 			c.Resolve(s.Handle).Focus().SetTextSelection(length, length)
 		}).Children(func() {
 			for i := range n {
 				if separators[i] {
-					ui.Text(c.Key(fmt.Sprintf("separator:%d", i)), "−").Width(t.text(12)).Height(slotSize).IgnoreInput(true).Role(ui.RoleNone)
+					ui.Text(c.Key(fmt.Sprintf("separator:%d", i)), "•").Font(t.Font).FontSize(t.text(16)).TextColor(t.Dimmed).Shrink(0).IgnoreInput(true).Role(ui.RoleNone)
 				}
 				v := o.Placeholder
 				if i < len(characters) {
@@ -303,7 +309,7 @@ func PinInput(c *ui.Context, t Theme, value *string, s *PinState, o PinInputOpti
 						v = "•"
 					}
 				}
-				e := ui.Box(c.Key(i)).Size(slotSize, slotSize).FontSize(buttonMetrics(t, config.Size).Font).Center().Cursor(ui.CursorText).Role(ui.RoleNone).OnClick(func() {
+				e := ui.Box(c.Key(i)).Size(slotSize, slotSize).Shrink(0).FontSize(buttonMetrics(t, config.Size).Font).Center().Cursor(ui.CursorText).Role(ui.RoleNone).OnClick(func() {
 					// Slot geometry differs from the hidden editor's text geometry.
 					// Resolve its current element instead of retaining a build value.
 					length := len([]rune(*value))
@@ -311,9 +317,17 @@ func PinInput(c *ui.Context, t Theme, value *string, s *PinState, o PinInputOpti
 					end := min(i+1, length)
 					c.Resolve(s.Handle).Focus().SetTextSelection(start, end)
 				}).Children(func() { ui.Text(c, v).Role(ui.RoleNone).IgnoreInput(true) })
-				active := focused && i == min(caret, n-1)
-				recipe := inputRecipe(t, config, active, e.Hovered(), fieldInvalid(t, InputOptions{}))[Root]
+				active := focused && !e.IsDisabled() && i == min(caret, n-1)
+				invalid := fieldInvalid(t, InputOptions{})
+				recipe := inputRecipe(t, config, active, e.Hovered() && !e.IsDisabled(), invalid)[Root]
 				recipe.PaddingX, recipe.PaddingY = Set(float32(0)), Set(float32(0))
+				if active && config.Variant != None {
+					color := config.Color
+					if invalid {
+						color = Error
+					}
+					e.Shadow(0, 0, 0, 3, t.focusColor(color))
+				}
 				finish(t, ComponentPinInput, Item, e, recipe, o.Decoration)
 			}
 		})
