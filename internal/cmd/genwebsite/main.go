@@ -204,16 +204,16 @@ func main() {
 		}
 		for _, language := range []string{"zh", "en"} {
 			description, guide, note := demo.Description.ZH, demo.Guide.ZH, demo.Note.ZH
-			noteTitle := "参数与平台说明"
+			noteTitle := "使用时注意"
 			if language == "en" {
 				description, guide, note = demo.Description.EN, demo.Guide.EN, demo.Note.EN
-				noteTitle = "Parameters and platform notes"
+				noteTitle = "Things to know"
 			}
 			// JSON strings are valid YAML scalars and escape arbitrary punctuation.
 			titleJSON, _ := json.Marshal(demo.Name)
 			descJSON, _ := json.Marshal(description)
 			content := fmt.Sprintf("---\ntitle: %s\ndescription: %s\ncomponent: %s\n---\n\n%s\n", titleJSON, descJSON, demo.ID, guide)
-			if demo.ID == "file-upload" || demo.ID == "sidebar" {
+			if note != "" {
 				content += fmt.Sprintf("\n### %s\n\n%s\n", noteTitle, note)
 			}
 			write(filepath.Join(*root, "website/content", language, "components", demo.ID+".md"), []byte(content))

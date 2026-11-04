@@ -529,11 +529,30 @@ button {
   padding-top: 26px;
   border-top: 1px solid var(--site-border);
 }
-.usage-section p {
-  color: var(--site-muted);
+.usage-section p,
+.usage-section ol,
+.usage-section ul {
+  color: var(--site-text);
   line-height: 1.9;
   max-width: 75ch;
   margin: 14px 0;
+}
+.usage-section ol,
+.usage-section ul {
+  padding-inline-start: 1.5em;
+}
+.usage-section ol {
+  list-style: decimal;
+}
+.usage-section ul {
+  list-style: disc;
+}
+.usage-section li + li {
+  margin-top: 8px;
+}
+.usage-section code {
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
 }
 .usage-section h2 {
   font-size: 19px;
@@ -545,6 +564,14 @@ button {
 }
 .usage-section a {
   color: var(--site-accent);
+}
+.usage-section h3 a {
+  color: inherit;
+}
+.api-hint {
+  color: var(--site-muted);
+  max-width: 75ch;
+  margin: 12px 0 24px;
 }
 .api-section {
   margin-top: 42px;

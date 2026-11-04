@@ -1,23 +1,23 @@
 {
   "Color": {
-    "zh": "语义颜色；默认值继承主题或组件配色。",
-    "en": "Semantic color; the default inherits the theme or component palette."
+    "zh": "选择主色、成功、警告等用途的颜色。未指定时采用主题或组件默认颜色。",
+    "en": "Choose a color role such as primary, success or warning. An unspecified value uses the theme or component default."
   },
   "Size": {
-    "zh": "组件尺寸；默认值继承主题或组件尺寸。",
-    "en": "Component size; the default inherits the theme or component size."
+    "zh": "选择 XS、SM、MD、LG 或 XL。未指定时按所在字段、主题或组件的规则取默认尺寸。",
+    "en": "Choose XS, SM, MD, LG or XL. An unspecified size follows the field, theme or component’s default rules."
   },
   "Variant": {
-    "zh": "组件外观样式，支持范围取决于组件。",
-    "en": "Visual variant; supported appearances depend on the component."
+    "zh": "选择边框、背景等外观样式。可选值因组件而异。",
+    "en": "Choose an appearance such as a border or filled background. Supported variants depend on the component."
   },
   "Label": {
-    "zh": "控件标签或可访问名称。",
-    "en": "Control label or accessible name."
+    "zh": "控件的显示标签或供辅助技术读取的名称，具体用途见组件说明。",
+    "en": "The visible label or the name read by assistive technology, depending on the component."
   },
   "AccessibleLabel": {
-    "zh": "覆盖控件的可访问名称，适用于纯图标操作。",
-    "en": "Override the accessible name, particularly for icon-only actions."
+    "zh": "供辅助技术读取的名称。纯图标按钮需要用它说明操作用途。",
+    "en": "The name read by assistive technology. Use it to describe an icon-only button’s action."
   },
   "Title": {
     "zh": "标题文字。",
@@ -40,20 +40,20 @@
     "en": "Disable the component and its interactions."
   },
   "ReadOnly": {
-    "zh": "允许读取和选择内容，但禁止编辑。",
-    "en": "Allow reading and selection while preventing edits."
+    "zh": "允许查看、选择和复制内容，禁止用户修改。",
+    "en": "Allow viewing, selection and copying while preventing edits."
   },
   "Loading": {
     "zh": "显示加载状态；是否阻止操作由组件决定。",
     "en": "Show loading state; whether it blocks actions depends on the component."
   },
   "Invalid": {
-    "zh": "使用无效输入的视觉状态。",
-    "en": "Use the invalid-input appearance."
+    "zh": "将输入标为无效，并显示对应的错误外观。",
+    "en": "Mark the input as invalid and apply its error appearance."
   },
   "ErrorMessage": {
-    "zh": "显式提供的错误说明。",
-    "en": "An explicit error message."
+    "zh": "提供控件的错误说明；需要在字段下方显示文字时，设置 FormField.Error。",
+    "en": "Describe the control’s error. Use FormField.Error to display an error below a field."
   },
   "Placeholder": {
     "zh": "没有输入或选择时的占位文字。",
@@ -76,8 +76,8 @@
     "en": "Override the default loading icon."
   },
   "LoadingTrailing": {
-    "zh": "在末尾显示加载图标；显式前置图标优先。",
-    "en": "Place loading at the trailing edge; an explicit leading icon takes priority."
+    "zh": "把加载图标放在内容后方；如果设置了 Leading，优先在前方显示。",
+    "en": "Place the loading indicator after the content; an explicit Leading icon takes precedence."
   },
   "CheckedIcon": {
     "zh": "选中状态的图标。",
@@ -88,40 +88,40 @@
     "en": "Icon for the unchecked state."
   },
   "EmptyIcon": {
-    "zh": "未填充评分项的图标。",
-    "en": "Icon for an unfilled rating item."
+    "zh": "评分中尚未选中的星标或其他图标。",
+    "en": "The icon for an unfilled rating item."
   },
   "Active": {
     "zh": "控制激活状态或动态效果是否运行。",
     "en": "Control the active state or whether motion is running."
   },
   "ActiveColor": {
-    "zh": "激活状态的颜色覆盖。",
-    "en": "Color override for the active state."
+    "zh": "组件处于活动状态时使用的颜色。",
+    "en": "The color used while the component is active."
   },
   "ActiveVariant": {
-    "zh": "激活状态的外观覆盖。",
-    "en": "Variant override for the active state."
+    "zh": "组件处于活动状态时使用的外观样式。",
+    "en": "The variant used while the component is active."
   },
   "Block": {
     "zh": "让按钮占据可用宽度。",
     "en": "Make the button fill the available width."
   },
   "Square": {
-    "zh": "使用适合方形内容的间距。",
-    "en": "Use spacing suitable for square content."
+    "zh": "使用方形按钮或标签的内边距，适合仅显示图标。",
+    "en": "Use padding suited to a square button or badge, such as an icon-only control."
   },
   "Neutral": {
     "zh": "旧版中性色开关；优先使用 Color: nui.Neutral。",
     "en": "Legacy neutral-color switch; prefer Color: nui.Neutral."
   },
   "UI": {
-    "zh": "以部件名称为键覆盖外观和间距。",
-    "en": "Override appearance and spacing by part name."
+    "zh": "按部件名设置文字、图标、面板等区域的样式；只对组件公开的部件生效。",
+    "en": "Set styles by part name, such as label, icon or panel. Only parts exposed by the component are supported."
   },
   "Style": {
-    "zh": "同步配置当前构建的部件；不要保留 Element。",
-    "en": "Configure current-build parts synchronously; do not retain Elements."
+    "zh": "在本次界面构建中直接配置部件元素。回调收到的 Element 不能保存到下次使用。",
+    "en": "Configure part elements during the current build. Do not retain the supplied Elements for later use."
   },
   "Animate": {
     "zh": "控制动画，并遵守系统的减少动态效果偏好。",
@@ -224,8 +224,8 @@
     "en": "Enable vertical layout."
   },
   "Min": {
-    "zh": "下界；Optional 可明确指定零。",
-    "en": "Lower bound; Optional can explicitly specify zero."
+    "zh": "允许的最小值。Optional 字段可用 nui.Set(0) 明确设置为 0。",
+    "en": "The minimum allowed value. Use nui.Set(0) to explicitly set zero on an Optional field."
   },
   "Max": {
     "zh": "上界或数量上限，具体含义依组件而定。",
@@ -240,8 +240,8 @@
     "en": "Control value, field value or data accessor."
   },
   "Set": {
-    "zh": "区分显式值与继承默认值。",
-    "en": "Distinguish an explicit value from an inherited default."
+    "zh": "表示 Optional 是否已明确赋值；false 时按未设置处理。",
+    "en": "Whether the Optional has an explicit value; false means unset."
   },
   "Multiple": {
     "zh": "允许选择多个项目。",
@@ -260,24 +260,24 @@
     "en": "Mask the entered text."
   },
   "MaxLength": {
-    "zh": "输入长度上限，原生文本以 UTF-16 单元计数；零表示不限。",
-    "en": "Input length limit in UTF-16 units; zero means unlimited."
+    "zh": "限制可输入的长度，0 表示不限。原生文本按 UTF-16 单元计数，部分字符占两个单元。",
+    "en": "Limit input length; 0 means unlimited. Native text counts UTF-16 units, so some characters count as two."
   },
   "Rows": {
-    "zh": "初始显示的文本行数。",
-    "en": "Initial number of visible text lines."
+    "zh": "输入框显示的基础行数。",
+    "en": "The base number of visible text rows."
   },
   "MaxRows": {
-    "zh": "自动调整高度时的最大行数。",
-    "en": "Maximum number of rows when resizing automatically."
+    "zh": "自动增高时最多显示的行数；超过后在输入框内滚动。",
+    "en": "The maximum visible rows when automatically growing; additional content scrolls inside the field."
   },
   "AutoResize": {
     "zh": "随内容自动调整文本域高度。",
     "en": "Resize the text area as its content changes."
   },
   "Required": {
-    "zh": "将字段标记为必填。",
-    "en": "Mark the field as required."
+    "zh": "显示必填标记，并为支持的控件补充必填说明；实际校验由 Form 或应用完成。",
+    "en": "Show a required marker and description on supported controls. Form or the application performs validation."
   },
   "Help": {
     "zh": "字段下方的帮助文字。",
@@ -320,12 +320,12 @@
     "en": "Placement or visibility of the selection indicator."
   },
   "SelectionBehavior": {
-    "zh": "控制列表选择的切换或替换策略。",
-    "en": "Choose toggle or replace behavior for list selection."
+    "zh": "SelectionToggle 再次激活可取消选择；SelectionReplace 激活时替换选择。",
+    "en": "SelectionToggle can deselect on repeated activation. SelectionReplace replaces the selection on activation."
   },
   "Loop": {
-    "zh": "键盘导航到边界时循环。",
-    "en": "Wrap keyboard navigation at the boundaries."
+    "zh": "键盘导航越过末项后回到首项，反向同理。",
+    "en": "Wrap keyboard navigation from the last item to the first and vice versa."
   },
   "ItemWidth": {
     "zh": "横向列表项的宽度。",
@@ -340,28 +340,28 @@
     "en": "Placeholder for the search input."
   },
   "ExternalFilter": {
-    "zh": "由应用提供已筛选结果。",
-    "en": "Let the application supply filtered results."
+    "zh": "直接显示应用传入的筛选结果，不再执行组件的本地搜索。",
+    "en": "Display results filtered by the application without applying the component’s local search."
   },
   "FilterFields": {
     "zh": "搜索时匹配的项目字段。",
     "en": "Item fields included in search matching."
   },
   "AllowCustom": {
-    "zh": "允许输入列表之外的值。",
-    "en": "Allow a value outside the supplied list."
+    "zh": "允许提交候选列表之外的文字，应用通过提交回调处理。",
+    "en": "Allow text outside the suggestion list to be submitted and handled by the application."
   },
   "CreateWhenAlways": {
-    "zh": "即使存在匹配项也提供创建操作。",
-    "en": "Offer creation even when matching items exist."
+    "zh": "存在匹配结果时也可显示创建项；相同值等具体限制见对应组件。",
+    "en": "Allow a create item even when results match; exact-value restrictions depend on the component."
   },
   "CreateAtTop": {
     "zh": "将创建操作放在候选列表顶部。",
     "en": "Place the creation action at the top of the list."
   },
   "ResetSearchTermOnBlur": {
-    "zh": "关闭或失焦时重置搜索词。",
-    "en": "Reset the query on close or blur."
+    "zh": "面板关闭或输入失焦时，按该组件的规则重置搜索词。",
+    "en": "Reset the query on dismissal or blur, according to the component’s behavior."
   },
   "ResetSearchTermOnSelect": {
     "zh": "选中项目后重置搜索词。",
@@ -376,8 +376,8 @@
     "en": "Open suggestions when the input gains focus."
   },
   "Popup": {
-    "zh": "候选弹层的配置。",
-    "en": "Configuration for the suggestion popup."
+    "zh": "配置候选列表弹层的位置、尺寸和样式。",
+    "en": "Configure the suggestion popup’s position, dimensions and styles."
   },
   "Placement": {
     "zh": "弹层相对触发控件的位置。",
@@ -404,8 +404,8 @@
     "en": "Placement relative to the trigger; automatically flips or shifts when space is limited."
   },
   "PopoverOptions.MaxHeight": {
-    "zh": "弹层最大高度（DIP），仅在内容超过此高度时起作用。",
-    "en": "Maximum popup height in DIP; applies only when content exceeds this limit."
+    "zh": "面板高度上限，单位 DIP。内容超出时需自行添加滚动区域。",
+    "en": "The panel height limit in DIP. Add a scrolling area when content exceeds it."
   },
   "PopoverOptions.MatchAnchor": {
     "zh": "弹层最小宽度取触发控件宽度；内容更宽时仍可扩展。",
@@ -420,12 +420,12 @@
     "en": "Delay after leaving both the trigger and panel in PopoverHover mode, in milliseconds in the editor."
   },
   "PopoverOptions.UI": {
-    "zh": "弹层部件样式，可用部件为 panel。",
-    "en": "Popup part styles; the available part is panel."
+    "zh": "设置 Panel（弹出面板）的背景、边框、内边距等样式。",
+    "en": "Set Panel styles such as its background, border and padding."
   },
   "PopoverOptions.Style": {
-    "zh": "最终部件样式回调，可用部件为 panel。",
-    "en": "Final part styling callback; the available part is panel."
+    "zh": "在构建时直接配置 Panel 元素，适合 UI 字段无法表达的样式。",
+    "en": "Configure the Panel element during a build for styles not covered by UI fields."
   },
   "CloseDelay": {
     "zh": "关闭前的延迟。",
@@ -452,20 +452,20 @@
     "en": "Make the overlay fill the window."
   },
   "ReturnFocus": {
-    "zh": "关闭后恢复焦点的持久 Handle。",
-    "en": "Persistent Handle receiving focus after close."
+    "zh": "关闭后将键盘焦点还给这个 Handle 绑定的控件；Handle 需要长期保存。",
+    "en": "Return keyboard focus to the control bound to this persistent Handle after closing."
   },
   "Header": {
-    "zh": "同步构建标题区域。",
-    "en": "Build the header region synchronously."
+    "zh": "在当前构建中创建标题区内容。",
+    "en": "Build the header content during the current UI build."
   },
   "Footer": {
-    "zh": "同步构建底部区域。",
-    "en": "Build the footer region synchronously."
+    "zh": "在当前构建中创建底部内容。",
+    "en": "Build the footer content during the current UI build."
   },
   "Content": {
-    "zh": "同步构建内容区域。",
-    "en": "Build the content region synchronously."
+    "zh": "在当前构建中创建正文内容。",
+    "en": "Build the body content during the current UI build."
   },
   "Actions": {
     "zh": "附加操作或操作区域构建函数。",
@@ -508,20 +508,20 @@
     "en": "Maximum result count or simultaneous items."
   },
   "KeepMounted": {
-    "zh": "隐藏时保留内容及其控件状态。",
-    "en": "Keep content and its widget state while hidden."
+    "zh": "隐藏时仍构建内容，保留控件的局部状态；内容回调仍会执行。",
+    "en": "Keep building hidden content to retain local control state. Content callbacks still run."
   },
   "Collapsible": {
-    "zh": "允许关闭所有手风琴区段。",
-    "en": "Allow all accordion sections to be collapsed."
+    "zh": "允许再次激活已展开项将其收起；侧栏等组件的具体行为见专用说明。",
+    "en": "Allow an open section to close when activated again. See component-specific notes for controls such as Sidebar."
   },
   "Underline": {
     "zh": "使用下划线形式标示当前标签页。",
     "en": "Use an underline to mark the selected tab."
   },
   "ActivationMode": {
-    "zh": "键盘移动焦点时自动或手动激活标签页。",
-    "en": "Activate tabs automatically or manually as keyboard focus moves."
+    "zh": "Automatic 用方向键移动时切换内容；Manual 只移动焦点，Enter 或 Space 才切换。",
+    "en": "Automatic changes the panel as arrow keys move focus. Manual requires Enter or Space to activate the focused tab."
   },
   "MaxItems": {
     "zh": "允许显示的项目数上限。",
@@ -536,8 +536,8 @@
     "en": "Number of records per page."
   },
   "SiblingCount": {
-    "zh": "当前页两侧的页码数量；支持显式零。",
-    "en": "Neighbor page count on each side; supports explicit zero."
+    "zh": "当前页左右各显示几个相邻页码。用 nui.Set(0) 可明确设为 0。",
+    "en": "How many neighboring pages to show on each side of the current page. Use nui.Set(0) for none."
   },
   "Siblings": {
     "zh": "旧版相邻页数量；SiblingCount 优先。",
@@ -556,8 +556,8 @@
     "en": "Advance steps in order; unset normally enables linear progression."
   },
   "Current": {
-    "zh": "当前步骤的零基索引。",
-    "en": "Zero-based current step index."
+    "zh": "当前项的位置，从 0 开始计数。",
+    "en": "The current item position, starting at 0."
   },
   "CurrentID": {
     "zh": "当前步骤 ID；优先于索引。",
@@ -588,8 +588,8 @@
     "en": "Mask PIN characters."
   },
   "Separator": {
-    "zh": "在指定的 1 基位置后插入分隔符。",
-    "en": "Insert separators after the specified one-based positions."
+    "zh": "在哪一格后插入分隔符，从 1 开始计数；例如 3 表示第三格后。",
+    "en": "Slots after which separators appear, counting from 1; for example, 3 means after the third slot."
   },
   "SeparatorEvery": {
     "zh": "每隔指定格数插入分隔符。",
@@ -624,8 +624,8 @@
     "en": "Enable date range selection."
   },
   "Today": {
-    "zh": "用于标记今天的日期覆盖。",
-    "en": "Override the date marked as today."
+    "zh": "指定日历用来标记今天的日期，便于测试或展示固定日期。",
+    "en": "Override the date marked as today for tests or fixed-date demonstrations."
   },
   "WeekStart": {
     "zh": "一周开始的星期。",
@@ -664,12 +664,12 @@
     "en": "Item group name."
   },
   "Build": {
-    "zh": "同步构建当前项目的视觉内容。",
-    "en": "Build the current item's visual content synchronously."
+    "zh": "创建当前项目的显示内容。界面更新时可能再次执行，不要在其中无条件启动业务操作。",
+    "en": "Build the current item’s display content. It may run again on UI updates; do not start application actions unconditionally."
   },
   "Compare": {
-    "zh": "用于排序的比较函数。",
-    "en": "Comparison function used for sorting."
+    "zh": "比较两个数据项，用返回的负数、0 或正数决定排序先后。",
+    "en": "Compare two items; return a negative value, zero or a positive value to determine their order."
   },
   "Cell": {
     "zh": "自定义单元格的同步构建函数。",
@@ -680,8 +680,8 @@
     "en": "Content alignment."
   },
   "Fixed": {
-    "zh": "阻止列调整宽度或重新排序；并非冻结列。",
-    "en": "Prevent column resizing or reordering; this does not freeze columns."
+    "zh": "禁止移动列和调整列宽。水平滚动时该列仍会一起移动。",
+    "en": "Prevent column reordering and resizing. The column still moves during horizontal scrolling."
   },
   "Lazy": {
     "zh": "子节点需要延迟加载。",
@@ -700,8 +700,8 @@
     "en": "Persistent list scrolling and interaction state."
   },
   "CellBuilds": {
-    "zh": "单元格构建次数，用于观测渲染工作量。",
-    "en": "Cell build count for observing rendering work."
+    "zh": "记录本次构建创建了多少个单元格，用于检查虚拟列表的构建量。",
+    "en": "Count cells built in the current pass to inspect virtual-list work."
   },
   "Fields": {
     "zh": "以字段名称索引的表单状态。",
@@ -712,40 +712,40 @@
     "en": "Whether the form is submitting."
   },
   "Validate": {
-    "zh": "返回字段错误的表单校验函数。",
-    "en": "Form validator returning field errors."
+    "zh": "检查表单值，并返回以字段名为键的错误信息；无错误时返回 nil。",
+    "en": "Check form values and return errors keyed by field name, or nil when valid."
   },
   "Search": {
-    "zh": "应用提供的异步搜索入口。",
-    "en": "Application-supplied asynchronous search entry."
+    "zh": "替换默认异步搜索。请求和结果回传由应用实现。",
+    "en": "Replace the default asynchronous search. The application starts requests and delivers results."
   },
   "DisableShortcut": {
     "zh": "禁用组件默认快捷键。",
     "en": "Disable the component's default shortcut."
   },
   "Shortcut": {
-    "zh": "展示给用户的快捷键说明。",
-    "en": "Shortcut text displayed to the user."
+    "zh": "只显示快捷键文字，不注册按键动作。",
+    "en": "Display shortcut text without registering a keyboard action."
   },
   "ShortcutKey": {
-    "zh": "快捷键主键。",
-    "en": "Primary shortcut key."
+    "zh": "快捷键中的普通按键，例如 K；Ctrl 等修饰键另用 ShortcutMods 设置。",
+    "en": "The main shortcut key, such as K. Set modifiers such as Ctrl separately with ShortcutMods."
   },
   "ShortcutMods": {
     "zh": "快捷键修饰键。",
     "en": "Shortcut modifier keys."
   },
   "Compact": {
-    "zh": "使用紧凑布局。",
-    "en": "Use a compact layout."
+    "zh": "使用更省空间的布局，例如只显示导航图标。",
+    "en": "Use a more compact layout, such as icon-only navigation."
   },
   "Modal": {
     "zh": "内嵌对话框的配置。",
     "en": "Embedded dialog configuration."
   },
   "SnapPoints": {
-    "zh": "从小到大的抽屉高度比例，范围 (0,1]。",
-    "en": "Ascending drawer height fractions in (0,1]."
+    "zh": "面板可停留的高度，按窗口高度比例填写，必须递增且大于 0、不超过 1。",
+    "en": "Allowed panel heights as fractions of the window height. Values must increase and be greater than 0 and at most 1."
   },
   "DismissDistance": {
     "zh": "拖动关闭所需的距离阈值。",
@@ -780,8 +780,8 @@
     "en": "Native file dialog configuration."
   },
   "Choose": {
-    "zh": "后台执行的文件选择函数；不要直接修改 UI 状态。",
-    "en": "File selection function run in a worker; do not mutate UI state directly."
+    "zh": "在后台选择文件并返回结果；通过 UI 线程更新组件状态。",
+    "en": "Choose files in the background and return results; update component state on the UI thread."
   },
   "ChooseLabel": {
     "zh": "文件选择操作的文字。",
@@ -796,20 +796,20 @@
     "en": "Chart kind or item kind."
   },
   "Curve": {
-    "zh": "线条或面积图的插值曲线。",
-    "en": "Interpolation curve for lines or areas."
+    "zh": "折线或面积边缘的连接方式，如直线、平滑曲线或阶梯线。",
+    "en": "How line or area points connect, such as straight, smooth or stepped segments."
   },
   "Stack": {
-    "zh": "柱状图或面积图的堆叠策略。",
-    "en": "Stacking policy for bars or areas."
+    "zh": "柱状图或面积图的叠加方式，如普通堆叠或百分比堆叠。",
+    "en": "How bar or area series stack, such as standard or normalized stacking."
   },
   "Legend": {
     "zh": "显示图例。",
     "en": "Show the legend."
   },
   "InteractiveLegend": {
-    "zh": "允许通过图例切换数据系列。",
-    "en": "Allow toggling data series through the legend."
+    "zh": "允许点击图例来显示或隐藏数据系列。",
+    "en": "Allow legend activation to show or hide series."
   },
   "Grid": {
     "zh": "显示图表网格。",
@@ -828,8 +828,8 @@
     "en": "Time-axis formatter."
   },
   "BarPadding": {
-    "zh": "分类带内部的柱间距比例。",
-    "en": "Inner bar padding as a fraction of the category band."
+    "zh": "柱子之间的留白比例，按每个分类占用的宽度计算。",
+    "en": "Spacing between bars as a fraction of each category’s allotted width."
   },
   "DonutInnerRadius": {
     "zh": "环形图内半径与外半径的比例。",
@@ -872,16 +872,16 @@
     "en": "Pause motion on hover."
   },
   "ContentKey": {
-    "zh": "内容改变时用于重置动画阶段的键。",
-    "en": "Key used to reset animation phase when content changes."
+    "zh": "内容变化时修改这个值，让滚动动画从头开始。",
+    "en": "Change this value when content changes to restart the scrolling animation."
   },
   "Percent": {
-    "zh": "使用百分比而不是绝对尺寸。",
-    "en": "Use percentages instead of absolute dimensions."
+    "zh": "启用后按百分比表示尺寸；关闭时使用 DIP。",
+    "en": "Use percentages for dimensions when enabled, or DIP when disabled."
   },
   "MinStepsBetweenThumbs": {
-    "zh": "两个滑块之间的最少步数。",
-    "en": "Minimum steps between two slider thumbs."
+    "zh": "两个滑块的最小距离等于这个值乘以 Step。",
+    "en": "The minimum distance between the two sliders is this value multiplied by Step."
   },
   "CollapsedWidth": {
     "zh": "侧边栏折叠后的宽度。",
@@ -916,16 +916,16 @@
     "en": "Expanded width when State.Width is unset, defaulting to 256 DIP; double-click restores this value."
   },
   "SidebarOptions.State": {
-    "zh": "按窗口、按侧栏持有的宽度和弹层状态；未传入时使用挂载期间的局部状态。",
-    "en": "Per-window, per-sidebar width and overlay state; omitted state lives only while the widget remains mounted."
+    "zh": "保存这个侧栏的展开宽度和窄窗口打开状态。每个窗口、每个侧栏分别保存一份。",
+    "en": "Store this sidebar’s expanded width and narrow-window open state. Keep one state per sidebar in each window."
   },
   "SidebarState.Width": {
     "zh": "记住的展开宽度；未设置时读取 Options.Width。清为未设置可恢复配置宽度。",
     "en": "Remembered expanded width; unset reads Options.Width. Clear it to restore the configured width."
   },
   "SidebarState.Open": {
-    "zh": "窄窗口弹层的受控打开状态，与桌面收起状态独立。",
-    "en": "Controlled narrow-window overlay visibility, independent of desktop collapse."
+    "zh": "控制窄窗口侧栏是否打开，不改变桌面侧栏的收起状态。",
+    "en": "Control whether the narrow-window sidebar is open, independently of desktop collapse state."
   },
   "SidebarScope.Collapsed": {
     "zh": "当前内容是否使用收起布局；窄窗口弹层始终为 false。",
@@ -948,8 +948,8 @@
     "en": "Enable pointer and keyboard resizing; false by default. Double-click the handle to restore the configured width."
   },
   "Breakpoint": {
-    "zh": "窗口宽度低于此 DIP 值时使用弹层；未设置或 0 保持桌面布局。网站预览以 iframe 宽度为准。",
-    "en": "Use an overlay below this window width in DIP; unset or zero keeps desktop layout. Website previews use the iframe width."
+    "zh": "窗口宽度小于此值时改用弹层，单位 DIP；0 或未设置时保持桌面布局。预览中按预览框宽度判断。",
+    "en": "Use an overlay below this window width in DIP. Zero or unset keeps desktop layout. The preview uses its frame width."
   },
   "NavigationKey": {
     "zh": "应用的当前页面或活动 ID；变化时默认关闭窄窗口弹层，不解析 URL。",
@@ -960,16 +960,16 @@
     "en": "Close the narrow-window sidebar when NavigationKey changes; true by default."
   },
   "HeaderContent": {
-    "zh": "自定义标题区域，接收 Collapsed/Open/Mobile 状态和操作；优先于旧 Header。",
-    "en": "Customize the heading with Collapsed/Open/Mobile state and actions; takes precedence over Header."
+    "zh": "创建标题区，可根据 Collapsed、Open、Mobile 调整内容；设置后优先于 Header。",
+    "en": "Build header content using Collapsed, Open and Mobile state. Takes precedence over Header."
   },
   "FooterContent": {
-    "zh": "自定义底部区域并按收起状态调整内容；优先于旧 Footer。",
-    "en": "Customize the footer and adapt it to collapse state; takes precedence over Footer."
+    "zh": "创建底部内容，可按收起状态调整显示；设置后优先于 Footer。",
+    "en": "Build footer content that adapts to collapse state. Takes precedence over Footer."
   },
   "ToggleContent": {
-    "zh": "替换内置展开/收起或窄窗口打开按钮，使用 Scope 的操作修改状态。",
-    "en": "Replace the built-in collapse or narrow-window opener using the scope's state actions."
+    "zh": "自定义侧栏按钮，通过传入 Scope 的 Collapse 或 SetOpen 执行操作。",
+    "en": "Build a custom sidebar trigger and use the supplied Scope’s Collapse or SetOpen actions."
   },
   "OnResize": {
     "zh": "用户调宽使展开宽度改变时通知，单位 DIP；收起不会覆盖记住的宽度。",
@@ -1044,8 +1044,8 @@
     "en": "Scrollbar width override."
   },
   "State": {
-    "zh": "由应用持有的持久控件状态。",
-    "en": "Persistent widget state owned by the application."
+    "zh": "保存控件交互状态的对象，应放在视图函数外并在后续构建中复用。",
+    "en": "An interaction state object kept outside the view function and reused across builds."
   },
   "Checked": {
     "zh": "菜单项的勾选状态。",
@@ -1060,20 +1060,20 @@
     "en": "Determine whether a step can be entered."
   },
   "Open": {
-    "zh": "受控的打开状态。",
-    "en": "Controlled open state."
+    "zh": "应用保存的打开状态，可通过修改这个值打开或关闭组件。",
+    "en": "The open state owned by the application; change it to open or close the component."
   },
   "Mode": {
     "zh": "组件行为模式或主题明暗模式。",
     "en": "Component behavior mode or theme appearance mode."
   },
   "Light": {
-    "zh": "浅色主题快照。",
-    "en": "Light theme snapshot."
+    "zh": "浅色模式使用的主题配置。",
+    "en": "The theme configuration used in light mode."
   },
   "Dark": {
-    "zh": "深色主题快照或深色模式标志。",
-    "en": "Dark theme snapshot or dark-mode flag."
+    "zh": "深色主题配置，或表示是否使用深色模式的标志，具体取决于字段类型。",
+    "en": "A dark theme configuration or a flag indicating dark mode, depending on the field type."
   },
   "Density": {
     "zh": "控件间距的缩放比例。",
@@ -1092,16 +1092,16 @@
     "en": "Monospace font family."
   },
   "Motion": {
-    "zh": "动态效果与减少动画配置。",
-    "en": "Motion and reduced-animation configuration."
+    "zh": "设置动画时长及减少动态效果的行为。",
+    "en": "Configure animation timing and reduced-motion behavior."
   },
   "HighContrast": {
     "zh": "启用高对比度主题处理。",
     "en": "Enable high-contrast theme handling."
   },
   "Palettes": {
-    "zh": "主题使用的语义色板集合。",
-    "en": "Semantic palettes used by the theme."
+    "zh": "主题各用途的色板，例如主色、成功色和中性色。",
+    "en": "Palettes for theme roles such as primary, success and neutral."
   },
   "OnAction": {
     "zh": "执行通知操作时通知应用的回调。",
@@ -1192,72 +1192,72 @@
     "en": "Application callback when multiple values change."
   },
   "Primary": {
-    "zh": "主题中的 Primary 语义颜色。",
-    "en": "Primary semantic color in the theme."
+    "zh": "主要操作和重点内容的颜色。",
+    "en": "Color for primary actions and emphasis."
   },
   "Secondary": {
-    "zh": "主题中的 Secondary 语义颜色。",
-    "en": "Secondary semantic color in the theme."
+    "zh": "次要操作的颜色。",
+    "en": "Color for secondary actions."
   },
   "Success": {
-    "zh": "主题中的 Success 语义颜色。",
-    "en": "Success semantic color in the theme."
+    "zh": "成功状态的颜色。",
+    "en": "Color for success states."
   },
   "Info": {
-    "zh": "主题中的 Info 语义颜色。",
-    "en": "Info semantic color in the theme."
+    "zh": "普通信息提示的颜色。",
+    "en": "Color for informational messages."
   },
   "Warning": {
-    "zh": "主题中的 Warning 语义颜色。",
-    "en": "Warning semantic color in the theme."
+    "zh": "警告状态的颜色。",
+    "en": "Color for warning states."
   },
   "Muted": {
-    "zh": "主题中的 Muted 语义颜色。",
-    "en": "Muted semantic color in the theme."
+    "zh": "次要说明文字的颜色。",
+    "en": "Color for secondary descriptive text."
   },
   "Dimmed": {
-    "zh": "主题中的 Dimmed 语义颜色。",
-    "en": "Dimmed semantic color in the theme."
+    "zh": "占位文字等较弱提示的颜色。",
+    "en": "Color for subdued text such as placeholders."
   },
   "Toned": {
-    "zh": "主题中的 Toned 语义颜色。",
-    "en": "Toned semantic color in the theme."
+    "zh": "介于次要文字与正文之间的文字颜色。",
+    "en": "A text color between muted and regular body text."
   },
   "Highlighted": {
-    "zh": "主题中的 Highlighted 语义颜色。",
-    "en": "Highlighted semantic color in the theme."
+    "zh": "强调文字的颜色。",
+    "en": "Color for emphasized text."
   },
   "Border": {
-    "zh": "主题中的 Border 语义颜色。",
-    "en": "Border semantic color in the theme."
+    "zh": "常规边框颜色。",
+    "en": "The standard border color."
   },
   "BorderMuted": {
-    "zh": "主题中的 BorderMuted 语义颜色。",
-    "en": "BorderMuted semantic color in the theme."
+    "zh": "较弱的边框颜色。",
+    "en": "A subdued border color."
   },
   "BorderAccented": {
-    "zh": "主题中的 BorderAccented 语义颜色。",
-    "en": "BorderAccented semantic color in the theme."
+    "zh": "较明显的边框颜色。",
+    "en": "A more prominent border color."
   },
   "BorderInverted": {
-    "zh": "主题中的 BorderInverted 语义颜色。",
-    "en": "BorderInverted semantic color in the theme."
+    "zh": "反色背景上使用的边框颜色。",
+    "en": "Border color used on an inverted background."
   },
   "Accented": {
-    "zh": "主题中的 Accented 语义颜色。",
-    "en": "Accented semantic color in the theme."
+    "zh": "需要更明显区分的背景颜色。",
+    "en": "A background color for more prominent separation."
   },
   "Elevated": {
-    "zh": "主题中的 Elevated 语义颜色。",
-    "en": "Elevated semantic color in the theme."
+    "zh": "需要区分层次的区域背景色。",
+    "en": "A background color for elevated content areas."
   },
   "MutedBackground": {
-    "zh": "主题中的 MutedBackground 语义颜色。",
-    "en": "MutedBackground semantic color in the theme."
+    "zh": "较弱的区域背景色。",
+    "en": "A subdued background color."
   },
   "InvertedBackground": {
-    "zh": "主题中的 InvertedBackground 语义颜色。",
-    "en": "InvertedBackground semantic color in the theme."
+    "zh": "与当前明暗模式形成反差的背景色。",
+    "en": "A background color that contrasts with the current light or dark mode."
   },
   "Type": {
     "zh": "分隔线的样式类型，例如实线或虚线。",
@@ -1332,12 +1332,12 @@
     "en": "Called when the draft changes, with canonical draft text or rejected pasted text. Incomplete input does not commit a value."
   },
   "PropagateSelect": {
-    "zh": "多选时选择/取消已加载的后代；禁用节点是联动边界。",
-    "en": "In multiple mode, select/deselect loaded descendants; disabled nodes stop propagation."
+    "zh": "多选时同步选择或取消已加载的子孙节点；遇到禁用节点时停止向下联动。",
+    "en": "In multiple mode, select or deselect loaded descendants, stopping propagation at disabled nodes."
   },
   "BubbleSelect": {
-    "zh": "多选时按可用子项同步祖先选择，并提供 Indeterminate 状态。",
-    "en": "In multiple mode, reconcile ancestor selection from enabled children and expose indeterminate state."
+    "zh": "多选时根据可用子节点的选择更新祖先；部分子节点选中时显示半选状态。",
+    "en": "In multiple mode, update ancestors from their enabled children, showing a mixed state when only some are selected."
   },
   "ExpandOnClick": {
     "zh": "默认 true；点击行同时选择并展开/折叠，false 时使用箭头或左右键。Enter/Space 只选择。",
@@ -1368,8 +1368,8 @@
     "en": "Called once when an interaction changes selection; expansion and keyboard highlight do not trigger it."
   },
   "TreeOptions.Build": {
-    "zh": "同步构建非交互内容，接收 ID、标签、层级、选择、展开、半选和加载快照。",
-    "en": "Synchronously build non-interactive content from ID, label, level, selection, expansion, mixed and loading snapshots."
+    "zh": "自定义节点的展示内容，接收 ID、层级、选择、展开、半选和加载状态；不要在内容中添加独立交互控件。",
+    "en": "Customize node display using its ID, level, selection, expansion, mixed and loading state. Do not add independently interactive controls inside it."
   },
   "TreeOptions.Nested": {
     "zh": "默认 true：显示祖先竖线，子项背景和点击区域随层级缩进；false 使用整行背景和点击区域，内容仍缩进。两种模式均保持原生虚拟化。",

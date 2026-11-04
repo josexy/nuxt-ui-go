@@ -48,6 +48,8 @@ Go 交互回归还覆盖菜单的每项操作、表单校验与提交、选择�
 
 `internal/showcase/catalog.json` 是示例的唯一来源，维护双语用途、说明、参数定义、持久状态、初始化代码和视图模板。模板中的 `{{parameter}}` 在运行版本中替换为配置读取表达式，在复制版本中替换为经过验证的 Go 字面量。
 
+组件简介 `description` 简要说明用途；`guide` 使用 Markdown，分为基本用法和可操作的预览步骤；`note` 保存必要的限制或易误用的行为，非空时显示在使用时注意小节。修改文案时同步中英文，并核对按钮名称、参数和预览结果，避免把示例配置写成组件默认值。
+
 `internal/cmd/genshowcase` 从源码和示例生成配置类型、枚举注册表；`fields.go` 自动遍历所有公开 Options 和嵌套字段，`values.go` / `functions.go` 同时生成预览值与公开 Go 代码。字段覆盖测试会检测遗漏。数据初始化只在数据配置变化时执行，不随绘制反复重置。
 
 `internal/showcase/api-notes.json` 维护 API 字段的双语说明。`internal/cmd/genwebsite` 从根包源码提取公开函数、Options 和嵌入字段；API 表区分 Go 零值与实际组件默认行为，不从类型猜测有效默认值。
@@ -94,5 +96,7 @@ The site uses Nuxt 4, Nuxt UI 4 and Nuxt Content. Live previews run the actual G
 Use Go from the repository's `go.mod`, Node 24 and pnpm 10.33.3. Run `pnpm --dir website install --frozen-lockfile`, then `pnpm --dir website dev`. Run `check` and `generate` before publishing. Frontend checks cover formatting, types and the static build; Go regression tests and standalone snippet compilation are retained. Generated output is `website/.output/public/`.
 
 Every public Options field has an editor, including nested styles, data and callback presets. The preview and standalone Go code share typed conversion and validation. Unset, explicit false/zero and cleared values remain distinct. The shared example catalog owns controls, templates and code generation. API signatures and embedded option fields come from the current Go source. Run `prepare:site` after changing Go sources and refresh the browser. Generated preview Go code is committed and checked for drift; generated website pages and binaries are ignored.
+
+Keep descriptions focused on purpose. Write `guide` as Markdown with basic usage and concrete preview steps; a non-empty `note` appears under Things to know. Update both languages and check the preview controls and outcomes, keeping example settings distinct from component defaults.
 
 Publishing is manual through **Publish component website**. Set `NUXT_APP_BASE_URL` to the project path for local production verification. Native dialogs and full assistive-technology semantics are not supported by the browser backend; previews complement desktop testing.

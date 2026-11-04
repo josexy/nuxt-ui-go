@@ -5,6 +5,13 @@ const localePath = useLocalePath()
 const { components, local } = useCatalog()
 const demo = computed(() => components.find(c => c.id === route.params.id))
 if (!demo.value) throw createError({ statusCode: 404, statusMessage: 'Component not found' })
+const usageMarkdown = computed(() => {
+  if (!demo.value) return ''
+  const note = local(demo.value.note)
+  return [local(demo.value.guide), note ? `### ${t('usageNotes')}\n\n${note}` : '']
+    .filter(Boolean)
+    .join('\n\n')
+})
 const { data: page } = await useAsyncData(
   () => `content-${locale.value}-${route.params.id}`,
   () =>
@@ -45,13 +52,17 @@ useSeoMeta({
           v-if="page"
           :value="page"
         />
-        <p v-else>{{ local(demo.guide) }}</p>
+        <MDC
+          v-else
+          :value="usageMarkdown"
+        />
       </section>
       <section
         id="api"
         class="api-section"
       >
         <h2>{{ t('api') }}</h2>
+        <p class="api-hint">{{ t('apiHint') }}</p>
         <div
           v-for="entry in demo.api"
           :key="entry.name"
@@ -93,7 +104,14 @@ useSeoMeta({
                   <td>
                     <code>{{ field.type }}</code>
                     <p class="field-zero">
-                      {{ t('zeroValue') }}: <code>{{ field.zero }}</code>
+                      {{ t('zeroValue') }}:
+                      <code>{{
+                        field.zero === 'unset'
+                          ? t('unsetValue')
+                          : field.zero === 'zero value'
+                            ? t('typeZeroValue')
+                            : field.zero
+                      }}</code>
                     </p>
                   </td>
                   <td>

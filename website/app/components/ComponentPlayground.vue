@@ -234,6 +234,7 @@ onBeforeUnmount(() => clearTimeout(copyTimer))
         class="parameter-panel"
       >
         <h3>{{ t('parameters') }}</h3>
+        <p class="parameter-hint">{{ t('parameterHint') }}</p>
         <div class="parameter-grid">
           <label
             v-for="control in demo.controls"
@@ -406,5 +407,6 @@ onBeforeUnmount(() => clearTimeout(copyTimer))
       </div>
       <pre tabindex="0"><code>{{ currentCode }}</code></pre>
     </div>
+    <p class="code-hint">{{ t(synchronized ? 'codeHint' : 'defaultCode') }}</p>
   </section>
 </template>

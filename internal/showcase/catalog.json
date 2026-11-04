@@ -4,16 +4,16 @@
     "name": "App",
     "category": "foundations",
     "description": {
-      "zh": "为窗口建立主题与组件环境。",
-      "en": "Set up the theme and component environment for a window."
+      "zh": "为窗口设置主题，并传给其中的组件。",
+      "en": "Apply a window theme and share it with its components."
     },
     "guide": {
-      "zh": "在窗口视图中先调用 nui.App，取得供子组件使用的主题。这里用 Card 和 Button 展示同一主题下的组合；完整示例包含语言、色板和窗口初始化。",
-      "en": "Call nui.App in the window view and pass the resulting theme to child components. This example combines a Card and Button; the complete program includes language, palette and window setup."
+      "zh": "### 基本用法\n\n在视图函数开头调用 `nui.App(c, config)`，再把返回的主题传给按钮、卡片等组件。`config` 保存明暗模式和色板，应在创建窗口时初始化。页面中的完整示例包含窗口创建和语言设置。\n\n### 在预览中试一试\n\n1. 修改按钮文字和颜色，观察卡片中的按钮。\n2. 切换页面右上角的明暗模式，查看同一组组件的配色。",
+      "en": "### Basic usage\n\nCall `nui.App(c, config)` at the start of the view and pass its theme to buttons, cards and other components. Initialize `config` when creating the window to keep appearance and palette choices. The complete example includes window and language setup.\n\n### Try the preview\n\n1. Change the button text and color inside the card.\n2. Switch the site appearance to compare light and dark colors."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "App 只配置当前窗口的主题。创建窗口仍需调用 `mygo.NewWindow`。",
+      "en": "App configures the current window theme. Create the window with `mygo.NewWindow`."
     },
     "symbols": [
       "App",
@@ -87,16 +87,16 @@
     "name": "Theme",
     "category": "foundations",
     "description": {
-      "zh": "组合色板、局部主题与组件默认样式。",
-      "en": "Compose palettes, local themes and component defaults."
+      "zh": "统一设置颜色、尺寸和组件样式。",
+      "en": "Set shared colors, sizes and component styles."
     },
     "guide": {
-      "zh": "第一个按钮使用局部组件主题，第二个用实例颜色覆盖它，第三个通过 UI 调整圆角和水平内边距。修改颜色、尺寸和样式，比较全局主题、局部默认值与实例覆盖的优先级。主色选 Black 时，浅色模式为黑、深色模式为白，高对比设置下也保持黑白；完整示例通过 Theme.WithBlackPrimary() 配置两个主题快照。",
-      "en": "The first button uses local component defaults, the second overrides its color, and the third customizes radius and horizontal padding through UI. Change the controls to compare global, local and instance styling. Select Black as the primary for black in light mode and white in dark mode, including high contrast. The complete example applies Theme.WithBlackPrimary() to both theme snapshots."
+      "zh": "### 基本用法\n\n`Theme` 保存颜色、字号、间距和组件默认样式。用 `WithComponent` 设置一类组件的默认值；在具体组件的 Options 中设置属性，可覆盖对应默认值。`UI` 用于修改圆角等部件样式。\n\n### 在预览中试一试\n\n1. 调整颜色、尺寸和样式：第一个按钮使用局部默认值，第二个按钮始终使用 Warning 颜色，第三个展示自定义圆角。\n2. 把主色改为 black，再切换明暗模式，查看黑白主色。",
+      "en": "### Basic usage\n\n`Theme` holds colors, typography, spacing and component defaults. Use `WithComponent` to set defaults for a component type, Options to override them on one instance, and `UI` to customize individual parts.\n\n### Try the preview\n\n1. Change color, size and variant: the first button uses local defaults, the second keeps its Warning color, and the third has custom rounded corners.\n2. Select black as the primary color, then switch between light and dark mode."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "黑白主色通过 `WithBlackPrimary()` 配置：浅色为黑，深色为白，高对比模式下也保持黑白。应分别应用到浅色和深色主题。",
+      "en": "Apply `WithBlackPrimary()` to both themes for black in light mode and white in dark mode, including high contrast."
     },
     "symbols": [
       "Light",
@@ -243,16 +243,16 @@
     "name": "Container",
     "category": "foundations",
     "description": {
-      "zh": "限制内容宽度并提供水平留白。",
-      "en": "Constrain content width and provide horizontal padding."
+      "zh": "限制内容宽度，并在两侧留出空间。",
+      "en": "Limit content width and add space around it."
     },
     "guide": {
-      "zh": "调整 MaxWidth 和 Padding，再缩窄浏览器查看内容如何受到宽度约束。这些尺寸使用 DIP；通过 nui.Set(0) 可以明确取消留白，而不是使用未设置的默认值。",
-      "en": "Change MaxWidth and Padding, then narrow the browser to inspect the width constraint. Dimensions use DIP; nui.Set(0) explicitly removes padding instead of leaving its default unset."
+      "zh": "### 基本用法\n\n把页面内容放入 `Container` 的回调中，用 `MaxWidth` 限制最大宽度，用 `Padding` 设置内边距。尺寸使用 DIP（逻辑像素），通常不需要手动乘屏幕缩放比例。\n\n### 在预览中试一试\n\n1. 减小最大宽度，观察卡片占用的宽度。\n2. 调整内边距；设为 0 后，查看内容与容器边缘的距离。",
+      "en": "### Basic usage\n\nBuild the page content inside `Container`. Set `MaxWidth` to limit its width and `Padding` for inner spacing. Dimensions use DIP, so applications usually do not need to apply screen scaling themselves.\n\n### Try the preview\n\n1. Reduce the maximum width and watch the card become narrower.\n2. Change the padding, then set it to 0 to remove the inner spacing."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "`nui.Set(0)` 表示明确使用 0；未设置 Optional 字段时，组件使用默认值。",
+      "en": "`nui.Set(0)` explicitly uses zero. An unset Optional field uses the component default."
     },
     "symbols": [
       "Container"
@@ -275,7 +275,7 @@
       {
         "key": "padding",
         "label": {
-          "zh": "留白",
+          "zh": "内边距",
           "en": "Padding"
         },
         "kind": "number",
@@ -294,16 +294,16 @@
     "name": "Main",
     "category": "foundations",
     "description": {
-      "zh": "为主要内容提供应用布局区域。",
-      "en": "Provide the main content region of an application."
+      "zh": "放置应用的主要内容，并占用剩余空间。",
+      "en": "Place the main application content in the available space."
     },
     "guide": {
-      "zh": "Main 为主内容提供布局容器，示例中包含一张 Card。它可以和 Header、Sidebar、Footer 组合；业务内容通过同步回调构建。",
-      "en": "Main provides a layout container for primary content, shown here with a Card. Compose it with Header, Sidebar and Footer, and build application content in its synchronous callback."
+      "zh": "### 基本用法\n\n在 `Main` 的内容回调中创建页面主体，可与 HeaderLayout、Sidebar 和 FooterLayout 组合。回调会随界面更新而重复执行，业务数据应保存在视图函数外。\n\n### 在预览中试一试\n\n1. 修改标题，查看主内容区中的卡片。\n2. 打开完整示例，查看 Main 与窗口主题的组合方式。",
+      "en": "### Basic usage\n\nBuild the main page content in the `Main` callback and combine it with HeaderLayout, Sidebar and FooterLayout. The callback runs again as the UI updates, so keep application data outside the view function.\n\n### Try the preview\n\n1. Change the title on the card in the main content area.\n2. Open the complete example to see Main used with a window theme."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "Main 提供布局，不会自动增加滚动条。内容需要滚动时，再组合 ScrollArea 或 MyGo 的 Scroll。",
+      "en": "Main provides layout without scrolling. Add ScrollArea or MyGo Scroll when content needs to scroll."
     },
     "symbols": [
       "Main"
@@ -330,16 +330,16 @@
     "name": "Icon",
     "category": "foundations",
     "description": {
-      "zh": "按需使用 Lucide 矢量图标。",
-      "en": "Use Lucide vector icons on demand."
+      "zh": "显示 Lucide 矢量图标。",
+      "en": "Display a Lucide vector icon."
     },
     "guide": {
-      "zh": "选择 Lucide 图标并调整像素尺寸，预览直接绘制 SVG。完整示例展示图标包的按需导入；仅图标控件应提供能说明用途的 Label。",
-      "en": "Choose a Lucide icon and adjust its size to render the SVG directly. The complete example shows its package import; supply a meaningful Label for icon-only controls."
+      "zh": "### 基本用法\n\n从 `icons/lucide` 包选择图标函数，例如 `lucide.Check()`，将返回的 SVG 传给 `nui.Icon`。通过 Size 设置显示大小，具有独立含义的图标应提供 Label，供辅助技术识别。\n\n### 在预览中试一试\n\n1. 选择不同图标，查看 SVG 的形状。\n2. 调整图标大小，观察缩放后的清晰度。",
+      "en": "### Basic usage\n\nChoose a function from `icons/lucide`, such as `lucide.Check()`, and pass its SVG to `nui.Icon`. Size controls the displayed dimensions. Give a meaningful standalone icon a Label for assistive technology.\n\n### Try the preview\n\n1. Choose a different icon to compare SVG shapes.\n2. Change the icon size to see how it scales."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "图标大小使用 DIP。图标函数返回共享 SVG，颜色和尺寸通过组件设置，不直接修改 SVG。",
+      "en": "Icon size uses DIP. Icon functions return shared SVGs; set color and size on the component rather than modifying the SVG."
     },
     "symbols": [
       "Icon"
@@ -383,8 +383,8 @@
       {
         "key": "pixels",
         "label": {
-          "zh": "图标大小",
-          "en": "Pixels"
+          "zh": "图标大小（DIP）",
+          "en": "Icon size (DIP)"
         },
         "kind": "number",
         "default": 40.0,
@@ -402,16 +402,16 @@
     "name": "Button",
     "category": "foundations",
     "description": {
-      "zh": "触发操作，支持多种样式和状态。",
-      "en": "Trigger actions with several appearances and states."
+      "zh": "点击后执行操作，支持图标、加载和禁用状态。",
+      "en": "Run an action with support for icons, loading and disabled states."
     },
     "guide": {
-      "zh": "点击按钮观察计数，再试试图标、Outline、LG、加载和禁用状态。操作计数保存在视图外，修改外观不会重复触发点击回调；重置会清除计数。",
-      "en": "Click the button to increment the counter, then try an icon, Outline, LG, loading and disabled states. The counter lives outside the view, so appearance changes do not repeat the callback; reset clears it."
+      "zh": "### 基本用法\n\n用 `Button` 设置文字和外观，通过 `.OnClick(...)` 处理点击。点击次数等业务数据放在视图函数外；Loading 和 Disabled 都会阻止用户激活按钮。\n\n### 在预览中试一试\n\n1. 点击按钮，查看下方计数增加。\n2. 更换图标、颜色或尺寸，确认已有计数仍然保留。\n3. 开启加载或禁用，再点击按钮，查看计数是否停止变化。",
+      "en": "### Basic usage\n\nSet button text and appearance with `Button`, then handle activation with `.OnClick(...)`. Keep values such as a click count outside the view function. Loading and Disabled both prevent activation.\n\n### Try the preview\n\n1. Click the button and watch the count below it increase.\n2. Change its icon, color or size and confirm the count is retained.\n3. Enable loading or disabled, then click again to check that the count stays the same."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "仅显示图标的按钮必须设置 `AccessibleLabel`，说明按钮的用途。重置示例会清除点击计数。",
+      "en": "An icon-only button requires an `AccessibleLabel` describing its action. Resetting the example clears the click count."
     },
     "symbols": [
       "Button"
@@ -610,16 +610,16 @@
     "name": "Link",
     "category": "foundations",
     "description": {
-      "zh": "用链接样式呈现导航与操作。",
-      "en": "Present navigation and actions with link styling."
+      "zh": "以链接样式打开地址或执行导航。",
+      "en": "Open a URL or navigate with a link."
     },
     "guide": {
-      "zh": "点击链接更新下方计数，比较 Active 和 Disabled 外观。此例只触发本地回调；真实页面跳转或打开外部地址由应用在操作回调中实现。",
-      "en": "Activate the link to update the counter and compare Active and Disabled states. This example runs a local callback; application actions own navigation or opening external URLs."
+      "zh": "### 基本用法\n\n需要打开外部地址时设置 URL；应用内导航可通过返回元素的 `.OnClick(...)` 处理。Active 标记当前位置，Disabled 禁止操作。\n\n### 在预览中试一试\n\n1. 点击链接，查看下方的操作次数。\n2. 切换当前项和禁用状态，比较外观及点击行为。",
+      "en": "### Basic usage\n\nSet URL to open an external address, or use `.OnClick(...)` on the returned element for application navigation. Active marks the current location and Disabled prevents activation.\n\n### Try the preview\n\n1. Click the link and check the activation count below it.\n2. Toggle active and disabled states to compare appearance and behavior."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "本例只增加计数，不打开网页。真实导航由 URL 或应用回调决定。",
+      "en": "This example only increments a count. Use URL or an application callback for actual navigation."
     },
     "symbols": [
       "Link"
@@ -710,16 +710,16 @@
     "name": "Badge",
     "category": "foundations",
     "description": {
-      "zh": "为状态或数量提供紧凑标记。",
-      "en": "Show a compact status or count."
+      "zh": "用短标签显示状态、分类或数量。",
+      "en": "Show a status, category or count as a small label."
     },
     "guide": {
-      "zh": "调整文字、图标、颜色和样式，比较适合状态说明与数量提示的效果。Badge 用来呈现信息；需要执行操作时可使用 Button。",
-      "en": "Change the text, icon, color and variant to compare status and count treatments. Badge presents information; use Button when an action is required."
+      "zh": "### 基本用法\n\n将要显示的短文字传给 `Badge`，通过 Color、Variant 和 Size 选择外观。Leading 和 Trailing 可在文字两侧添加图标。\n\n### 在预览中试一试\n\n1. 修改标签文字，再选择颜色和图标。\n2. 切换样式与方形选项，比较带文字和仅图标的效果。",
+      "en": "### Basic usage\n\nPass a short label to `Badge` and choose Color, Variant and Size. Leading and Trailing add icons before or after the text.\n\n### Try the preview\n\n1. Change the label, then choose a color and icon.\n2. Compare variants and the square option with text or an icon alone."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "Badge 用于显示信息。需要点击执行操作时，使用 Button。",
+      "en": "Badge displays information. Use Button when the user needs to perform an action."
     },
     "symbols": [
       "Badge"
@@ -901,16 +901,16 @@
     "name": "Card",
     "category": "foundations",
     "description": {
-      "zh": "组合标题、说明和主体内容。",
-      "en": "Group a title, description and body content."
+      "zh": "把标题、说明和相关内容放在同一张卡片中。",
+      "en": "Group a title, description and related content in a card."
     },
     "guide": {
-      "zh": "Card 将标题、说明和主体回调组合成一个区域。示例中的 Continue 按钮展示内容组合，尚未绑定业务操作；切换 Variant 比较卡片外观。",
-      "en": "Card combines a title, description and body callback. The Continue button illustrates composition without a business action; change Variant to compare the card treatments."
+      "zh": "### 基本用法\n\nTitle 和 Description 设置卡片标题及说明，内容回调用于添加正文和按钮。需要定制标题区或底部操作区时，使用 Header 和 Footer 回调。\n\n### 在预览中试一试\n\n1. 修改标题，查看卡片顶部的变化。\n2. 切换 Variant，比较边框和背景样式。",
+      "en": "### Basic usage\n\nUse Title and Description for the heading, and the content callback for the body and buttons. Header and Footer callbacks customize the heading area and footer.\n\n### Try the preview\n\n1. Change the title at the top of the card.\n2. Switch Variant to compare borders and backgrounds."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "示例中的 Continue 按钮只展示布局，没有绑定业务操作。",
+      "en": "The Continue button demonstrates the layout and has no application action attached."
     },
     "symbols": [
       "Card"
@@ -971,16 +971,16 @@
     "name": "Alert",
     "category": "foundations",
     "description": {
-      "zh": "突出重要信息和状态反馈。",
-      "en": "Highlight important information and feedback."
+      "zh": "在内容区域显示提示、警告或错误信息。",
+      "en": "Display an inline message, warning or error."
     },
     "guide": {
-      "zh": "调整标题、语义颜色、样式与方向，观察图标和说明的排列。Alert 适合在内容区域持续解释状态；示例使用固定说明文字。",
-      "en": "Change the title, semantic color, variant and orientation to inspect the icon and description layout. Alert explains a persistent state in the content area; this example uses a fixed description."
+      "zh": "### 基本用法\n\n用 Title、Description 和 Icon 说明当前状态，再用 Color 区分普通提示、成功、警告或错误。需要操作按钮时，可通过 Actions 添加。\n\n### 在预览中试一试\n\n1. 修改标题、颜色和样式，比较提示的外观。\n2. 切换方向，查看正文与可选操作区的排列设置。",
+      "en": "### Basic usage\n\nDescribe the status with Title, Description and Icon, and use Color for information, success, warning or error. Add action buttons through Actions when needed.\n\n### Try the preview\n\n1. Change the title, color and variant to compare message styles.\n2. Change orientation to compare the layout setting for the body and optional actions."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "本例的说明文字固定，未添加操作按钮；方向主要决定操作区位于正文下方还是旁边。",
+      "en": "This example has a fixed description and no action buttons. Orientation mainly controls whether actions sit below or beside the body."
     },
     "symbols": [
       "Alert"
@@ -1105,16 +1105,16 @@
     "name": "Avatar",
     "category": "foundations",
     "description": {
-      "zh": "显示用户缩写或图标。",
-      "en": "Display a person’s initials or icon."
+      "zh": "显示头像图片、图标或姓名首字母。",
+      "en": "Display an image, icon or name initials as an avatar."
     },
     "guide": {
-      "zh": "输入姓名查看缩写头像，并比较颜色与尺寸。此例通过 Alt 提供姓名；Text 为空时自动显示缩写，显式 Text 则原样显示。图片加载及应用用户资料由应用管理。",
-      "en": "Enter a name to inspect initials and compare colors and sizes. This example passes the name through Alt; an empty Text derives initials, while explicit Text is displayed literally. The application owns user data and image loading."
+      "zh": "### 基本用法\n\n将姓名传给 Alt，可生成首字母头像。设置 Text 时会原样显示该文字，例如 `+12`；也可传入已解码的图片或 SVG 图标。\n\n### 在预览中试一试\n\n1. 输入不同姓名，查看自动生成的首字母。\n2. 调整颜色和尺寸，比较头像外观。",
+      "en": "### Basic usage\n\nPass a name through Alt to display initials. Text is shown literally, for example `+12`. You can also supply a decoded image or an SVG icon.\n\n### Try the preview\n\n1. Enter different names to see their initials.\n2. Change color and size to compare avatar styles."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "Avatar 不负责下载或读取图片。应用应先完成图片加载，再把资源传给组件。",
+      "en": "Avatar does not download or read images. Load the image in the application before passing it to the component."
     },
     "symbols": [
       "Avatar"
@@ -1223,16 +1223,16 @@
     "name": "AvatarGroup",
     "category": "foundations",
     "description": {
-      "zh": "叠放多个头像并显示溢出数量。",
-      "en": "Stack avatars and show an overflow count."
+      "zh": "排列多个头像，并显示未展开的人数。",
+      "en": "Arrange several avatars and show how many remain hidden."
     },
     "guide": {
-      "zh": "示例用三个稳定 ID 的用户展示头像叠放。修改 maximum 观察可见头像与溢出数量，动态列表应继续使用用户 ID，而不是列表索引。",
-      "en": "Three users with stable IDs demonstrate overlapping avatars. Change maximum to inspect visible avatars and overflow; dynamic collections should retain user IDs instead of list indexes."
+      "zh": "### 基本用法\n\n为每个 AvatarItem 提供稳定、唯一的用户 ID 和头像配置。Max 限制显示数量，超出的头像用 `+n` 表示；Size 和 Color 为未单独配置的头像提供默认值。\n\n### 在预览中试一试\n\n1. 将显示上限设为 1 或 2，观察剩余人数。\n2. 调整尺寸和颜色，查看三个示例头像的组合效果。",
+      "en": "### Basic usage\n\nGive each AvatarItem a stable, unique user ID and avatar options. Max limits the visible avatars and represents the rest as `+n`. Size and Color supply defaults for items without their own settings.\n\n### Try the preview\n\n1. Set the visible limit to 1 or 2 and check the remaining count.\n2. Change size and color to compare the three sample avatars."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "Max 未设置或小于等于 0 时显示全部头像。动态用户列表使用用户 ID，避免使用排序后会变化的下标。",
+      "en": "An unset Max or a value at or below zero shows all avatars. Use user IDs rather than positions in a sortable list."
     },
     "symbols": [
       "AvatarGroup"
@@ -1343,16 +1343,16 @@
     "name": "Chip",
     "category": "foundations",
     "description": {
-      "zh": "在内容角落附加状态标记。",
-      "en": "Attach a small status indicator to content."
+      "zh": "在头像等内容的角落添加数量或状态标记。",
+      "en": "Add a count or status marker to the corner of other content."
     },
     "guide": {
-      "zh": "Chip 将小标记附在头像外侧，可用于数量或在线状态。切换 hidden 查看主体仍保留的效果，标记文字和颜色可独立于头像设置。",
-      "en": "Chip attaches a small count or status marker to an avatar. Toggle hidden to keep the underlying content visible, and configure the marker independently from the avatar."
+      "zh": "### 基本用法\n\n在 `Chip` 的内容回调中创建头像等主体，通过 Text、Color 和位置选项配置角标。Hidden 只隐藏角标，保留主体内容。\n\n### 在预览中试一试\n\n1. 修改标记文字和颜色，查看头像角落的变化。\n2. 开启隐藏，确认头像仍然显示。",
+      "en": "### Basic usage\n\nBuild an avatar or other content inside `Chip`, then configure its marker with Text, Color and position options. Hidden removes the marker while keeping the main content.\n\n### Try the preview\n\n1. Change the marker text and color on the avatar.\n2. Enable hidden and confirm that the avatar remains visible."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "角标不会拦截主体的点击。数量或在线状态需要被屏幕阅读器读出时，应用应将它写入主体的名称或说明。",
+      "en": "The marker does not intercept clicks. Include meaningful counts or status in the host control’s name or description for screen readers."
     },
     "symbols": [
       "Chip"
@@ -1470,16 +1470,16 @@
     "name": "Separator",
     "category": "foundations",
     "description": {
-      "zh": "分隔内容，支持文字和方向。",
-      "en": "Separate content with an optional label and orientation."
+      "zh": "用分隔线区分内容，可添加文字或图标。",
+      "en": "Separate content with a line, label or icon."
     },
     "guide": {
-      "zh": "切换横向与纵向分隔线，调整标签与颜色。分隔线的可见长度还取决于父布局；示例为方向切换预留了固定高度。",
-      "en": "Switch between horizontal and vertical separators and adjust the label and color. The parent layout also determines visible length; this example reserves height for both orientations."
+      "zh": "### 基本用法\n\n通过 Orientation 选择横线或竖线，Label 在分隔线中显示文字。Size 调整线宽，Color 设置颜色；实际长度由容器和组件尺寸决定。\n\n### 在预览中试一试\n\n1. 修改文字和颜色，查看分隔线中间的内容。\n2. 切换方向，再调整尺寸，比较线条的方向与粗细。",
+      "en": "### Basic usage\n\nUse Orientation for a horizontal or vertical line and Label to insert text. Size adjusts line thickness and Color sets its color. The container and component dimensions determine its length.\n\n### Try the preview\n\n1. Change the label and color in the divider.\n2. Switch orientation and size to compare direction and thickness."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "",
+      "en": ""
     },
     "symbols": [
       "Separator"
@@ -1608,16 +1608,16 @@
     "name": "Kbd",
     "category": "foundations",
     "description": {
-      "zh": "展示符合平台习惯的快捷键。",
-      "en": "Display a platform-aware keyboard shortcut."
+      "zh": "把快捷键显示为按键提示。",
+      "en": "Display a keyboard shortcut as key labels."
     },
     "guide": {
-      "zh": "这里显示 Ctrl + K 的按键提示，可修改尺寸与样式。Kbd 只负责呈现快捷键；真正的快捷键绑定需要由应用单独注册。",
-      "en": "This example displays a Ctrl + K hint with configurable size and variant. Kbd renders the hint; the application must register the actual shortcut separately."
+      "zh": "### 基本用法\n\n将按键名称按顺序传给 `Kbd`，例如 `[]string{\"Ctrl\", \"K\"}`。组件会按平台习惯显示键名，Size 和 Variant 控制提示外观。\n\n### 在预览中试一试\n\n1. 查看 Ctrl + K 的按键提示。\n2. 调整尺寸、颜色和样式，比较提示外观。",
+      "en": "### Basic usage\n\nPass key names in order, such as `[]string{\"Ctrl\", \"K\"}`. Kbd formats them for the platform, while Size and Variant control their appearance.\n\n### Try the preview\n\n1. Look at the Ctrl + K key labels.\n2. Change size, color and variant to compare their appearance."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "Kbd 只显示提示，不注册快捷键。实际按键操作需由应用单独绑定。",
+      "en": "Kbd displays a hint; it does not register the shortcut. Bind keyboard actions separately in the application."
     },
     "symbols": [
       "Kbd"
@@ -1749,16 +1749,16 @@
     "name": "Skeleton",
     "category": "foundations",
     "description": {
-      "zh": "在加载期间保留内容布局。",
-      "en": "Reserve content space while loading."
+      "zh": "在数据加载时显示内容占位。",
+      "en": "Show a placeholder while content is loading."
     },
     "guide": {
-      "zh": "修改宽高并切换 Animate，观察加载占位块。Skeleton 不会启动数据请求，应由应用根据加载状态显示；动画还会遵守减少动态效果设置。",
-      "en": "Change width, height and Animate to inspect a loading placeholder. Skeleton does not fetch data; show it from application loading state. Motion also respects reduced-motion preferences."
+      "zh": "### 基本用法\n\n用 Width、Height 和圆角设置占位块的大小与形状，应用根据加载状态决定是否显示。Skeleton 本身不发起数据请求。\n\n### 在预览中试一试\n\n1. 修改宽度和高度，模拟不同内容的占位。\n2. 关闭动画，再开启动画，对比静态和动态效果。",
+      "en": "### Basic usage\n\nSet Width, Height and radius to match the expected content. The application decides when to show it based on loading state; Skeleton does not fetch data.\n\n### Try the preview\n\n1. Change width and height to match different kinds of content.\n2. Turn animation off and on to compare a static and animated placeholder."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "系统或主题启用减少动态效果时，Skeleton 保持静止。",
+      "en": "Skeleton stays still when the system or theme requests reduced motion."
     },
     "symbols": [
       "Skeleton"
@@ -1809,16 +1809,16 @@
     "name": "Progress",
     "category": "foundations",
     "description": {
-      "zh": "显示任务进度或不确定加载状态。",
-      "en": "Show task progress or an indeterminate loading state."
+      "zh": "显示已完成的进度，或表示任务仍在处理中。",
+      "en": "Show completed progress or indicate that work is ongoing."
     },
     "guide": {
-      "zh": "调整 value 显示确定进度，或开启 Indeterminate 表示进度未知。此例由参数直接控制数值；真实任务应通过任务状态更新进度。",
-      "en": "Change value for determinate progress or enable Indeterminate when the amount is unknown. The controls supply the example value; real tasks should update progress through application state."
+      "zh": "### 基本用法\n\n已知完成量时，向 `Progress` 传入数值，并按需设置 Max。无法确定进度时，启用 Indeterminate；应用在任务有新结果时更新数值。\n\n### 在预览中试一试\n\n1. 调整进度数值，观察填充长度。\n2. 开启进度未知，查看不确定进度的显示，再切换方向。",
+      "en": "### Basic usage\n\nPass a numeric value to `Progress` when the amount completed is known, and set Max if needed. Enable Indeterminate when progress cannot be measured. Update the value as the task advances.\n\n### Try the preview\n\n1. Change the value and watch the filled length.\n2. Enable indeterminate progress, then switch orientation."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "本例由参数直接设置数值，不会启动真实任务。",
+      "en": "The controls set the value directly; this example does not start a task."
     },
     "symbols": [
       "Progress"
@@ -1921,7 +1921,7 @@
       {
         "key": "indeterminate",
         "label": {
-          "zh": "不确定进度",
+          "zh": "进度未知",
           "en": "Indeterminate"
         },
         "kind": "boolean",
@@ -1958,16 +1958,16 @@
     "name": "ProgressGroup",
     "category": "foundations",
     "description": {
-      "zh": "展示任务各部分的进度占比。",
-      "en": "Show the contributions of several progress segments."
+      "zh": "在同一条进度轨道中展示多项完成量。",
+      "en": "Show several amounts within one progress track."
     },
     "guide": {
-      "zh": "代码、测试和文档三段使用固定示例数据，可比较隐藏图例和方向变化。每段使用独立 ID、数值和语义颜色，便于连接任务数据。",
-      "en": "Code, tests and docs use fixed segment data. Compare the legend visibility and orientation; each segment has its own ID, value and semantic color for connecting task data."
+      "zh": "### 基本用法\n\n为每个 ProgressSegment 设置 ID、Label、Value 和 Color。组件将各段画在同一轨道中，未达到 Max 时保留空余；说明列表展示各段占比。\n\n### 在预览中试一试\n\n1. 查看 Code、Tests、Docs 三段固定数据。\n2. 切换隐藏图例和排列方向，比较进度条与说明列表。",
+      "en": "### Basic usage\n\nSet ID, Label, Value and Color for each ProgressSegment. Segments share one track, with unused space below Max. The legend shows each segment’s share.\n\n### Try the preview\n\n1. Compare the fixed Code, Tests and Docs segments.\n2. Toggle the legend and orientation to compare the track and labels."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "各段需要唯一、非空 ID。组件负责展示，任务调度和进度计算由应用处理。",
+      "en": "Each segment needs a unique, non-empty ID. The application schedules tasks and calculates their progress."
     },
     "symbols": [
       "ProgressGroup"
@@ -2052,16 +2052,16 @@
     "name": "Empty",
     "category": "foundations",
     "description": {
-      "zh": "解释没有内容时的状态和下一步。",
-      "en": "Explain an empty state and the next action."
+      "zh": "说明当前为何没有内容，并提供下一步操作。",
+      "en": "Explain an empty state and offer a next action."
     },
     "guide": {
-      "zh": "修改标题、尺寸与加载状态，比较空内容的呈现方式。示例的 Create project 按钮是操作区的组合示范，应用可在这里绑定创建流程。",
-      "en": "Change the title, size and loading state to compare empty-content presentations. The Create project button demonstrates the action area, where an application can start its creation flow."
+      "zh": "### 基本用法\n\n用 Title、Description 和 Icon 解释空状态，通过 Actions 添加创建、刷新等操作。Loading 可以在同一区域显示加载状态。\n\n### 在预览中试一试\n\n1. 修改标题、尺寸和样式，查看空状态的排版。\n2. 开启加载，比较加载中和没有内容时的显示。",
+      "en": "### Basic usage\n\nExplain the empty state with Title, Description and Icon. Add actions such as create or refresh through Actions. Loading can show a loading state in the same area.\n\n### Try the preview\n\n1. Change the title, size and variant to compare the layout.\n2. Enable loading to compare loading and empty states."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "本例的 Create project 按钮未绑定创建操作，应用需要自行实现创建流程。",
+      "en": "The Create project button has no action attached. Implement the creation flow in the application."
     },
     "symbols": [
       "Empty"
@@ -2171,16 +2171,16 @@
     "name": "User",
     "category": "foundations",
     "description": {
-      "zh": "组合头像、姓名和用户说明。",
-      "en": "Combine an avatar, name and description."
+      "zh": "一起显示用户头像、姓名和简短说明。",
+      "en": "Show a user’s avatar, name and short description."
     },
     "guide": {
-      "zh": "User 把头像、姓名和角色说明组合起来。切换 vertical 比较紧凑横排与纵排布局；姓名同时用于示例头像的缩写。",
-      "en": "User combines an avatar, name and role description. Toggle vertical to compare horizontal and stacked layouts; the example name also supplies avatar initials."
+      "zh": "### 基本用法\n\n将姓名传给 Name，角色或说明传给 Description，头像通过 Avatar 配置。需要点击打开用户资料时，可提供 OnActivate。\n\n### 在预览中试一试\n\n1. 修改姓名，查看文字和首字母头像同时更新。\n2. 切换纵向排列，并调整尺寸。",
+      "en": "### Basic usage\n\nUse Name for the person’s name, Description for a role or short note, and Avatar for their image or initials. Supply OnActivate to open a profile or perform another action.\n\n### Try the preview\n\n1. Change the name and watch both the text and initials update.\n2. Switch to vertical layout and adjust the size."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "本例明确设置了 Avatar.Alt 来显示首字母。Avatar 配置全为空时，User 不显示头像。",
+      "en": "This example sets Avatar.Alt to show initials. User shows no avatar when all Avatar options are empty."
     },
     "symbols": [
       "User"
@@ -2263,16 +2263,16 @@
     "name": "Input",
     "category": "inputs",
     "description": {
-      "zh": "编辑单行文字并保留输入状态。",
-      "en": "Edit a single line of text with persistent input state."
+      "zh": "编辑单行文字，支持只读、清空和加载状态。",
+      "en": "Edit one line of text with read-only, clear and loading options."
     },
     "guide": {
-      "zh": "在预览中输入内容，再修改尺寸、主题或语言，已输入的文字会保留。ReadOnly 允许读取但禁止编辑，Disabled 用于禁用控件；完整示例把字符串状态保存在视图外。",
-      "en": "Type in the preview, then change size, theme or language: the draft is preserved. ReadOnly prevents editing while Disabled disables the control; the complete program keeps the string outside the view."
+      "zh": "### 基本用法\n\n将字符串指针传给 `Input`，组件会更新绑定的值。字符串应保存在视图函数外，避免每次界面更新都重置输入。Label 提供控件名称，Placeholder 是输入前的提示。\n\n### 在预览中试一试\n\n1. 输入一段文字，查看下方的 Value。\n2. 调整尺寸、主题或网站语言，确认输入仍保留。\n3. 开启只读后尝试选择和复制，再开启禁用比较操作差异。",
+      "en": "### Basic usage\n\nPass a string pointer to `Input`; the component updates that value. Keep the string outside the view function so UI updates do not reset it. Label names the control and Placeholder gives an input hint.\n\n### Try the preview\n\n1. Enter some text and check Value below the input.\n2. Change size, theme or site language and confirm the text remains.\n3. Enable read-only and try selecting or copying, then compare with disabled."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "ReadOnly 允许选择和复制，但禁止编辑；Disabled 禁止交互。Loading 显示加载图标，输入框仍可编辑。",
+      "en": "ReadOnly allows selection and copying but prevents editing. Disabled prevents interaction. Loading shows an indicator while allowing editing."
     },
     "symbols": [
       "Input"
@@ -2453,16 +2453,16 @@
     "name": "Textarea",
     "category": "inputs",
     "description": {
-      "zh": "编辑多行内容并可自动调整高度。",
-      "en": "Edit multiline content with optional automatic sizing."
+      "zh": "编辑多行文字，可随内容增加高度。",
+      "en": "Edit multiple lines and optionally grow with the content."
     },
     "guide": {
-      "zh": "输入多行文字并比较 Rows 与 AutoResize。Textarea 复用 InputOptions，文本状态需要在重建之间持久保存；增加行数不会重新初始化内容。",
-      "en": "Enter several lines and compare Rows with AutoResize. Textarea embeds InputOptions, and its text must persist across rebuilds; changing row count does not reinitialize the draft."
+      "zh": "### 基本用法\n\nTextarea 绑定字符串，通用输入选项放在嵌入的 InputOptions 中。Rows 设置基础行数，AutoResize 允许随换行增长，MaxRows 可限制最高行数。\n\n### 在预览中试一试\n\n1. 输入多行文字，调整基础行数。\n2. 开启自动调整高度，继续换行并观察输入框高度。",
+      "en": "### Basic usage\n\nTextarea binds a string and takes shared input settings through InputOptions. Rows sets the base line count, AutoResize grows with new lines, and MaxRows can cap that growth.\n\n### Try the preview\n\n1. Enter several lines and change the base row count.\n2. Enable automatic height, then add more lines and watch the field grow."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "文字保存在视图函数外。改变行数或外观不会重新初始化内容。",
+      "en": "Keep the text outside the view function. Changing row count or appearance does not reinitialize it."
     },
     "symbols": [
       "Textarea"
@@ -2663,16 +2663,16 @@
     "name": "FormField",
     "category": "inputs",
     "description": {
-      "zh": "为控件添加标签、帮助和错误说明。",
-      "en": "Associate a control with a label, help and errors."
+      "zh": "给输入控件添加标签、帮助文字和错误提示。",
+      "en": "Add a label, help text and errors to an input."
     },
     "guide": {
-      "zh": "这个示例为 Input 添加标签、帮助、必填标记和可编辑的错误说明。将回调收到的主题继续传给输入框，可保持父字段与子控件的状态一致。",
-      "en": "This example wraps Input with a label, help, required marker and editable error text. Pass the callback theme to the input to keep field and child-control styling consistent."
+      "zh": "### 基本用法\n\n把输入控件放进 `FormField` 的回调，并使用回调传入的主题。这样标签、尺寸、禁用和错误状态才能正确关联到输入控件。\n\n### 在预览中试一试\n\n1. 修改标签和错误信息，查看它们在输入框周围的位置。\n2. 点击标签，确认焦点进入输入框；再切换必填和禁用状态。",
+      "en": "### Basic usage\n\nBuild the input inside the `FormField` callback and use the theme passed to that callback. This connects the label and passes size, disabled and error state to the input.\n\n### Try the preview\n\n1. Change the label and error text to see where they appear.\n2. Click the label to focus the input, then toggle required and disabled."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "Required 显示必填标记，不执行校验。需要检查输入值时，使用 Form.Validate 或应用自己的校验逻辑。",
+      "en": "Required displays a required marker without validating the value. Use Form.Validate or application validation to check input."
     },
     "symbols": [
       "FormField"
@@ -2764,16 +2764,16 @@
     "name": "FieldGroup",
     "category": "inputs",
     "description": {
-      "zh": "将相关输入和操作组合为一组。",
-      "en": "Group related inputs and actions."
+      "zh": "把相关输入框和按钮连成一组。",
+      "en": "Join related inputs and buttons into one group."
     },
     "guide": {
-      "zh": "搜索输入与按钮通过 FieldGroupItem 组合，共用尺寸和禁用状态。切换 vertical 比较排列方式；每个项目使用稳定 ID，Build 只构建本次视图。",
-      "en": "FieldGroupItem combines a search input and button with shared size and disabled state. Toggle vertical to compare layouts; retain stable item IDs and use Build only for the current view."
+      "zh": "### 基本用法\n\n通过 FieldGroupItem 列表提供内容，每项包含稳定 ID 和 Build 回调。组统一处理尺寸、禁用和外侧圆角，组内仍保留各控件的键盘顺序。\n\n### 在预览中试一试\n\n1. 在搜索框输入文字，再切换纵向排列。\n2. 调整尺寸或开启禁用，查看输入框和按钮一起变化。",
+      "en": "### Basic usage\n\nProvide FieldGroupItems with stable IDs and Build callbacks. The group coordinates size, disabled state and outer corners while keeping each control’s keyboard order.\n\n### Try the preview\n\n1. Type in the search field, then switch to vertical layout.\n2. Change size or enable disabled to see both controls update."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "Search 按钮只展示组合方式，未执行搜索。Build 回调只创建当前界面，搜索任务应由点击回调启动。",
+      "en": "The Search button demonstrates composition without running a search. Build only creates the current UI; start searching from a click callback."
     },
     "symbols": [
       "FieldGroup"
@@ -2847,16 +2847,16 @@
     "name": "Checkbox",
     "category": "inputs",
     "description": {
-      "zh": "切换开关或选择状态。",
-      "en": "Toggle a boolean selection or setting."
+      "zh": "勾选单个选项，也可表示部分选中的状态。",
+      "en": "Toggle an option or represent a partially selected state."
     },
     "guide": {
-      "zh": "点击复选框并观察 Enabled 的值；下方 CheckboxTri 展示混合选择状态。布尔值与三态值分别持久保存，修改颜色或文字不会清除选择。",
-      "en": "Toggle the checkbox and inspect Enabled; CheckboxTri below demonstrates a mixed selection. Boolean and tristate values persist independently, so appearance and label changes preserve selection."
+      "zh": "### 基本用法\n\nCheckbox 绑定 `*bool`。需要表示一组子项只选了一部分时，使用 CheckboxTri 和 CheckState，值为 Unchecked、Checked 或 Indeterminate。\n\n### 在预览中试一试\n\n1. 点击上方复选框，查看 Enabled 的 true / false 变化。\n2. 点击下方 Mixed selection，观察部分选中如何变为选中，再切换禁用。",
+      "en": "### Basic usage\n\nCheckbox binds a `*bool`. Use CheckboxTri with CheckState when only some child items are selected: Unchecked, Checked or Indeterminate.\n\n### Try the preview\n\n1. Click the first checkbox and watch Enabled switch between true and false.\n2. Click Mixed selection to change the mixed state to checked, then try disabled."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "选择值应保存在视图函数外。父子复选框之间的联动由应用计算。",
+      "en": "Keep selection values outside the view function. The application computes relationships between parent and child checkboxes."
     },
     "symbols": [
       "Checkbox",
@@ -2985,16 +2985,16 @@
     "name": "Switch",
     "category": "inputs",
     "description": {
-      "zh": "切换开关或选择状态。",
-      "en": "Toggle a boolean selection or setting."
+      "zh": "打开或关闭一项设置。",
+      "en": "Turn a setting on or off."
     },
     "guide": {
-      "zh": "切换开关查看 Enabled 的变化，再比较加载与禁用状态。示例只保存当前预览中的布尔值；需要保存到设置文件时，应在操作回调中执行。",
-      "en": "Toggle the switch and inspect Enabled, then compare loading and disabled states. The example holds a local boolean; saving a preference to storage belongs in an action callback."
+      "zh": "### 基本用法\n\nSwitch 绑定一个 `bool` 值，通过指针读写开关状态。需要保存设置时，在 OnChange 中处理；文件读写等耗时操作应放到后台。\n\n### 在预览中试一试\n\n1. 点击开关，查看下方 Enabled 的变化。\n2. 开启加载或禁用，尝试再次切换。",
+      "en": "### Basic usage\n\nSwitch reads and updates a `bool` through a pointer. Handle OnChange to save a setting, and move slow work such as file access to a background task.\n\n### Try the preview\n\n1. Toggle the switch and check Enabled below it.\n2. Enable loading or disabled and try toggling it again."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "加载和禁用都会阻止切换。本例只保留当前预览中的值，不会写入设置文件。",
+      "en": "Loading and disabled both prevent toggling. This example keeps its value only in the current preview and does not write a settings file."
     },
     "symbols": [
       "Switch"
@@ -3121,16 +3121,16 @@
     "name": "CheckboxGroup",
     "category": "inputs",
     "description": {
-      "zh": "从一组选项中进行选择。",
-      "en": "Choose from a group of related options."
+      "zh": "从一组可见选项中选择多项。",
+      "en": "Choose multiple items from a visible set of options."
     },
     "guide": {
-      "zh": "从语言列表中选择多个值，所选集合显示在下方。每个 Option 的 Value 是业务值，Label 是展示文字；改变横向布局不会重建选择数据。",
-      "en": "Select several languages and inspect the collection below. Option.Value is the business value and Label is display text; changing horizontal layout preserves the selection data."
+      "zh": "### 基本用法\n\nCheckboxGroup 绑定选中值的切片，例如 `[]string`。每个 Option 的 Value 保存业务值，Label 用于显示；Value 必须唯一，名称可以重复。\n\n### 在预览中试一试\n\n1. 勾选两种语言，查看下方 Selected 列表。\n2. 切换横向排列或调整尺寸，确认选择仍保留。",
+      "en": "### Basic usage\n\nCheckboxGroup binds a slice of selected values, such as `[]string`. Each Option uses Value for application data and Label for display. Values must be unique; labels may repeat.\n\n### Try the preview\n\n1. Select two languages and check the Selected list.\n2. Change layout or size and confirm that the selections remain."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "选中值和选项数据都由应用保存。选项临时从列表消失时，组件不会自动清除对应的选中值。",
+      "en": "The application owns both options and selection. An option temporarily missing from the list does not automatically remove its selected value."
     },
     "symbols": [
       "CheckboxGroup"
@@ -3248,16 +3248,16 @@
     "name": "RadioGroup",
     "category": "inputs",
     "description": {
-      "zh": "从一组选项中进行选择。",
-      "en": "Choose from a group of related options."
+      "zh": "从一组可见选项中选择一项。",
+      "en": "Choose one item from a visible set of options."
     },
     "guide": {
-      "zh": "从语言列表中选择一个值，并比较横向、尺寸和禁用状态。RadioGroup 接收单个持久值；选项的业务值应稳定且互不重复。",
-      "en": "Choose one language and compare horizontal layout, size and disabled state. RadioGroup receives one persistent value; option business values should be stable and distinct."
+      "zh": "### 基本用法\n\nRadioGroup 绑定单个值，例如 `*string`。每个选项使用稳定且唯一的 Value；需要表示尚未选择时，可使用 Optional 或专门的空选项。\n\n### 在预览中试一试\n\n1. 选择一种语言，再选择另一种，查看 Selected 如何替换。\n2. 用键盘方向键移动选项，再比较横向和禁用设置。",
+      "en": "### Basic usage\n\nRadioGroup binds one value, such as `*string`. Give every option a stable, unique Value. Use Optional or a dedicated empty option when no selection must be represented.\n\n### Try the preview\n\n1. Choose a language, then another, and watch Selected change.\n2. Use arrow keys to move between options, then compare horizontal and disabled settings."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "",
+      "en": ""
     },
     "symbols": [
       "RadioGroup"
@@ -3375,16 +3375,16 @@
     "name": "Slider",
     "category": "inputs",
     "description": {
-      "zh": "拖动滑块调整数值或区间。",
-      "en": "Adjust a value or range by dragging a thumb."
+      "zh": "拖动滑块调整一个数值或一段范围。",
+      "en": "Adjust a value or range by dragging sliders."
     },
     "guide": {
-      "zh": "上方 Slider 编辑单个数值，下方 RangeSlider 编辑区间。拖动或使用键盘调整，再修改步长与方向；示例范围固定为 0 到 100，值保存在视图外。",
-      "en": "Slider edits one value and RangeSlider below edits an interval. Drag or use the keyboard, then change step and orientation. Both examples use a fixed 0–100 range and persistent values."
+      "zh": "### 基本用法\n\nSlider 绑定一个 `*float64`；RangeSlider 绑定最小值和最大值两个指针。设置 Min、Max 和 Step 控制范围及步长，值需要保存在视图函数外。\n\n### 在预览中试一试\n\n1. 拖动上方滑块，再拖动下方范围的两个端点。\n2. 调整步长，用方向键查看每次变化的数值，再切换纵向。",
+      "en": "### Basic usage\n\nSlider binds one `*float64`; RangeSlider binds two pointers for the lower and upper values. Min, Max and Step set the limits and increment. Keep the values outside the view function.\n\n### Try the preview\n\n1. Drag the upper slider, then both ends of the range below it.\n2. Change the step and use arrow keys to compare increments, then try vertical layout."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "本例范围为 0–100。OnChange 报告实时变化；需要在拖动结束后处理结果时，可使用 OnCommit。",
+      "en": "This example uses a 0–100 range. OnChange reports live changes; use OnCommit to handle a completed adjustment."
     },
     "symbols": [
       "Slider",
@@ -3515,16 +3515,16 @@
     "name": "Select",
     "category": "inputs",
     "description": {
-      "zh": "从类型化选项中选择单个或多个值。",
-      "en": "Select one or several values from typed options."
+      "zh": "打开下拉列表，选择一个或多个值。",
+      "en": "Choose one or more values from a dropdown list."
     },
     "guide": {
-      "zh": "上方是单选，下方 SelectMultiple 是多选。展开后用鼠标或方向键选择语言，修改尺寸与样式时选择保持不变；Option.Value 与显示标签分开管理。",
-      "en": "The upper control selects one value and SelectMultiple below selects several. Use the mouse or arrow keys to choose languages; size and variant changes preserve selection. Keep business values separate from labels."
+      "zh": "### 基本用法\n\n单选使用 `Select` 并绑定一个值，多选使用 `SelectMultiple` 并绑定值的切片。Option.Value 保存选中值，Label 显示名称，两者可以不同。\n\n### 在预览中试一试\n\n1. 打开上方单选列表，用鼠标或方向键选择语言。\n2. 在下方多选列表中选择两项，再调整尺寸和样式。",
+      "en": "### Basic usage\n\nUse `Select` with one bound value or `SelectMultiple` with a slice of values. Option.Value is the selected application value, while Label is the displayed name.\n\n### Try the preview\n\n1. Open the upper single-select list and choose a language with the mouse or arrow keys.\n2. Select two items in the lower list, then change size and variant."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "更改外观会保留选中值。应用需要空选择时，应明确设计空值，不要假定字符串空值一定表示未选择。",
+      "en": "Appearance changes retain selected values. Model an empty selection explicitly rather than assuming an empty string always means no selection."
     },
     "symbols": [
       "Select",
@@ -3679,16 +3679,16 @@
     "name": "InputMenu",
     "category": "inputs",
     "description": {
-      "zh": "输入搜索词并从候选项中选择。",
-      "en": "Type a query and choose a matching suggestion."
+      "zh": "在输入框中搜索，并从候选项中选择。",
+      "en": "Search in an input and select from its suggestions."
     },
     "guide": {
-      "zh": "在输入框搜索语言并选择候选项，切换 multiple 体验多选。InputMenu 的持久状态同时管理搜索与选择；不要在每次视图构建时创建新状态。",
-      "en": "Search for a language and choose a suggestion; toggle multiple to try multi-selection. Persistent InputMenu state manages both search and selection, so do not recreate it during each view build."
+      "zh": "### 基本用法\n\nInputMenu 使用 SearchState 保存搜索草稿和选择结果：Query 是输入文字，Selected 是单选 ID，多选时使用 SelectedValues。状态放在视图函数外，避免更新界面时丢失输入。\n\n### 在预览中试一试\n\n1. 输入语言名称的一部分，从候选列表选择一项。\n2. 开启多选，再选择另一项，使用标签上的 × 移除选择。",
+      "en": "### Basic usage\n\nInputMenu uses SearchState for the query and selection: Query holds typed text, Selected holds a single ID, and SelectedValues holds multiple IDs. Keep the state outside the view function.\n\n### Try the preview\n\n1. Type part of a language name and select a suggestion.\n2. Enable multiple selection, add another item, then remove one using its × button."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "普通输入变化使用 OnChange；确认候选项使用 OnSelect。需要允许提交列表之外的文字时，显式开启 AllowCustom。",
+      "en": "Use OnChange for query edits and OnSelect for suggestion activation. Enable AllowCustom to submit text that is not in the list."
     },
     "symbols": [
       "InputMenu"
@@ -3878,16 +3878,16 @@
     "name": "Popover",
     "category": "inputs",
     "description": {
-      "zh": "在触发控件旁展示补充内容。",
-      "en": "Show contextual content next to a trigger."
+      "zh": "在按钮等控件旁打开补充内容。",
+      "en": "Open related content beside a button or other control."
     },
     "guide": {
-      "zh": "点击按钮打开弹层；切换为 PopoverHover 后用悬停触发。OpenDelay、CloseDelay 仅影响悬停，面板输入单位为毫秒，例如 2000 为 2 秒。Placement 空间不足时自动避让；MaxHeight 是高度上限；MatchAnchor 使用触发按钮的宽度作为最小宽度。Label 只设置无障碍名称。Dismissible=false 禁止 Esc 和外部点击关闭，Close 按钮仍可主动关闭。",
-      "en": "Click to open, or select PopoverHover and hover over the trigger. OpenDelay and CloseDelay apply only to hover; editor values are milliseconds, so 2000 means 2 seconds. Placement avoids window edges; MaxHeight limits height; MatchAnchor sets a minimum width equal to the trigger. Label changes only the accessible name. Dismissible=false blocks Escape and outside clicks; the Close button still closes explicitly."
+      "zh": "### 基本用法\n\n先创建触发控件，再把它和保存打开状态的 `*bool` 传给 Popover。内容回调接收面板主题，用它创建说明、输入框或按钮。\n\n### 在预览中试一试\n\n1. 点击触发按钮打开面板，点击 Close 关闭。\n2. 展开全部参数，将 Mode 设为 PopoverHover，尝试悬停打开和移开关闭。\n3. 调整 Placement 或延迟；网站延迟单位为毫秒，2000 表示 2 秒。",
+      "en": "### Basic usage\n\nCreate a trigger, then pass it and a persistent `*bool` open value to Popover. Build text, inputs or buttons using the theme passed to the content callback.\n\n### Try the preview\n\n1. Click the trigger to open the panel, then Close to dismiss it.\n2. Expand All fields, set Mode to PopoverHover, and try opening and closing it by hovering.\n3. Adjust Placement or delays. Delay controls use milliseconds, so 2000 means 2 seconds."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "OpenDelay / CloseDelay 只用于悬停模式。MaxHeight 限制高度，不自动滚动；MatchAnchor 将触发控件宽度作为最小宽度。Label 只设置辅助技术名称。Dismissible=false 阻止 Escape 和外部点击关闭，面板内的 Close 仍可关闭。",
+      "en": "OpenDelay and CloseDelay apply only to hover mode. MaxHeight limits height without adding scrolling; MatchAnchor uses the trigger width as a minimum. Label names the panel for assistive technology. Dismissible=false blocks Escape and outside-click dismissal, while Close still works."
     },
     "symbols": [
       "Popover"
@@ -3899,8 +3899,8 @@
       {
         "key": "label",
         "label": {
-          "zh": "触发文字",
-          "en": "Label"
+          "zh": "按钮文字",
+          "en": "Button text"
         },
         "kind": "text",
         "default": "Open details"
@@ -3908,8 +3908,8 @@
       {
         "key": "dismissible",
         "label": {
-          "zh": "允许关闭",
-          "en": "Dismissible"
+          "zh": "允许 Escape 或外部点击关闭",
+          "en": "Dismiss with Escape or outside click"
         },
         "kind": "optionalBoolean",
         "default": null
@@ -3925,16 +3925,16 @@
     "name": "ScrollArea",
     "category": "inputs",
     "description": {
-      "zh": "为长内容提供可滚动区域。",
-      "en": "Provide a scrollable region for long content."
+      "zh": "让超出显示区域的内容可以滚动。",
+      "en": "Scroll content that exceeds the visible area."
     },
     "guide": {
-      "zh": "在预览区域滚动 30 条示例记录，并调整滚动条宽度。ScrollArea 的父布局需要给出高度约束；实际动态记录应使用稳定业务 ID。",
-      "en": "Scroll through 30 sample records and change scrollbar width. The parent layout must constrain ScrollArea height; use stable business IDs for dynamic records."
+      "zh": "### 基本用法\n\n将长内容放入 ScrollArea，并给返回的外层元素设置高度、Fill 或 Grow，明确可用空间。Direction 可选择纵向、横向或双向滚动。\n\n### 在预览中试一试\n\n1. 在预览内滚动，查看 30 条示例记录。\n2. 调整滚动条宽度，比较拖动区域。",
+      "en": "### Basic usage\n\nBuild long content inside ScrollArea and set Height, Fill or Grow on the returned wrapper to define its available space. Direction selects vertical, horizontal or both-axis scrolling.\n\n### Try the preview\n\n1. Scroll inside the preview to browse the 30 sample records.\n2. Change the scrollbar width and compare the drag area."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "滚动条宽度为 0 时使用 MyGo 默认宽度，不会隐藏滚动条。大量数据可改用 Listbox 或 Table 的虚拟列表。",
+      "en": "A scrollbar width of 0 uses the MyGo default; it does not hide the scrollbar. For large datasets, consider the virtual lists in Listbox or Table."
     },
     "symbols": [
       "ScrollArea"
@@ -3965,16 +3965,16 @@
     "name": "Tooltip",
     "category": "overlays",
     "description": {
-      "zh": "悬停或聚焦时显示简短提示。",
-      "en": "Show a short hint on hover or keyboard focus."
+      "zh": "悬停或键盘聚焦时显示简短说明。",
+      "en": "Show a short explanation on hover or keyboard focus."
     },
     "guide": {
-      "zh": "把指针移到按钮上，或通过键盘聚焦它，查看提示与快捷键说明。提示适合补充简短信息；关键操作说明应同时出现在可见界面中。",
-      "en": "Hover over the button or focus it with the keyboard to inspect the hint and shortcut. Tooltips provide brief supplemental information; keep essential instructions visibly available too."
+      "zh": "### 基本用法\n\n把当前构建中的控件作为 anchor 传给 Tooltip，再设置提示文字。Kbds 可附加快捷键提示；Tooltip 不接收点击或额外焦点。\n\n### 在预览中试一试\n\n1. 将指针停在按钮上，等待提示出现。\n2. 用 Tab 聚焦按钮，再试试禁用提示。",
+      "en": "### Basic usage\n\nPass a control from the current build as the Tooltip anchor and provide its text. Kbds adds key hints. The tooltip itself does not accept clicks or extra focus.\n\n### Try the preview\n\n1. Hover over the button and wait for its tooltip.\n2. Focus the button with Tab, then try disabling the tooltip."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "鼠标悬停默认延迟 600ms，键盘聚焦立即显示。多行说明或可点击内容应使用 Popover，关键操作说明还应出现在可见界面中。",
+      "en": "Mouse hover has a default 600ms delay; keyboard focus shows the tip immediately. Use Popover for multiline or interactive content, and keep essential instructions visible elsewhere."
     },
     "symbols": [
       "Tooltip"
@@ -4012,16 +4012,16 @@
     "name": "Modal",
     "category": "overlays",
     "description": {
-      "zh": "在聚焦的对话框中完成操作。",
-      "en": "Complete a focused task in a dialog."
+      "zh": "在对话框中完成编辑或确认操作。",
+      "en": "Complete an edit or confirmation in a modal dialog."
     },
     "guide": {
-      "zh": "点击 Open dialog，在弹层输入名称并保存，或按 Escape 关闭。Dismissible 与 CloseButton 可分别选择继承、是、否；输入与打开状态都保存在组件实例中。",
-      "en": "Open the dialog, edit the name and save, or press Escape to dismiss. Dismissible and CloseButton each support inherited, true and false values; draft and open state persist in the example instance."
+      "zh": "### 基本用法\n\n用一个持久的 `bool` 保存打开状态，传给 ModalWithOptions。Title 和 Description 设置标题与说明，内容回调用于构建正文。每次构建都调用组件，包括关闭时。\n\n### 在预览中试一试\n\n1. 点击 Open dialog，输入项目名称，再点击 Save 关闭。\n2. 重新打开，确认输入仍保留；再按 Escape 关闭。\n3. 分别将 Dismissible 和 CloseButton 设为否，比较关闭方式。",
+      "en": "### Basic usage\n\nKeep a persistent `bool` open value and pass it to ModalWithOptions. Title and Description set the heading, and the content callback builds the body. Call the component on every build, including when closed.\n\n### Try the preview\n\n1. Click Open dialog, enter a project name, then click Save to close it.\n2. Open it again to check that the input remains, then close with Escape.\n3. Set Dismissible and CloseButton to No separately and compare dismissal options."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "Dismissible 控制 Escape 和遮罩点击，CloseButton 控制关闭按钮。两项都设为 false 才能关闭这些默认关闭方式。本例的 Save 只关闭对话框，不保存到文件或服务端。",
+      "en": "Dismissible controls Escape and backdrop clicks; CloseButton controls the close button. Set both to false to disable these dismissal methods. Save only closes this example; it does not persist data."
     },
     "symbols": [
       "Modal",
@@ -4043,8 +4043,8 @@
       {
         "key": "dismissible",
         "label": {
-          "zh": "允许 Escape / 外部关闭",
-          "en": "Dismissible"
+          "zh": "允许 Escape 或外部点击关闭",
+          "en": "Dismiss with Escape or outside click"
         },
         "kind": "optionalBoolean",
         "default": null
@@ -4078,16 +4078,16 @@
     "name": "Slideover",
     "category": "overlays",
     "description": {
-      "zh": "从窗口边缘展开详情面板。",
-      "en": "Open a detail panel from the edge of the window."
+      "zh": "从窗口边缘打开详情或编辑面板。",
+      "en": "Open a detail or editing panel from a window edge."
     },
     "guide": {
-      "zh": "点击 Open panel 从所选方向展开面板，Done 关闭面板。Side 决定展开边缘，Dismissible 控制默认关闭行为；弹层位于预览框的边界内。",
-      "en": "Use Open panel to reveal the panel from the selected side and Done to close it. Side selects the edge and Dismissible controls dismissal behavior. The overlay stays within the preview frame."
+      "zh": "### 基本用法\n\nSlideover 通过 `*bool` 控制打开状态，Side 选择边缘，Extent 设置宽度或高度。标题、正文和底部操作区的用法与 Modal 相似。\n\n### 在预览中试一试\n\n1. 点击 Open panel，查看面板从当前边缘滑入。\n2. 用 Done 关闭，再切换 Side，比较不同方向。",
+      "en": "### Basic usage\n\nControl Slideover with a `*bool` open value, choose an edge with Side, and set width or height with Extent. The title, body and footer work similarly to Modal.\n\n### Try the preview\n\n1. Click Open panel and watch it slide in from the selected edge.\n2. Close it with Done, change Side, and compare another direction."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "预览中的面板限制在预览框内。关闭时应继续调用 Slideover，让退出动画和焦点恢复完成。",
+      "en": "The panel is confined to the preview frame. Keep calling Slideover during closing so its exit animation and focus restoration can finish."
     },
     "symbols": [
       "Slideover"
@@ -4108,8 +4108,8 @@
       {
         "key": "dismissible",
         "label": {
-          "zh": "允许关闭",
-          "en": "Dismissible"
+          "zh": "允许 Escape 或外部点击关闭",
+          "en": "Dismiss with Escape or outside click"
         },
         "kind": "optionalBoolean",
         "default": null
@@ -4153,16 +4153,16 @@
     "name": "Toast",
     "category": "overlays",
     "description": {
-      "zh": "提供不打断操作的状态通知。",
-      "en": "Deliver feedback without interrupting the current task."
+      "zh": "短暂显示操作结果，不要求用户立即处理。",
+      "en": "Briefly show the result of an action."
     },
     "guide": {
-      "zh": "点击 Show notification 创建一条本地通知，通知在四秒后结束。修改标题和颜色会影响下一条通知；通知应由用户操作或任务结果触发，避免在视图重建时反复创建。",
-      "en": "Use Show notification to create a local toast that expires after four seconds. Title and color changes affect the next toast. Trigger notifications from actions or job results rather than every view rebuild."
+      "zh": "### 基本用法\n\n每个窗口先创建 ToastViewport，再在点击或任务完成后的 UI 处理中调用 Toast。Title、Description 和 Color 说明结果，Actions 可以提供撤销等操作。\n\n### 在预览中试一试\n\n1. 点击 Show notification，查看通知出现并在约 4 秒后消失。\n2. 更改标题和颜色，再次发布通知。",
+      "en": "### Basic usage\n\nCreate one ToastViewport per window, then call Toast from a click action or UI handling for a completed task. Use Title, Description and Color for the result, and Actions for options such as Undo.\n\n### Try the preview\n\n1. Click Show notification and watch it disappear after about four seconds.\n2. Change the title and color, then show another notification."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "本例将超时设为 4 秒，组件默认是 5 秒。更改参数影响下一条通知；不要在每次视图构建时无条件发布通知。",
+      "en": "This example sets a four-second timeout; the component default is five seconds. Parameter edits affect the next notification. Do not publish unconditionally on every view build."
     },
     "symbols": [
       "Toast"
@@ -4235,16 +4235,16 @@
     "name": "DropdownMenu",
     "category": "overlays",
     "description": {
-      "zh": "从菜单中选择操作。",
-      "en": "Choose an action from a menu."
+      "zh": "点击按钮后，从菜单中选择操作。",
+      "en": "Choose an action from a button’s dropdown menu."
     },
     "guide": {
-      "zh": "点击按钮打开菜单，选择 Edit 或 Duplicate 后查看下方操作名称。禁用参数作用于 Archive 项；菜单项目使用稳定 ID，回调只更新应用状态。",
-      "en": "Open the menu and choose Edit or Duplicate to inspect the action below. The disabled control applies to Archive; menu items use stable IDs and callbacks update application state."
+      "zh": "### 基本用法\n\n为菜单保存 MenuState，每个 MenuItem 使用唯一 ID，并在 OnSelect 中处理操作。把按钮作为锚点传给 DropdownMenu，组件负责打开、关闭和焦点恢复。\n\n### 在预览中试一试\n\n1. 点击按钮打开菜单，选择 Edit 或 Duplicate，查看下方操作名称。\n2. 开启禁用，确认 Archive 项不能选择。",
+      "en": "### Basic usage\n\nKeep a MenuState, give each MenuItem a unique ID, and handle its action in OnSelect. Pass a button as the DropdownMenu anchor to get opening, dismissal and focus restoration.\n\n### Try the preview\n\n1. Open the menu and choose Edit or Duplicate, then check the action name below it.\n2. Enable disabled and confirm that Archive cannot be selected."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "禁用参数只作用于本例的 Archive 项。菜单选择只记录操作，不修改真实数据。",
+      "en": "The disabled control affects only Archive in this example. Menu actions are recorded without changing real data."
     },
     "symbols": [
       "DropdownMenu"
@@ -4283,16 +4283,16 @@
     "name": "ContextMenu",
     "category": "overlays",
     "description": {
-      "zh": "从菜单中选择操作。",
-      "en": "Choose an action from a menu."
+      "zh": "右键点击内容时显示相关操作。",
+      "en": "Show actions for content on right-click."
     },
     "guide": {
-      "zh": "在按钮上点击鼠标右键打开上下文菜单，选择 Edit 或 Duplicate 查看结果。菜单也可由应用定义的键盘交互触发；此例不执行真实文件操作。",
-      "en": "Right-click the button to open its context menu and choose Edit or Duplicate to inspect the result. Applications can also provide keyboard access; this example performs no real file operation."
+      "zh": "### 基本用法\n\nContextMenu 使用可聚焦区域作为锚点，并保存独立的 MenuState。MenuItem.OnSelect 处理选择结果；也支持 Menu 键和 Shift+F10 打开。\n\n### 在预览中试一试\n\n1. 在预览按钮上点击右键，选择 Edit 或 Duplicate。\n2. 查看下方结果，再开启禁用检查 Archive 项。",
+      "en": "### Basic usage\n\nUse a focusable area as the ContextMenu anchor and keep a separate MenuState. Handle selections with MenuItem.OnSelect. The Menu key and Shift+F10 can also open it.\n\n### Try the preview\n\n1. Right-click the preview button and choose Edit or Duplicate.\n2. Check the result below, then enable disabled and inspect Archive."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "本例只记录选择结果，不执行文件操作。浏览器或系统可能占用部分键盘快捷键。",
+      "en": "This example only records the chosen action and does not operate on files. The browser or operating system may reserve some keyboard shortcuts."
     },
     "symbols": [
       "ContextMenu"
@@ -4331,16 +4331,16 @@
     "name": "Tabs",
     "category": "overlays",
     "description": {
-      "zh": "在相关内容面板之间切换。",
+      "zh": "在一组相关内容面板之间切换。",
       "en": "Switch between related content panels."
     },
     "guide": {
-      "zh": "切换 Overview 与 Settings 面板，并比较下划线与纵向排列。选择状态记录项目 ID；面板内容由各自的同步回调构建。",
-      "en": "Switch between Overview and Settings, then compare underline and vertical layouts. Selection stores the item ID, and each panel builds content in its synchronous callback."
+      "zh": "### 基本用法\n\n为每个 TabItem 设置稳定 ID、Label 和 Content，用 `*string` 保存当前选中的 ID。默认只构建当前面板；需要保留隐藏控件的编辑状态时，可设置 KeepMounted。\n\n### 在预览中试一试\n\n1. 切换 Overview 和 Settings，查看对应正文。\n2. 开启下划线样式或纵向排列，再用方向键切换。",
+      "en": "### Basic usage\n\nGive each TabItem a stable ID, Label and Content, and keep the selected ID in a `*string`. Only the active panel is built by default. Use KeepMounted when hidden controls need to retain their editing state.\n\n### Try the preview\n\n1. Switch between Overview and Settings and check their content.\n2. Try underline or vertical layout, then navigate with arrow keys."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "业务数据始终由应用保存。KeepMounted 保留隐藏控件，但隐藏内容的构建回调仍会执行。",
+      "en": "The application always owns its data. KeepMounted retains hidden controls, but their build callbacks still run."
     },
     "symbols": [
       "Tabs"
@@ -4458,16 +4458,16 @@
     "name": "Collapsible",
     "category": "overlays",
     "description": {
-      "zh": "按需展开或收起内容。",
-      "en": "Expand or collapse content on demand."
+      "zh": "按需展开或收起一个内容区域。",
+      "en": "Expand or collapse a single section."
     },
     "guide": {
-      "zh": "点击标题展开或收起内容，比较 Disabled 与 KeepMounted。打开状态独立持久保存；保留挂载与保留业务数据是两件事，业务数据仍应由应用持有。",
-      "en": "Activate the header to expand or collapse content and compare Disabled with KeepMounted. Open state persists independently; the application must retain business data regardless of mounting behavior."
+      "zh": "### 基本用法\n\n用 `*bool` 保存展开状态，在正文回调中创建内容。Label 设置触发按钮的文字，Disabled 阻止用户切换。\n\n### 在预览中试一试\n\n1. 点击标题，展开后再点击收起。\n2. 比较禁用和保留内容选项。",
+      "en": "### Basic usage\n\nStore the open state in a `*bool` and build the body in the content callback. Label names the trigger and Disabled prevents toggling.\n\n### Try the preview\n\n1. Click the heading to expand, then click it again to collapse.\n2. Compare disabled and keep-content settings."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "KeepMounted 保留隐藏控件的局部状态，但仍执行内容回调。是否保留业务数据由应用决定，不应依赖控件是否显示。",
+      "en": "KeepMounted retains local state for hidden controls while still running their content callback. Keep application data independently of whether a control is visible."
     },
     "symbols": [
       "Collapsible"
@@ -4497,8 +4497,8 @@
       {
         "key": "keepMounted",
         "label": {
-          "zh": "保留内容",
-          "en": "KeepMounted"
+          "zh": "隐藏时保留控件",
+          "en": "Keep hidden controls"
         },
         "kind": "boolean",
         "default": false
@@ -4514,16 +4514,16 @@
     "name": "Accordion",
     "category": "overlays",
     "description": {
-      "zh": "组织可展开的多个内容区段。",
-      "en": "Organize several expandable sections."
+      "zh": "用多个可折叠区域组织内容。",
+      "en": "Organize content into several collapsible sections."
     },
     "guide": {
-      "zh": "展开 Installation 与 Usage，比较 Multiple 和 Collapsible 的组合。每项用稳定 ID 关联打开状态；内容回调只负责当前构建。",
-      "en": "Expand Installation and Usage and compare Multiple with Collapsible. Stable item IDs associate panels with open state; content callbacks only build the current view."
+      "zh": "### 基本用法\n\nAccordion 接收带唯一 ID 的项目列表，并通过 `*[]string` 保存展开项。Multiple 允许同时展开多项，Collapsible 控制单开模式下能否收起当前项。\n\n### 在预览中试一试\n\n1. 依次打开 Installation 和 Usage，查看默认单开行为。\n2. 开启 Multiple 同时展开两项；关闭 Multiple 后，再关闭 Collapsible 试验收起行为。",
+      "en": "### Basic usage\n\nAccordion takes items with unique IDs and stores open IDs in a `*[]string`. Multiple permits several open sections; Collapsible controls whether the open item can close in single-open mode.\n\n### Try the preview\n\n1. Open Installation and then Usage to see single-open behavior.\n2. Enable Multiple to open both. Turn it off, then disable Collapsible and try closing the current item."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "默认允许再次点击已展开项将其收起。Multiple 模式不受 Collapsible 限制。",
+      "en": "By default, activating the open item again closes it. Collapsible does not restrict multiple-open mode."
     },
     "symbols": [
       "Accordion"
@@ -4570,16 +4570,16 @@
     "name": "Breadcrumb",
     "category": "overlays",
     "description": {
-      "zh": "显示当前位置的导航层级。",
-      "en": "Show the hierarchy of the current location."
+      "zh": "显示当前页面在导航层级中的位置。",
+      "en": "Show the current page within a navigation hierarchy."
     },
     "guide": {
-      "zh": "点击 Home 或 Projects 查看本地导航反馈，调整 maximum 观察长路径的收纳方式。此例记录选中项；真实路由切换由应用的 OnSelect 实现。",
-      "en": "Activate Home or Projects for local navigation feedback and change maximum to inspect path collapsing. The example records a selection; application OnSelect handlers own real navigation."
+      "zh": "### 基本用法\n\n按路径顺序提供 BreadcrumbItem，最后一项作为当前页，其余项通过 OnSelect 导航。MaxItems 限制显示数量，较长路径用省略号收起中间项。\n\n### 在预览中试一试\n\n1. 点击 Home 或 Projects，查看本地导航反馈。\n2. 调整显示上限，观察路径中间的项目何时变为省略号。",
+      "en": "### Basic usage\n\nProvide BreadcrumbItems in path order. The last item is the current page; other items navigate through OnSelect. MaxItems shortens long paths with an ellipsis.\n\n### Try the preview\n\n1. Click Home or Projects and check the local navigation feedback.\n2. Change the visible limit and see when middle items become an ellipsis."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "本例不切换真实页面。省略号只是路径提示，不能点击展开菜单。",
+      "en": "This example does not change pages. The ellipsis is a path indicator and does not open a menu."
     },
     "symbols": [
       "Breadcrumb"
@@ -4610,16 +4610,16 @@
     "name": "Pagination",
     "category": "overlays",
     "description": {
-      "zh": "在分页数据中导航。",
-      "en": "Navigate a paginated collection."
+      "zh": "切换数据页，并显示当前页码。",
+      "en": "Change data pages and show the current page number."
     },
     "guide": {
-      "zh": "示例把 100 条记录按每页 10 条分页，页码显示在下方。调整相邻页数量与首尾控制；此组件管理分页交互，数据请求应由应用在页码变化后发起。",
-      "en": "The example paginates 100 records into pages of 10 and shows the current page below. Adjust sibling count and edge controls; the application fetches data when the page changes."
+      "zh": "### 基本用法\n\nPagination 绑定从 1 开始的页码，Total 是总记录数，PageSize 是每页条数。应用在 OnChange 中根据新页码更新数据。\n\n### 在预览中试一试\n\n1. 点击页码或翻页按钮，查看下方当前页。\n2. 调整相邻页数、翻页按钮和首尾页显示，比较页码排列。",
+      "en": "### Basic usage\n\nPagination binds a page number starting at 1. Total is the record count and PageSize is the number per page. Update application data from OnChange when the page changes.\n\n### Try the preview\n\n1. Click a page or navigation button and check the current page below.\n2. Change siblings, navigation controls and edge pages to compare the layout."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "本例有 100 条记录、每页 10 条。分页组件只改变页码，不会自动查询数据；零个相邻页使用 `SiblingCount: nui.Set(0)`。",
+      "en": "The example has 100 records with 10 per page. Pagination changes the page number without fetching data. Use `SiblingCount: nui.Set(0)` for zero sibling pages."
     },
     "symbols": [
       "Pagination"
@@ -4797,16 +4797,16 @@
     "name": "Stepper",
     "category": "overlays",
     "description": {
-      "zh": "引导用户完成分步流程。",
-      "en": "Guide users through a sequence of steps."
+      "zh": "展示流程步骤，并控制当前步骤。",
+      "en": "Display a process and select its current step."
     },
     "guide": {
-      "zh": "依次选择 Details、Team 与 Review，比较 Linear 和纵向排列。Stepper 展示步骤与当前进度；各步骤的表单内容、校验和提交逻辑由应用组合。",
-      "en": "Move through Details, Team and Review, then compare Linear and vertical layouts. Stepper displays steps and current progress; applications compose each form, validation and submission flow."
+      "zh": "### 基本用法\n\n用 StepItem 列表描述步骤，并通过 `*string` 保存当前步骤 ID。Linear 默认启用，允许返回和前进到下一步；CanSelect 可在切换时检查是否允许进入。\n\n### 在预览中试一试\n\n1. 依次点击 Details、Team 和 Review。\n2. 关闭按顺序进行，尝试直接选择后面的步骤，再比较纵向排列。",
+      "en": "### Basic usage\n\nDescribe steps with StepItems and store the current ID in a `*string`. Linear is enabled by default, allowing backtracking or moving to the next step. CanSelect can reject a step change.\n\n### Try the preview\n\n1. Select Details, Team and Review in sequence.\n2. Disable linear navigation and jump to a later step, then compare vertical layout."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "Stepper 不创建各步骤的表单，也不自动校验或提交。方向键只移动焦点，Enter 或 Space 才确认步骤。",
+      "en": "Stepper does not create, validate or submit step forms. Arrow keys move focus; Enter or Space activates a step."
     },
     "symbols": [
       "Stepper"
@@ -4916,8 +4916,8 @@
       {
         "key": "linear",
         "label": {
-          "zh": "顺序推进",
-          "en": "Linear"
+          "zh": "按顺序进行",
+          "en": "Linear navigation"
         },
         "kind": "optionalBoolean",
         "default": null
@@ -4933,16 +4933,16 @@
     "name": "Timeline",
     "category": "overlays",
     "description": {
-      "zh": "按顺序展示活动或里程碑。",
-      "en": "Present activity or milestones in order."
+      "zh": "按顺序展示活动记录或里程碑。",
+      "en": "Display activities or milestones in sequence."
     },
     "guide": {
-      "zh": "示例显示创建、构建、发布三条固定活动，current 控制当前项目。切换横向排列并调整颜色与尺寸；时间文字由应用提供。",
-      "en": "Three fixed activities show creation, build and publication, with current selecting the active item. Change horizontal layout, color and size; applications supply the time labels."
+      "zh": "### 基本用法\n\n按显示顺序提供 TimelineItem，Title、Description 和 Time 都由应用填写。Current 使用从 0 开始的索引指定当前项，CurrentID 可改用稳定 ID。\n\n### 在预览中试一试\n\n1. 调整当前步骤，查看创建、构建、发布三项的进度样式。\n2. 切换横向排列，再调整颜色和尺寸。",
+      "en": "### Basic usage\n\nProvide TimelineItems in display order with application-supplied Title, Description and Time. Current selects an item by its zero-based index; CurrentID selects it by stable ID.\n\n### Try the preview\n\n1. Change the current step and compare the created, built and released items.\n2. Switch to horizontal layout, then change color and size."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "时间文字由应用格式化，Timeline 不会自动排序或转换时区。",
+      "en": "The application formats time labels. Timeline does not sort items or convert time zones."
     },
     "symbols": [
       "Timeline"
@@ -5062,16 +5062,16 @@
     "name": "Banner",
     "category": "overlays",
     "description": {
-      "zh": "在页面内展示可关闭的通知条。",
-      "en": "Show a dismissible notice within a page."
+      "zh": "在页面内持续显示可关闭的消息。",
+      "en": "Display a persistent, dismissible message within a page."
     },
     "guide": {
-      "zh": "关闭通知条，再用 Show banner 重新显示。Banner 的可见状态由外部布尔值控制，适合在当前内容区域展示可关闭的消息。",
-      "en": "Dismiss the banner and use Show banner to reveal it again. An external boolean controls visibility, making it suitable for dismissible messages in the current content area."
+      "zh": "### 基本用法\n\nBanner 使用 `*bool` 控制显示，Title 和 Description 说明消息。把它放在需要提示的内容区域，Actions 可以添加处理按钮。\n\n### 在预览中试一试\n\n1. 关闭通知条，确认该区域隐藏。\n2. 点击 Show banner 重新显示，再修改标题和颜色。",
+      "en": "### Basic usage\n\nControl Banner visibility with a `*bool` and describe the message with Title and Description. Place it in the relevant content area and use Actions for buttons.\n\n### Try the preview\n\n1. Close the banner and confirm that it disappears.\n2. Click Show banner to restore it, then edit the title and color."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "Banner 不自动固定在窗口顶部。open 传 nil 时表示常驻，并隐藏关闭按钮。",
+      "en": "Banner does not pin itself to the top of the window. A nil open pointer makes it permanent and hides the close button."
     },
     "symbols": [
       "Banner"
@@ -5144,16 +5144,16 @@
     "name": "Error",
     "category": "overlays",
     "description": {
-      "zh": "解释失败原因并提供重试操作。",
-      "en": "Explain a failure and offer a retry action."
+      "zh": "显示失败原因，并提供重试操作。",
+      "en": "Explain a failure and provide a retry action."
     },
     "guide": {
-      "zh": "点击重试观察计数变化，示例不发起网络请求。ErrorView 展示状态、说明与重试入口；应用在 OnRetry 中启动实际恢复操作。",
-      "en": "Activate retry to increment the counter; the example makes no network request. ErrorView presents status, explanation and a retry action; OnRetry starts application recovery work."
+      "zh": "### 基本用法\n\n使用 `ErrorView` 展示 Status、Title 和 Description，通过 OnRetry 处理重试。Actions 可替换默认操作区。函数名使用 ErrorView，避免与颜色常量 `nui.Error` 冲突。\n\n### 在预览中试一试\n\n1. 修改标题，查看错误说明的显示。\n2. 点击重试，查看下方计数增加。",
+      "en": "### Basic usage\n\nUse `ErrorView` for Status, Title and Description, and handle retries with OnRetry. Actions can replace the default action area. The name ErrorView avoids a conflict with the `nui.Error` color constant.\n\n### Try the preview\n\n1. Change the title and inspect the error display.\n2. Click retry and watch the count increase."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "本例不发起网络请求。ErrorView 只展示错误，真正的重试任务由应用启动。",
+      "en": "This example does not make a network request. ErrorView displays the failure; the application starts the retry task."
     },
     "symbols": [
       "ErrorView"
@@ -5182,16 +5182,16 @@
     "name": "Form",
     "category": "data",
     "description": {
-      "zh": "管理字段校验、提交与错误反馈。",
-      "en": "Manage field validation, submission and errors."
+      "zh": "校验多个字段，并在通过后处理提交。",
+      "en": "Validate fields and handle a successful submission."
     },
     "guide": {
-      "zh": "先提交空表单查看必填校验，再输入项目名并保存。FormState 持久保存注册字段与提交状态，Validate 返回按字段名映射的错误，OnSubmit 处理验证后的数据。",
-      "en": "Submit the empty form to inspect required validation, then enter a project name and save. Persistent FormState tracks fields and submission; Validate returns field-name errors and OnSubmit handles valid data."
+      "zh": "### 基本用法\n\n在应用中保存 FormState，用 FormField.Name / Value 注册字段。Validate 返回以字段名为键的错误，OnSubmit 接收通过校验的数据。提交按钮调用 `form.Submit`。\n\n### 在预览中试一试\n\n1. 清空项目名称，点击 Save project，查看必填错误和焦点。\n2. 输入名称后再次提交，查看下方 Saved 结果。",
+      "en": "### Basic usage\n\nKeep a FormState and register fields through FormField.Name and Value. Validate returns errors keyed by field name; OnSubmit receives validated values. Call `form.Submit` from the submit button.\n\n### Try the preview\n\n1. Clear the project name and click Save project to see the error and focus behavior.\n2. Enter a name and submit again, then check the Saved result."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "本例只更新页面内的结果文字。实际保存由应用实现；Required 标记本身不执行校验。",
+      "en": "This example only updates the result text. Implement persistence in the application; a Required marker does not perform validation."
     },
     "symbols": [
       "Form"
@@ -5221,16 +5221,16 @@
     "name": "InputNumber",
     "category": "data",
     "description": {
-      "zh": "输入数值并用按钮逐步调整。",
-      "en": "Enter a number and adjust it in steps."
+      "zh": "输入数字，或使用按钮按步长增减。",
+      "en": "Enter a number or adjust it by a fixed increment."
     },
     "guide": {
-      "zh": "输入数值或使用增减按钮，再调整 Step 与按钮方向。示例固定 0–100 范围，同时保存数值与 InputNumberState，让编辑中的草稿能跨重建保留。",
-      "en": "Type a number or use the step buttons, then change Step and orientation. The example uses a 0–100 range and retains both the value and InputNumberState so editing drafts survive rebuilds."
+      "zh": "### 基本用法\n\nInputNumber 绑定 `Optional[float64]` 数值，并用 `NumberState` 保存输入草稿。两者放在视图函数外，才能保留空值、尚未输完的负号等编辑状态。\n\n### 在预览中试一试\n\n1. 输入数值，或点击增减按钮；本例范围为 0–100。\n2. 修改步长，再切换按钮方向，比较增减量和按钮排列。",
+      "en": "### Basic usage\n\nInputNumber binds an `Optional[float64]` value and uses `NumberState` for the editing draft. Keep both outside the view function to retain empty values and incomplete input such as a minus sign.\n\n### Try the preview\n\n1. Enter a number or use the increment buttons; this example allows 0–100.\n2. Change the step and button orientation to compare increments and layout."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "Horizontal 将减号、数值、加号横向排列；Vertical 将两个按钮放在右侧。方向切换保留草稿和数值。",
+      "en": "Horizontal places decrement, value and increment in a row. Vertical puts both buttons on the right. Switching orientation retains the draft and numeric value."
     },
     "symbols": [
       "InputNumber"
@@ -5442,16 +5442,16 @@
     "name": "InputTags",
     "category": "data",
     "description": {
-      "zh": "输入、添加和移除标签。",
-      "en": "Enter, add and remove tags."
+      "zh": "把输入的文字添加为标签，并支持移除。",
+      "en": "Turn typed text into removable tags."
     },
     "guide": {
-      "zh": "输入标签后确认添加，或尝试粘贴与删除，maximum 限制标签数量。标签集合与编辑状态分别保存；禁用和只读行为通过嵌入的 InputOptions 配置。",
-      "en": "Enter and confirm tags, then try pasting and removal; maximum limits the count. Retain both the tag collection and editor state, with disabled and read-only behavior configured through InputOptions."
+      "zh": "### 基本用法\n\nInputTags 绑定 `[]string` 标签列表，并用 `TagsState` 保存尚未添加的文字。Enter 添加标签，标签上的 × 移除该项，MaxTags 设置数量上限。\n\n### 在预览中试一试\n\n1. 输入标签并按 Enter，再用 × 删除。\n2. 开启粘贴添加，粘贴用逗号分隔的文字；调整标签上限后再次添加。",
+      "en": "### Basic usage\n\nInputTags binds a `[]string` list and keeps unsubmitted text in `TagsState`. Enter adds a tag, its × button removes it, and MaxTags limits the number of tags.\n\n### Try the preview\n\n1. Type a tag and press Enter, then remove it with ×.\n2. Enable paste-to-add and paste comma-separated text. Change the tag limit and try adding more."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "批量粘贴默认关闭；开启后默认只用逗号分隔。只读允许查看内容，禁止添加和删除。",
+      "en": "Bulk paste is off by default. When enabled, it splits on commas unless configured otherwise. Read-only prevents adding and removing tags."
     },
     "symbols": [
       "InputTags"
@@ -5652,16 +5652,16 @@
     "name": "PinInput",
     "category": "data",
     "description": {
-      "zh": "分格输入验证码或短文本。",
-      "en": "Enter a verification code or short text in separate slots."
+      "zh": "按格输入验证码或固定长度的短文本。",
+      "en": "Enter a verification code or other fixed-length text."
     },
     "guide": {
-      "zh": "按格输入验证码，比较长度、数字限制与遮蔽显示。PinInputState 保留编辑位置；示例仅演示输入，不发送短信或验证身份。",
-      "en": "Enter a code across the cells and compare length, numeric restriction and masking. PinInputState retains editing position; the example does not send messages or verify identity."
+      "zh": "### 基本用法\n\nPinInput 绑定字符串，并使用 `PinState` 保存编辑状态。Length 决定格数，Numeric 只允许 ASCII 数字，Mask 隐藏实际字符。\n\n### 在预览中试一试\n\n1. 输入几个字符，再点击已有字符所在的格子进行替换。\n2. 开启仅数字或隐藏字符，比较输入限制与显示；重置后尝试粘贴完整验证码。",
+      "en": "### Basic usage\n\nPinInput binds a string and uses `PinState` for editing state. Length sets the number of slots, Numeric accepts only ASCII digits, and Mask conceals the characters.\n\n### Try the preview\n\n1. Enter a few characters, then click an occupied slot and replace its character.\n2. Enable numeric or masked input to compare behavior. Reset, then try pasting a complete code."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "多个格子共用一个真实编辑器，Tab 只进入一次。组件不发送短信，也不验证身份；完成回调为 OnComplete。",
+      "en": "The slots share one editor and one Tab stop. The component does not send SMS messages or verify identity. Use OnComplete to handle complete input."
     },
     "symbols": [
       "PinInput"
@@ -5807,8 +5807,8 @@
       {
         "key": "length",
         "label": {
-          "zh": "长度",
-          "en": "Length"
+          "zh": "输入格数",
+          "en": "Input slots"
         },
         "kind": "integer",
         "default": 6.0,
@@ -5818,8 +5818,8 @@
       {
         "key": "numeric",
         "label": {
-          "zh": "仅数字",
-          "en": "Numeric"
+          "zh": "仅输入数字",
+          "en": "Digits only"
         },
         "kind": "boolean",
         "default": true
@@ -5827,8 +5827,8 @@
       {
         "key": "mask",
         "label": {
-          "zh": "掩码",
-          "en": "Mask"
+          "zh": "隐藏字符",
+          "en": "Mask characters"
         },
         "kind": "boolean",
         "default": false
@@ -5844,16 +5844,16 @@
     "name": "InputRating",
     "category": "data",
     "description": {
-      "zh": "用星级选择评分。",
-      "en": "Choose a rating with interactive stars."
+      "zh": "用整数星级选择评分。",
+      "en": "Choose a whole-number star rating."
     },
     "guide": {
-      "zh": "选择星级并观察下方数值，试试只读、清空和方向设置。Max 决定评分范围，应用保存整数值并决定是否提交评分。",
-      "en": "Choose a rating and inspect its value, then try read-only, clearable and orientation settings. Max defines the range; the application retains and optionally submits the integer rating."
+      "zh": "### 基本用法\n\nInputRating 绑定一个整数，0 表示未评分，Max 决定最高分。Clearable 允许清零当前评分，ReadOnly 用于只展示已有评分。\n\n### 在预览中试一试\n\n1. 点击星星，查看下方评分数值。\n2. 开启允许清空后再次点击当前评分，再比较只读与纵向排列。",
+      "en": "### Basic usage\n\nInputRating binds an integer: 0 means unrated and Max sets the highest score. Clearable allows resetting to zero; ReadOnly displays an existing rating without editing.\n\n### Try the preview\n\n1. Click a star and check the value below it.\n2. Enable clearing and click the current rating again, then compare read-only and vertical layout."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "当前支持整数评分，不支持半星。应用负责保存或提交评分。",
+      "en": "Ratings use whole numbers; half stars are not supported. The application saves or submits the rating."
     },
     "symbols": [
       "InputRating"
@@ -6011,16 +6011,16 @@
     "name": "Listbox",
     "category": "data",
     "description": {
-      "zh": "在可见列表中选择项目。",
-      "en": "Select items from a visible list."
+      "zh": "在直接显示的列表中选择一项或多项。",
+      "en": "Select one or more items from a visible list."
     },
     "guide": {
-      "zh": "直接在列表中选择语言，multiple 控制单选与多选。ListboxState 管理交互，所选 ID 列表保存业务选择；展示标签不应代替稳定 ID。",
-      "en": "Select languages directly in the list and toggle multiple. ListboxState owns interaction while the selected-ID collection owns business selection; display labels should not replace stable IDs."
+      "zh": "### 基本用法\n\n用 `[]string` 保存选中 ID，用 ListboxState 保存键盘高亮和滚动状态。每个 ListboxItem 需要唯一 ID，Label 用于显示文字。\n\n### 在预览中试一试\n\n1. 选择一种语言，再次点击它，观察默认的取消选择行为。\n2. 开启多选，选择两项，并用方向键移动高亮。",
+      "en": "### Basic usage\n\nKeep selected IDs in a `[]string` and keyboard highlight and scroll state in ListboxState. Each ListboxItem needs a unique ID and a display Label.\n\n### Try the preview\n\n1. Select a language, then select it again to try the default toggle behavior.\n2. Enable multiple selection, choose two items and move the highlight with arrow keys."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "默认 SelectionToggle 允许再次激活以取消；SelectionReplace 表示激活时替换选择。列表显示名可以重复，ID 必须唯一。",
+      "en": "SelectionToggle allows deselection by activating an item again. SelectionReplace replaces the selection. Labels may repeat, but IDs must be unique."
     },
     "symbols": [
       "Listbox"
@@ -6058,16 +6058,16 @@
     "name": "SelectMenu",
     "category": "data",
     "description": {
-      "zh": "在可搜索的弹出列表中选择项目。",
-      "en": "Choose items from a searchable popup list."
+      "zh": "在弹出的列表中搜索并选择项目。",
+      "en": "Search and choose items in a popup list."
     },
     "guide": {
-      "zh": "展开菜单搜索并选择语言，试试多选、搜索开关和加载状态。示例同时保存所选 ID 与 SelectMenu 状态；清空操作不会重新创建选项数据。",
-      "en": "Open the menu to search and choose languages, then try multi-selection, search visibility and loading. The example retains selected IDs and menu state; clearing does not recreate option data."
+      "zh": "### 基本用法\n\nSelectMenu 把触发按钮、搜索框和 Listbox 组合起来。用选中 ID 列表保存结果，SelectMenuState 保存打开状态、查询词和列表交互。\n\n### 在预览中试一试\n\n1. 打开菜单，输入语言名称并选择结果。\n2. 开启多选或关闭搜索框，再比较加载状态。",
+      "en": "### Basic usage\n\nSelectMenu combines a trigger, search field and Listbox. Keep results in a list of selected IDs, and use SelectMenuState for open state, query and list interaction.\n\n### Try the preview\n\n1. Open the menu, search for a language and choose a result.\n2. Enable multiple selection or hide the search field, then compare the loading state."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "默认只搜索 Label，选择或关闭后重置查询词。需要远程搜索时，用 ExternalFilter 展示应用已经筛选的结果。",
+      "en": "By default, search matches Label and the query resets after selection or dismissal. For remote search, use ExternalFilter with results prepared by the application."
     },
     "symbols": [
       "SelectMenu"
@@ -6248,16 +6248,16 @@
     "name": "Calendar",
     "category": "data",
     "description": {
-      "zh": "选择公历日期或日期区间。",
-      "en": "Choose a Gregorian date or date range."
+      "zh": "在日历中选择单日或起止日期。",
+      "en": "Choose a date or a date range from a calendar."
     },
     "guide": {
-      "zh": "选择日期，开启 range 后选择区间两端。示例把“今天”固定为 2026-11-02，方便对照；真实应用可使用自己的当前日期与日期约束。",
-      "en": "Choose a date, or enable range and select both endpoints. Today is fixed at 2026-11-02 for reproducibility; real applications can supply their current date and constraints."
+      "zh": "### 基本用法\n\nCalendar 使用 DateSelection 保存起止日期，用 CalendarState 保存当前浏览月份和高亮日期。Range 开启范围选择，Min、Max 和 IsDateDisabled 限制可选日期。\n\n### 在预览中试一试\n\n1. 点击一天，查看选中状态。\n2. 开启区间选择，先点击起点，再点击终点。",
+      "en": "### Basic usage\n\nCalendar keeps selected dates in DateSelection and the displayed month and active date in CalendarState. Range enables date ranges; Min, Max and IsDateDisabled limit selectable dates.\n\n### Try the preview\n\n1. Click a date to select it.\n2. Enable range selection, then choose a start and end date."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "为了便于对照，本例将今天固定为 2026-11-02。实际应用可使用当前日期；范围不能跨越禁用日期。",
+      "en": "The example fixes today at 2026-11-02 for repeatable comparisons. Applications can use the current date. A selected range cannot cross disabled dates."
     },
     "symbols": [
       "Calendar"
@@ -6295,16 +6295,16 @@
     "name": "InputDate",
     "category": "data",
     "description": {
-      "zh": "按区域格式分段编辑日期，可选日历弹层。",
-      "en": "Edit date segments in regional order, with an optional calendar."
+      "zh": "分段输入日期，也可打开日历选择。",
+      "en": "Edit date segments or choose a date from a calendar."
     },
     "guide": {
-      "zh": "上方编辑单日，下方在同一外框内编辑日期范围。左右键切换字段，上下键增减，数字输入自动跳段；showCalendar 显式开启日历。值与未完成草稿分别保存。",
-      "en": "Edit a single date above and a range within one field below. Use arrows to navigate and increment segments; typing advances automatically. Enable showCalendar for a calendar. Values and incomplete drafts are retained separately."
+      "zh": "### 基本用法\n\n单日用 InputDate 绑定 `Optional[Date]` 和 DateInputState；日期范围用 InputDateRange 绑定 DateSelection 和 DateRangeInputState。状态分别保存有效日期和未完成的输入。\n\n### 在预览中试一试\n\n1. 编辑上方单日：用左右键切换年、月、日，上下键增减。\n2. 编辑下方起止日期，再开启显示日历按钮，用日历选择。",
+      "en": "### Basic usage\n\nUse InputDate with `Optional[Date]` and DateInputState for one date, or InputDateRange with DateSelection and DateRangeInputState for a range. These states keep valid dates separate from incomplete input.\n\n### Try the preview\n\n1. Edit the upper date: use Left/Right to move between segments and Up/Down to adjust them.\n2. Edit the lower date range, then enable the calendar button and choose dates from the calendar."
     },
     "note": {
-      "zh": "日期／时间使用分段输入，Placeholder、Password 和 MaxLength 不适用。Style 的 editor 为首个分段。尚不支持分段撤销／重做、多历法或时区选择；浏览器预览不等同于原生读屏验证。 日历默认关闭，设置 ShowCalendar=true 开启；HideCalendar 优先关闭。",
-      "en": "Date/time fields use segments; Placeholder, Password and MaxLength do not apply. The Style editor is the first segment. Segment undo/redo, alternative calendars and timezone selection are not supported; browser previews do not validate native screen readers. The calendar is off by default; enable ShowCalendar. HideCalendar takes precedence."
+      "zh": "日历默认关闭，ShowCalendar=true 开启，HideCalendar 优先关闭。分段输入不使用 Placeholder、Password、MaxLength；Style 的 editor 是首个分段。当前不支持分段撤销/重做、多历法或时区选择。",
+      "en": "The calendar is off by default. ShowCalendar=true enables it and HideCalendar overrides it. Segmented input does not use Placeholder, Password or MaxLength; Style receives the first segment as editor. Segment undo/redo, multiple calendars and time-zone selection are not supported."
     },
     "symbols": [
       "InputDate",
@@ -6486,16 +6486,16 @@
     "name": "InputTime",
     "category": "data",
     "description": {
-      "zh": "按 12 或 24 小时制输入时间。",
-      "en": "Enter a time using a 12- or 24-hour clock."
+      "zh": "分段输入时、分、秒，支持 12 或 24 小时制。",
+      "en": "Edit hours, minutes and seconds in 12- or 24-hour format."
     },
     "guide": {
-      "zh": "分段编辑时、分、可选秒和上下午。左右键切换字段，上下键增减，A/P 切换 AM/PM。TimeInputState 保存草稿，隐藏秒字段后仍保留秒值。应用负责时区与日期语义。",
-      "en": "Edit hours, minutes, optional seconds and the day period. Use arrows to navigate and increment; A/P selects AM/PM. TimeInputState retains drafts and hidden seconds. Applications own timezone and date semantics."
+      "zh": "### 基本用法\n\nInputTime 绑定 `Optional[ClockTime]`，TimeInputState 保存尚未输完的时间。TwelveHour 决定小时制，Seconds 决定是否显示秒；未指定小时制时跟随语言和系统区域设置。\n\n### 在预览中试一试\n\n1. 用左右键选择分段，用上下键调整；12 小时制下可用 A / P 选择上下午。\n2. 切换小时制或隐藏秒，查看已有时间如何保留。",
+      "en": "### Basic usage\n\nInputTime binds an `Optional[ClockTime]`, while TimeInputState holds incomplete input. TwelveHour chooses the hour format and Seconds controls the seconds segment. An unset hour format follows language and regional preferences.\n\n### Try the preview\n\n1. Move between segments with Left/Right and adjust with Up/Down. In 12-hour mode, A/P selects AM or PM.\n2. Switch hour format or hide seconds and check that the time is retained."
     },
     "note": {
-      "zh": "日期／时间使用分段输入，Placeholder、Password 和 MaxLength 不适用。Style 的 editor 为首个分段。尚不支持分段撤销／重做、多历法或时区选择；浏览器预览不等同于原生读屏验证。 时间范围尚未提供。",
-      "en": "Date/time fields use segments; Placeholder, Password and MaxLength do not apply. The Style editor is the first segment. Segment undo/redo, alternative calendars and timezone selection are not supported; browser previews do not validate native screen readers. Time ranges are not yet supported."
+      "zh": "隐藏秒后再编辑时、分，原秒值仍保留。ClockTime 不含日期和时区。Placeholder、Password、MaxLength 不适用于分段输入；当前没有时间范围、分段撤销/重做或时区选择器。",
+      "en": "Editing hours or minutes while seconds are hidden retains the seconds value. ClockTime has no date or time zone. Placeholder, Password and MaxLength do not apply to segmented input. Time ranges, segment undo/redo and a time-zone picker are not available."
     },
     "symbols": [
       "InputTime"
@@ -6685,16 +6685,16 @@
     "name": "ColorPicker",
     "category": "data",
     "description": {
-      "zh": "通过色板和数值选择颜色。",
-      "en": "Choose a color with visual and numeric controls."
+      "zh": "通过颜色面板、色板或数值选择颜色。",
+      "en": "Choose a color from a panel, swatches or numeric values."
     },
     "guide": {
-      "zh": "拖动取色区域或编辑颜色数值，观察当前选择。ColorPickerState 保存交互状态；这里修改的是示例选色，不会改变整个文档站的主题。",
-      "en": "Drag in the picker or edit color values to inspect the selection. ColorPickerState retains interaction state; this changes the sample color rather than the documentation site's theme."
+      "zh": "### 基本用法\n\nColorPicker 绑定 `ui.Color`，并用 ColorPickerState 保存交互状态。颜色面板、HEX 输入和 RGB 数值会同步到同一个颜色值。\n\n### 在预览中试一试\n\n1. 拖动颜色区域和滑条，查看颜色变化。\n2. 编辑 HEX 或 RGB 数值，观察其他表示同步更新。",
+      "en": "### Basic usage\n\nColorPicker binds a `ui.Color` and uses ColorPickerState for interaction state. The color panel, HEX input and RGB values all update the same color.\n\n### Try the preview\n\n1. Drag in the color panel and along the sliders.\n2. Edit HEX or RGB values and watch the other representations update."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "这里只改变示例选择的颜色，不改变网站主题。图片取色和屏幕取色尚未提供。",
+      "en": "This changes the sample color, not the website theme. Picking colors from images or the screen is not provided."
     },
     "symbols": [
       "ColorPicker"
@@ -6723,16 +6723,16 @@
     "name": "Table",
     "category": "data",
     "description": {
-      "zh": "展示可排序和选择的结构化数据。",
-      "en": "Display sortable, selectable structured data."
+      "zh": "按行列展示数据，支持排序、选择和滚动。",
+      "en": "Display rows and columns with sorting, selection and scrolling."
     },
     "guide": {
-      "zh": "点击 Project 列标题排序，并选择数据行。完整示例展示 TableState 的数据初始化、稳定行 ID 与 Compare 函数；高度参数决定可滚动表格区域。",
-      "en": "Sort by the Project header and select rows. The complete program shows TableState data setup, stable row IDs and a Compare function; height sets the scrollable table area."
+      "zh": "### 基本用法\n\n用 TableState.SetRows 设置数据，并为每行提供稳定 ID。TableColumn.Value 提供文字，Compare 定义排序，Cell 可自定义单元格。数据变化时更新 SetRows，不要在每次构建时重复初始化。\n\n### 在预览中试一试\n\n1. 点击 Project 列标题，比较升序和降序。\n2. 选择数据行，再减小表格高度，尝试滚动。",
+      "en": "### Basic usage\n\nSet data with TableState.SetRows and provide a stable ID for each row. TableColumn.Value supplies text, Compare defines sorting, and Cell customizes a cell. Update SetRows when data changes, not on every build.\n\n### Try the preview\n\n1. Click the Project header to compare ascending and descending order.\n2. Select a row, then reduce table height and try scrolling."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "排序后行位置会变化，编辑时应按行 ID 查找业务数据。Fixed 只禁止调宽和重排列，不会冻结滚动列。",
+      "en": "Sorting changes row positions, so locate application data by row ID when editing. Fixed prevents resizing and reordering; it does not freeze a scrolling column."
     },
     "symbols": [
       "Table"
@@ -6774,16 +6774,16 @@
     "name": "Tree",
     "category": "data",
     "description": {
-      "zh": "浏览带有稳定标识的层级数据。",
-      "en": "Browse hierarchical data with stable identities."
+      "zh": "展开层级数据，并选择其中的节点。",
+      "en": "Expand hierarchical data and select its nodes."
     },
     "guide": {
-      "zh": "点击父节点选择并展开，方向键只移动高亮，Enter / Space 选择。开启 Multiple 后比较 toggle / replace、Shift 范围选择和父子联动；禁用项不会响应操作。 Nested 默认开启层级竖线及子项背景缩进；关闭后整行可点击，内容仍按层级缩进。切换模式保留选择、展开和滚动状态。",
-      "en": "Click a parent to select and expand. Arrow keys move the highlight; Enter / Space select. Enable Multiple to compare toggle / replace, Shift ranges and parent-child selection. Disabled items ignore input. Nested defaults to ancestor guides and inset child row backgrounds; turn it off for full-width clickable rows with indented content. Switching preserves selection, expansion and scrolling."
+      "zh": "### 基本用法\n\n用 TreeState.SetNodes 设置节点，每个节点都有唯一 ID。Selection 保存选择，Outline.Open 保存展开项，Active 是键盘高亮。默认单选，点击行会选择并切换展开；方向键导航，Enter / Space 选择。\n\n### 在预览中试一试\n\n1. 点击父节点展开子项，再用键盘移动和选择。\n2. 开启多选，比较 toggle 与 replace；replace 模式可用 Shift 扩展连续选择。\n3. 切换层级缩进和父子联动，观察背景范围与选中项。",
+      "en": "### Basic usage\n\nSet nodes with TreeState.SetNodes and give each node a unique ID. Selection holds selected IDs, Outline.Open holds expanded IDs, and Active is the keyboard highlight. By default, clicking a row selects and toggles expansion; arrows navigate and Enter/Space selects.\n\n### Try the preview\n\n1. Click a parent to expand it, then navigate and select with the keyboard.\n2. Enable multiple selection and compare toggle with replace. Use Shift for a continuous range in replace mode.\n3. Toggle nested layout and selection propagation to compare row backgrounds and selected items."
     },
     "note": {
-      "zh": "对照 Nuxt UI 4.12.0：默认单选，原生虚拟化始终开启。TreeState.Selection / Outline.Open 保存受控 ID；SetExpanded 可立即使折叠分支的加载票据失效。父子联动仅处理已加载节点，后续懒加载子项不自动继承选择。使用与迁移说明见仓库 docs/forms-data.md 的 Tree 章节。 Nested 对齐原生视觉布局；两种模式共用虚拟列表，不生成 Vue 嵌套 DOM。",
-      "en": "Compared with Nuxt UI 4.12.0: single selection by default, native virtualization always enabled. TreeState.Selection / Outline.Open hold controlled IDs; SetExpanded immediately invalidates hidden loads. Propagation covers loaded nodes; later lazy children do not inherit selection. See the Tree section in docs/forms-data.md for usage and migration. Nested controls native visual layout; both modes share a virtual list, without Vue nested DOM."
+      "zh": "父子联动只处理已加载节点，禁用节点会阻断联动，后续加载的子节点不自动继承选择。Nested 默认显示层级竖线和缩进背景，关闭后背景占整行；两种布局都使用虚拟列表。懒加载结果要通过票据返回，SetExpanded 可使已折叠分支的旧结果失效。",
+      "en": "Propagation covers loaded nodes only, stops at disabled nodes, and does not automatically select children loaded later. Nested draws hierarchy guides and inset backgrounds; disabling it gives rows full-width backgrounds. Both layouts use virtual lists. Return lazy-load results with tickets; SetExpanded can invalidate results for collapsed branches."
     },
     "symbols": [
       "Tree"
@@ -6796,8 +6796,8 @@
       {
         "key": "nested",
         "label": {
-          "zh": "嵌套布局",
-          "en": "Nested"
+          "zh": "层级缩进",
+          "en": "Nested layout"
         },
         "kind": "boolean",
         "default": true
@@ -6823,8 +6823,8 @@
       {
         "key": "propagate",
         "label": {
-          "zh": "向下联动",
-          "en": "Propagate selection"
+          "zh": "同时选择子节点",
+          "en": "Select descendants"
         },
         "kind": "boolean",
         "default": false
@@ -6832,8 +6832,8 @@
       {
         "key": "bubble",
         "label": {
-          "zh": "向上联动",
-          "en": "Bubble selection"
+          "zh": "根据子项更新父节点",
+          "en": "Update parents from children"
         },
         "kind": "boolean",
         "default": false
@@ -6958,16 +6958,16 @@
     "name": "CommandPalette",
     "category": "advanced",
     "description": {
-      "zh": "搜索并执行应用命令。",
-      "en": "Search and execute application commands."
+      "zh": "搜索应用命令，并从结果中执行操作。",
+      "en": "Search application commands and run a result."
     },
     "guide": {
-      "zh": "点击 Open commands 搜索示例命令并执行，所选命令 ID 显示在下方。此预览关闭全局快捷键以避免占用浏览器按键；搜索索引只初始化一次，实例释放时关闭状态。",
-      "en": "Use Open commands to search and execute a sample command; its ID appears below. The global shortcut is disabled to avoid browser conflicts. Initialize the index once and close state when disposing the instance."
+      "zh": "### 基本用法\n\n先用 NewCommandIndex 创建命令索引，再交给 CommandPaletteState.SetIndex。索引在命令数据变化时更新，视图中调用 CommandPalette，OnSelect 处理选中的命令 ID。\n\n### 在预览中试一试\n\n1. 点击 Open commands，输入命令名称的一部分。\n2. 用方向键选择结果并按 Enter，查看下方命令 ID。",
+      "en": "### Basic usage\n\nCreate a command index with NewCommandIndex and assign it with CommandPaletteState.SetIndex. Update the index when command data changes, render CommandPalette in the view, and handle the selected ID with OnSelect.\n\n### Try the preview\n\n1. Click Open commands and type part of a command name.\n2. Choose a result with the arrow keys, press Enter, and check the command ID below."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "本预览关闭了默认快捷键，避免与浏览器冲突。离开视图或关闭窗口时，应用应调用状态的 Close 方法取消搜索。",
+      "en": "The preview disables the default shortcut to avoid browser conflicts. Call Close on the state when leaving the view or closing the window to cancel searches."
     },
     "symbols": [
       "CommandPalette"
@@ -6996,16 +6996,16 @@
     "name": "NavigationMenu",
     "category": "advanced",
     "description": {
-      "zh": "组织应用的主要导航入口。",
-      "en": "Organize the primary navigation of an application."
+      "zh": "提供应用的主要导航和子级菜单。",
+      "en": "Provide primary navigation and nested destinations."
     },
     "guide": {
-      "zh": "切换 Overview、Projects 与 Settings 查看当前 ID，再比较纵向与紧凑布局。NavigationMenu 负责选择与呈现，实际页面内容由应用随 Active ID 更新。",
-      "en": "Switch between Overview, Projects and Settings to inspect the active ID, then compare vertical and compact layouts. NavigationMenu presents and selects items; applications update content from the active ID."
+      "zh": "### 基本用法\n\nNavigationMenu 使用当前 ID 表示选中位置，NavigationState 保存子菜单交互。OnNavigate 通知应用切换页面，组件本身不加载页面内容或解析 URL。\n\n### 在预览中试一试\n\n1. 选择 Overview、Projects 或 Settings，查看当前 ID。\n2. 开启纵向排列，再比较紧凑模式中的图标和提示。",
+      "en": "### Basic usage\n\nNavigationMenu uses an active ID for the current destination and NavigationState for submenu interaction. OnNavigate tells the application to switch pages; the component does not load content or resolve URLs.\n\n### Try the preview\n\n1. Choose Overview, Projects or Settings and check the active ID.\n2. Enable vertical layout, then compare the icons and tooltips in compact mode."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "每个导航项的 ID 在整棵树中必须唯一。父项用于展开子级，不同时执行导航。",
+      "en": "Navigation IDs must be unique across the whole tree. A parent opens its children rather than navigating at the same time."
     },
     "symbols": [
       "NavigationMenu"
@@ -7027,8 +7027,8 @@
       {
         "key": "compact",
         "label": {
-          "zh": "紧凑",
-          "en": "Compact"
+          "zh": "紧凑布局",
+          "en": "Compact layout"
         },
         "kind": "boolean",
         "default": false
@@ -7044,16 +7044,16 @@
     "name": "Drawer",
     "category": "advanced",
     "description": {
-      "zh": "从底部展开可拖动的抽屉。",
-      "en": "Open a draggable drawer from the bottom."
+      "zh": "从底部打开面板，并用手柄调整高度。",
+      "en": "Open a bottom panel and adjust its height with a handle."
     },
     "guide": {
-      "zh": "点击 Open drawer，从底部展开后拖动把手切换高度，Done 关闭。示例使用 50% 与 80% 两个停靠位置，DrawerState 在整个交互期间保持不变。",
-      "en": "Open the bottom drawer, drag its handle to change height and use Done to close. The example has 50% and 80% snap points and retains DrawerState throughout interaction."
+      "zh": "### 基本用法\n\nDrawerState.Open 控制打开，Snap 保存当前停靠位置。SnapPoints 是按从小到大排列的窗口高度比例；内容回调用于构建正文。\n\n### 在预览中试一试\n\n1. 点击 Open drawer，拖动顶部手柄，比较 50% 和 80% 两个高度。\n2. 点击 Done 关闭，再试用 Escape 或向下拖动关闭。",
+      "en": "### Basic usage\n\nDrawerState.Open controls visibility and Snap stores the current stop. SnapPoints lists window-height proportions in ascending order. Build the panel body in the content callback.\n\n### Try the preview\n\n1. Click Open drawer and drag its top handle between the 50% and 80% height stops.\n2. Close with Done, then try Escape or a downward drag."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "本例使用 50% 和 80%，组件默认停靠点是 50% 和 85%。只有手柄用于拖动，正文继续正常滚动。关闭期间仍需调用组件。",
+      "en": "This example uses 50% and 80% stops; the component defaults are 50% and 85%. Only the handle drags the panel, leaving the body available for scrolling. Keep rendering while it closes."
     },
     "symbols": [
       "Drawer"
@@ -7074,8 +7074,8 @@
       {
         "key": "dismissible",
         "label": {
-          "zh": "允许关闭",
-          "en": "Dismissible"
+          "zh": "允许 Escape 或外部点击关闭",
+          "en": "Dismiss with Escape or outside click"
         },
         "kind": "optionalBoolean",
         "default": null
@@ -7091,16 +7091,16 @@
     "name": "FileUpload",
     "category": "advanced",
     "description": {
-      "zh": "展示文件列表、状态和移除操作。",
-      "en": "Display files, upload state and removal actions."
+      "zh": "选择文件，并显示文件状态和上传进度。",
+      "en": "Select files and display their status and upload progress."
     },
     "guide": {
-      "zh": "这里展示预置文件及删除操作，重置可以恢复列表。浏览器后端暂不提供原生文件选择框，因此示例显式关闭 Interactive；桌面程序可结合选择、任务进度和自己的上传逻辑使用。",
-      "en": "Inspect the preset files and remove them; reset restores the list. The browser backend lacks native file dialogs, so Interactive is explicitly disabled. Desktop apps can combine selection, progress and their own upload logic."
+      "zh": "### 基本用法\n\nFileUploadState 保存文件列表和状态。桌面应用可用组件的文件选择器检查类型、大小和数量；实际传输由应用在 Begin / Report 对应的任务中实现。\n\n### 在预览中试一试\n\n1. 查看预置文件，点击移除按钮删除一项。\n2. 点击重置示例恢复列表，再关闭允许移除。",
+      "en": "### Basic usage\n\nFileUploadState holds files and their status. Desktop applications can use the picker and validate type, size and count. Implement the actual transfer in application tasks using Begin and Report.\n\n### Try the preview\n\n1. Inspect the sample files and remove one with its remove button.\n2. Reset the example to restore the list, then disable removal."
     },
     "note": {
-      "zh": "浏览器不支持 MyGo 原生文件选择框。本示例提供预置文件与移除操作，不发起上传；文件选择与上传需由应用接入。",
-      "en": "The browser backend does not support MyGo native file dialogs. This example provides sample files and removal, without uploading. Applications supply file selection and upload logic."
+      "zh": "浏览器预览使用预置文件，关闭了 Interactive，不打开 MyGo 原生文件选择框，也不发起上传。应用需要自行实现传输，并在卸载或关窗时调用 Dispose 清理任务。",
+      "en": "The browser preview uses sample files with Interactive disabled. It neither opens a MyGo native file picker nor uploads files. Implement transfers in the application and call Dispose when the view unmounts or the window closes."
     },
     "symbols": [
       "FileUpload"
@@ -7227,16 +7227,16 @@
     "name": "Chart",
     "category": "advanced",
     "description": {
-      "zh": "以图表呈现分类数据和趋势。",
-      "en": "Visualize categorical data and trends."
+      "zh": "用折线、柱状、面积或扇区图展示数据。",
+      "en": "Display data as lines, bars, areas or slices."
     },
     "guide": {
-      "zh": "切换折线、柱形、面积、散点、饼图和环形图，比较图例、网格与动画。完整示例用持久 ChartState 管理序列数据，饼图与环形图使用单独的分类数据。",
-      "en": "Switch between line, bar, area, scatter, pie and donut charts and compare legend, grid and animation. Persistent ChartState owns series data; pie and donut use separate category data."
+      "zh": "### 基本用法\n\nChartState 保存图表数据，ChartOptions 决定图型和外观。分类数据用 SetCategories，数值轴用 SetData，时间轴用 SetTimeData；饼图和环形图用 SetSlices。\n\n### 在预览中试一试\n\n1. 切换六种图型，比较趋势图与占比图。\n2. 点击图例隐藏或恢复一组数据，再调整网格和动画。",
+      "en": "### Basic usage\n\nChartState stores data and ChartOptions controls chart type and appearance. Use SetCategories for categories, SetData for numeric X values, SetTimeData for time axes, and SetSlices for pie or donut charts.\n\n### Try the preview\n\n1. Switch between the six chart types to compare trends and proportions.\n2. Click a legend item to hide or restore a series, then change grid and animation settings."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "本例分别保存工作日系列数据和扇区数据。数据设置方法返回错误，应用应处理错误后再显示；状态由单个图表实例持有。",
+      "en": "This example keeps weekday series and slice data separately. Data setters return errors that the application should handle. Keep each state with a single chart instance."
     },
     "symbols": [
       "Chart"
@@ -7319,16 +7319,16 @@
     "name": "Carousel",
     "category": "advanced",
     "description": {
-      "zh": "在一组内容卡片中翻页。",
-      "en": "Move through a collection of content panels."
+      "zh": "在一组卡片中拖动或按页切换。",
+      "en": "Drag or page through a set of cards."
     },
     "guide": {
-      "zh": "使用箭头或圆点在三张卡片之间切换，再比较纵向与循环模式。CarouselState 保存当前位置，卡片使用稳定 ID，Build 只负责当前布局。",
-      "en": "Use arrows or dots to move through three cards, then compare vertical and wrap modes. CarouselState retains position; cards use stable IDs and Build only creates the current layout."
+      "zh": "### 基本用法\n\n用 CarouselItem 提供带稳定 ID 的内容，CarouselState.Index 保存当前位置。Arrows 显示翻页按钮，Dots 显示位置圆点，Orientation 选择横向或纵向。\n\n### 在预览中试一试\n\n1. 在三张卡片间拖动，或开启箭头和圆点进行翻页。\n2. 开启循环翻页，用按钮从最后一张回到第一张，再比较纵向排列。",
+      "en": "### Basic usage\n\nProvide CarouselItems with stable IDs and keep the current position in CarouselState.Index. Arrows shows navigation buttons, Dots shows page dots, and Orientation chooses the axis.\n\n### Try the preview\n\n1. Drag between the three cards, or enable arrows and dots to change pages.\n2. Enable wrap and use a button to go from the last card to the first, then compare vertical layout."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "Wrap 允许按钮、键盘和自动播放首尾循环，拖动仍有边界。内容回调可能为相邻项执行，不要在其中启动业务操作。",
+      "en": "Wrap cycles button, keyboard and autoplay navigation between the ends, while dragging remains bounded. Adjacent items may also run their content callbacks; do not start application actions there."
     },
     "symbols": [
       "Carousel"
@@ -7360,8 +7360,8 @@
       {
         "key": "arrows",
         "label": {
-          "zh": "箭头",
-          "en": "Arrows"
+          "zh": "翻页箭头",
+          "en": "Navigation arrows"
         },
         "kind": "optionalBoolean",
         "default": null
@@ -7369,8 +7369,8 @@
       {
         "key": "dots",
         "label": {
-          "zh": "指示点",
-          "en": "Dots"
+          "zh": "位置圆点",
+          "en": "Page dots"
         },
         "kind": "boolean",
         "default": true
@@ -7395,16 +7395,16 @@
     "name": "Marquee",
     "category": "advanced",
     "description": {
-      "zh": "让展示性内容连续移动。",
-      "en": "Move presentation-only content continuously."
+      "zh": "连续滚动展示文字或其他非交互内容。",
+      "en": "Continuously scroll text or other display-only content."
     },
     "guide": {
-      "zh": "调整滚动速度与方向，将指针移入区域可暂停。Active 控制运行状态，系统减少动态效果设置也会影响动画；内容是四个固定标签。",
-      "en": "Change scrolling speed and direction, and hover to pause. Active controls playback and reduced-motion settings also affect animation. Content consists of four fixed badges."
+      "zh": "### 基本用法\n\n在 Marquee 的内容回调中放入展示元素，用 Speed 设置每秒移动距离，Reverse 改变方向，Active 控制是否运行。\n\n### 在预览中试一试\n\n1. 调整速度或反向选项，观察四个标签的移动。\n2. 将指针移入区域暂停，移开继续；再关闭运行。",
+      "en": "### Basic usage\n\nPut display elements in the Marquee content callback. Speed sets distance per second, Reverse changes direction, and Active controls whether it runs.\n\n### Try the preview\n\n1. Change speed or reverse to compare movement of the four labels.\n2. Hover to pause and move away to resume, then turn Active off."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "本例启用了悬停暂停。内容会重复构建，不要放入按钮、输入框或业务操作；系统减少动态效果时会停止移动。",
+      "en": "This example enables pause on hover. Content is built repeatedly, so avoid buttons, inputs and application actions. Reduced-motion settings stop movement."
     },
     "symbols": [
       "Marquee"
@@ -7453,16 +7453,16 @@
     "name": "Splitter",
     "category": "advanced",
     "description": {
-      "zh": "拖动分隔条调整两个面板的比例。",
-      "en": "Drag a divider to resize two panels."
+      "zh": "拖动分隔条，调整两个面板的大小。",
+      "en": "Resize two panels by dragging their divider."
     },
     "guide": {
-      "zh": "拖动两个面板之间的分隔条，比较纵向排列。比例状态保存在视图外；此例使用百分比范围 15–85，避免某一面板被完全挤掉。",
-      "en": "Drag the divider between the two panes and compare vertical layout. The ratio persists outside the view; this example uses a 15–85 percent range to keep both panes available."
+      "zh": "### 基本用法\n\nSplitter 绑定一个 `float32` 值。默认单位为 DIP，Percent=true 时使用百分比；Vertical=true 改为上下分割，Min / Max 与绑定值使用相同单位。\n\n### 在预览中试一试\n\n1. 拖动分隔条，观察左右面板的比例。\n2. 开启纵向，再尝试禁用分隔条。",
+      "en": "### Basic usage\n\nSplitter binds a `float32` value in DIP, or a percentage when Percent=true. Vertical=true stacks the panels. Min and Max use the same units as the bound value.\n\n### Try the preview\n\n1. Drag the divider and compare the two panel sizes.\n2. Enable vertical layout, then disable the divider."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "本例按百分比限制在 15–85，避免任一面板完全消失。比例值应保存在视图函数外。",
+      "en": "This example limits the percentage to 15–85 so neither panel disappears. Keep the value outside the view function."
     },
     "symbols": [
       "Splitter"
@@ -7500,16 +7500,16 @@
     "name": "Sidebar",
     "category": "advanced",
     "description": {
-      "zh": "组合可折叠、可调宽度的原生应用侧边栏。",
-      "en": "Compose a collapsible, resizable application sidebar."
+      "zh": "为应用提供可收起、可调宽的侧边栏。",
+      "en": "Add a collapsible, resizable application sidebar."
     },
     "guide": {
-      "zh": "拖动侧栏边缘调宽，双击边缘或点击 Reset width 恢复配置宽度。收起后悬停图标可查看提示，Settings 会打开侧向子菜单；选中项目会更新右侧页面。底部 Account 会随收起状态隐藏文字。可切换左右位置、关闭调宽或收起，并设置断点测试 Slideover、Modal、Drawer。",
-      "en": "Drag the sidebar edge to resize; double-click it or use Reset width to restore the configured width. Collapsed icons show tooltips, and Settings opens a side popover. Navigation updates the workspace; the Account footer hides its label when collapsed. Try either side, disable resizing or collapse, and set a breakpoint to test Slideover, Modal or Drawer."
+      "zh": "### 基本用法\n\nSidebar 组合头部、可滚动正文、底部和收起按钮。用 `collapsed` 保存桌面收起状态，SidebarState 保存调节后的宽度和窄窗口弹层状态，正文中可放入 NavigationMenu。\n\n### 在预览中试一试\n\n1. 拖动侧栏边缘调宽，双击边缘或点击 Reset width 恢复初始宽度。\n2. 收起侧栏，悬停图标查看提示，选择 Settings 的子项，观察右侧当前页面。\n3. 将断点设得比预览区域宽，点击出现的打开按钮，比较 Slideover、Modal 和 Drawer。",
+      "en": "### Basic usage\n\nSidebar combines a header, scrollable body, footer and toggle. Keep desktop collapse state in `collapsed`, and width and narrow-window open state in SidebarState. Build NavigationMenu in the body.\n\n### Try the preview\n\n1. Drag the sidebar edge to resize. Double-click it or use Reset width to restore the configured width.\n2. Collapse the sidebar, hover its icons, and choose a Settings child to update the current page on the right.\n3. Set the breakpoint wider than the preview, open the sidebar with its button, and compare Slideover, Modal and Drawer."
     },
     "note": {
-      "zh": "展开宽度默认为 256 DIP，本例限制为 160–360 DIP，收起为 64 DIP。断点 0 保持桌面布局；设为大于预览区域宽度的值可显示打开按钮。弹层导航后自动关闭，桌面的收起状态与展开宽度保留。修改初始宽度不会覆盖已拖动的宽度，请点击 Reset width。状态持久化由应用负责。",
-      "en": "The expanded width defaults to 256 DIP, constrained to 160–360 DIP in this example; collapsed width is 64 DIP. A zero breakpoint keeps desktop layout. Set it above the preview width to show the opener. Navigation closes the overlay while preserving desktop collapse and width. Changing the initial width does not replace a resized width: use Reset width. Persistence is application-owned."
+      "zh": "本例展开宽度默认 256 DIP，可调范围 160–360 DIP，收起宽 64 DIP。断点 0 始终使用桌面布局。初始宽度不会覆盖已经拖动得到的宽度，需要 Reset width 才会采用新值。导航后窄窗口面板默认关闭；保存到文件等持久化由应用处理。",
+      "en": "The example starts at 256 DIP, allows 160–360 DIP, and collapses to 64 DIP. A zero breakpoint keeps desktop layout. Editing the initial width does not replace a user-resized width until Reset width is used. Narrow-window panels close after navigation by default; the application handles persistence."
     },
     "symbols": [
       "Sidebar"
@@ -7581,8 +7581,8 @@
       {
         "key": "breakpoint",
         "label": {
-          "zh": "弹层断点（0 关闭）",
-          "en": "Overlay breakpoint (0 disables)"
+          "zh": "切换弹层的宽度（0 关闭）",
+          "en": "Overlay width threshold (0 disables)"
         },
         "kind": "number",
         "default": 0.0,
@@ -7619,22 +7619,21 @@
     "body": "options := nui.SidebarOptions{\n    Title:{{label}}, State:&s.Sidebar, Resizable:{{resizable}}, Collapsible:{{collapsible}},\n    Width:nui.Set(float32({{width}})), MinWidth:nui.Set(float32(160)), MaxWidth:nui.Set(float32(360)),\n    Side:nui.Set({{side}}), Breakpoint:nui.Set(float32({{breakpoint}})), Mode:{{mode}}, NavigationKey:s.Active,\n    FooterContent:func(c *ui.Context,t nui.Theme,scope nui.SidebarScope){\n        label:=\"Account\"\n        if scope.Collapsed {label=\"\"}\n        nui.Button(c.Key(\"account\"),t,label,nui.ButtonOptions{Leading:lucide.User(),AccessibleLabel:\"Account\",Variant:nui.Ghost,Color:nui.Neutral,Block:true}).OnClick(func(){s.Active=\"account\";s.Result=\"Account selected\"})\n    },\n    OnResize:func(width float32){s.Result=fmt.Sprintf(\"Resized to %.0f DIP\",width)},\n}\nright:=options.Side.Set && options.Side.Value==nui.SideRight\nworkspace:=func(){\n    ui.Column(c.Key(\"workspace\")).Grow(1).MinWidth(0).Padding(20).Gap(12).Children(func(){\n        ui.Text(c,\"Workspace overview\").FontSize(20).FontWeight(600)\n        ui.Textf(c,\"Current page: %s\",s.Active)\n        ui.Textf(c,\"Collapsed: %t\",s.Collapsed).TextColor(t.Muted)\n        ui.Text(c,s.Result).TextColor(t.Muted)\n        nui.Button(c.Key(\"reset-width\"),t,\"Reset width\",nui.ButtonOptions{Variant:nui.Outline,Color:nui.Neutral}).OnClick(func(){s.Sidebar.Width=nui.Optional[float32]{};s.Result=\"Configured width restored\"})\n    })\n}\nui.Row(c.Key(\"layout\")).FillWidth().Height(360).MinWidth(0).MinHeight(0).Border(1,t.Border).Radius(t.Radius).Children(func(){\n    if right {workspace()}\n    nui.Sidebar(c.Key(\"sidebar\"),t,&s.Collapsed,options,func(c *ui.Context,t nui.Theme,collapsed bool){\n        placement:=nui.RightStart\n        if right!=(c.Direction()==ui.RightToLeft) {placement=nui.LeftStart}\n        nui.NavigationMenu(c.Key(\"navigation\"),t,&s.Active,&s.Navigation,[]nui.NavigationItem{\n            {ID:\"overview\",Label:\"Overview\",Icon:lucide.LayoutDashboard()},\n            {ID:\"projects\",Label:\"Projects\",Icon:lucide.Folder()},\n            {ID:\"settings\",Label:\"Settings\",Icon:lucide.Settings(),Children:[]nui.NavigationItem{{ID:\"members\",Label:\"Members\"},{ID:\"permissions\",Label:\"Permissions\"}}},\n        },nui.NavigationOptions{Vertical:true,Compact:collapsed,PopupPlacement:nui.Set(placement)})\n    })\n    if !right {workspace()}\n})",
     "height": 440
   },
-
   {
     "id": "header",
     "name": "Header",
     "category": "advanced",
     "description": {
-      "zh": "为应用提供标题与主要操作区。",
-      "en": "Provide an application title and primary action area."
+      "zh": "在内容区顶部显示标题、说明和主要操作。",
+      "en": "Show a title, description and primary actions above the content."
     },
     "guide": {
-      "zh": "修改标题查看 HeaderLayout 的标题、说明与操作区组合。New project 按钮仅展示布局，应用可在 Actions 回调中添加自己的按钮和行为。",
-      "en": "Change the title to inspect HeaderLayout with description and actions. New project demonstrates layout; compose application buttons and behavior in the Actions callback."
+      "zh": "### 基本用法\n\nHeaderLayout 使用 Title 和 Description 显示页面信息，通过 Actions 回调添加按钮，也可在 Leading 区域放置内容。它显示在应用内容区，不修改系统标题栏。\n\n### 在预览中试一试\n\n1. 修改标题，查看标题和说明的排列。\n2. 打开完整示例，查看 Actions 中如何添加 New project 按钮。",
+      "en": "### Basic usage\n\nHeaderLayout uses Title and Description for page information, Actions for buttons, and Leading for optional content. It sits in the application content area without changing the system title bar.\n\n### Try the preview\n\n1. Edit the title and inspect its layout with the description.\n2. Open the complete example to see New project added through Actions."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "示例按钮只展示布局。创建项目的动作需要应用自行绑定。",
+      "en": "The sample button only demonstrates layout. Bind project creation in the application."
     },
     "symbols": [
       "HeaderLayout"
@@ -7663,16 +7662,16 @@
     "name": "Footer",
     "category": "advanced",
     "description": {
-      "zh": "在页面底部提供说明和次要操作。",
-      "en": "Show supporting information and actions in a footer."
+      "zh": "在内容区底部显示说明和次要操作。",
+      "en": "Show explanatory text and secondary actions below the content."
     },
     "guide": {
-      "zh": "修改页脚文字，观察 FooterLayout 如何组合说明与次要操作。Help 按钮仅展示操作区，应用可在此绑定帮助页面或其他行为。",
-      "en": "Change the footer text to inspect FooterLayout with a secondary action. Help demonstrates the action area; applications can connect a help page or other behavior."
+      "zh": "### 基本用法\n\nFooterLayout 通过 Text 显示页脚文字，Actions 回调提供帮助等次要操作。将它放在主内容区域下方，由外层布局决定位置。\n\n### 在预览中试一试\n\n1. 修改页脚文字，查看文字与 Help 按钮的排列。\n2. 打开完整示例，查看如何在 Actions 中添加按钮。",
+      "en": "### Basic usage\n\nFooterLayout displays Text and uses Actions for secondary controls such as Help. Place it below the main content and let the parent layout position it.\n\n### Try the preview\n\n1. Change the footer text and compare its layout with the Help button.\n2. Open the complete example to see a button added through Actions."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "本例的 Help 按钮没有绑定操作。帮助页面或弹层由应用实现。",
+      "en": "The Help button has no action attached. Provide the help page or popup in the application."
     },
     "symbols": [
       "FooterLayout"
@@ -7701,16 +7700,16 @@
     "name": "FooterColumns",
     "category": "advanced",
     "description": {
-      "zh": "按栏目组织页脚导航。",
-      "en": "Organize footer navigation into columns."
+      "zh": "按栏目排列页脚链接。",
+      "en": "Arrange footer links into columns."
     },
     "guide": {
-      "zh": "点击页脚链接查看 OnNavigate 返回的项目 ID，缩窄窗口或调整最小列宽比较排列。栏目与链接均使用稳定 ID，真实跳转由应用处理。",
-      "en": "Activate a footer link to inspect the ID returned by OnNavigate, then narrow the window or change minimum column width. Columns and links use stable IDs; applications handle real navigation."
+      "zh": "### 基本用法\n\n为每个 FooterColumn 及其链接设置稳定 ID，标题和 Items 决定显示内容。OnNavigate 接收选中链接的 ID，应用据此打开页面。\n\n### 在预览中试一试\n\n1. 点击页脚链接，查看下方返回的 ID。\n2. 调整栏目最小宽度或缩窄窗口，观察栏目换行。",
+      "en": "### Basic usage\n\nGive each FooterColumn and link a stable ID. Titles and Items define the displayed content. OnNavigate receives the selected link ID so the application can open the destination.\n\n### Try the preview\n\n1. Click a footer link and check the ID below it.\n2. Change the minimum column width or narrow the window to see columns wrap."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "本例只显示选择结果，不执行真实跳转。需要多层子菜单时，可使用 NavigationMenu。",
+      "en": "This example shows the selected ID without navigating. Use NavigationMenu when nested submenus are needed."
     },
     "symbols": [
       "FooterColumns"
