@@ -1,101 +1,172 @@
 # 高级交互、图表与布局
 
-提供命令面板、文件选择、图表、媒体交互与桌面布局组件。状态按窗口持有，异步操作和文件资源的所有权在各节说明；平台范围见 [兼容性说明](compatibility.md)。
+本页介绍命令搜索、应用侧栏、底部面板、文件选择、图表和可拖动布局。组件状态按窗口保存，初始化数据和启动后台任务的位置在各节单独说明。
+
+| 想实现什么 | 阅读位置 |
+| --- | --- |
+| 用快捷键打开命令搜索 | [CommandPalette](#commandpalette) |
+| 应用导航、可调宽侧栏、窄窗口导航 | [NavigationMenu 与 Sidebar](#navigationmenu-与-sidebar) |
+| 可拖动的底部面板、文件选择和上传状态 | [Drawer](#drawer)、[FileUpload](#fileupload-与资源所有权) |
+| 展示图表或轮播内容 | [Chart](#chart)、[Carousel 与 Marquee](#carousel-与-marquee) |
+| 分割面板、页面头尾和页脚链接 | [布局组件](#splitterheaderfooterfootercolumns) |
 
 ## 入口与定制
 
-| 目录条目 | Go 入口 / 持久状态 | 可定制 slots |
-| --- | --- | --- |
-| CommandPalette | `CommandPalette` / `CommandPaletteState`、`CommandIndex` | Root、Editor、Listbox 转交的 Root/Label/Item/EmptySlot |
-| NavigationMenu | `NavigationMenu` / `NavigationState`、`*string` active ID | Root、Label、Item |
-| Drawer | `Drawer` / `DrawerState` | Slideover/Modal 的各 slots（默认标题也使用 Label/Description）、Thumb |
-| FileUpload | `FileUpload` / `FileUploadState` | Root、Body、Item |
-| Chart | `Chart` / `ChartState` | Root、Body、Item（图例）、Label、Description、EmptySlot |
-| Carousel | `Carousel` / `CarouselState` | Root、Body、Item |
-| Marquee | `Marquee` / `MarqueeState` | Root |
-| Splitter | `Splitter` / `*float32` | Root、Leading（第一面板）、Trailing（第二面板） |
-| Sidebar | `Sidebar` / `*bool` collapsed、可选 `SidebarState` | Root、Header、Label、Trigger、Body、Footer、SeparatorSlot；弹层还包括 Panel、Backdrop、Close |
-| Header | `HeaderLayout` / `HeaderOptions` | Root、Label、Description、Actions |
-| Footer | `FooterLayout` / `FooterOptions` | Root、Label；Actions 是内容 builder |
-| FooterColumns | `FooterColumns` / `[]FooterColumn` | Root、Label、Item |
+通常先在窗口模型中声明状态，再在视图中传入该状态。Options 中的 Decoration 用于设置 UI 和同步 Style，优先级见[主题文档](foundations.md#样式覆盖)。返回元素可立即设置布局，Element 和 Context 不保留到之后的构建或后台任务。
 
-每个 Options 的 Decoration 支持组件主题 defaults → 实例 UI → 同步 Style 回调。Header、Footer 是 slot 常量，对应布局函数命名为 `HeaderLayout`、`FooterLayout`。布局尺寸仍可通过返回的当前帧 Element 调整；不得保存 Element 或 Context 到模型/工作线程。
-
-Gallery 的 Advanced interactions、Activity & attachments、Application layout 展示这些组件，Props & behavior 和 Orientation 展示可选配置。Carousel / FileUpload 参数见 [参数与默认值](options.md)。
-
-Gallery 最左侧目录也使用 `Sidebar + NavigationMenu`：默认宽 256 DIP，可在 200–360 DIP 间拖动调整，收起为 64 DIP 图标栏并显示悬停提示。按钮名为 `Toggle gallery sidebar`，调宽手柄名为 `Resize gallery sidebar`；与 Application layout 示例内的侧栏状态独立。页面切换保留宽度和收起状态，每个 Gallery 窗口分别持有状态。
+各组件的状态类型和可用部件集中在末尾的[状态与部件索引](#状态与部件索引)。平台范围见[兼容性说明](compatibility.md)。
 
 ## CommandPalette
 
-`NewCommandIndex([]CommandAction)` 在数据变更时创建，不要每帧创建。索引复制搜索数据，并按父动作分层；全树 ID 必须唯一、非空，最多 32 层。状态使用 `SetIndex` 更换索引。
+### 创建命令并显示面板
 
-- 默认 Ctrl+K 切换；`ShortcutKey/ShortcutMods` 可改为平台习惯，`DisableShortcut` 可关闭。动作的 `Key/Mods` 是可执行快捷键，`Shortcut` 仅负责显示。业务快捷键由应用避免冲突。
-- 大小写不敏感的 Unicode 子序列搜索；连续匹配与词首加权，Keywords 可提供别名。返回 rune 索引用 RichText 高亮，不按 UTF-8 字节切片。默认不做拼音、分词或重音折叠。
-- 分组、描述、图标、快捷键、禁用项、子动作与 Back。描述以 Muted 色、与标签同字号显示在标签下一行。列表用 Listbox 虚拟化；默认最多 200 个结果，配置最大 1,000。不对全部结果建立每帧 UI。
-- 默认搜索在工作线程扫描不可变索引，使用至多一项的 mailbox；UI 构建轮询并发布。每 128 条检查取消，过期任务不回写。排序保存有界 top-k，不全量排序。
-- 输入 Down 进入列表，Up/Down/Home/End 在列表移动，Enter 激活。正在搜索或查询与结果不一致时，Enter 不执行旧动作。OnTextKey 沿用底层组合输入屏蔽规则。
-- `Open=false` 的下一次构建取消任务；`Close()` 立即取消。组件应每帧调用，包括关闭时；不再调用或窗口关闭时显式 `Close()`。无永久 goroutine/ticker。
-- `Search(ctx,ticket,query,parent)` 可替换检索策略。启动应用自己的任务，并在 `Window.Update` 内调用 `state.Results.Complete(ticket, matches, err)`；外部回调自行调度重绘。返回 ID 和父层级由应用负责。状态属于一个窗口，不可跨窗口共享。
+CommandPalette 提供可搜索的命令列表，默认用 Ctrl+K 打开或关闭。应用先创建 CommandIndex，再交给长期保存的 CommandPaletteState：
 
 ```go
+// 初始化或命令数据变化时执行，不要每次构建都创建索引。
 state.Commands.SetIndex(nui.NewCommandIndex([]nui.CommandAction{
-    {ID: "save", Label: "Save workspace", Group: "Workspace",
-        Key: ui.KeyS, Mods: ui.Ctrl, Shortcut: "Ctrl S", OnSelect: save},
+    {
+        ID: "save",
+        Label: "保存工作区",
+        Group: "工作区",
+        Key: ui.KeyS,
+        Mods: ui.Ctrl,
+        Shortcut: "Ctrl S",
+        OnSelect: save,
+    },
 }))
-// view: 始终调用；调用点的父作用域决定快捷键范围。
-nui.CommandPalette(c, theme, &state.Commands,
-    nui.CommandPaletteOptions{Title: "Workspace commands"})
-// window.OnClosed(state.Commands.Close)
 ```
 
-查询输入受 [输入法取消问题](compatibility.md#输入法取消) 影响；完整读屏体验尚未验证。
+视图中始终调用组件，包括关闭时：
+
+```go
+nui.CommandPalette(c, theme, &state.Commands, nui.CommandPaletteOptions{
+    Title: "工作区命令",
+})
+```
+
+窗口关闭时通过 `window.OnClosed(state.Commands.Close)` 清理任务。若组件不再出现在视图中，也要显式调用 Close。
+
+命令全树的 ID 必须非空且唯一，最多 32 层。NewCommandIndex 复制搜索数据，按父动作组织层级；数据变化时用 SetIndex 替换。
+
+### 快捷键与搜索
+
+| 选项或行为 | 说明 |
+| --- | --- |
+| ShortcutKey / ShortcutMods | 修改打开面板的快捷键；DisableShortcut 可关闭 |
+| 动作的 Key / Mods | 注册可执行快捷键；Shortcut 只用于显示 |
+| Label / Keywords | 搜索名称和别名；不区分大小写，按 Unicode 字符子序列匹配 |
+| 分组与子动作 | 支持描述、图标、禁用、子级和返回上一层 |
+| 结果数量 | 默认最多 200 条，可配置到 1,000 条，列表使用虚拟化 |
+
+调用组件时所在的父级作用域决定快捷键范围，业务快捷键冲突由应用处理。搜索会优先考虑连续匹配和词首匹配，使用 rune 索引高亮，不做拼音、分词或重音折叠。
+
+输入框按 Down 进入列表，再用方向键、Home、End 移动，Enter 激活。搜索未完成或当前查询与结果不一致时，Enter 不会执行旧动作。描述显示在标签下一行，字号相同、颜色为 Muted。
+
+### 后台搜索和关闭
+
+默认搜索在后台扫描不可变索引，最多保留一份待交付结果，在 UI 构建时读取。每处理 128 条检查取消，只保留评分最高的有限结果，无需对全量匹配项排序。过期任务不能回写。
+
+Open=false 后的下一次构建会取消任务；Close 立即取消。组件没有常驻 goroutine 或定时器，状态只能用于一个窗口。
+
+需要自己的搜索服务时，提供 `Search(ctx, ticket, query, parent)`。应用启动任务，并在 `Window.Update` 中调用 `state.Results.Complete(ticket, matches, err)`；同时负责结果 ID、父级关系和触发重绘。
+
+查询框受[输入法取消问题](compatibility.md#输入法取消)影响，完整读屏体验尚未验证。
 
 ## NavigationMenu 与 Sidebar
 
-`NavigationItem` 包含 ID、Label、Description、Group、Icon、Disabled、Children。`NavigationMenu(c,t,&active,&state,items,options)` 将实际路由交给 `OnNavigate(id)`；只更新业务 ID，不猜测 URL。
+### 导航与布局分别负责什么
 
-水平导航的子级使用已有 DropdownMenu（多层菜单、Escape、焦点恢复）；纵向采用内联展开层级。方向键、Home/End 和 Tab 使用 MyGo FocusGroup；禁用项不激活。父项用于展开，不同时跳转。全树 ID 唯一，删除项目后清理菜单状态。
+NavigationMenu 显示导航项，Sidebar 提供头部、可滚动正文、底部和收起按钮。应用用 active ID 保存当前位置，并在 OnNavigate(id) 中执行实际页面切换；组件不解析 URL。
 
-`Sidebar` 保持原有函数名和 `Sidebar(c,t,&collapsed,options,content)` 签名。它组合固定头尾、可滚动正文和收起按钮，默认展开 / 收起宽度为 256 / 64 DIP。`content(c,t,compact)` 可组合 NavigationMenu；紧凑模式隐藏有图标项目的文字并居中图标，保留可访问名称，没有图标的项仍显示标签。选中子项时，其祖先也高亮；展开模式用箭头标记层级。
+NavigationItem 包含 ID、Label、Description、Group、Icon、Disabled、Children。ID 在全树唯一，删除项目后会清理相关菜单状态。父项用于展开子级，不同时导航。
 
-纵向紧凑导航默认提供 Tooltip 和侧向 Popover，分别可用 `NavigationOptions.Tooltip/Popover = Set(false)` 关闭。Popover 支持悬停进入、跨越锚点间隙、点击或朝向弹层的方向键打开；键盘打开聚焦第一个可用子项。Escape、反向方向键、选中项目关闭并恢复触发项焦点；禁用项不触发导航。弹层中的子级可以继续内联展开。`PopupPlacement` 可覆盖默认阅读方向结束侧的位置，适合右侧栏。收起时，原先聚焦在隐藏子项上的焦点移到父项，展开状态和活动 ID 保留。
+| 模式 | 子级显示方式 |
+| --- | --- |
+| 水平导航 | 使用 DropdownMenu 展示多层菜单，支持 Escape 和焦点恢复 |
+| 纵向导航 | 在原位置展开层级，支持方向键、Home、End 和 Tab |
+| 纵向紧凑导航 | 有图标的项目隐藏文字并居中，保留辅助技术名称；无图标项目仍显示标签 |
+
+选中子项时祖先也会高亮，禁用项不能激活。紧凑模式默认有 Tooltip 和侧向 Popover，可分别通过 `NavigationOptions.Tooltip/Popover = nui.Set(false)` 关闭。
+
+侧向 Popover 支持悬停、跨锚点间隙、点击或朝向面板的方向键打开；键盘打开时聚焦第一个可用子项。Escape、反向键或选择项目会关闭并恢复触发项焦点。内部子级可继续展开，PopupPlacement 可修改默认位置，适合右侧栏。
+
+收起导航时，隐藏子项上的焦点移回父项，展开状态和活动 ID 保留。
 
 ### Sidebar 状态与尺寸
 
-`SidebarOptions.State` 可传入按窗口、按实例持有的 `SidebarState`：
+Sidebar 默认展开宽 256 DIP，收起宽 64 DIP。`collapsed *bool` 控制桌面收起状态，Options.State 可传入一份 SidebarState：
 
-- `Width Optional[float32]` 是记住的展开宽度；未设置时读取 Options.Width，用户调宽后更新该值。收起不会覆盖展开宽度。双击手柄恢复 Options.Width，应用也可将 State.Width 清为未设置。
-- `Open bool` 是窄窗口弹层的打开状态，与桌面的 `collapsed` 独立。应用可直接设置，例如在顶栏按钮中打开侧栏。
-- 未传 State 时，组件使用当前稳定 Key 下的局部状态；若要跨卸载保留宽度或保存到文件，请传入 State。持久化由应用负责，不会在构建时访问磁盘。
+| 状态 | 用途 |
+| --- | --- |
+| Width（Optional[float32]） | 记录展开宽度；未设置时取 Options.Width，用户调宽后更新 |
+| Open（bool） | 窄窗口弹层是否打开，与 collapsed 独立 |
+| 不传 State | 使用当前稳定 Key 的局部状态；跨卸载保留或写入文件时应显式传 State |
 
-`Resizable: true` 开启调宽手柄，默认最小 / 最大展开宽度为 160 / 480 DIP；可用 `MinWidth/MaxWidth` 覆盖。拖动至 `CollapsedWidth + 4 DIP` 以下收起，再向外拖动展开。手柄支持 Left/Right（10 DIP）、Shift+Left/Right（50 DIP）、Home（收起或最小宽度）、End（最大宽度）、Enter（展开/收起）和双击复位。方向键按屏幕方向移动边缘，适配左右侧栏及 RTL。尺寸须有限且非负，最大值不得小于最小值；启用调宽时收起宽度不得大于最小展开宽度。
+收起不会改写记住的展开宽度。双击手柄恢复 Options.Width，应用也可把 State.Width 改为未设置。持久化由应用执行，组件不会在构建中读写磁盘。
 
-`Collapsible` 默认 true，设为 `Set(false)` 关闭用户收起操作；`Toggle` 默认 true，设为 `Set(false)` 隐藏内置按钮，允许在其他区域提供控制。`Disabled` 禁用内置交互，也继承外层禁用状态。`OnResize`、`OnCollapsedChange` 和 `OnOpenChange` 只在用户操作或组件自动关闭导致值实际变化时通知，应用直接写入受控状态不回调。`OnResize` 报告记住的展开宽度，收起单独报告 `OnCollapsedChange`。
+`Resizable: true` 开启调宽，默认最小 / 最大宽度 160 / 480 DIP，可用 MinWidth / MaxWidth 修改。拖到 CollapsedWidth + 4 DIP 以下收起，向外拖动重新展开。
 
-`Side` 为 `Set(SideLeft)`（默认，阅读方向起始侧）或 `Set(SideRight)`（结束侧）；RTL 时边框、按钮图标、手柄和 Slideover 一起镜像。应用负责将右侧栏放在 Row 的主内容之后。宽度使用 DIP，不使用网页的 `%/rem/px` 布局存储协议；当前 Nuxt UI 的默认尺寸依赖 DashboardGroup 单位，并非固定 256px。
+| 手柄操作 | 行为 |
+| --- | --- |
+| Left / Right | 按屏幕方向移动边缘 10 DIP |
+| Shift+Left / Right | 移动 50 DIP |
+| Home / End | 收起或最小宽度 / 最大宽度 |
+| Enter / 双击 | 切换收起 / 恢复默认宽度 |
+
+左右侧栏和 RTL 都支持这些操作。尺寸必须有限且非负，MaxWidth≥MinWidth；启用调宽时，收起宽度不能大于最小展开宽度。
+
+### 开关、位置和回调
+
+| 选项 | 默认行为 |
+| --- | --- |
+| Collapsible | true；false 禁止用户收起 |
+| Toggle | true；false 隐藏内置按钮，应用可在别处提供控制 |
+| Disabled | 禁用内置交互，也继承祖先禁用状态 |
+| Side | 默认 `nui.Set(nui.SideLeft)`，表示阅读方向起始侧；SideRight 表示结束侧 |
+
+RTL 下边框、按钮图标、手柄和 Slideover 一起调整。应用仍要把右侧栏放到 Row 的主内容之后。宽度使用 DIP，不使用网页的百分比、rem 或 DashboardGroup 单位。
+
+OnResize、OnCollapsedChange、OnOpenChange 只在用户操作或组件自动关闭导致值变化时通知，应用直接写状态不回调。OnResize 报告展开宽度，收起变化由 OnCollapsedChange 单独报告。
 
 ### 内容区域和窄窗口
 
-旧 `Header/Footer` builder 仍有效。新增 `HeaderContent/FooterContent/ToggleContent(c,t,SidebarScope)` 分别定制标题区、底部区和触发按钮；HeaderContent 优先于旧 Header，FooterContent 优先于旧 Footer。Scope 提供 `Collapsed/Open/Mobile` 和 `Collapse(bool)/SetOpen(bool)` 动作。头尾应主动适配紧凑宽度；需要完整自定义标题区时可设 `Toggle: Set(false)`。构建回调同步运行，不得保存 Element 或 Context。
+HeaderContent、FooterContent、ToggleContent 回调接收 `SidebarScope`，可读取 Collapsed、Open、Mobile，并调用 Collapse(bool) / SetOpen(bool)。HeaderContent / FooterContent 优先于旧的 Header / Footer 回调。
 
-`Breakpoint: Set(float32(900))` 表示窗口宽度小于 900 DIP 时隐藏桌面侧栏并显示打开按钮。未设置 / 0 保持旧版仅桌面布局。窄窗口的 `Mode` 可选 `SidebarSlideover`（默认）、`SidebarModal`（全屏）或 `SidebarDrawer`（底部，85% 高度）；内容始终按展开模式构建，沿用相应弹层的 Escape、遮罩关闭、滚动和焦点约束。返回桌面立即移除弹层焦点约束；普通关闭保留 Slideover/Drawer 的退出动画与 reduced motion 行为。
+头尾内容需要自行适应紧凑宽度；完全自定义头部时可隐藏内置 Toggle。这些回调同步构建内容，不能保存 Element 或 Context。
 
-`NavigationKey` 接收应用的当前页面或活动 ID；其变化默认关闭窄窗口弹层，`AutoClose: Set(false)` 可关闭该行为。它不解析 URL，也不绑定路由框架。自定义 / 外部打开按钮可通过 `ReturnFocus` 指定关闭后的焦点目标。应持续调用 Sidebar，包括关闭期间，以完成退出和焦点恢复。
+设置 `Breakpoint: nui.Set(float32(900))` 后，窗口宽度小于 900 DIP 时隐藏桌面侧栏，改为显示打开按钮。未设置或为 0 时始终采用桌面布局。
+
+| 窄窗口 Mode | 展示方式 |
+| --- | --- |
+| SidebarSlideover（默认） | 从侧面打开 |
+| SidebarModal | 全屏模态面板 |
+| SidebarDrawer | 底部面板，高度为窗口的 85% |
+
+弹层内容按展开模式构建，沿用对应组件的 Escape、遮罩关闭、滚动和焦点限制。回到桌面宽度时立即移除弹层焦点约束；普通关闭保留退出动画并遵守减少动态效果设置。
+
+NavigationKey 传入当前页面 ID，变化时默认关闭窄窗口面板；AutoClose=false 可关闭这个行为。外部打开按钮可通过 ReturnFocus 指定关闭后的焦点目标。Sidebar 应持续调用，包括关闭期间。
 
 ```go
-// model fields: Collapsed bool; Sidebar nui.SidebarState;
-// Active string; Navigation nui.NavigationState
+// state 保存 Collapsed bool、Sidebar nui.SidebarState、
+// Active string、Navigation nui.NavigationState。
 nui.Sidebar(c.Key("workspace-sidebar"), theme, &state.Collapsed,
     nui.SidebarOptions{
-        Title: "Workspace", State: &state.Sidebar,
-        Resizable: true, Breakpoint: nui.Set(float32(900)),
+        Title: "工作区",
+        State: &state.Sidebar,
+        Resizable: true,
+        Breakpoint: nui.Set(float32(900)),
         NavigationKey: state.Active,
         FooterContent: func(c *ui.Context, t nui.Theme, scope nui.SidebarScope) {
-            label := "Account"
-            if scope.Collapsed { label = "" }
+            label := "账户"
+            if scope.Collapsed {
+                label = ""
+            }
             nui.Button(c, t, label, nui.ButtonOptions{
-                Leading: lucide.User(), AccessibleLabel: "Account",
-                Variant: nui.Ghost, Color: nui.Neutral,
+                Leading: lucide.User(),
+                AccessibleLabel: "账户",
+                Variant: nui.Ghost,
+                Color: nui.Neutral,
             })
         },
     }, func(c *ui.Context, t nui.Theme, compact bool) {
@@ -105,105 +176,232 @@ nui.Sidebar(c.Key("workspace-sidebar"), theme, &state.Collapsed,
     })
 ```
 
-窗口断点切换会卸载一侧的控件树，并在另一侧构建；输入草稿、导航状态等应由应用持有，MyGo 的局部滚动状态不会跨这次卸载迁移。没有 Web mega menu、CSS 断点或 NuxtLink 兼容层，也不提供 DashboardGroup 多面板协调。导航的原生无障碍角色为 Group（MyGo 没有公开 Navigation landmark 枚举）。
+跨断点会卸载并重建控件树。应用模型中的草稿和导航状态可保留，控件局部滚动状态不会自动迁移。当前没有 Web mega menu、CSS 断点、NuxtLink 兼容层或 DashboardGroup 多面板协调。导航使用原生 Group 角色，MyGo 尚无公开的 Navigation landmark 枚举。
 
 ## Drawer
 
-基于公开 Slideover 的底部面板、Modal 作用域、滚动正文、退出与焦点恢复。`DrawerState.Open/Snap` 可由应用控制；默认停靠点是窗口高度的 0.5/0.85，`SnapPoints` 必须严格递增且在 (0,1]。
+### 控制打开状态和高度
 
-只在独立手柄拖动，因此正文滚动不会被抽屉抢走。向下拖动减小高度，松开后按高度与速度投影选择停靠点；高度低于最小停靠点的一半，或移动超过默认 80 DIP 且速度超过 900 DIP/s，可关闭。`DismissDistance/DismissVelocity` 可配置；`Dismissible=false` 禁止拖拽、遮罩与 Escape 关闭，仍保留显式关闭操作。
+Drawer 是带独立拖动手柄的底部模态面板，复用 Slideover 的正文滚动、退出动画和焦点恢复。应用保存 DrawerState，通过 Open 控制打开，通过 Snap 控制停靠位置。
 
-手柄为 Nuxt 的 48×6 Accented 圆角条。手柄可聚焦：Up/Down 切换停靠点，Home/End 到首尾；关闭按钮与 Escape 提供替代路径。失去捕获、失焦取消恢复原停靠点。尺寸停靠立即完成，打开/关闭继承 Slideover 过渡及 reduced motion。组件应包括关闭状态每帧调用。
+默认停靠高度为窗口的 50% 和 85%。SnapPoints 必须严格递增，每项在 `(0, 1]` 范围内。需要从其他边缘打开时，使用 Slideover。
 
-Drawer 仅支持底部手柄拖拽，不提供四边拖拽、连续弹簧吸附或与正文滚动联动的触屏手势。需要从其他方向打开面板时使用 Slideover。
+### 拖动和关闭
+
+只有手柄能拖动，正文区域继续用于滚动。向下拖动降低面板，松开后根据当前高度和移动速度选择停靠点。以下情况可关闭：高度低于最小停靠点的一半，或移动超过默认 80 DIP 且速度超过 900 DIP/s。DismissDistance / DismissVelocity 可调整阈值。
+
+Dismissible=false 禁止通过拖动、遮罩和 Escape 关闭，显式关闭按钮仍可使用。手柄可聚焦，Up/Down 切换停靠点，Home/End 到首尾；失去指针捕获或窗口焦点时取消拖动，恢复原停靠位置。
+
+手柄默认 48×6 DIP，Accented 色、圆角。停靠高度立即切换，打开和关闭沿用 Slideover 动画。应在每次构建中调用 Drawer，包括关闭时。当前不支持四边拖拽、弹簧吸附或正文滚动联动的触屏手势。
 
 ## FileUpload 与资源所有权
 
-FileUpload 继承 FormField.Disabled/Size；禁用字段会取消尚未完成的文件检查并丢弃晚到结果。默认颜色/尺寸取 ComponentFileUpload，选择按钮同样使用 ComponentFileUpload 默认值。
+### 组件负责选择和状态，应用负责传输
 
-`FileUploadState.Files` 保存元数据，不保存文件句柄。`UploadFile` 包含 Path/Name/MIME/Size、状态、0..1 Progress、Error；Add 为每次加入分配稳定 ID，忽略重复 Path。`UploadRules` 支持扩展名（`.png`）、MIME（`text/plain`）、类别（`image/*`）、单文件 MaxBytes、已接受文件 MaxFiles。超限或读取失败的项作为 Rejected 显示原因，可移除。
+FileUpload 提供文件选择、规则检查、列表和进度展示。网络上传由应用实现；选中文件不会自动开始传输。
 
-- 默认 Choose 按钮在 worker 调用 `mygo.Dialog.Open`，接着用 `os.Stat` 检查普通文件。`Dialog` 可配置父窗口、多选、过滤器等；单选/多选以原生配置为准。`Choose(ctx)` 可注入自己的文件来源。
-- 外部 DroppedFiles 走相同 worker 元数据检查与规则。`InspectUploadFiles` 和 `PickUploadFiles` 也是公开 helper。
-- 只根据扩展名推导 MIME，不读取正文；Accept 是选择体验约束，不是可信的内容校验或上传安全检查。具体业务需要时自行验证内容。
-- 不发起网络传输，也不自动把 Ready 改为上传中。应用调用 `ctx,ticket := state.Begin(id)` 开始自己的任务，在 `Window.Update` 内用 `Report(ticket,progress,done,err)` 发布进度。
-- `Cancel(id)` 取消任务 context；旧票据、已完成、取消、删除、重试前的结果不能回写。`Remove(id)` 同时取消。`OnCancel/OnRemove` 可做额外业务清理。应用拥有它打开的流、临时文件和网络连接，并负责关闭。
-- `Dispose()` 在隐藏/卸载或窗口关闭时调用，取消元数据检查和任务。原生对话框自身不能被 context 强制关闭；取消后丢弃其最终结果。状态属于 UI 线程；worker 不能直接改 Files。
-- UI 自带 Ready/Uploading/Complete/Failed/Canceled/Rejected 展示及进度；没有内建上传重试协议。调用 Begin 可重试业务失败。
+FileUploadState.Files 保存文件元数据，不保存打开的文件句柄。UploadFile 包含 Path、Name、MIME、Size、状态、0–1 的 Progress 和 Error。Add 为每次加入分配稳定 ID，忽略重复 Path。
+
+| 配置 | 用途 |
+| --- | --- |
+| UploadRules.Accept | 扩展名、MIME 或类别，例如 `.png`、`text/plain`、`image/*` |
+| MaxBytes / MaxFiles | 单文件大小、已接受文件数量上限 |
+| Dialog | 原生文件选择器的父窗口、多选和过滤器 |
+| Choose(ctx) | 替换默认文件来源 |
+| Variant / Layout / Preview 等 | 选择区域、列表或网格、预览开关，见[参数说明](options.md#侧栏导航和文件选择) |
+
+超限或读取失败的文件以 Rejected 显示原因，可由用户移除。组件继承 FormField.Disabled / Size，默认颜色、尺寸和选择按钮外观取 ComponentFileUpload。
+
+### 文件检查过程
+
+默认选择操作在后台调用 `mygo.Dialog.Open`，再用 `os.Stat` 检查普通文件。外部 DroppedFiles 使用相同的检查和规则；InspectUploadFiles、PickUploadFiles 也可单独调用。
+
+MIME 只根据扩展名推导，不读取文件正文。Accept 用于筛选选择结果，业务需要可信的文件类型时，还应自行验证内容。
+
+### 启动、取消和重试上传
 
 ```go
-// 窗口创建后配置 Parent，关闭时清理；Gallery 已示范。
+// 创建窗口后设置父窗口，并注册清理。
 options.Dialog = mygo.OpenDialogOptions{Parent: window, Multiple: true}
 window.OnClosed(state.Files.Dispose)
-// 由应用的上传按钮/队列调用 Begin，再启动自己的传输。
+
+// 在应用的上传动作中开始任务；upload 由应用实现。
 ctx, ticket := state.Files.Begin(fileID)
 go func() {
     err := upload(ctx, path)
-    window.Update(func() { state.Files.Report(ticket, 1, true, err) })
+    window.Update(func() {
+        state.Files.Report(ticket, 1, true, err)
+    })
 }()
 ```
 
-原生对话框、跨应用拖放及文件筛选的平台验证范围见 [兼容性说明](compatibility.md#环境与平台)。macOS sandbox 权限与 bookmark 由应用管理。
+Begin 开始任务，应用在 Window.Update 中通过 Report 发布进度、完成或错误。后台不能直接修改 Files。界面会展示 Ready、Uploading、Complete、Failed、Canceled、Rejected；失败后可再次 Begin，库没有额外的上传重试协议。
+
+Cancel(id) 取消任务 context，Remove(id) 同时取消并移除。取消、删除、重试前或已经完成的旧票据不能继续回写。OnCancel / OnRemove 可执行额外清理；应用打开的文件流、临时文件和网络连接也由应用关闭。
+
+### 隐藏和关闭时清理
+
+隐藏、卸载或关窗时调用 Dispose，取消文件检查和上传任务。字段被禁用时也会取消未完成的文件检查，并丢弃晚到结果。
+
+context 取消无法强制关闭已打开的原生文件对话框，但返回结果会被丢弃。原生选择、多选、取消、拖放和过滤器的平台验证见[兼容性说明](compatibility.md#环境与平台)。macOS 沙盒权限和 bookmark 由应用管理。
 
 ## Chart
 
-基于 MyGo `ui/chart` 的 Linear/Band/Time、Line/Area、Stack、Pie/Sector、Select 与 MinMax，提供 NuxtUI Go 主题、持久状态、图例交互和动画。组件由原生绘制构成，没有 WebView 或额外图表依赖。
+### 准备数据，再绘制图表
 
-| 能力 | API |
-| --- | --- |
-| 折线、柱状、面积、散点、饼图、环形图 | `ChartLine / ChartBar / ChartArea / ChartScatter / ChartPie / ChartDonut` |
-| 线性、单调平滑、三种阶梯曲线 | `ChartCurveLinear / Monotone / StepAfter / StepBefore / Step`（完整常量均以 `ChartCurve` 开头） |
-| 不堆叠、标准、归一化、居中堆叠 | `ChartStackNone / Standard / Normalized / Center`（完整常量均以 `ChartStack` 开头）；用于柱图和面积图 |
-| 数值、分类、时间 X 轴 | `SetData`、`SetCategories`、`SetTimeData` |
-| 独立的饼图／环形图数据 | `SetSlices([]ChartSlice)` |
-| 图例与系列显隐 | `Legend`、`InteractiveLegend`；`SeriesVisible / SetSeriesVisible`、`SliceVisible / SetSliceVisible` |
-| 格式与尺寸 | `FormatX / FormatY / FormatTime`、`Height`、`Grid`、`BarPadding`、`DonutInnerRadius`、`SlicePadding`、`LineWidth / PointSize` |
+Chart 使用 MyGo 的 `ui/chart` 绘制，提供主题、交互图例和动画。ChartState 应由一个窗口中的一个图表实例持有，不复制已渲染状态，也不与后台共享可变数据。
 
-所有数据设置方法先验证再复制；错误不改动原数据。`SetData(xs, series)` 要求有限、严格递增的共享 X；每条序列与 X 等长，系列 ID 唯一且非空。NaN/Inf Y 表示缺值，不转为 0。`SetCategories(labels, series)` 使用唯一非空标签的 Band 轴；`SetTimeData(times, series)` 要求时间严格递增，刻度使用第一项的时区。散点图沿用共享、排序的 X 数据模型。
-
-`SetSlices` 独立保存 `ChartSlice{ID, Label, Value, Color}`，可在同一状态中保留直角坐标与径向两组数据，再切换 Kind。切片 ID 唯一非空；Value 必须有限、非负，总和有限。0 值不绘制扇区，但保留图例。语义颜色随 Primary／Neutral 与明暗主题刷新；默认系列颜色与 Nuxt 的 `--ui-chart-1..6` 一致，依次为 Primary、blue、violet、amber、rose、cyan（浅色主题取 500 色阶，深色取 400），六条之后循环，也可显式指定 `Color`。
-
-Y 轴包含 0。Standard 将正负值分别向上／下累积；Normalized 按每个 X 的可见值**绝对值总和**归一化，纯正值合计 100%，混合正负时两侧共享分母；Center 将代数和居中到 0。隐藏系列会重新计算坐标范围和堆叠；隐藏扇区后重算可见比例。隐藏状态按 ID 跨更新和重排保留，删除 ID 后清理。
-
-图例默认可点击，使用可聚焦的复选框语义，Space / Enter 同样可切换，`OnLegendChange(id, visible)` 收到用户动作。`InteractiveLegend: nui.Set(false)` 只展示图例；`Legend: nui.Set(false)` 完全隐藏。所有项目隐藏后仍保留图例用于恢复。
-
-直角坐标图支持鼠标最近 X、Left/Right/Home/End/Escape、底部原始数值与 Tooltip。饼／环形图支持扇区命中、方向键/Home/End/Escape 和可见总和百分比；环形中心不命中。稠密数据的选择仍查原始数据，不用采样值冒充原始值。
-
-`Animate` 默认开启，遵循主题和系统 reduced motion，`AnimationDuration` 默认 350ms。首次显示直接呈现；数据或参数变化时，同图型、同系列及缺值结构进行坐标插值，Pie ↔ Donut 还会插值内半径。跨图型、增删系列／点、显隐或缺值结构变化使用淡入淡出。中途更新从当时画面继续，最多保留 3 层退出画面和 1 层目标画面；轴标签和提示对应目标数据。动画完成、不可见或卸载后不持续申请帧，无后台 ticker。`Animate: nui.Set(false)` 立即采用目标值。
+数据初始化或变化时调用设置方法，检查错误：
 
 ```go
-// 数据变化时调用；worker 的结果通过 Window.Update 发布到该窗口的状态。
-err := state.Activity.SetCategories([]string{"Jan", "Feb", "Mar"}, []nui.ChartSeries{
-    {ID: "build", Label: "Builds", Values: []float64{30, 45, 38}},
-    {ID: "review", Label: "Reviews", Values: []float64{12, 19, 16}},
+err := state.Activity.SetCategories([]string{"一月", "二月", "三月"}, []nui.ChartSeries{
+    {ID: "build", Label: "构建次数", Values: []float64{30, 45, 38}},
+    {ID: "review", Label: "审查次数", Values: []float64{12, 19, 16}},
 })
-if err != nil { return err }
-// view
+if err != nil {
+    return err
+}
+```
+
+上述片段放在返回 error 的数据初始化函数中。后台结果通过 Window.Update 写入窗口状态。在视图函数中创建图表：
+
+```go
 nui.Chart(c, theme, &state.Activity, nui.ChartOptions{
-    Label: "Activity", Kind: nui.ChartArea,
-    Curve: nui.ChartCurveMonotone, Stack: nui.ChartStackStandard,
-    Height: 240, AnimationDuration: 400 * time.Millisecond,
+    Label: "工作记录",
+    Kind: nui.ChartArea,
+    Curve: nui.ChartCurveMonotone,
+    Stack: nui.ChartStackStandard,
+    Height: 240,
+    AnimationDuration: 400 * time.Millisecond,
 })
 ```
 
-`Prepare(pixelWidth)` 可预热默认折线缓存；其他选项由 Chart 准备。采样宽度上限 2,048，仅在数据／显隐、尺寸或几何选项变化时重做。绘制和插值只处理有界采样几何。未堆叠数据使用 MinMax；缺值片段过多时改用固定桶，含缺值的桶保持断开。密集堆叠共用桶的端点和总体包络极值，保持边界 X 对齐；单个系列的像素内细节可能被省略。稠密柱图不做求和／平均，业务聚合应先完成。
+### 图型和数据接口
 
-`ChartState` 属于单个窗口、单个挂载图表，不复制已渲染状态，不在 worker 与 UI 间共享可变数据。当前没有双 Y 轴、对数轴、刷选缩放或触屏手势；低层自定义标记和布局可直接组合 MyGo `ui/chart`。Gallery 的 Activity & attachments 展示全部图型、轴、曲线、堆叠、数据更新、缺值／负值与图例显隐。
+| 需求 | API |
+| --- | --- |
+| 折线、柱状、面积、散点、饼图、环形图 | ChartLine、ChartBar、ChartArea、ChartScatter、ChartPie、ChartDonut |
+| 数值 / 分类 / 时间 X 轴 | SetData、SetCategories、SetTimeData |
+| 饼图和环形图 | SetSlices([]ChartSlice) |
+| 曲线 | ChartCurveLinear、ChartCurveMonotone、ChartCurveStepAfter、ChartCurveStepBefore、ChartCurveStep |
+| 堆叠 | ChartStackNone、ChartStackStandard、ChartStackNormalized、ChartStackCenter，用于柱状图和面积图 |
+
+所有设置方法先验证再复制，错误不会改动已有数据。数据需要满足以下条件：
+
+| 方法 | 数据要求 |
+| --- | --- |
+| SetData(xs, series) | X 有限且严格递增，每个系列与 X 等长，系列 ID 唯一且非空；NaN/Inf 的 Y 表示缺值 |
+| SetCategories(labels, series) | 分类标签唯一且非空，使用 Band 分类轴 |
+| SetTimeData(times, series) | 时间严格递增，刻度使用第一项的时区 |
+| SetSlices(slices) | 扇区 ID 唯一非空，值有限且非负，总和有限；0 值保留图例但不绘制扇区 |
+
+散点图也使用共享且有序的 X 数据。ChartSlice 包含 ID、Label、Value、Color；同一个状态可分别保存直角坐标数据和扇区数据，切换 Kind 时选择对应数据。
+
+### 坐标、颜色和堆叠
+
+Y 轴包含 0。Standard 将正值向上、负值向下分别累加；Normalized 使用每个 X 的可见值绝对值总和作为分母，纯正值合计为 100%，混合正负值共用该分母；Center 将代数和居中到 0。
+
+默认系列颜色依次为 Primary、blue、violet、amber、rose、cyan，之后循环。浅色取 500 色阶，深色取 400，也可显式配置 Color。语义颜色会随主色、中性色和明暗主题更新。
+
+FormatX、FormatY、FormatTime 设置格式；Height、Grid、BarPadding、DonutInnerRadius、SlicePadding、LineWidth、PointSize 控制尺寸和几何外观。
+
+### 图例和数据选择
+
+图例默认可点击，也能聚焦后用 Space / Enter 切换系列。OnLegendChange(id, visible) 只报告用户操作；应用可通过 SeriesVisible / SetSeriesVisible、SliceVisible / SetSliceVisible 查询和修改。
+
+InteractiveLegend=false 只显示图例，Legend=false 完全隐藏。隐藏系列后会重算坐标和堆叠，隐藏扇区后重算可见比例。显隐状态按 ID 跨更新、重排保留，删除 ID 后清理；全部隐藏时仍保留图例供用户恢复。
+
+直角坐标图支持鼠标选择最近 X，以及 Left、Right、Home、End、Escape，底部和 Tooltip 显示原始数值。饼图和环形图支持点击扇区、方向键和相同的首尾/退出操作，显示相对可见总和的百分比；环形中心不接受扇区选择。密集数据选择始终查询原始值。
+
+### 动画
+
+Animate 默认开启，AnimationDuration 默认 350ms，遵守主题和系统的减少动态效果设置。首次显示直接呈现，后续数据或参数变化才使用过渡。
+
+同图型、同系列、相同缺值结构时做坐标插值，Pie 与 Donut 之间还会过渡内半径。图型、系列、点数、显隐或缺值结构变化时使用淡入淡出。中途更新从当前画面继续，最多保留 3 层退出画面和 1 层目标画面；轴标签和提示使用目标数据。
+
+动画结束、不可见或卸载后停止请求帧，没有后台定时器。`Animate: nui.Set(false)` 立即显示目标值。
+
+### 大量数据与限制
+
+Prepare(pixelWidth) 可提前准备默认折线缓存，其余配置由 Chart 准备。采样宽度上限 2,048，只在数据、显隐、尺寸或几何选项变化后重算，绘制和插值处理采样后的图形。
+
+未堆叠数据使用 MinMax 采样；缺值片段过多时改用固定桶，含缺值的桶保持断开。密集堆叠共用桶端点和整体包络极值，以保持边界 X 对齐，单系列在一个像素内的细节可能省略。密集柱状图不自动求和或平均，需要聚合时先处理业务数据。
+
+当前没有双 Y 轴、对数轴、刷选缩放或触屏手势。需要低层自定义标记和布局时可直接组合 MyGo 的 ui/chart。Gallery 的 **Activity & attachments** 展示各图型、轴、曲线、堆叠、数据更新、缺值、负值和图例。
 
 ## Carousel 与 Marquee
 
-CarouselItem 使用稳定 ID、Label 和同步 Build。`CarouselState.Index/Paused` 可控；每次只构建当前及相邻项，裁剪内沿 Orientation 拖拽，位移超过视口 20% 或速度超过 600 DIP/s 时换页，释放后吸附到页。Previous/Next、水平 Left/Right 或纵向 Up/Down、Home/End 可操作；Arrows 可隐藏按钮，Dots 可开启圆点导航。与 Nuxt 一样不显示可见的"1 / N"计数；当前位置写进根元素的可访问值（"1 of 3"/"第 1 张，共 3 张"，文案键 `slidePosition`）。`Wrap=true` 让按钮、键盘与自动播放到尾后回到首项；拖拽边缘有界，不是无缝克隆循环。索引以位置为控制值；重排业务数据时由应用决定新的 Index。
+### Carousel：按页切换内容
 
-默认无自动播放；设置 Autoplay 才启用。悬停、焦点在幻灯片、手动暂停、Active=false、窗口外不可见、reduced motion 都停止推进。移除项会修正索引，拖拽取消归零。相邻项禁用交互，但其 builder 仍会执行；不要在 builder 启动副作用。
+CarouselItem 包含稳定 ID、Label 和同步 Build，CarouselState.Index / Paused 可由应用控制。组件只构建当前及相邻项，相邻项禁用交互，但其 Build 仍执行，因此构建回调中不能无条件启动业务操作。
 
-Marquee 支持水平/垂直、Reverse、DIP/s Speed、Gap（默认 64，Nuxt 的 `--gap`）、Height、内容重复和 Space 暂停。与 Nuxt 一样内容重复 4 份，每份至少与容器等长、内部条目均匀分布，因此内容较短时也会滚动；`Overlay` 默认在两端各三分之一处渐隐到背景色，`Overlay: nui.Set(false)` 关闭。ContentKey 改变重置相位；PauseOnHover=true 时悬停暂停（默认 false）；焦点、Paused、Active=false、reduced motion 始终停止。Orientation 与 Vertical 都可选择方向，水平运动随 RTL 镜像。内容 builder 只放展示元素，每次构建会被调用四次，不能放业务按钮、输入或有副作用的内容。底层没有整棵子树的 accessibility-hidden 接口，重复内容的读屏呈现仍需在目标读屏工具中验证。
+| 操作或选项 | 行为 |
+| --- | --- |
+| 拖动 | 沿 Orientation 方向拖动，超过视口 20% 或速度 600 DIP/s 时换页，释放后吸附 |
+| Previous / Next、方向键、Home / End | 按页导航，水平用 ←→，纵向用 ↑↓ |
+| Arrows / Dots | 控制翻页按钮和圆点导航 |
+| Wrap=true | 按钮、键盘和自动播放可从末项回到首项；拖动仍有边界 |
 
-两者没有定时 goroutine。可见性判断使用已提交窗口矩形；对仍挂载但被应用自定义裁剪/隐藏的容器，调用方必须同步 `Active=false`，或者不构建组件；窗口隐藏/最小化可由应用事件传入 Active。卸载后不再申请帧，不累积暂停时间。不要将停止申请帧误解为可随意持续构建隐藏动画。
+当前位置只写入根元素的辅助技术值，例如第 1 张，共 3 张，使用 slidePosition 语言键；不额外显示页码文字。Index 按位置控制，业务重排后由应用决定新的索引，移除项目时组件会修正越界索引。
+
+默认不自动播放，设置 Autoplay 后才启用。悬停、焦点位于幻灯片、Paused、Active=false、位于窗口可见区外或减少动态效果，都会停止播放。取消拖动会重置位移。
+
+### Marquee：连续滚动展示
+
+Marquee 用于展示性内容，支持方向、Reverse、以 DIP/s 表示的 Speed、Gap、Height 和 Space 暂停。Gap 默认 64 DIP。
+
+内容会重复四份，每份至少与容器等长，内部均匀分布，即使内容短也能滚动。Overlay 默认在两端各三分之一处渐隐到背景色，`Overlay: nui.Set(false)` 关闭渐隐。
+
+ContentKey 变化时从头开始。PauseOnHover 默认 false，启用后悬停暂停；焦点、Paused、Active=false、减少动态效果始终会停止运动。Orientation 或 Vertical 设置方向，水平运动随 RTL 调整。
+
+**内容回调每次构建会执行四次，只放展示元素。** 不要放业务按钮、输入框或副作用。底层没有对整棵子树隐藏辅助技术内容的接口，重复内容的读屏效果需在目标工具中验证。
+
+### 隐藏时停止动画
+
+两者都通过绘制请求后续帧，没有定时 goroutine。默认可见性判断使用已经提交的窗口矩形。应用自定义裁剪、隐藏、最小化或仍保留已隐藏容器时，应同步 Active=false，或停止构建组件。
+
+卸载后不会继续请求帧，也不会累积暂停时间；保留隐藏内容时，应用仍应明确管理 Active。
 
 ## Splitter、Header、Footer、FooterColumns
 
-Splitter 使用 native Split/SplitVertical/SplitPercent/SplitVerticalPercent。值单位默认为 DIP，Percent=true 为 0..100，Vertical=true 上下分割。Min/Max 为相同单位的模型约束；指针和键盘操作后会钳制并通知 OnChange。应用直接改值会在下次构建钳制。
+### Splitter：分割两个面板
 
-原生面板保留主题 40 DIP 最小值，窗口小于约束时按原生 fit 行为收缩；无障碍 divider Range 使用原生 DIP 可用范围，不反映自定义百分比约束。样式支持 Root、Leading、Trailing，分隔线和手柄继承 Theme.Native。未提供多面板、折叠停靠或布局序列化协议。
+Splitter 使用 MyGo 的 Split / SplitVertical / SplitPercent / SplitVerticalPercent。绑定 `*float32`，默认单位 DIP；Percent=true 时为 0–100，Vertical=true 时上下分割。
 
-HeaderLayout 包含 Leading、标题/说明与 Actions，FooterLayout 包含 Text 与 Actions；可换行、伸缩、跟随字体，不改系统标题栏。FooterColumns 接收稳定列 ID、标题和简单导航 Items，按最小列宽自动换列；业务导航由 OnNavigate 接管，嵌套导航使用 NavigationMenu。窄窗口的总体布局优先级仍由应用决定。
+Min / Max 与绑定值使用相同单位。指针或键盘修改后，组件把值限制到范围内并调用 OnChange；应用直接赋值后，在下一次构建中限制范围。
+
+原生面板默认保留主题的 40 DIP 最小尺寸，窗口更小时按底层布局规则收缩。辅助技术分隔条的 Range 使用原生 DIP 范围，不反映自定义百分比约束。Root、Leading、Trailing 可分别设置整体和两个面板的样式，分隔线与手柄使用 Theme.Native。
+
+当前只支持双面板，不含多面板协调、折叠停靠或布局序列化。
+
+### HeaderLayout 和 FooterLayout
+
+HeaderLayout 提供 Leading、标题、说明和 Actions；FooterLayout 提供 Text 和 Actions。两者支持换行、伸缩和字体缩放，显示在应用内容区，不修改系统标题栏。
+
+Go 中 Header、Footer 已作为部件名，因此布局函数使用 HeaderLayout、FooterLayout。
+
+### FooterColumns
+
+FooterColumns 接收有稳定 ID 的列，每列包含标题和简单导航项，按最小列宽自动换列。OnNavigate 处理业务跳转，需要嵌套导航时使用 NavigationMenu。窄窗口下哪些区域优先显示，仍由应用安排。
+
+## 状态与部件索引
+
+| 组件 | 持久状态或数据 | 可用部件 |
+| --- | --- | --- |
+| CommandPalette | CommandPaletteState、CommandIndex | Root、Editor，以及传给 Listbox 的 Root、Label、Item、EmptySlot |
+| NavigationMenu | NavigationState、活动 ID `*string` | Root、Label、Item |
+| Drawer | DrawerState | Modal / Slideover 的部件，另有 Thumb；默认标题使用 Label / Description |
+| FileUpload | FileUploadState | Root、Body、Item |
+| Chart | ChartState | Root、Body、Item（图例）、Label、Description、EmptySlot |
+| Carousel / Marquee | CarouselState / MarqueeState | Carousel：Root、Body、Item；Marquee：Root |
+| Splitter | `*float32` | Root、Leading、Trailing |
+| Sidebar | `*bool` collapsed，可选 SidebarState | Root、Header、Label、Trigger、Body、Footer、SeparatorSlot；弹层另有 Panel、Backdrop、Close |
+| HeaderLayout | HeaderOptions | Root、Label、Description、Actions |
+| FooterLayout | FooterOptions | Root、Label；Actions 使用内容回调 |
+| FooterColumns | `[]FooterColumn` | Root、Label、Item |
+
+## 示例
+
+Gallery 的 **Advanced interactions**、**Activity & attachments**、**Application layout** 展示这些组件，**Props & behavior** 和 **Orientation** 演示配置变化。
+
+Gallery 最左侧目录本身也使用 Sidebar + NavigationMenu，默认宽 256 DIP，可在 200–360 DIP 间拖动，收起为 64 DIP 图标栏。页面切换保留宽度和收起状态，每个窗口分别保存；它与 Application layout 页面里的演示侧栏相互独立。自动化测试可通过 Toggle gallery sidebar 和 Resize gallery sidebar 名称定位按钮与手柄。

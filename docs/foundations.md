@@ -1,89 +1,132 @@
 # 主题与基础组件
 
-使用 `App` 建立窗口主题，再将 Theme 传给组件。最小应用见 [minimal](../examples/minimal/main.go)，平台与功能范围见 [兼容性说明](compatibility.md)。
+先用 `App` 为窗口设置主题，再将返回的 `Theme` 传给组件。本页介绍主题配置，以及按钮、卡片、头像、进度等基础组件。完整启动代码见[最小应用](../examples/minimal/main.go)。
+
+| 需要做什么 | 阅读位置 |
+| --- | --- |
+| 设置明暗模式、主色和字号 | [应用与主题](#应用与主题) |
+| 修改某类组件或单个部件的外观 | [样式覆盖](#样式覆盖) |
+| 查找基础组件 | [组件与部件](#组件与部件) |
+| 添加按钮、链接或头像 | [操作组件](#操作组件)、[图片标识与资源](#图片标识与资源) |
+| 展示进度和加载状态 | [进度动画与边界](#进度动画与边界) |
 
 ## 应用与主题
 
-持久状态保存 `AppConfig`、业务值和 `ui.Handle`。每次构建先调用 `App`，随后把返回的 Theme 和当前 Context 传给组件：
+### 创建配置，再在视图中使用
+
+在创建窗口时初始化配置，并将它保存在应用模型中。下面把主色设为蓝色，中性色设为 zinc：
 
 ```go
-// 窗口模型持有 config；不要在每次构建时覆盖用户修改。
 config := nui.DefaultApp()
-config.Mode = nui.SystemMode // 也支持 LightMode、DarkMode；零 AppConfig 跟随系统
-p := nui.DefaultPalettes()
-p.Primary = nui.BluePalette()
-p.Neutral = nui.ZincPalette()
-config.Light = nui.NewTheme(false, p)
-config.Dark = nui.NewTheme(true, p)
+config.Mode = nui.SystemMode // 也可使用 LightMode 或 DarkMode
+
+palettes := nui.DefaultPalettes()
+palettes.Primary = nui.BluePalette()
+palettes.Neutral = nui.ZincPalette()
+config.Light = nui.NewTheme(false, palettes)
+config.Dark = nui.NewTheme(true, palettes)
 config.Light.Radius, config.Dark.Radius = 8, 8
 config.Light.Density, config.Dark.Density = .9, .9
+```
 
-// 在 func(c *ui.Context) 内：
+在视图函数开头调用 `App`。每次构建都要调用，但不要重新初始化上面的配置，否则用户运行时所做的修改会被覆盖。
+
+```go
 theme := nui.App(c, config)
 nui.Button(c.Key("save"), theme, "保存", nui.ButtonOptions{
-    Color: nui.Primary, Variant: nui.Solid, Size: nui.MD,
+    Color: nui.Primary,
+    Variant: nui.Solid,
+    Size: nui.MD,
     Leading: lucide.Check(),
 }).OnClick(save)
 ```
 
-`App` 必须在每次构建中的其他 `Window` / `Themed` 调用之前执行，才能读取 MyGo 的系统外观。它设置当前窗口的原生主题，不创建 MyGo 窗口，也不提供 Toast 队列。`Window(c, theme)` 是底层显式快照入口，不自动叠加系统偏好。已有原生服务通过 `c.Services()` 使用，异步业务仍由应用管理。
+`App` 根据配置和系统偏好设置当前窗口的原生主题。它要在本次构建的 `Window`、`Themed` 调用之前执行，以便读取系统外观。MyGo 窗口仍通过 `mygo.NewWindow` 创建；通知需要另设 `ToastViewport`。
 
-`NewTheme` 从完整 `Palettes` 生成角色；改变色板后重新生成明暗主题。直接修改 `Theme.Primary` 只修改该角色，不会反向修改 Palette 或其他同色角色。不要将 `App` 返回的已处理偏好的快照重新存入 config，否则文本缩放会被重复应用。
+`App` 返回的是已应用系统偏好的主题。**不要再把它写回 `config.Light` 或 `config.Dark`**，否则文本缩放可能被重复应用。需要完全自行控制主题时，可使用底层 `Window(c, theme)`；它不会自动应用系统偏好。
 
-| 配置 | 默认及行为 |
+### 常用主题参数
+
+`NewTheme` 根据整套 `Palettes` 生成不同用途的颜色，例如主色、文字色和背景色。修改色板后，应重新生成浅色和深色主题。直接改 `Theme.Primary` 只会改变该字段，不会同步修改色板和其他相关颜色。
+
+| 参数 | 默认值和用途 |
 | --- | --- |
-| `Palettes` | primary/success=green，secondary/info=blue，warning=yellow，error=red，neutral=slate |
-| `Palette.Shade` | 50、100…900、950；内置 26 套（17 套彩色、9 套中性色），每套 11 级；非法色阶 panic |
-| 强调角色 | 浅色 500、深色 400；另有 Neutral 独立配方 |
-| 文字 | `Dimmed/Muted/Toned/Text/Highlighted/Inverted` |
-| 表面 | `Background/MutedBackground/Elevated/Accented/InvertedBackground` |
-| 边框 | `Border/BorderMuted/BorderAccented/BorderInverted` |
-| 字体 | Windows Segoe UI / Consolas；其他平台 system-ui / monospace，不捆绑字体 |
-| `FontSize/TextScale` | 基础字号 14；组件独立字号表按基准比例缩放；App 再乘系统 TextScale |
-| `Density` | 默认 1，只缩放相关间距/内边距；文字不随密度缩小；<=0 作为 1 |
-| `Radius` | 基准 6 DIP；0 可得到直角；组件按自身配方比例取值 |
-| `ContainerWidth` | 默认 1280 DIP |
-| `Shadow` | 可复用 `ShadowTokens{Color, Blur, OffsetY}`；通过部件 `Shadow: nui.Set(theme.Shadow)` 应用，Card 默认无外阴影 |
-| `Motion` | 150ms 背景过渡、1s loading 旋转、2s Skeleton 周期；`Reduce` 关闭动效 |
+| `Mode` | `SystemMode` 跟随系统；也可选 `LightMode` 或 `DarkMode`。零值 `AppConfig` 同样跟随系统 |
+| `FontSize` / `TextScale` | 基础字号 14；组件字号按基准比例缩放，`App` 再应用系统文本缩放 |
+| `Density` | 默认 1，调整相关间距和内边距，不缩小文字；小于等于 0 时按 1 处理 |
+| `Radius` | 基准圆角 6 DIP；设为 0 可使用直角，各组件按自身样式比例取值 |
+| `ContainerWidth` | 默认最大内容宽度 1280 DIP |
+| `Shadow` | `ShadowTokens{Color, Blur, OffsetY}`；通过部件的 `Shadow: nui.Set(theme.Shadow)` 使用，Card 默认没有外阴影 |
+| `Motion` | 默认背景过渡 150ms、加载图标旋转周期 1s、Skeleton 周期 2s；`Reduce` 关闭动画 |
 
-系统 ReduceMotion 与主题 Reduce 按 OR 合并，实例 `Animate: Set(true)` 不会覆盖系统的减少动态效果设置。高对比模式强化边框、文字、焦点，并将强调色改为浅色 700 / 深色 300；默认色板的 solid 正文对比通过 4.5:1 检查。这不代表任意自定义色板、状态、屏幕阅读器或整个应用已通过无障碍认证。
+Windows 默认使用 Segoe UI / Consolas，其他平台使用 system-ui / monospace。本库不捆绑字体；字体和回退字体可能影响实际控件高度。
+
+### 颜色字段
+
+| 用途 | 字段或默认色板 |
+| --- | --- |
+| 语义颜色 | Primary、Success 默认 green；Secondary、Info 默认 blue；Warning 为 yellow；Error 为 red；Neutral 为 slate |
+| 强调色 | 浅色通常使用 500 色阶，深色使用 400；Neutral 有独立的取色规则 |
+| 文字 | `Dimmed`、`Muted`、`Toned`、`Text`、`Highlighted`、`Inverted` |
+| 背景 | `Background`、`MutedBackground`、`Elevated`、`Accented`、`InvertedBackground` |
+| 边框 | `Border`、`BorderMuted`、`BorderAccented`、`BorderInverted` |
+
+系统或主题任一处启用减少动态效果，动画都会关闭，组件的 `Animate: nui.Set(true)` 无法覆盖这一设置。高对比模式会增强文字、边框和焦点提示，并将强调色改为浅色 700 / 深色 300。
+
+默认色板的 Solid 正文颜色已通过 4.5:1 对比度检查。自定义色板、其他状态和完整应用的无障碍体验仍需分别验证。
 
 ### 色板与运行时切换
 
-内置色板从固定的 Tailwind CSS v4.3.3 数据生成，保留 OKLCH 色值。每套提供同名构造函数（如 `OrangePalette()`、`MauvePalette()`）；也可以通过 `PaletteByName("violet")` 查询，返回 `(Palette, bool)`，名称为小写，未知名称返回零值和 `false`。
+内置 26 套色板来自固定的 Tailwind CSS v4.3.3 数据，保留 OKLCH 色值。每套有 11 个色阶：50、100、200……900、950。`Palette.Shade` 接收这些色阶，传入其他值会 panic。
 
-- `PrimaryPaletteNames()`：red、orange、amber、yellow、lime、green、emerald、teal、cyan、sky、blue、indigo、violet、purple、fuchsia、pink、rose。
-- `NeutralPaletteNames()`：slate、gray、zinc、neutral、stone、taupe、mauve、mist、olive。
+可直接调用 `OrangePalette()`、`MauvePalette()` 等函数，也可用 `PaletteByName("violet")` 查询。名称使用小写，函数返回 `(Palette, bool)`；未知名称返回零值和 `false`。
 
-这两个列表按菜单展示顺序返回调用方独有的切片；分组用于选色，不限制色板可以赋给哪些语义角色。`NeutralPalette()` 是名为 neutral 的灰色色板，与 `Palettes.Neutral` 这个语义角色不同。
+| 查询函数 | 返回的名称 |
+| --- | --- |
+| `PrimaryPaletteNames()` | red、orange、amber、yellow、lime、green、emerald、teal、cyan、sky、blue、indigo、violet、purple、fuchsia、pink、rose |
+| `NeutralPaletteNames()` | slate、gray、zinc、neutral、stone、taupe、mauve、mist、olive |
 
-运行时在应用状态中保存所选色板，修改后重新生成 `config.Light` 和 `config.Dark`，再由 `App` 应用。Primary 与 Neutral 独立变化，其他语义角色保持自己的色板。Gallery 顶部的 **Theme → Primary / Neutral** 提供色点、当前选项和可滚动子菜单，**Light / Dark / System** 切换外观；“Theme & buttons”页提供同一组选色入口。菜单支持方向键、Home / End、键入名称和 Escape，选择后恢复触发按钮焦点。选择按窗口保存，重启 Gallery 后恢复默认。
+名称列表按菜单顺序返回独立切片。分组仅用于选色，不限制色板能赋给哪个颜色字段。`NeutralPalette()` 返回名为 neutral 的灰色色板；`Palettes.Neutral` 则是主题中用于中性色的字段。
 
-使用 `Theme.WithBlackPrimary()` 配置与 Nuxt UI 一致的 **Black** 主色：浅色为黑、深色为白，在系统高对比设置下也保持黑白。方法返回新的主题快照，同时更新 Primary 角色及其色阶，不改变其他语义颜色、Neutral、组件覆盖或布局设置。请在构造明暗主题之后分别应用：
+运行时切换颜色的步骤是：
+
+1. 在应用状态中保存用户选择的色板。
+2. 用新色板重新生成 `config.Light` 和 `config.Dark`。
+3. 在后续构建中继续调用 `App(c, config)`。
+
+Primary 和 Neutral 可以分别修改，其他语义颜色使用各自的色板。Gallery 的 **Theme → Primary / Neutral** 提供完整示例，**Light / Dark / System** 切换明暗模式。菜单支持方向键、Home、End、输入名称和 Escape，选择后恢复触发按钮焦点。选择按窗口保存，重启 Gallery 后恢复默认。
+
+### 使用黑白主色
+
+`WithBlackPrimary()` 让主色在浅色模式下为黑、深色模式下为白，高对比模式也保持黑白。先创建两种主题，再分别调用：
 
 ```go
-config := nui.DefaultApp() // 跟随系统；也可设置 LightMode / DarkMode
+config := nui.DefaultApp()
 config.Light = config.Light.WithBlackPrimary()
 config.Dark = config.Dark.WithBlackPrimary()
 ```
 
-Gallery 和网站预览的 Primary 菜单都提供 Black，网站复制的完整 Go 示例包含上述配置。Black 是模式相关的覆盖，不是 11 级 Tailwind 色板，因此不在 `PrimaryPaletteNames()` 中，`PaletteByName("black")` 也不会返回色板。切回彩色色板时，使用所选色板重新生成明暗主题。
+方法返回新主题，同时更新 Primary 及其色阶，其他颜色和样式配置保持原值。Gallery 和网站预览的 Primary 菜单均有 Black 选项。
+
+Black 随明暗模式变化，没有独立的 11 级色板，因此不出现在 `PrimaryPaletteNames()` 中，`PaletteByName("black")` 也不会返回色板。切回彩色时，使用所选色板重新生成明暗主题。
 
 ## 样式覆盖
 
-优先级为：组件配方 → 窗口/局部组件默认值和 UI → 实例显式 Color/Variant/Size → 实例 UI → 同步 Style 回调 → 返回元素上的后置修改。
+### 先选择修改范围
 
-Color/Variant 覆盖相关背景、前景、边框；Size 覆盖配方的字号、行高、字重、圆角、padding、gap。显式语义选项不会清除无关的全局部件字段。尺寸之外的宽高通过 Options 或返回值调整。`PartStyle` 支持前景、背景、边框、圆角、透明度、字体、字号、字重、行高、padding、gap、阴影。
+只改一个组件时，在该次调用的 Options 中设置颜色、尺寸或 `UI`。需要让一组组件共用样式时，用 `WithComponent` 创建局部主题，再通过 `Themed` 使用它：
 
 ```go
 local := theme.WithComponent(nui.ComponentButton, nui.ComponentTheme{
-    Color: nui.Secondary, Variant: nui.Soft,
+    Color: nui.Secondary,
+    Variant: nui.Soft,
     UI: nui.Styles{nui.Root: {Radius: nui.Set(float32(999))}},
 })
 nui.Themed(c, local, func(inner nui.Theme) {
     nui.Button(c, inner, "局部默认", nui.ButtonOptions{})
     nui.Button(c, inner, "直角", nui.ButtonOptions{
-        Color: nui.Error, Variant: nui.Outline,
+        Color: nui.Error,
+        Variant: nui.Outline,
         UI: nui.Styles{nui.Root: {
             Radius: nui.Set(float32(0)),
             PaddingX: nui.Set(float32(0)),
@@ -92,9 +135,28 @@ nui.Themed(c, local, func(inner nui.Theme) {
 })
 ```
 
-`WithComponent` 复制映射，`Component` 返回防御性副本；局部修改不泄漏到兄弟或其他窗口。`Themed` 会创建一个有背景的 Column，可继续设置布局，并在构建后恢复外层原生主题。
+`WithComponent` 复制配置映射，`Component` 返回配置副本，修改局部主题不会影响兄弟区域或其他窗口。`Themed` 自身会创建一个有背景的 Column；可继续设置它的布局，子内容构建结束后会恢复外层原生主题。
 
-`Optional[T]` 的零值代表未设置，`Set(0)`、`Set(false)`、`Set(ui.Transparent)` 代表真实覆盖；枚举中的 Default 代表继承。大部分组件通过嵌入的 `Decoration{UI, Style}` 接收部件覆盖：
+### 覆盖顺序
+
+后应用的设置覆盖前面同一字段的值：
+
+```text
+组件内置样式
+  → 窗口或局部主题中的组件默认值和 UI
+  → 当前实例显式设置的 Color / Variant / Size
+  → 当前实例的 UI
+  → 同步 Style 回调
+  → 返回元素上的后续修改
+```
+
+`Color`、`Variant` 调整相关背景、前景和边框；`Size` 调整字号、行高、字重、圆角、内边距和间距。它们只覆盖相关字段，不会清除其他部件设置。整体宽高可通过 Options 或返回元素调整。
+
+`PartStyle` 支持前景、背景、边框、圆角、透明度、字体、字号、字重、行高、内边距、间距和阴影。`Optional[T]{}` 表示未设置，`Set(0)`、`Set(false)`、`Set(ui.Transparent)` 都是有效覆盖；枚举中的 Default 通常表示继承。
+
+### 修改单个部件
+
+多数组件通过 `Decoration{UI, Style}` 接收部件样式。`UI` 按部件名设置属性；需要直接配置 MyGo 元素时再使用 `Style`：
 
 ```go
 nui.Card(c, theme, nui.CardOptions{
@@ -102,75 +164,108 @@ nui.Card(c, theme, nui.CardOptions{
     Decoration: nui.Decoration{
         UI: nui.Styles{nui.Body: {PaddingY: nui.Set(float32(12))}},
         Style: func(slot nui.Slot, part ui.Element) {
-            if slot == nui.Footer { part.Wrap() }
+            if slot == nui.Footer {
+                part.Wrap()
+            }
         },
     },
-}, func() { /* 当前构建中的正文 */ })
+}, func() {
+    ui.Text(c, "项目说明")
+})
 ```
 
-Button 提供 `Style(root, label, leading, trailing ui.Element)` 和直接 `UI` 字段。不存在的部件是零 Element；不要保存任何 Element、Context 或部件以跨帧使用。低层回调能修改 MyGo 元素，调用方有责任保留角色、名称和交互语义。
+Button 直接提供 `UI` 字段和 `Style(root, label, leading, trailing ui.Element)`。未创建的部件以零值 Element 传入。回调只配置当前构建中的元素，不要保存 Element、部件或 Context 供之后使用；自定义交互时还需保留控件名称、角色和焦点行为。
 
 ## 组件与部件
 
-表中 slots 仅列实际支持的部件；没有列出的 slot 不产生效果。
+先按用途选组件。下面的部件名可用于 `UI`；未列出的部件不会产生样式效果。
 
-| 条目 / 入口 | 选项、范围与 slots | 示例 |
+### 页面结构与操作
+
+| 组件 | 用途与主要选项 | 可用部件 |
 | --- | --- | --- |
-| App / `App`、`AppConfig` | 窗口配置、light/dark/system、系统偏好；不创建窗口 | 每个 Gallery 页面、minimal |
-| Theme / `Theme`、`Window`、`Themed` | 色阶、语义、参数、组件默认、局部作用域 | Theme & buttons |
-| Container / `Container` | `MaxWidth/Padding Optional[float32]`，居中、填充；Root | Workspace、minimal |
-| Main / `Main` | Grow 主内容区、最小宽高 0；不是滚动器，外层用 `ui.Scroll`；全局 Root 覆盖，返回值可继续配置 | Workspace |
-| Icon / `Icon` | `*ui.SVG`，可选尺寸/颜色/Label；无 Label 时装饰性；Root | Workspace、所有操作 |
-| Button / `Button` | 六变体、五尺寸、七语义色、图标、Loading/Disabled/Block/Square；Root/Label/Leading/Trailing | Theme & buttons |
-| Link / `Link` | URL 或应用 OnClick，Active、Color、Disabled，原生链接角色和键盘焦点；Root/Label | Workspace、Display |
-| Badge / `Badge` | solid/outline/soft/subtle，五尺寸、颜色、Square、两侧图标；Root/Label/Leading/Trailing。标签为空时不创建文字，纯图标徽章没有多余间距；在 FieldGroup/FormField 中继承尺寸并参与组圆角 | Display、Workspace |
-| Card / `Card` | solid/outline/soft/subtle；默认 outline；Title/Description 或 Header builder、正文、Footer builder；Root/Header/Body/Footer/Label/Description。正文 builder 为 nil 时不创建正文区；分隔线只画在实际存在的区域之间 | Display、Workspace |
-| Alert / `Alert` | 四种同上变体、默认 solid；图标、标题、长说明、Actions、可选 OnClose；Root/Leading/Label/Description/Trailing。关闭按钮与 Nuxt 一样是无内边距的 MD link 按钮，悬停不铺底色；为保证对比度沿用提示自身的文字色（Nuxt 为 muted），悬停时变淡 | Feedback |
-| Avatar / `Avatar` | 已解码 Bitmap → SVG → Text 字面文字或 Alt 首字母回退，Alt、Color、五尺寸；Root/Label/Leading | Display、Workspace |
-| AvatarGroup / `AvatarGroup` | 稳定 ID、统一尺寸、重叠、Max 未设置时不限数量、剩余数量；Root；单项 AvatarOptions 可配置 | Display |
-| Chip / `Chip` | 四角、Inset、Hidden、颜色/尺寸、可选文字；Root/Indicator；忽略输入不抢宿主点击；无 content 时独立显示 | Display |
-| Separator / `Separator` | 横/纵、Label、Icon；Root/Label/Indicator；纵向默认高 48，可链式修改 | Display |
-| Kbd / `Kbd`、`FormatKey` | 多个字符串键、平台修饰键、尺寸/色/变体；Root/Label；只显示提示，不注册快捷键。键名按 Nuxt 转大写，并把 tab、backspace、delete、capslock、方向键、pageup/pagedown、home/end 显示为符号（⇥ ⌫ ⌦ ⇪ ↑→↓← ⇞⇟ ↖↘）。修饰键保留桌面习惯：非 macOS 上 meta 显示 Win、shift 显示 Shift，Nuxt 分别显示 Ctrl 和 ⇧ | Display Card footer |
-| Skeleton / `Skeleton` | Width/Height、圆角、可选动画；Root；默认 160×16 | Feedback |
-| Progress / `Progress` | 确定/不确定、横/纵、五档粗细、颜色、Max、Label、动画；Root；Indicator 的 Background 定义自绘填色 | Feedback |
-| ProgressGroup / `ProgressGroup` | 横向多段进度、稳定 ID、段颜色、Max、尺寸、说明列表可隐藏；Root/Indicator（轨道）；不承担任务调度 | Feedback、Workspace |
-| Empty / `Empty` | 四种表面变体、尺寸、图标/标题/说明/Actions/Footer；Root/Leading/Label/Description | Workspace |
-| User / `User` | Avatar、Name/Description、尺寸、Vertical、Disabled、OnActivate；Root/Label/Description；长文本省略。与 Nuxt 一样，AvatarOptions 各字段都为空时不显示头像；需要首字母头像时设置 `Avatar: nui.AvatarOptions{Alt: name}` 或 Text | Display、Workspace |
+| App / Theme | `AppConfig` 管理明暗模式；`Theme` 保存颜色、尺寸与组件默认值 | 通过各组件配置 |
+| Container | 居中并限制内容宽度；`MaxWidth`、`Padding` 为 `Optional[float32]` | Root |
+| Main | 可伸展的主内容区，最小宽高为 0；需要滚动时在外层使用 `ui.Scroll` | 全局 Root，返回值可继续配置 |
+| Icon | 显示 `*ui.SVG`，支持尺寸、颜色和 Label；无 Label 时作为装饰图标 | Root |
+| Button | 按钮，支持颜色、变体、尺寸、图标、加载和禁用 | Root、Label、Leading、Trailing |
+| Link | 打开 URL 或执行应用导航，支持 Active、Color、Disabled | Root、Label |
 
-Separator 支持 Color、Size（XS..XL 对应 1..5 DIP）、Type（SeparatorSolid/Dashed/Dotted）、Position（Center/Start/End）、Avatar、Content、Orientation。内容优先级为 Content → Label → Icon → Avatar；Body 为内容容器，Indicator 为分隔线。默认标签 14 DIP、图标 20 DIP；Avatar 默认映射到本库最小 XS（上游 2xs 无同名尺寸）。
+### 信息展示
 
-Empty 支持 Loading/LoadingIcon，None 对应无表面样式。User 的 XS 尺寸使用内联描述。
+| 组件 | 用途与主要选项 | 可用部件 |
+| --- | --- | --- |
+| Badge | 短标签；支持 Solid/Outline/Soft/Subtle、颜色、尺寸、Square 和两侧图标 | Root、Label、Leading、Trailing |
+| Card | 卡片；默认 Outline，另支持 Solid/Soft/Subtle；标题、说明、Header、正文和 Footer | Root、Header、Body、Footer、Label、Description |
+| Alert | 提示信息；默认 Solid，支持与 Card 相同的四种变体、图标、Actions 和 OnClose | Root、Leading、Label、Description、Trailing |
+| Empty | 空状态；图标、标题、说明、Actions、Footer、Loading/LoadingIcon；`None` 去掉表面样式 | Root、Leading、Label、Description |
+| User | 头像、姓名和说明；支持 Vertical、Disabled、OnActivate，长文字省略 | Root、Label、Description |
+
+Badge 的标签为空时不创建文字，也不保留多余间距。在 FieldGroup 或 FormField 内会继承尺寸，并参与组的圆角处理。
+
+Card 的正文回调为 nil 时不创建正文区域；分隔线只出现在实际存在的区域之间。Alert 的关闭按钮使用 MD、LinkVariant，无内边距和悬停底色，沿用提示的文字颜色，悬停时变淡。方向设置见[参数与默认值](options.md#orientation)。
+
+User 的 `AvatarOptions` 全为空时不显示头像。需要首字母头像时，设置 `Avatar: nui.AvatarOptions{Alt: name}` 或 `Text`。XS 尺寸的说明与姓名显示在同一行；只有传入 `OnActivate` 时，User 才作为可键盘激活的按钮。
+
+### 标识、分隔与加载
+
+| 组件 | 用途与主要选项 | 可用部件 |
+| --- | --- | --- |
+| Avatar / AvatarGroup | 单个头像或重叠头像组；组项目使用稳定 ID，可限制数量 | Avatar：Root、Label、Leading；组：Root |
+| Chip | 角标，支持四角位置、Inset、Hidden、颜色、尺寸和文字；不拦截宿主点击，无正文时可独立显示 | Root、Indicator |
+| Separator | 横向或纵向分隔线，可插入文字、图标、头像或自定义内容 | Root、Body、Label、Indicator |
+| Kbd / FormatKey | 显示快捷键提示和平台修饰键，不注册快捷键 | Root、Label |
+| Skeleton | 加载占位，默认 160×16 DIP，可设宽高、圆角和动画 | Root |
+| Progress / ProgressGroup | 单项或分段进度，支持尺寸、颜色、方向和动画 | Root、Indicator，详见进度说明 |
+
+Separator 的 `Size` 从 XS 到 XL 对应 1–5 DIP 线宽；`Type` 可选 Solid、Dashed、Dotted 对应常量，`Position` 可选 Center、Start、End。内容优先级为 `Content → Label → Icon → Avatar`，默认标签 14 DIP、图标 20 DIP、头像 XS。纵向默认高度 48 DIP，可通过返回值修改。
+
+Kbd 将普通键名转为大写，并把 Tab、Backspace、Delete、CapsLock、方向键、PageUp/PageDown、Home/End 显示为相应符号。修饰键按桌面习惯显示，例如非 macOS 平台上的 meta 为 Win、shift 为 Shift。
 
 ### 操作组件
 
-Button 变体：`Solid/Outline/Soft/Subtle/Ghost/LinkVariant`；尺寸 `XS/SM/MD/LG/XL` 默认基准高度为 **24/28/32/36/40 DIP**，原生字体或回退字体的行高较大时会随文字增高。`Neutral` bool 保留兼容，推荐 `Color: nui.Neutral`。Color 取 `Primary/Secondary/Success/Info/Warning/Error/Neutral`。
+Button 支持 `Solid`、`Outline`、`Soft`、`Subtle`、`Ghost`、`LinkVariant` 六种外观。颜色可选 `Primary`、`Secondary`、`Success`、`Info`、`Warning`、`Error`、`Neutral`；旧的 `Neutral bool` 字段保留兼容，新代码使用 `Color: nui.Neutral`。
 
-Loading 阻止点击与键盘激活。默认在 leading 位置替换或新增旋转图标，标签始终显示；`LoadingTrailing` 可放到 trailing（显式 Leading 优先），`LoadingIcon` 自定义图标。没有原图标时按钮宽度会增加。`Active/ActiveColor/ActiveVariant` 控制活动态；仅图标按钮自动使用 square，Square 的 padding 允许实例 UI 最后覆盖。图标按钮要求 `AccessibleLabel`，否则 panic。动画 spinner 的颜色由 Root / Leading 前景字段解析，需覆盖颜色时使用 UI；低层 `Style(...leading).TextColor` 不能重新着色已解析的自绘 spinner。
+| Size | XS | SM | MD | LG | XL |
+| --- | --- | --- | --- | --- | --- |
+| 默认基准高度（DIP） | 24 | 28 | 32 | 36 | 40 |
 
-MyGo 当前将 Disabled 绘为 50% 透明，本库不再叠乘 75%。disabled/loading 不重新启用父级禁用。装饰 Chip 没有操作角色；有业务意义的数量或在线状态应加入宿主的 AccessibleLabel/Alt。
+当字体行高较大时，按钮会随文字增高。`Block` 控制填满宽度，`Square` 控制方形布局；仅图标按钮会自动采用方形布局，且必须提供 `AccessibleLabel`，否则 panic。实例 `UI` 可以继续覆盖 Square 的内边距。
 
-Link URL 非空时在激活后调用 `Services.OpenURL`，不会在构建中打开网页。URL 为空时使用返回元素 `.OnClick`，由应用实现导航；同时再设置 OnClick 会遵循 MyGo 的动作覆盖规则。User 只有 OnActivate 非空时才是可键盘激活的按钮。
+**加载与禁用：** `Loading` 阻止点击和键盘激活，保留标签，默认在前侧替换或新增旋转图标。`LoadingTrailing` 可将它放到后侧，但显式 Leading 优先；`LoadingIcon` 可更换图标。原来没有图标时，进入加载状态可能增加按钮宽度。
+
+加载图标颜色从 Root / Leading 的前景样式读取，需要改色时设置 `UI`；最后执行的 `Style(...leading).TextColor` 无法改变已解析的自绘图标颜色。`Active`、`ActiveColor`、`ActiveVariant` 控制活动状态。
+
+MyGo 将禁用控件绘制为 50% 透明度，本库不再叠加透明度。子组件设置 `Disabled: false` 无法解除父级禁用。Chip 只有装饰作用，业务上有意义的数量或在线状态应补充到宿主的 `AccessibleLabel` 或 `Alt`。
+
+**链接：** Link 的 URL 非空时，在激活后通过 `Services.OpenURL` 打开地址。URL 为空时，可用返回元素的 `.OnClick` 实现应用内导航；同时设置 URL 和 OnClick 时要注意 MyGo 的动作覆盖规则。
 
 ### 图片、标识与资源
 
-Avatar 不执行磁盘或网络 I/O。调用方在构建之外执行 `ui.DecodeBitmap`；失败后传 nil，即使用 Icon 或 Text。远程下载、取消、缓存和错误状态属于应用资源层。`Text` 按字面显示（例如 `+12`）；没有 Text 时从 Alt 前两个空格分词各取首字符，保留大小写；没有 Alt 时为空。会缩小文字以适应圆形内部，未实现完整 Unicode grapheme 缩写算法。姓名自动缩写通过 Alt 配置，User 的 Name 默认作为头像 Alt。
+Avatar 按 `Bitmap → Icon → Text → Alt 首字母` 的顺序选择内容。图片要在视图构建之外解码，再传入 `ui.DecodeBitmap` 的结果；失败时传 nil，组件会继续使用后面的内容。下载、缓存、取消和错误处理由应用负责。
 
-AvatarGroup 和 ProgressGroup 要求唯一、非空 ID，不用 label 作为身份；AvatarGroup 未设置 Max 或 Max≤0 时全部显示；正数限制可见数量并显示同尺寸的 `+n` Avatar。组的 Size/Color 只为未显式指定的子头像提供默认值。`Overlap: Set(0)` 可关闭重叠。
+`Text` 原样显示，例如 `+12`。没有 Text 时，Avatar 从 Alt 的前两个空格分词中各取首字符，保留大小写；没有 Alt 时留空。文字会缩小以适应圆形，但未实现完整的 Unicode 字素缩写算法。User 的 Name 默认作为头像 Alt。
 
-Lucide 已完整收录固定提交 `a630cec77eac6568b989e87e4947a8bfe45caacd` 的 **2,015 个 SVG**，各自提供独立 getter，例如 `lucide.House()`、`lucide.GitBranch()`、`lucide.FileJson2()`、`lucide.RobotArm()`。命名由连字符分段后各段首字母大写，数字保持不变；完整名称见 `icons/lucide/manifest.json` 和 Go 文档。
+AvatarGroup 和 ProgressGroup 的每项都需要唯一、非空 ID。AvatarGroup 未设置 Max 或 Max≤0 时显示全部头像；正数限制可见数量，并用同尺寸 `+n` 头像表示剩余人数。组的 Size / Color 只给未显式配置的子头像提供默认值，`Overlap: nui.Set(0)` 可关闭重叠。
 
-每个 SVG 独立 embed 和 `sync.Once` 缓存，未引用 getter 可由 Go 链接器移除；没有在运行时注册或预解析全部图标。返回的共享 SVG 只读使用，尺寸／颜色通过 `ui.Icon` 或组件选项设置。全量 getter 清单仅生成在 `_test.go` 内，避免验证代码影响消费者体积。
+Lucide 图标使用独立函数，例如 `lucide.House()`、`lucide.GitBranch()`、`lucide.FileJson2()`。本库收录固定提交中的 2,015 个 SVG，每个图标独立嵌入和缓存，未引用的图标可由 Go 链接器移除。返回的 SVG 是共享只读对象，颜色和尺寸通过组件设置。
 
-升级图标时获取指定 Lucide 提交的完整 `icons/*.svg`，原样收录并更新 `icons/lucide/manifest.json` 的提交、名称和 SHA-256；同步 LICENSE 后运行 `go generate ./icons/lucide`。生成器离线校验全部文件、未登记 SVG、重复名称、Go 名称／文件冲突和旧生成文件，验证通过后再写出结果。平台后缀会自动规避，例如 `robot-arm` 生成 `robot_arm_icon.go`，保证 amd64 也能使用。`go generate ./...` 不联网；色板也由固定 Tailwind 4.3.3 文件离线生成。更多用法见 [图标包说明](../icons/lucide/README.md)。
+完整名称、固定提交、导入方式和离线生成步骤见[图标文档](../icons/lucide/README.md)及 [manifest.json](../icons/lucide/manifest.json)。图标升级和生成属于库维护工作，普通应用直接调用图标函数即可。
 
 ### 进度、动画与边界
 
-Progress 的 Max 默认为 100，显式非正/非有限 Max 为程序配置错误并 panic；值为 NaN/Inf 时按 0，负数归 0，超过 Max 归 Max。不确定状态使用 MyGo 的 `Now=-1 < Min=0` 哨兵，另提供 “In progress” 值/描述；减少动态效果时显示静态短段。Windows UIA 的 range getter 会将未知值夹到下界，这是当前 MyGo 的平台行为，未知进度的屏幕阅读器呈现尚未验证。纵向默认高 160 DIP，正常从顶部填充，Inverted 从底部填充；水平从逻辑 start 填充，Inverted 反向。Orientation 和 Vertical 均可设置方向。
+**Progress** 的 Max 默认 100。显式设置非正数、NaN 或 Inf 会 panic；进度值的 NaN/Inf 按 0 处理，再限制在 0 到 Max 之间。
 
-ProgressGroup 将各段绘制在同一条多段轨道上。总和未满 Max 时显示余量；超出时按比例缩到同一轨道，避免溢出；可访问总值限制在 Max 内。先将每段限制在 0..Max，再按比例缩短超出的总宽度，避免浮点溢出；非有限值归 0。列表显示各段相对于 Max 的四舍五入百分比；没有标签时不创建说明列表。水平方向随 RTL 镜像。支持 Orientation（默认 Horizontal，纵向 Height 默认 160）；分段交互和任意段 builder 仍未提供。Alert 的方向参数等扩展见 [参数与默认值](options.md)。
+确定进度按数值填充，不确定进度显示移动短段；减少动态效果时短段静止。底层使用 `Now=-1 < Min=0` 表示未知进度，并提供 In progress 的值或描述。Windows UIA 会将未知数值限制到下界，具体读屏呈现尚未验证。
 
-持续动画只在 Painter 实际绘制可见组件时请求帧；移出滚动可见区、卸载、关闭 Animate 或 ReduceMotion 后应静止。Button 背景过渡单独受 `Motion.Transition/Reduce` 控制，`Animate:false` 控制 spinner，有限过渡完成后仍会静止。没有定时 goroutine。
+水平方向从文字起始侧填充，纵向默认高 160 DIP、从顶部填充；`Inverted` 反转填充方向。`Orientation` 和 `Vertical` 均可控制方向。Indicator 的 `Background` 设置自绘进度颜色。
+
+**ProgressGroup** 将多段进度放在同一轨道上。每段先限制在 0 到 Max，非有限值按 0 处理；总和不足时保留空余，超出时按比例缩短，辅助技术总值也限制在 Max 内。
+
+说明列表显示各段相对于 Max 的四舍五入百分比，没有标签时不创建列表。水平方向随 RTL 调整；Orientation 默认 Horizontal，纵向 Height 默认 160 DIP。当前不提供分段点击和任意分段内容回调，也不负责调度任务。
+
+**动画何时停止：** 持续动画只在可见组件实际绘制时请求下一帧。移出滚动可见区、卸载、关闭 Animate 或启用减少动态效果后停止。Button 的背景过渡由 `Motion.Transition/Reduce` 控制，`Animate: nui.Set(false)` 控制加载图标；过渡结束后不再持续请求帧。组件没有用于动画的定时 goroutine。
 
 ## 使用边界
 
-采用原生 Go 配方与部件 API；不支持 CSS selector 或 Vue 插槽。组件间的功能差异、原生无障碍边界和平台状态见 [兼容性说明](compatibility.md)。
+样式通过 Go 选项和部件 API 设置，不支持 CSS 选择器或 Vue 插槽。平台状态、输入法和辅助技术的验证范围见[兼容性说明](compatibility.md)。

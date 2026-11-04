@@ -1,94 +1,197 @@
 # 参数与默认值
 
-本文汇总方向、选择、加载和弹层等常用配置。各组件的值模型与完整用法见 [组件文档](README.md)。
+本页用于查询常用选项。第一次使用某个组件时，先看[组件指南](README.md)中的示例，再回来查默认值和行为开关。
 
-## 选择与分页
-
-| 项目 | 当前行为 |
+| 需要调整什么 | 阅读位置 |
 | --- | --- |
-| SelectMenu 查询重置 | 默认选择后及关闭后清空 Query；同值重选也关闭、重置并触发 OnSelect，数据 OnChange 仅在值变化时触发。覆盖 Escape、外部点击与受控关闭，可分别设置 ResetSearchTermOnSelect / ResetSearchTermOnBlur |
-| SelectMenu 键盘打开 | 触发器上的 ↑、↓ 均可打开；默认聚焦搜索，搜索关闭时聚焦列表；禁用触发器不打开 |
-| Pagination 零个相邻页 | 使用 `SiblingCount: nui.Set(0)`。`Siblings int` 的零值默认 2；显式设置的 SiblingCount 优先，限制范围 0–10 |
+| 显式关闭默认开启的功能，或设置 0 | [未设置、零值和默认值](#未设置零值和默认值) |
+| 横向和纵向布局 | [Orientation](#orientation) |
+| 多选、搜索、查询词重置和分页 | [选择与分页](#选择与分页)、[InputMenu](#inputmenu-值与搜索策略) |
+| 加载、标签、弹层、侧栏或上传区域 | [常用参数入口](#常用参数入口) |
+| 键盘和辅助技术限制 | [使用限制](#使用限制) |
 
-Pagination 同时按 [Reka UI 2.11.0 分页规则](https://github.com/unovue/reka-ui/blob/v2.11.0/packages/core/src/Pagination/utils.ts) 处理边缘窗口：页 5/总 10/相邻数 0，ShowEdges=true 显示 `1 … 5 … 10`，false 显示 `5`；接近首页、末页时扩大边缘段，小页数不显示省略号。
+## 未设置、零值和默认值
+
+Go 的零值不一定是组件最终使用的值。例如 Pagination 的 `PageSize: 0` 会采用默认值 10。需要区分未设置与显式 `false` / `0` 的字段，使用 `Optional[T]`。
+
+| 写法 | 含义 |
+| --- | --- |
+| 不填 Optional 字段，或填 `nui.Optional[T]{}` | 使用组件默认行为 |
+| `nui.Set(false)` | 明确关闭该选项 |
+| `nui.Set(0)` | 明确使用 0；仍需满足该字段的取值限制 |
+| 普通 bool、数值、枚举字段 | 直接赋值；具体零值行为看组件说明 |
+
+例如隐藏 Toast 关闭按钮，用 `Close: nui.Set(false)`；将 Pagination 的相邻页数量设为零，用 `SiblingCount: nui.Set(0)`。仅写 `Siblings: 0` 会使用默认值 2。
+
+### 常查的默认值
+
+| 组件 | 默认值 |
+| --- | --- |
+| Pagination | PageSize=10、Siblings=2、ShowEdges=false、ShowControls=true、Size=MD |
+| InputTags / InputRating / Slider | AddOnPaste=false；Hoverable=false；Step=1 |
+| SelectMenu | SearchInput=true；选择后和关闭后均重置搜索词 |
+| Carousel / FileUpload | Arrows=false；Layout=UploadGrid |
+| Sidebar | Resizable=false；Collapsible、Toggle、AutoClose=true；展开/收起宽度 256/64 DIP |
+| 弹层与通知 | Popover.Dismissible=true；Toast.Close、Toast.Progress=true |
+| Listbox / Accordion | HighlightOnHover=true；Collapsible=true |
+| InputDate | ShowCalendar=false；HideCalendar 优先关闭日历 |
+
+FileUpload 的 `Dropzone`、`Interactive`、`FileDelete`、`Preview` 默认均为 true。`UploadLayout` 的零值是 `UploadLayoutDefault`，填写选项时使用枚举名称，不依赖底层数字。
 
 ## Orientation
 
-复用 `nui.Horizontal` / `nui.Vertical`。默认纵向的组件使用 `Optional[Orientation]`，区分未设置与显式横向。
+横向使用 `nui.Horizontal`，纵向使用 `nui.Vertical`。默认纵向的组件通常采用 `Optional[Orientation]`，需要写成 `nui.Set(nui.Horizontal)`；普通 Orientation 字段直接赋值。
 
-| Options | 字段类型 / 默认值 | 切换内容 |
+| Options | 字段类型与默认值 | 改变的内容 |
 | --- | --- | --- |
-| FormFieldOptions | `Optional[Orientation]` / Vertical | Label / Hint / Description 属于标签列，输入 / Help / Error 属于内容列；保持本库控件的标签激活和编辑器身份 |
-| AlertOptions / ToastOptions | `Optional[Orientation]` / Vertical | 操作放在正文下方或旁边 |
-| ListboxOptions | `Optional[Orientation]` / Vertical | 纵向虚拟列表或按 ItemWidth 裁剪的横向虚拟列表；对应 ↑↓ / ←→，水平键随 RTL 镜像 |
-| InputRatingOptions | `Orientation` / Horizontal | 星级横向或纵向排列 |
-| RangeSliderOptions | `Orientation` / Horizontal | 共用轨道、两拇指几何与拖拽坐标同步变化；保留两个独立焦点与范围值 |
-| ProgressGroupOptions | `Orientation` / Horizontal | 水平分段轨道或纵向分段轨道；纵向 Height 默认 160 DIP |
-| CarouselOptions | `Orientation` / Horizontal | 视口排布、拖拽轴、速度判定与方向键同步切换；纵向使用 ↑↓；切换时取消未完成拖拽 |
-
-InputNumber 使用 `Orientation`，默认 Horizontal。部分组件也提供 Vertical / Horizontal 布尔选项，具体以各组件 Options 为准。
+| FormFieldOptions | Optional；Vertical | 标签和输入内容上下排列或左右分列，保留标签关联和编辑器状态 |
+| AlertOptions / ToastOptions | Optional；Vertical | 操作区在正文下方或旁边 |
+| ListboxOptions | Optional；Vertical | 纵向虚拟列表或固定 ItemWidth 的横向虚拟列表；使用对应轴的方向键 |
+| InputNumberOptions | Orientation；Horizontal | 减号/数值/加号横排，或数值右侧上下排列增减按钮 |
+| InputRatingOptions / RangeSliderOptions | Orientation；Horizontal | 星级或滑块的排列及交互方向；范围滑块保留两个独立焦点和值 |
+| ProgressGroupOptions | Orientation；Horizontal | 水平或纵向分段轨道；纵向 Height 默认 160 DIP |
+| CarouselOptions | Orientation；Horizontal | 布局、拖拽和方向键同步切换；切换时取消未完成的拖拽 |
 
 ```go
 nui.FormField(c, t, nui.FormFieldOptions{
-    Label: "Workspace", Orientation: nui.Set(nui.Horizontal),
+    Label: "工作区",
+    Orientation: nui.Set(nui.Horizontal),
 }, func(inner nui.Theme) {
     nui.Input(c, inner, &state.Name, nui.InputOptions{})
 })
 
 nui.RangeSlider(c, t, &state.Low, &state.High, nui.RangeSliderOptions{
-    Label: "Budget", Orientation: nui.Vertical,
+    Label: "预算",
+    Orientation: nui.Vertical,
     Min: 0, Max: 100, Step: 5, MinStepsBetweenThumbs: 2,
 })
 ```
 
+部分组件另有 `Vertical` 或 `Horizontal` 布尔字段，类型以对应 Options 为准。支持 RTL 的横向交互会按书写方向调整。
+
+## 选择与分页
+
+### 单选、多选和再次点击
+
+| 组件或选项 | 行为 |
+| --- | --- |
+| `Select(*T)` / `SelectMultiple(*[]T)` | 分别绑定单个值和多个值，共用 SelectOptions、稳定 ID、自定义 Option.Build 和已选标签 |
+| `SelectionToggle` | Listbox 默认策略；单选和多选都可再次激活当前项以取消选择 |
+| `SelectionReplace` | 激活时替换选择；SelectMenu 单选固定使用此策略 |
+| 替换式多选 | Shift+方向键/Home/End 扩展连续范围并跳过禁用项；Ctrl/Cmd+A 选择可用项 |
+| `CheckboxGroup.Max` | 达到上限后，未选项仍可聚焦，但拒绝勾选，并向辅助技术报告只读状态 |
+
+Select 单选和多选都继承 ComponentSelect 的 Color、Variant、Size 和 UI，实例配置优先。Listbox 还支持 Loop 和 HighlightOnHover。
+
+### SelectMenu 的搜索与重置
+
+`SearchInput` 默认 true。设为 false 后不创建搜索框，也不会用保留的 Query 筛选列表。触发器上的 ↑、↓ 均可打开菜单：有搜索框时聚焦搜索框，否则聚焦列表；禁用触发器不能打开。
+
+默认在选择后和关闭后清空 Query，分别由 `ResetSearchTermOnSelect`、`ResetSearchTermOnBlur` 控制。关闭包括 Escape、外部点击和应用修改打开状态。
+
+再次选择同一个值也会关闭、重置并触发 OnSelect；OnChange 只在选中值实际变化时触发。Invalid / ErrorMessage 会同步影响字段错误语义和边框。
+
+### Pagination 的相邻页和外观
+
+`SiblingCount` 优先于旧的 `Siblings`，范围为 0–10。例如当前第 5 页、共 10 页、相邻数为 0 时：
+
+| 配置 | 显示结果 |
+| --- | --- |
+| ShowEdges=true | `1 … 5 … 10` |
+| ShowEdges=false | `5` |
+
+接近首尾时会扩大边缘页码范围；总页数较少时不显示省略号。ShowControls 控制翻页按钮，ShowEdges 控制首尾页码。Size、Color、Variant 设置普通页码外观，ActiveColor、ActiveVariant 单独设置当前页。
+
 ## 常用参数入口
 
-| 组件 | 入口与约定 |
+### 开关、标签和评分
+
+| 组件 | 常用选项与行为 |
 | --- | --- |
-| Switch | Loading 阻止鼠标和键盘切换；LoadingIcon / CheckedIcon / UncheckedIcon 自定义图标；减少动态效果时停止转动。Checkbox 只使用 CheckedIcon |
-| Checkbox / CheckboxGroup / RadioGroup | Variant 使用 ChoiceList / ChoiceCard / ChoiceTable；Indicator 使用 IndicatorStart / End / Hidden。卡片选择后自动着色，隐藏指示器仍可辨认；Highlight 强制强调边框/指示器，未选中也生效。CheckboxGroup.Max 达上限后，未选项与 Nuxt 一样仍可聚焦，但拒绝勾选（可访问状态为只读） |
-| SelectMenu | SearchInput、Color、Variant、Size、两个 ResetSearchTerm 选项；SearchInput=false 不构建搜索，也不按保留的 Query 过滤。Invalid / ErrorMessage 与字段错误语义和边框对齐 |
-| Select | `SelectMultiple[T](c,t,*[]T,[]Option[T],SelectOptions)` 保持原 `Select(*T)` 类型安全；单选/多选均继承 ComponentSelect 的 Color / Variant / Size / UI，实例覆盖优先；保留稳定 ID、自定义 Option.Build 和已选标签 |
-| InputMenu | Multiple、ExternalFilter、FilterFields、Mode、OpenOnClick / OpenOnFocus、两个 ResetSearchTerm 选项、OnCreate / CreateWhenAlways、OnValuesChange；见下一节 |
-| Pagination | ShowControls / ShowEdges、Size、Color / Variant、ActiveColor / ActiveVariant；所选语义不覆盖活动页的外观配置 |
-| InputTags | AddOnTab / AddOnBlur、AddOnPaste、Duplicate、MaxLength。MaxLength 在编辑层按 UTF-16 单元限长，0 不限，保留插入点后的原文本；不是提交时的标签长度校验。AddOnPaste=true 消费粘贴事件，包括重复/超上限拒绝；false 作为普通文本粘贴。Tab / Shift+Tab 在非空草稿时提交并留焦，空草稿正常移动焦点 |
-| Tabs | ActivationMode=ActivationAutomatic（默认）或 ActivationManual；manual 方向键只移动焦点，Enter / Space 激活并通知一次 |
-| Accordion | Collapsible 为 Optional[bool]，默认 true；单开模式设置 false 后，激活已开项不收起，仍可切换到另一项；Multiple 模式不受此选项限制 |
-| Popover | Mode=PopoverClick（默认）/ PopoverHover；OpenDelay / CloseDelay 仅作用于 Hover，使用 time.Duration，默认 0；网站面板以毫秒输入。Dismissible 默认 true，控制 Escape / 外部点击关闭，不阻止应用主动修改 open。Hover 跨锚点间隙进入面板保持打开，Escape 关闭后不因鼠标仍停留原地而立即重开 |
-| Tooltip | Placement / Offset、受控 Open *bool、Kbds；受控状态同样响应原生悬停延迟、键盘聚焦、失焦、触发器点击和 Escape；外部 false 在仍聚焦/悬停时不立即重开，新的提示关闭旧受控提示 |
-| Sidebar | State 保存展开 Width 与窄窗口 Open；Resizable 默认 false，Collapsible/Toggle/AutoClose 默认 true；MinWidth/MaxWidth 默认 160/480 DIP，Width/CollapsedWidth 默认 256/64 DIP；Breakpoint 未设置或 0 保持桌面布局。模式、区域回调及键盘操作见 [Sidebar](advanced.md#sidebar-状态与尺寸) |
-| NavigationMenu | 纵向 Compact 默认开启 Tooltip 与子级 Popover，使用 Optional[bool] 可关闭；PopupPlacement 可覆盖侧向弹层方向 |
-| Carousel | Arrows 为 Optional[bool]；Dots 开启圆点导航，圆点有本地化的页码名称 |
-| Toast | Close / Progress、Actions []ToastActionOptions；每项含 Label、OnAction、ButtonOptions 和 Close（默认 true）；Close=false 的操作执行后保留通知；持续时间条复用原生暂停时钟，常驻通知不显示倒计时 |
-| PinInput | Color / Variant / Size；Separator []int 在指定的第几个槽位后插入间隔，例如 `{3}` 表示三位后分组；保留单个编辑器和 Tab 停靠点 |
-| InputRating | Clearable 时点击当前评分或在当前星上按空格归零；Hoverable 默认 false，开启后悬停只预览，清零后预览随即消失；EmptyIcon 未指定时继承 Icon。横向 ←→（RTL 镜像）、纵向 ↑↓ 按项导航，到首尾停止、不循环；忽略另一轴，Home/PageUp 到 1，End/PageDown 到 Max |
-| Slider / RangeSlider | PageUp/PageDown 与 Shift+方向键走 10 个 Step，方向按横纵、反向、RTL 映射；OnChange 报告实时变化，OnCommit 在有变化的按键/拖拽结束时通知。范围拇指可越过彼此，自动排序并跟随焦点；不满足 Step × MinStepsBetweenThumbs 的移动被拒绝。Tooltip 挂在每个拇指上显示各自值 |
-| Listbox | Loop、HighlightOnHover、SelectionBehavior；SelectionToggle（默认）在单选/多选下都能取消当前项，SelectionReplace 激活时替换；SelectMenu 单选固定使用替换语义。SelectionReplace 多选模式支持 Shift+方向键/Home/End 扩展连续范围并跳过禁用项；Ctrl/Cmd+A 选择可用项 |
-| FileUpload | Variant=UploadArea / UploadButton；Layout=UploadList / UploadGrid；Dropzone、Interactive、FileDelete、Preview 及 Color / Size。与 Nuxt 一样，可交互的 UploadArea 整个区域就是可聚焦的按钮（名称取 Label，Enter/Space 或点击打开选择器），不再显示 Choose 按钮；Choose 按钮只在 UploadButton 或 `Interactive: nui.Set(false)` 时显示。关闭 Preview 只隐藏预览，不删除数据 |
+| Switch | Loading 阻止鼠标和键盘切换；LoadingIcon、CheckedIcon、UncheckedIcon 配置图标；减少动态效果时停止旋转 |
+| Checkbox / CheckboxGroup / RadioGroup | Variant 可选 ChoiceList、ChoiceCard、ChoiceTable；Indicator 可选 IndicatorStart、IndicatorEnd、IndicatorHidden；Highlight 强调边框或指示器，未选中时也生效 |
+| InputTags | AddOnTab、AddOnBlur、AddOnPaste 控制何时添加标签；Duplicate 控制重复项；MaxLength 限制编辑文本 |
+| PinInput | Color、Variant、Size 设置外观；`Separator: []int{3}` 在第三格后分组，仍使用一个编辑器和一个 Tab 停靠点 |
+| InputRating | Clearable 允许点击当前评分或按空格清零；Hoverable 开启悬停预览；未设置 EmptyIcon 时沿用 Icon |
 
-`Optional` 的未设置和显式 false/0 有区别：`nui.Set(false)` 关闭默认开启项。当前默认值：Pagination PageSize=10、Siblings=2、ShowEdges=false、ShowControls=true、Size=MD；Carousel.Arrows=false；InputTags.AddOnPaste=false；InputRating.Hoverable=false；FileUpload.Layout=UploadGrid；Slider.Step=1。UploadLayout 的零值为 UploadLayoutDefault；使用枚举名，不依赖底层数字序号。
+Checkbox 只使用 CheckedIcon，不使用 Switch 的 UncheckedIcon。ChoiceCard 选中后会着色，隐藏指示器时仍能识别选中状态。
 
-SelectMenu.SearchInput、重置策略、Listbox.HighlightOnHover、Accordion.Collapsible、Popover.Dismissible、Toast.Close / Progress、FileUpload 的四个布尔选项默认 true。
+InputTags 的 MaxLength 按 UTF-16 单元限制用户插入，0 表示不限；它限制的是编辑草稿，不负责提交时的标签长度校验。启用 AddOnPaste 后，粘贴会按标签处理，即使因重复或数量上限被拒绝，也不会再作为普通文本插入；关闭时按普通文本粘贴。启用 AddOnTab 后，非空草稿会在 Tab / Shift+Tab 时提交并保留焦点，空草稿则正常移动焦点。
+
+InputRating 的横向方向键随 RTL 调整，纵向使用 ↑↓，另一轴按键无效。评分到首尾停止；Home/PageUp 到 1，End/PageDown 到 Max。清零后悬停预览随即消失。
+
+### 滑块和内容切换
+
+| 组件 | 常用选项与行为 |
+| --- | --- |
+| Slider / RangeSlider | PageUp/PageDown、Shift+方向键移动 10 个 Step；OnChange 报告实时变化，OnCommit 在有变化的按键或拖拽结束时通知 |
+| RangeSlider | 两个滑块可交叉，随后自动排序并转移活动焦点；小于 `Step × MinStepsBetweenThumbs` 的移动被拒绝；Tooltip 分别显示两个值 |
+| Tabs | ActivationMode 默认 ActivationAutomatic；ActivationManual 下方向键只移动焦点，Enter/Space 才激活并通知一次 |
+| Accordion | Collapsible 默认 true；单开模式设为 false 后不能再次点击收起当前项，仍可切到另一项；多开模式不受此选项限制 |
+| Carousel | Arrows 控制翻页按钮，Dots 开启圆点导航；圆点的页码名称支持语言切换 |
+
+### 弹层和通知
+
+| 组件 | 常用选项与行为 |
+| --- | --- |
+| Popover | Mode 默认 PopoverClick，可改为 PopoverHover；OpenDelay / CloseDelay 只用于悬停模式，类型为 time.Duration，默认 0 |
+| Tooltip | Placement、Offset 控制位置；Open 可绑定打开状态；Kbds 显示快捷键 |
+| Toast | Close 控制关闭按钮，Progress 控制倒计时条；Actions 可配置多个动作，每项含 Label、OnAction、ButtonOptions、Close |
+
+Popover 的 Dismissible 默认 true，控制 Escape 和外部点击关闭，应用始终可以直接修改 open。悬停模式允许指针跨过锚点与面板之间的间隙；Escape 关闭后，指针停在原处不会立即重新打开。网站参数面板中的延迟以毫秒填写。
+
+Tooltip 即使绑定了 Open，也继续响应悬停延迟、键盘焦点、失焦、点击和 Escape。应用将 Open 改为 false 后，不会因为仍悬停或聚焦而立即重开；新提示出现时会关闭旧的受控提示。
+
+Toast 动作默认执行后关闭通知，单项设置 `Close: nui.Set(false)` 可保留。悬停或聚焦使通知暂停时，倒计时条也停止；常驻通知没有倒计时条。
+
+### 侧栏、导航和文件选择
+
+| 组件 | 常用选项与行为 |
+| --- | --- |
+| Sidebar | State 保存展开宽度和窄窗口打开状态；MinWidth/MaxWidth 默认 160/480 DIP；Breakpoint 未设置或为 0 时始终使用桌面布局 |
+| NavigationMenu | 纵向 Compact 模式默认提供 Tooltip 和子级 Popover，可分别用 `nui.Set(false)` 关闭；PopupPlacement 修改子级弹层位置 |
+| FileUpload | Variant 使用 UploadArea / UploadButton；Layout 使用 UploadList / UploadGrid；Dropzone、Interactive、FileDelete、Preview 控制交互与显示 |
+
+可交互的 UploadArea 整个区域都是按钮，点击或按 Enter/Space 打开文件选择器，名称取 Label。Choose 按钮只在 UploadButton 或 `Interactive: nui.Set(false)` 时出现。Preview=false 只隐藏预览，Files 数据仍保留。Sidebar 的区域回调、尺寸和键盘操作见[侧栏说明](advanced.md#sidebar-状态与尺寸)。
 
 ## InputMenu 值与搜索策略
 
-- 单选使用 `SearchState.Selected` 保存 ID，`Query` 保存编辑文本。多选使用 `SelectedValues []string`，移除按钮和空草稿 Backspace 均可移除，变更通知 OnValuesChange；OnSelect 报告被激活的 ID。
-- `ExternalFilter=true` 表示直接展示调用方给出的结果；FilterFields 支持 `label` / `description` / `value`，nil 默认仅 label。SearchSelect 兼容入口显式保留 label + description；请求和取消仍由 QueryState/应用服务处理。
-- `InputMenuAutocomplete` 使用 Query 作为可自由输入的文本，Selected 保存最后选中的选项 ID；强制单选并允许自定义提交。
-- OnCreate 提供可键盘激活的创建行，默认在无匹配时显示；CreateWhenAlways 在非空查询且无相同 value 时提供。创建请求保留 Query、筛选和打开状态，不触发普通选择，也不替应用插入选项。
-- OpenOnClick 默认 true、OpenOnFocus 默认 false。两个 reset 选项默认 true；选择以及关闭（含 Escape、仍保持焦点）分别遵从 reset 策略；单选恢复所选标签、多选清空草稿；autocomplete 保留自由文本。
-- 选项身份/标签/禁用集合改变时关闭旧弹层，避免底层索引高亮错误地选择另一条记录。ExternalFilter 不意味着更新结果时自动保持弹层打开。
+### 先决定保存什么值
+
+| 模式 | 状态字段 |
+| --- | --- |
+| 单选 | `SearchState.Selected` 保存选项 ID，Query 保存编辑草稿 |
+| 多选 | `SelectedValues` 保存全部选中 ID；删除按钮或空草稿 Backspace 可移除项 |
+| InputMenuAutocomplete | Query 是可自由输入的文本；Selected 保留最后选中的 ID，强制单选并允许自定义提交 |
+
+多选变化通过 OnValuesChange 通知，OnSelect 报告本次激活的 ID。
+
+### 本地或外部搜索
+
+默认只按 Label 做不区分大小写的包含匹配。FilterFields 可指定 `label`、`description`、`value`；nil 表示只搜索 label。旧的 SearchSelect 入口保留 label + description。
+
+`ExternalFilter=true` 直接展示应用传入的结果。请求、取消和过期结果处理由 QueryState 或应用服务完成。选项的身份、标签、描述或禁用状态变化时会关闭旧面板；ExternalFilter 不会改变这一规则，也不会自动保持面板打开。
+
+### 创建候选项
+
+提供 OnCreate 后，列表可显示一个能通过键盘激活的创建行。默认只在无匹配结果时显示；CreateWhenAlways 在查询非空且没有相同 value 时提供创建行。
+
+创建只发送请求，保留 Query、筛选和打开状态，不触发普通选择，也不会替应用添加选项。应用应在创建成功后更新数据源。
+
+### 打开和重置
+
+OpenOnClick 默认 true，OpenOnFocus 默认 false。ResetSearchTermOnSelect 和 ResetSearchTermOnBlur 默认均为 true，分别控制选择后和关闭后的草稿。单选恢复选中标签，多选清空草稿，Autocomplete 保留自由文本。
 
 ## 示例
 
-Gallery 的 **Props & behavior** 展示加载、选择上限、标签策略、手动 Tabs、查询重置、分页、浮层与文件预览；**Orientation** 展示方向切换。
+Gallery 的 **Props & behavior** 页面演示加载、选择上限、标签添加、手动 Tabs、搜索重置、分页、弹层和文件预览；**Orientation** 页面演示方向切换。启动命令见[运行示例](../README.md#运行示例)。
 
 ## 使用限制
 
-Listbox 两个方向均限制实际构建数量；横向项目与组标题采用固定 ItemWidth，纵向由原生 List 管理行高。Slider / RangeSlider 统一通过公开 Range / Step / 焦点和快捷键实现 Nuxt 的按键规则，因为 SliderBase 会先消耗按键；实际值、上下限和步长可访问，但 MyGo 通用控件缺少纵向元数据 setter，**此限制目前适用于所有纵向 Slider / RangeSlider，包括非反向模式**。InputRating 仍使用单焦点 slider 角色，未宣称完整 radio 读屏等价。
+Listbox 两种方向都只构建可见项目及少量预留项目。横向项目和组标题使用固定 ItemWidth，纵向行高由原生 List 管理。
 
-Go Options 与 Nuxt Vue Props 使用不同的数据模型，支持字段以各 API 文档为准。滑块值提示按拇指定位，未提供 Tooltip 延迟配置对象。FormField 通过本库控件的字段绑定处理标签激活；直接传入自定义 MyGo 控件时，需由应用处理其标签关联。表单校验、日期/数字格式与 Table/Tree 的支持范围见 [表单与数据](forms-data.md)，读屏、输入法与 DPI 的验证范围见 [兼容性说明](compatibility.md)。
+Slider / RangeSlider 的实际值、范围和步长可以提供给辅助技术，但 MyGo 缺少纵向方向元数据的设置接口；这一限制适用于全部纵向模式，包括没有 Inverted 的情况。滑块提示可按每个滑块定位，目前没有独立的 Tooltip 延迟配置。InputRating 使用单焦点 slider 角色。
 
-Toast 的动作回调和 ButtonOptions.Style 会随通知保存，不能捕获临时 Element / Parts / Context；Style 的参数仅在当次构建有效。平台支持和输入法问题见 [兼容性说明](compatibility.md)。
+FormField 会关联本库控件的标签；使用自定义 MyGo 控件时，应用需要自行处理标签关联。Toast 的动作回调和 ButtonOptions.Style 会随通知保存，闭包不能捕获临时 Element、Parts 或 Context；Style 参数仅在当次构建中有效。
 
-日期／时间分段输入的键盘操作、主题 slot 与旧版迁移见 [Calendar、InputDate、InputTime](forms-data.md#calendarinputdateinputtime)。`InputDateOptions.ShowCalendar` 默认 false，需要日历时显式启用；`HideCalendar` 优先关闭。
+Go Options 的字段和类型以本库 API 为准，不能直接照搬 Nuxt Vue Props。日期时间操作与迁移见[日期组件](forms-data.md#calendarinputdateinputtime)，平台、输入法和读屏验证范围见[兼容性说明](compatibility.md)。

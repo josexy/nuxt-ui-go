@@ -1,20 +1,16 @@
 # NuxtUI Go
 
-基于 [MyGo](https://github.com/egoist/mygo) 的原生 Go 组件库，采用 Nuxt UI v4 的视觉风格，适合构建桌面表单、数据工具与应用界面。
+用 Go 编写桌面界面的组件库。NuxtUI Go 基于 [MyGo](https://github.com/egoist/mygo)，提供按钮、输入框、表单、表格、树、图表和应用布局，外观采用 Nuxt UI v4 的设计风格。
 
-**[MIT License](LICENSE)**
+原生应用不依赖 Vue、Node.js 或 WebView。组件支持浅色、深色和系统外观，内置英文、简体中文、26 套色板，以及 2,015 个按需使用的 Lucide 图标。
 
-- 73 项组件与布局入口，覆盖主题、输入、表单、弹层、导航、日期、表格、树和图表。
-- 浅色、深色与系统模式，26 套色板，部件样式定制及 2,015 个按需使用的 Lucide 图标。
-- 英文、简体中文与全局语言切换；原生布局和绘制，不依赖 Vue、Node 或 WebView。
-
-平台支持、运行要求和已知输入法限制见 [兼容性与已知限制](docs/compatibility.md)。
+**第一次使用，从下面的最小应用开始。** 想先查看组件效果，可以[运行 Gallery](#运行示例)；已有应用需要接入组件，直接查看[组件指南](docs/README.md)。
 
 ## 安装与最小应用
 
-需要 Go **1.27.3 或更高版本**，原生应用使用 `CGO_ENABLED=0` 构建。模块路径为 `github.com/josexy/nuxt-ui-go`，根包名为 `nui`，依赖版本见 [go.mod](go.mod)。
+需要 **Go 1.27.3 或更高版本**，以及桌面图形会话。构建时设置 `CGO_ENABLED=0`。Windows、Linux、macOS 的验证程度不同，具体见[兼容性说明](docs/compatibility.md#环境与平台)。
 
-创建应用目录，初始化模块并添加依赖：
+### 1. 创建项目
 
 ```sh
 mkdir nuxt-ui-demo
@@ -23,7 +19,11 @@ go mod init example.com/nuxt-ui-demo
 go get github.com/josexy/nuxt-ui-go@latest
 ```
 
-在应用目录创建 `main.go`，内容与仓库的 [最小示例](examples/minimal/main.go) 一致：
+模块路径是 `github.com/josexy/nuxt-ui-go`，代码中使用包名 `nui`。本仓库使用的 Go 和 MyGo 版本见 [go.mod](go.mod)。
+
+### 2. 创建 main.go
+
+这个程序会打开一个窗口，点击 Save 后更新计数。代码与仓库中的[最小示例](examples/minimal/main.go)一致。
 
 ```go
 package main
@@ -59,6 +59,14 @@ func main() {
 }
 ```
 
+这里有三处需要了解：
+
+- `count` 和 `config` 放在视图函数外，界面重新构建时仍保留原值。
+- `nui.App(c, config)` 为当前窗口准备主题，后面的组件使用返回的 `theme`。
+- `OnClick` 在点击后修改数据；MyGo 根据新数据重新构建界面。
+
+### 3. 运行应用
+
 Windows PowerShell：
 
 ```powershell
@@ -67,46 +75,48 @@ $env:CGO_ENABLED = '0'
 go run .
 ```
 
-macOS/Linux shell：`go mod tidy` 后执行 `CGO_ENABLED=0 go run .`。应用需要桌面图形会话；这两个平台的完整桌面交互尚未验证，具体范围见 [兼容性说明](docs/compatibility.md)。
+Linux / macOS shell：
+
+```sh
+go mod tidy
+CGO_ENABLED=0 go run .
+```
+
+应用成功打开后，可以继续阅读[组件指南中的基本写法](docs/README.md#理解组件的基本写法)，为窗口添加输入框和其他控件。
 
 ## 运行示例
 
-在本仓库根目录执行（PowerShell）：
+以下命令在**本仓库根目录**执行。先将 `CGO_ENABLED` 设为 `0`：PowerShell 使用 `$env:CGO_ENABLED = '0'`，Linux / macOS shell 使用 `export CGO_ENABLED=0`。
 
-```powershell
-$env:CGO_ENABLED = '0'
-go run ./examples/gallery
-```
-
-Linux/macOS shell：
-
-```sh
-CGO_ENABLED=0 go run ./examples/gallery
-```
-
-安装 [Task](https://taskfile.dev/docs/installation) 后可用 `task` 查看命令，`task verify` 会自动选择 Windows/Linux 验证脚本。完整任务见 [Taskfile.yml](Taskfile.yml)，CI 配置见 [check.yml](.github/workflows/check.yml)。
-
-| 示例 | 命令 | 内容 |
+| 想查看什么 | 命令 | 示例源码 |
 | --- | --- | --- |
-| Gallery | `go run ./examples/gallery` | 组件、主题、状态、参数与方向切换 |
-| 最小应用 | `go run ./examples/minimal` | 创建窗口、应用主题和处理按钮动作 |
-| 设置页 | `go run ./examples/settings` | 表单校验、编辑对话框、菜单、通知与侧边筛选 |
-| 数据浏览器 | `go run ./examples/data-browser` | 搜索、筛选、分页、Table/Tree 与按 ID 编辑 |
+| 全部组件、主题和交互效果 | `go run ./examples/gallery` | [Gallery](examples/gallery/) |
+| 窗口、主题和按钮的最小用法 | `go run ./examples/minimal` | [最小应用](examples/minimal/main.go) |
+| 表单校验、编辑对话框、菜单和通知 | `go run ./examples/settings` | [设置页](examples/settings/) |
+| 搜索、筛选、分页、表格和树 | `go run ./examples/data-browser` | [数据浏览器](examples/data-browser/) |
 
-Gallery 的 Theme 菜单可以切换 Primary、Neutral 及 Light/Dark/System。English / 简体中文 切换组件内置语言；示例标题与业务数据由应用提供，不随组件文案自动翻译。图表页面展示图型、坐标轴、曲线、堆叠与图例交互；需要静态展示时运行 `go run ./examples/gallery -static`。
+Gallery 顶部的 **Theme** 菜单可切换主色（Primary）、中性色（Neutral）和明暗模式。English / 简体中文 按钮切换组件内置文案；示例标题和业务数据由应用提供，不会自动翻译。
 
-## 文档
+图表页面可调整图型、坐标轴、曲线、堆叠方式和图例。需要静态展示时运行 `go run ./examples/gallery -static`。
 
-组件网站源码位于 [website/](website/README.md)，提供 73 项组件的中英文说明、实时 Go/WASM 预览、常用参数配置和可复制的 Go 示例。安装网站依赖后可用 `task website:dev` 本地查看；构建和手动 GitHub Pages 发布见网站说明。
+## 按任务查文档
 
-- [组件指南](docs/README.md)：按用途查找组件和 Go API。
-- [主题与样式](docs/foundations.md)：色板、系统模式、局部主题和部件覆盖。
-- [参数与默认值](docs/options.md)：方向、选择策略、加载态和弹层配置。
-- [国际化](docs/i18n.md)：语言切换、应用目录与组件文案覆盖。
-- [Lucide 图标](icons/lucide/README.md)：类型化 getter、按需嵌入及使用方式。
-- [兼容性与已知限制](docs/compatibility.md)：平台状态、输入法问题与功能边界。
-- [更新日志](CHANGELOG.md)。
+| 任务 | 文档 |
+| --- | --- |
+| 查找组件，了解状态和回调的基本写法 | [组件指南](docs/README.md) |
+| 修改颜色、字号、间距或某个组件的样式 | [主题与基础组件](docs/foundations.md) |
+| 查询默认值，配置多选、方向、加载状态或弹层 | [参数与默认值](docs/options.md) |
+| 切换语言、修改内置文案或使用图标 | [国际化](docs/i18n.md)、[Lucide 图标](icons/lucide/README.md) |
+| 确认平台支持、已知问题和版本变化 | [兼容性与已知限制](docs/compatibility.md)、[更新日志](CHANGELOG.md) |
+
+组件网站提供 73 项组件与布局的中英文说明、Go/WASM 实时预览、参数编辑和可复制的完整 Go 示例。按[网站开发说明](website/README.md#本地开发)安装依赖后，运行 `task website:dev` 即可本地查看。静态构建和 GitHub Pages 发布方式也在该文档中。
+
+## 参与开发
+
+安装 [Task](https://taskfile.dev/docs/installation) 后，在仓库根目录运行 `task` 查看可用命令。`task verify` 会选择 Windows 或 Linux 验证脚本，检查格式、测试、生命周期规则和跨平台构建。
+
+完整命令见 [Taskfile.yml](Taskfile.yml)，持续集成配置见 [check.yml](.github/workflows/check.yml)。开发网站还需要 Node.js 和 pnpm，普通 Go 应用不需要安装它们。
 
 ## 许可证
 
-本项目采用 [MIT License](LICENSE)。Nuxt UI、Lucide/Feather、Tailwind CSS 与 MyGo 的来源及各自许可见 [第三方声明](THIRD_PARTY_NOTICES.md)。
+本项目采用 [MIT License](LICENSE)。Nuxt UI、Lucide/Feather、Tailwind CSS 和 MyGo 的来源及许可见[第三方声明](THIRD_PARTY_NOTICES.md)。
