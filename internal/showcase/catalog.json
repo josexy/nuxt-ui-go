@@ -91,8 +91,8 @@
       "en": "Compose palettes, local themes and component defaults."
     },
     "guide": {
-      "zh": "第一个按钮使用局部组件主题，第二个用实例颜色覆盖它，第三个通过 UI 调整圆角和水平内边距。修改颜色、尺寸和样式，比较全局主题、局部默认值与实例覆盖的优先级。",
-      "en": "The first button uses local component defaults, the second overrides its color, and the third customizes radius and horizontal padding through UI. Change the controls to compare global, local and instance styling."
+      "zh": "第一个按钮使用局部组件主题，第二个用实例颜色覆盖它，第三个通过 UI 调整圆角和水平内边距。修改颜色、尺寸和样式，比较全局主题、局部默认值与实例覆盖的优先级。主色选 Black 时，浅色模式为黑、深色模式为白，高对比设置下也保持黑白；完整示例通过 Theme.WithBlackPrimary() 配置两个主题快照。",
+      "en": "The first button uses local component defaults, the second overrides its color, and the third customizes radius and horizontal padding through UI. Change the controls to compare global, local and instance styling. Select Black as the primary for black in light mode and white in dark mode, including high contrast. The complete example applies Theme.WithBlackPrimary() to both theme snapshots."
     },
     "note": {
       "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",

@@ -224,7 +224,7 @@ func main() {
 		log.Fatal(err)
 	}
 	write(filepath.Join(*root, "internal/showcase/preview/generated.go"), []byte(views))
-	data, err := json.MarshalIndent(map[string]any{"components": pages, "schemas": showcase.Schemas(), "primary": nui.PrimaryPaletteNames(), "neutral": nui.NeutralPaletteNames()}, "", "  ")
+	data, err := json.MarshalIndent(map[string]any{"components": pages, "schemas": showcase.Schemas(), "primary": showcase.PrimaryColors(), "neutral": nui.NeutralPaletteNames()}, "", "  ")
 	if err != nil {
 		log.Fatal(err)
 	}

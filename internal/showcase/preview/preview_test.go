@@ -80,6 +80,7 @@ func TestParameterUpdatesPreserveInputAndActions(t *testing.T) {
 	tt.Type("Draft stays")
 	cfg.Values["size"] = "lg"
 	cfg.Values["variant"] = "soft"
+	cfg.Primary = "black"
 	cfg.Mode = "dark"
 	tt.Frame()
 	if _, ok := tt.Find("Value: Draft stays"); !ok {
@@ -88,6 +89,13 @@ func TestParameterUpdatesPreserveInputAndActions(t *testing.T) {
 	tt.Type("!")
 	if _, ok := tt.Find("Value: Draft stays!"); !ok {
 		t.Fatal("input lost focus after configuration")
+	}
+	cfg.Primary = "blue"
+	cfg.Mode = "light"
+	tt.Frame()
+	tt.Type("?")
+	if !tt.HasText("Value: Draft stays!?") {
+		t.Fatal("switching away from Black lost input or focus")
 	}
 
 	button, _ := showcase.Find("button")
@@ -102,6 +110,7 @@ func TestParameterUpdatesPreserveInputAndActions(t *testing.T) {
 		t.Fatal(err)
 	}
 	cfg.Values["variant"] = "outline"
+	cfg.Primary = "black"
 	bt.Frame()
 	bt.Frame()
 	if _, ok := bt.Find("Clicked 1 times"); !ok {

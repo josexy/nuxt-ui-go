@@ -59,7 +59,15 @@ nui.Button(c.Key("save"), theme, "保存", nui.ButtonOptions{
 
 运行时在应用状态中保存所选色板，修改后重新生成 `config.Light` 和 `config.Dark`，再由 `App` 应用。Primary 与 Neutral 独立变化，其他语义角色保持自己的色板。Gallery 顶部的 **Theme → Primary / Neutral** 提供色点、当前选项和可滚动子菜单，**Light / Dark / System** 切换外观；“Theme & buttons”页提供同一组选色入口。菜单支持方向键、Home / End、键入名称和 Escape，选择后恢复触发按钮焦点。选择按窗口保存，重启 Gallery 后恢复默认。
 
-Gallery 还提供与 Nuxt UI 一致的 **Black** 主色：浅色为黑、深色为白，在系统高对比设置下也保持黑白。它是模式相关的覆盖，不是 11 级 Tailwind 色板，因此不在 `PrimaryPaletteNames()` 中，`PaletteByName("black")` 也不会返回色板。示例实现见 `internal/gallery/theme.go`。
+使用 `Theme.WithBlackPrimary()` 配置与 Nuxt UI 一致的 **Black** 主色：浅色为黑、深色为白，在系统高对比设置下也保持黑白。方法返回新的主题快照，同时更新 Primary 角色及其色阶，不改变其他语义颜色、Neutral、组件覆盖或布局设置。请在构造明暗主题之后分别应用：
+
+```go
+config := nui.DefaultApp() // 跟随系统；也可设置 LightMode / DarkMode
+config.Light = config.Light.WithBlackPrimary()
+config.Dark = config.Dark.WithBlackPrimary()
+```
+
+Gallery 和网站预览的 Primary 菜单都提供 Black，网站复制的完整 Go 示例包含上述配置。Black 是模式相关的覆盖，不是 11 级 Tailwind 色板，因此不在 `PrimaryPaletteNames()` 中，`PaletteByName("black")` 也不会返回色板。切回彩色色板时，使用所选色板重新生成明暗主题。
 
 ## 样式覆盖
 

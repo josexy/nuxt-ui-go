@@ -120,6 +120,12 @@ func (d Demo) Source(input Config) (string, string, error) {
 		setup += "\ndefer " + cleanup
 	}
 	mode := map[string]string{"light": "LightMode", "dark": "DarkMode", "system": "SystemMode"}[cfg.Mode]
+	primaryPalette := fmt.Sprintf("palettes.Primary, _ = nui.PaletteByName(%q)", cfg.Primary)
+	primaryTheme := ""
+	if cfg.Primary == "black" {
+		primaryPalette = ""
+		primaryTheme = ".WithBlackPrimary()"
+	}
 	code := fmt.Sprintf(`type example struct { %s }
 
 func (s *example) view(c *ui.Context, t nui.Theme) {
@@ -130,9 +136,9 @@ func main() {
  s := &example{}
  %s
  palettes := nui.DefaultPalettes()
- palettes.Primary, _ = nui.PaletteByName(%s)
+ %s
  palettes.Neutral, _ = nui.PaletteByName(%s)
- config := nui.AppConfig{Mode: nui.%s, Light: nui.NewTheme(false, palettes), Dark: nui.NewTheme(true, palettes)}
+ config := nui.AppConfig{Mode: nui.%s, Light: nui.NewTheme(false, palettes)%s, Dark: nui.NewTheme(true, palettes)%s}
  mygo.App.SetLanguages(nui.SupportedLocales()...)
  mygo.App.WhenReady(func() {
   mygo.App.SetLocale(%s)
@@ -143,7 +149,7 @@ func main() {
  })
  if err := mygo.App.Run(); err != nil { log.Fatal(err) }
 }
-`, state, body, setup, strconv.Quote(cfg.Primary), strconv.Quote(cfg.Neutral), mode, strconv.Quote(cfg.Locale), windowAssignment, strconv.Quote(d.Name+" · NuxtUI Go"), appConfig)
+`, state, body, setup, primaryPalette, strconv.Quote(cfg.Neutral), mode, primaryTheme, primaryTheme, strconv.Quote(cfg.Locale), windowAssignment, strconv.Quote(d.Name+" · NuxtUI Go"), appConfig)
 	full, err := FormatSource("main", code)
 	if err != nil {
 		return "", "", err

@@ -24,9 +24,9 @@ execFileSync(
   'go',
   [
     'test',
-    './internal/showcase/preview',
+    './internal/showcase/...',
     '-run',
-    'TestAllFieldEditorsUpdateRealViews|TestClearedFieldSources|TestNestedFieldSources',
+    'TestAllFieldEditorsUpdateRealViews|TestClearedFieldSources|TestNestedFieldSources|TestBlackPrimaryConfiguration',
     '-count=1'
   ],
   {

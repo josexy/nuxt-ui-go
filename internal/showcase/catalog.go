@@ -92,6 +92,11 @@ type Config struct {
 	focusTarget bool
 }
 
+// PrimaryColors includes the mode-dependent Black option before the color ramps.
+func PrimaryColors() []string {
+	return append([]string{"black"}, nui.PrimaryPaletteNames()...)
+}
+
 // Normalize validates external messages before they reach component APIs.
 // Nil optional values mean inheritance; false and zero remain explicit values.
 func (d Demo) normalizeValues(input Config) (Config, error) {
@@ -109,7 +114,7 @@ func (d Demo) normalizeValues(input Config) (Config, error) {
 	if cfg.Locale == "" {
 		cfg.Locale = "zh-Hans"
 	}
-	if !slices.Contains(nui.PrimaryPaletteNames(), cfg.Primary) || !slices.Contains(nui.NeutralPaletteNames(), cfg.Neutral) {
+	if !slices.Contains(PrimaryColors(), cfg.Primary) || !slices.Contains(nui.NeutralPaletteNames(), cfg.Neutral) {
 		return Config{}, fmt.Errorf("unknown palette")
 	}
 	if !slices.Contains([]string{"light", "dark", "system"}, cfg.Mode) || !slices.Contains(nui.SupportedLocales(), cfg.Locale) {
@@ -166,7 +171,9 @@ func (c Config) OptionalBool(key string) nui.Optional[bool] {
 
 func (c Config) Theme() nui.AppConfig {
 	palettes := nui.DefaultPalettes()
-	palettes.Primary, _ = nui.PaletteByName(c.Primary)
+	if c.Primary != "black" {
+		palettes.Primary, _ = nui.PaletteByName(c.Primary)
+	}
 	palettes.Neutral, _ = nui.PaletteByName(c.Neutral)
 	mode := nui.LightMode
 	if c.Mode == "dark" {
@@ -176,6 +183,10 @@ func (c Config) Theme() nui.AppConfig {
 		mode = nui.SystemMode
 	}
 	base := nui.AppConfig{Mode: mode, Light: nui.NewTheme(false, palettes), Dark: nui.NewTheme(true, palettes)}
+	if c.Primary == "black" {
+		base.Light = base.Light.WithBlackPrimary()
+		base.Dark = base.Dark.WithBlackPrimary()
+	}
 	return Options(c, "AppConfig", base, nil, base.Light, nil)
 }
 

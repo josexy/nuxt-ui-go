@@ -81,6 +81,36 @@ func TestHighContrastDefaultAccentText(t *testing.T) {
 	}
 }
 
+func TestBlackPrimaryTheme(t *testing.T) {
+	palettes := nui.DefaultPalettes()
+	palettes.Neutral = nui.MauvePalette()
+	for _, dark := range []bool{false, true} {
+		original := nui.NewTheme(dark, palettes).WithComponent(nui.ComponentButton, nui.ComponentTheme{Size: nui.XL})
+		original.Radius, original.Density = 10, .8
+		theme := original.WithBlackPrimary()
+		want := ui.Hex("#000000")
+		if dark {
+			want = ui.Hex("#ffffff")
+		}
+		for _, highContrast := range []bool{false, true} {
+			prefs := ui.Preferences{HighContrast: highContrast}
+			got, baseline := theme.FollowPreferences(prefs), original.FollowPreferences(prefs)
+			if got.Primary != want || got.Native().Accent != want || got.Native().AccentText != baseline.Inverted {
+				t.Fatalf("incorrect Black primary or foreground: dark=%v highContrast=%v", dark, highContrast)
+			}
+			if got.Background != baseline.Background || got.Success != baseline.Success || got.Warning != baseline.Warning || got.Palettes.Neutral != palettes.Neutral {
+				t.Fatal("Black primary changed other theme colors")
+			}
+			if got.Radius != 10 || got.Density != .8 || got.Component(nui.ComponentButton).Size != nui.XL {
+				t.Fatal("Black primary discarded theme customization")
+			}
+		}
+		if original.Palettes != palettes || original.Primary == want {
+			t.Fatal("Black primary mutated the original snapshot")
+		}
+	}
+}
+
 func TestButtonSizesDensityAndLoadingGeometry(t *testing.T) {
 	for i, wantHeight := range []float32{24, 28, 32, 36, 40} {
 		for _, icons := range []int{0, 1, 2, 3} {

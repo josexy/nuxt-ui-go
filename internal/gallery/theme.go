@@ -31,15 +31,11 @@ func (a *State) themeConfig() nui.AppConfig {
 		p.Primary, _ = nui.PaletteByName(primary)
 	}
 	p.Neutral, _ = nui.PaletteByName(a.paletteName(false))
-	light, dark := p, p
+	config := nui.AppConfig{Mode: nui.LightMode, Light: nui.NewTheme(false, p), Dark: nui.NewTheme(true, p)}
 	if primary == "black" {
-		// Nuxt's Black option is a black/white override, not a Tailwind ramp.
-		// Fill both snapshots so accessibility preferences keep it monochrome.
-		for i := range light.Primary {
-			light.Primary[i], dark.Primary[i] = ui.Hex("#000000"), ui.Hex("#ffffff")
-		}
+		config.Light = config.Light.WithBlackPrimary()
+		config.Dark = config.Dark.WithBlackPrimary()
 	}
-	config := nui.AppConfig{Mode: nui.LightMode, Light: nui.NewTheme(false, light), Dark: nui.NewTheme(true, dark)}
 	if a.Dark {
 		config.Mode = nui.DarkMode
 	}

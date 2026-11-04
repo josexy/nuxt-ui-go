@@ -4,8 +4,12 @@ import (
 	"go/parser"
 	"go/token"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/egoist/mygo/ui"
+	nui "github.com/josexy/nuxt-ui-go"
 )
 
 func TestCatalogAndStandaloneCode(t *testing.T) {
@@ -85,7 +89,7 @@ func TestConfigurationBoundaryAndOptionalValues(t *testing.T) {
 	if !strings.Contains(code, "Dismissible: nui.Set(false)") || !strings.Contains(code, "CloseButton: nui.Optional[bool]{}") {
 		t.Fatal("copied code lost optional state")
 	}
-	for _, input := range []Config{{Values: map[string]any{"dismissible": "false"}}, {Values: map[string]any{"unknown": true}}, {Primary: "unknown"}, {Mode: "unknown"}} {
+	for _, input := range []Config{{Values: map[string]any{"dismissible": "false"}}, {Values: map[string]any{"unknown": true}}, {Primary: "unknown"}, {Neutral: "black"}, {Mode: "unknown"}} {
 		if _, err := demo.Normalize(input); err == nil {
 			t.Fatalf("accepted invalid config: %+v", input)
 		}
@@ -97,6 +101,47 @@ func TestConfigurationBoundaryAndOptionalValues(t *testing.T) {
 	}
 	if !strings.Contains(code, "SiblingCount: nui.Set(0)") {
 		t.Fatal("explicit zero lost")
+	}
+}
+
+func TestBlackPrimaryConfiguration(t *testing.T) {
+	demo, _ := Find("theme")
+	for _, mode := range []string{"light", "dark", "system"} {
+		t.Run(mode, func(t *testing.T) {
+			cfg, err := demo.Normalize(Config{Primary: "black", Neutral: "mauve", Mode: mode})
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, systemDark := range []bool{false, true} {
+				for _, highContrast := range []bool{false, true} {
+					got := cfg.Theme().Resolve(systemDark, ui.Preferences{HighContrast: highContrast})
+					want := ui.Hex("#000000")
+					if mode == "dark" || (mode == "system" && systemDark) {
+						want = ui.Hex("#ffffff")
+					}
+					if got.Primary != want || got.Palettes.Neutral != nui.MauvePalette() {
+						t.Fatalf("wrong Black theme: mode=%s systemDark=%v highContrast=%v", mode, systemDark, highContrast)
+					}
+				}
+			}
+			_, source, err := demo.Source(cfg)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if strings.Count(source, ".WithBlackPrimary()") != 2 || strings.Contains(source, `PaletteByName("black")`) {
+				t.Fatal("copied code does not configure Black for both appearances")
+			}
+			// The website check compiles these alongside the configured field examples.
+			if directory := os.Getenv("SHOWCASE_SNIPPETS_DIR"); directory != "" {
+				target := filepath.Join(directory, "black-primary", mode, "main.go")
+				if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(target, []byte(source), 0644); err != nil {
+					t.Fatal(err)
+				}
+			}
+		})
 	}
 }
 

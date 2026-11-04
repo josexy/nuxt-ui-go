@@ -69,6 +69,22 @@ type Theme struct {
 
 func Light() Theme { return NewTheme(false, DefaultPalettes()) }
 func Dark() Theme  { return NewTheme(true, DefaultPalettes()) }
+
+// WithBlackPrimary returns a copy with a black primary in light mode and a white
+// primary in dark mode. It also updates the primary palette so high contrast and
+// components that use individual shades retain the monochrome primary.
+// Apply it to both AppConfig snapshots after constructing their themes.
+func (t Theme) WithBlackPrimary() Theme {
+	t.Primary = ui.Hex("#000000")
+	if t.Dark {
+		t.Primary = ui.Hex("#ffffff")
+	}
+	for i := range t.Palettes.Primary {
+		t.Palettes.Primary[i] = t.Primary
+	}
+	return t
+}
+
 func NewTheme(dark bool, p Palettes) Theme {
 	t := Theme{Dark: dark, Palettes: p, Radius: 6, FontSize: 14, Density: 1, TextScale: 1, ContainerWidth: 1280, Font: "system-ui", MonoFont: "monospace", Motion: MotionTokens{Transition: 150 * time.Millisecond, Spin: time.Second, Pulse: 2 * time.Second}, Shadow: ShadowTokens{Color: ui.RGBA(0, 0, 0, .12), Blur: 12, OffsetY: 4}}
 	if runtime.GOOS == "windows" {
