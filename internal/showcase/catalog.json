@@ -6778,12 +6778,12 @@
       "en": "Browse hierarchical data with stable identities."
     },
     "guide": {
-      "zh": "展开文件夹并选择项目，使用键盘查看层级导航。TreeState 在初始化时装入示例节点；真实文件树应在操作或后台任务完成后更新数据。",
-      "en": "Expand folders, select items and try keyboard navigation. TreeState loads sample nodes at initialization; real file trees should update data from actions or completed background jobs."
+      "zh": "点击父节点选择并展开，方向键只移动高亮，Enter / Space 选择。开启 Multiple 后比较 toggle / replace、Shift 范围选择和父子联动；禁用项不会响应操作。 Nested 默认开启层级竖线及子项背景缩进；关闭后整行可点击，内容仍按层级缩进。切换模式保留选择、展开和滚动状态。",
+      "en": "Click a parent to select and expand. Arrow keys move the highlight; Enter / Space select. Enable Multiple to compare toggle / replace, Shift ranges and parent-child selection. Disabled items ignore input. Nested defaults to ancestor guides and inset child row backgrounds; turn it off for full-width clickable rows with indented content. Switching preserves selection, expansion and scrolling."
     },
     "note": {
-      "zh": "参数表对应当前 Go API。默认选项通常继承主题；Optional 的未设置值与显式 false / 0 不同。",
-      "en": "The API table describes the current Go library. Default options usually inherit the theme; unset Optional values differ from explicit false / 0."
+      "zh": "对照 Nuxt UI 4.12.0：默认单选，原生虚拟化始终开启。TreeState.Selection / Outline.Open 保存受控 ID；SetExpanded 可立即使折叠分支的加载票据失效。父子联动仅处理已加载节点，后续懒加载子项不自动继承选择。使用与迁移说明见仓库 docs/forms-data.md 的 Tree 章节。 Nested 对齐原生视觉布局；两种模式共用虚拟列表，不生成 Vue 嵌套 DOM。",
+      "en": "Compared with Nuxt UI 4.12.0: single selection by default, native virtualization always enabled. TreeState.Selection / Outline.Open hold controlled IDs; SetExpanded immediately invalidates hidden loads. Propagation covers loaded nodes; later lazy children do not inherit selection. See the Tree section in docs/forms-data.md for usage and migration. Nested controls native visual layout; both modes share a virtual list, without Vue nested DOM."
     },
     "symbols": [
       "Tree"
@@ -6794,6 +6794,15 @@
     ],
     "controls": [
       {
+        "key": "nested",
+        "label": {
+          "zh": "嵌套布局",
+          "en": "Nested"
+        },
+        "kind": "boolean",
+        "default": true
+      },
+      {
         "key": "disabled",
         "label": {
           "zh": "禁用",
@@ -6801,11 +6810,147 @@
         },
         "kind": "boolean",
         "default": false
+      },
+      {
+        "key": "multiple",
+        "label": {
+          "zh": "多选",
+          "en": "Multiple"
+        },
+        "kind": "boolean",
+        "default": false
+      },
+      {
+        "key": "propagate",
+        "label": {
+          "zh": "向下联动",
+          "en": "Propagate selection"
+        },
+        "kind": "boolean",
+        "default": false
+      },
+      {
+        "key": "bubble",
+        "label": {
+          "zh": "向上联动",
+          "en": "Bubble selection"
+        },
+        "kind": "boolean",
+        "default": false
+      },
+      {
+        "key": "loop",
+        "label": {
+          "zh": "循环导航",
+          "en": "Loop"
+        },
+        "kind": "boolean",
+        "default": false
+      },
+      {
+        "key": "behavior",
+        "label": {
+          "zh": "选择方式",
+          "en": "Selection behavior"
+        },
+        "kind": "select",
+        "default": "toggle",
+        "goType": "nui.SelectionBehavior",
+        "choices": [
+          {
+            "value": "toggle",
+            "go": "nui.SelectionToggle"
+          },
+          {
+            "value": "replace",
+            "go": "nui.SelectionReplace"
+          }
+        ]
+      },
+      {
+        "key": "size",
+        "label": {
+          "zh": "尺寸",
+          "en": "Size"
+        },
+        "kind": "select",
+        "default": "default",
+        "goType": "nui.Size",
+        "choices": [
+          {
+            "value": "default",
+            "go": "nui.SizeDefault"
+          },
+          {
+            "value": "xs",
+            "go": "nui.XS"
+          },
+          {
+            "value": "sm",
+            "go": "nui.SM"
+          },
+          {
+            "value": "md",
+            "go": "nui.MD"
+          },
+          {
+            "value": "lg",
+            "go": "nui.LG"
+          },
+          {
+            "value": "xl",
+            "go": "nui.XL"
+          }
+        ]
+      },
+      {
+        "key": "color",
+        "label": {
+          "zh": "颜色",
+          "en": "Color"
+        },
+        "kind": "select",
+        "default": "default",
+        "goType": "nui.Color",
+        "choices": [
+          {
+            "value": "default",
+            "go": "nui.ColorDefault"
+          },
+          {
+            "value": "primary",
+            "go": "nui.Primary"
+          },
+          {
+            "value": "secondary",
+            "go": "nui.Secondary"
+          },
+          {
+            "value": "success",
+            "go": "nui.Success"
+          },
+          {
+            "value": "info",
+            "go": "nui.Info"
+          },
+          {
+            "value": "warning",
+            "go": "nui.Warning"
+          },
+          {
+            "value": "error",
+            "go": "nui.Error"
+          },
+          {
+            "value": "neutral",
+            "go": "nui.Neutral"
+          }
+        ]
       }
     ],
     "state": "Tree nui.TreeState",
-    "setup": "s.Tree.SetNodes([]nui.TreeNode{{ID:\"src\",Label:\"src\",Children:[]nui.TreeNode{{ID:\"main\",Label:\"main.go\"},{ID:\"theme\",Label:\"theme.go\"}}},{ID:\"docs\",Label:\"docs\",Children:[]nui.TreeNode{{ID:\"readme\",Label:\"README.md\"}}}})",
-    "body": "nui.Tree(c.Key(\"tree\"),t,&s.Tree,nui.TreeOptions{Label:\"Project files\",Height:260,Disabled:{{disabled}}})",
+    "setup": "s.Tree.SetNodes([]nui.TreeNode{{ID:\"src\",Label:\"src\",DefaultExpanded:true,Children:[]nui.TreeNode{{ID:\"main\",Label:\"main.go\",Icon:lucide.FileCode()},{ID:\"theme\",Label:\"theme.go\",Icon:lucide.FileCode()},{ID:\"components\",Label:\"components\",DefaultExpanded:true,Children:[]nui.TreeNode{{ID:\"button-file\",Label:\"button.go\",Icon:lucide.FileCode()},{ID:\"input-file\",Label:\"input.go\",Icon:lucide.FileCode()}}},{ID:\"locked\",Label:\"generated.go (disabled)\",Disabled:true}}},{ID:\"docs\",Label:\"docs\",Children:[]nui.TreeNode{{ID:\"readme\",Label:\"README.md\",Icon:lucide.FileText()}}}})",
+    "body": "nui.Tree(c.Key(\"tree\"),t,&s.Tree,nui.TreeOptions{Label:\"Project files\",Height:260,Nested:nui.Set({{nested}}),Disabled:{{disabled}},Multiple:{{multiple}},SelectionBehavior:{{behavior}},PropagateSelect:{{propagate}},BubbleSelect:{{bubble}},Loop:{{loop}},Color:{{color}},Size:{{size}}})",
     "height": 360
   },
   {

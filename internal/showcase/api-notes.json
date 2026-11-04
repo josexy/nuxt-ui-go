@@ -1330,5 +1330,49 @@
   "InputTimeOptions.OnChange": {
     "zh": "草稿变化时回调；返回规范格式的草稿或被拒绝的粘贴原文，未完成的输入不会提交业务值。",
     "en": "Called when the draft changes, with canonical draft text or rejected pasted text. Incomplete input does not commit a value."
+  },
+  "PropagateSelect": {
+    "zh": "多选时选择/取消已加载的后代；禁用节点是联动边界。",
+    "en": "In multiple mode, select/deselect loaded descendants; disabled nodes stop propagation."
+  },
+  "BubbleSelect": {
+    "zh": "多选时按可用子项同步祖先选择，并提供 Indeterminate 状态。",
+    "en": "In multiple mode, reconcile ancestor selection from enabled children and expose indeterminate state."
+  },
+  "ExpandOnClick": {
+    "zh": "默认 true；点击行同时选择并展开/折叠，false 时使用箭头或左右键。Enter/Space 只选择。",
+    "en": "Defaults to true: row clicks select and toggle. When false, use the arrow or Left/Right. Enter/Space only select."
+  },
+  "ExpandedIcon": {
+    "zh": "展开分支的默认前导图标，默认为 FolderOpen；节点 Icon 优先。",
+    "en": "Default leading icon for expanded branches: FolderOpen. Node Icon takes precedence."
+  },
+  "CollapsedIcon": {
+    "zh": "折叠分支的默认前导图标，默认为 Folder；节点 Icon 优先。",
+    "en": "Default leading icon for collapsed branches: Folder. Node Icon takes precedence."
+  },
+  "DefaultExpanded": {
+    "zh": "TreeState 首次加入此 ID 时应用；更新已有 ID 不会重新打开已折叠分支。",
+    "en": "Applied when this ID first enters TreeState; updating an existing ID does not reopen it."
+  },
+  "OnToggle": {
+    "zh": "展开/折叠前调用一次；TreeEvent.PreventDefault 可取消，节点回调覆盖全局回调。",
+    "en": "Called once before toggling; TreeEvent.PreventDefault cancels it. A node handler overrides the global handler."
+  },
+  "TreeOptions.OnSelect": {
+    "zh": "选择操作前调用，未改变值时也调用；PreventDefault 可取消。",
+    "en": "Called before selection, including unchanged activations; PreventDefault cancels it."
+  },
+  "TreeOptions.OnChange": {
+    "zh": "一次交互确实改变选择集合后调用一次；展开和方向键高亮不触发。",
+    "en": "Called once when an interaction changes selection; expansion and keyboard highlight do not trigger it."
+  },
+  "TreeOptions.Build": {
+    "zh": "同步构建非交互内容，接收 ID、标签、层级、选择、展开、半选和加载快照。",
+    "en": "Synchronously build non-interactive content from ID, label, level, selection, expansion, mixed and loading snapshots."
+  },
+  "TreeOptions.Nested": {
+    "zh": "默认 true：显示祖先竖线，子项背景和点击区域随层级缩进；false 使用整行背景和点击区域，内容仍缩进。两种模式均保持原生虚拟化。",
+    "en": "Defaults to true: show ancestor guides and inset child backgrounds/hit areas. False uses full-width rows with indented content. Both modes remain natively virtualized."
   }
 }

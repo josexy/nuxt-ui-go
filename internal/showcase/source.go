@@ -165,6 +165,8 @@ func (d Demo) disposeBody() string {
 	switch d.ID {
 	case "command-palette":
 		return "s.Commands.Close()"
+	case "tree":
+		return "s.Tree.Close()"
 	case "file-upload":
 		return "s.Files.Dispose()"
 	default:

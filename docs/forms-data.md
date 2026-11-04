@@ -10,8 +10,8 @@
 - 其余组件使用各自的原生配方，支持明暗主题、密度/字体比例、实例 `UI`/`Style` 和全局 `WithComponent` 的 **已列出 slots**；尺寸与变体支持范围见各组件 Options。
 - Form：Root；Listbox：Root/Label（组标题）/Item/EmptySlot；SelectMenu：Root/Trigger，选择面板通过嵌入 ListboxOptions 和 Popup 定制。
 - InputDate/InputTime：Root/Editor/Segment/Leading/Trailing；InputDateRange 共用 InputDate 的 slots。
-- PinInput：Root/Item；InputRating：Root/Item；Calendar：Root/Item；Table、Tree：Root/Item/EmptySlot；ColorPicker、RangeSlider：Root。
-- Table、Tree、ColorPicker、RangeSlider 的内部原生区域由 `Theme.Native()` 控制，未暴露的原生部件不能通过不存在的 slot 覆盖。Table 单元格可完全自定义。
+- PinInput：Root/Item；InputRating：Root/Item；Calendar：Root/Item；Table：Root/Item/EmptySlot；Tree：Root/Item/Leading/Label/Trailing/Indicator/EmptySlot；ColorPicker、RangeSlider：Root。
+- Table、ColorPicker、RangeSlider 的内部原生区域由 `Theme.Native()` 控制，未暴露的原生部件不能通过不存在的 slot 覆盖。Table 单元格可完全自定义；Tree 使用原生虚拟列表，行内容可通过 Build 配置。
 
 ## Form
 
@@ -153,11 +153,17 @@ Listbox 支持同步 Build、SelectionBehavior、Loop 和 HighlightOnHover；`Se
 
 ## Tree
 
-`TreeState.SetNodes([]TreeNode)` 建立 ID 模型；TreeNode 含 ID/Label/Icon/Children/Lazy，空/重复 ID 拒绝。复用公开 `ui.Outline`，不复制上游树引擎；`state.Outline.Open` 管展开，`state.Selection` 管 ID 选择，保留原生左右展开/父子移动、上下选择、Ctrl/Shift 多选与虚拟化。自定义图标为 Lucide，原生展开指示符仍由控件绘制。
+`TreeState.SetNodes([]TreeNode)` 建立 ID 模型，拒绝空/重复 ID。`state.Outline.Open` 管展开，`state.Selection` 管选择，`state.Active` 管键盘高亮。默认单选、点击行选择并切换展开；方向键只导航，Enter/Space 选择。Multiple、SelectionBehavior、PropagateSelect、BubbleSelect、Loop、节点 Disabled 和可取消的 OnSelect/OnToggle 提供显式交互配置。
 
-Lazy=true 且 Children=nil 的节点在展开时只调用一次 `OnLoad(id,ticket)`；应用通过 Window.Update 调用 `CompleteLoad(ticket,children,err)`。错误行有 Retry 按钮；折叠、替换数据或重试使旧票据失效。CompleteLoad 返回 true 表示结果已应用（包括错误），不表示成功加载。空根显示 EmptyText。SetNodes 替换会清理不存在的选择/展开 ID。
+`Nested` 默认 true，显示祖先竖线，子项背景和点击区域随层级缩进；设为 `nui.Set(false)` 时使用整行背景和点击区域，内容仍缩进。两种模式共用原生虚拟列表，不对应 Vue 的嵌套 DOM；切换时保留选择、展开、焦点和滚动位置。
 
-不提供拖拽搬移、级联 Checkbox、节点级禁用或完整业务权限模型。懒加载检查只遍历已展开节点与进行中的请求，不扫描所有已加载节点；折叠后、下次构建之前到达的结果也会被拒绝。底层 Outline 仍在构建时扁平化根节点与展开的子节点，成本随这些节点数增长，虚拟化限制的是实际行构建数量。
+从原有 Outline 封装迁移时，需要多选应显式设置 `Multiple: true`；替换式多选使用 `SelectionBehavior: nui.SelectionReplace`，只选择而不展开的行点击使用 `ExpandOnClick: nui.Set(false)`。OnChange 仅通知选择变化，展开操作使用 OnToggle。可见行查询使用 `state.Rows()/Item()/Depth()`，不再使用 `state.Outline.Rows()/Item()/Depth()`；`Outline.List` 保留滚动和 Handle，Selected/Selection/Label 由 Tree 管理。
+
+Lazy=true 且 Children=nil 的节点在可见且展开时只调用一次 `OnLoad(id,ticket)`；应用通过 Window.Update 调用 `CompleteLoad(ticket,children,err)`。错误行有 Retry 按钮；使用 SetExpanded 折叠自身或祖先、替换数据、重试或 Close 使旧票据失效。CompleteLoad 返回 true 表示结果已应用（包括错误），不表示成功加载。空根显示 EmptyText。SetNodes 替换会清理不存在的选择/展开 ID。
+
+原生虚拟列表只构建视口附近的行；可见节点索引只在数据或展开集合改变时重建。保留公开集合的直接编辑兼容性，因此每帧仍检查展开 ID；需要半选快照时也检查所选 ID。父子联动只处理已加载节点，禁用节点阻断联动。不提供拖拽搬移、Vue DOM 插槽或完整业务权限模型。
+
+辅助技术支持范围见 [兼容性说明](compatibility.md#无障碍与动态效果)。
 
 ## 示例
 

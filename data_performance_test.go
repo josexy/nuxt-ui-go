@@ -281,7 +281,7 @@ func TestTreeLazyCompletionAfterCollapseBeforeFrame(t *testing.T) {
 }
 
 func BenchmarkDataComponents(b *testing.B) {
-	for _, kind := range []string{"Listbox", "HorizontalListbox", "SelectMenuClosed", "SelectOpen", "InputMenuOpen", "TreeCollapsed", "TreeFlat"} {
+	for _, kind := range []string{"Listbox", "HorizontalListbox", "SelectMenuClosed", "SelectOpen", "InputMenuOpen", "TreeCollapsed", "TreeExpanded", "TreeFlat"} {
 		for _, count := range []int{100, 10000, 100000} {
 			b.Run(fmt.Sprintf("%s/%d", kind, count), func(b *testing.B) {
 				items := make([]nui.ListboxItem, count)
@@ -302,8 +302,11 @@ func BenchmarkDataComponents(b *testing.B) {
 				var selected []string
 				single := "0"
 				switch kind {
-				case "TreeCollapsed":
+				case "TreeCollapsed", "TreeExpanded":
 					tree.SetNodes([]nui.TreeNode{{ID: "root", Label: "Root", Children: nodes}})
+					if kind == "TreeExpanded" {
+						tree.SetExpanded("root", true)
+					}
 				case "TreeFlat":
 					tree.SetNodes(nodes)
 				}

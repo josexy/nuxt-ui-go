@@ -899,17 +899,17 @@ type treeExample struct {
 func (s *treeExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Tree = &s.Tree
 	s.Live.Begin(c, t, cfg)
-	nui.Tree(c.Key("tree"), t, &s.Tree, showcase.Options(cfg, "TreeOptions", nui.TreeOptions{Label: "Project files", Height: 260, Disabled: cfg.Bool("disabled")}, c, t, &s.Live))
+	nui.Tree(c.Key("tree"), t, &s.Tree, showcase.Options(cfg, "TreeOptions", nui.TreeOptions{Label: "Project files", Height: 260, Nested: nui.Set(cfg.Bool("nested")), Disabled: cfg.Bool("disabled"), Multiple: cfg.Bool("multiple"), SelectionBehavior: showcase.Select(cfg, "behavior", map[string]nui.SelectionBehavior{"toggle": nui.SelectionToggle, "replace": nui.SelectionReplace}), PropagateSelect: cfg.Bool("propagate"), BubbleSelect: cfg.Bool("bubble"), Loop: cfg.Bool("loop"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL})}, c, t, &s.Live))
 }
 func (s *treeExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *treeExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
 func (s *treeExample) Configure(cfg showcase.Config) error {
 	return s.Live.ApplyData(cfg, []string{"TreeNodeItems"}, func() error {
-		s.Tree.SetNodes(showcase.Options(cfg, "TreeNodeItems", []nui.TreeNode{{ID: "src", Label: "src", Children: []nui.TreeNode{{ID: "main", Label: "main.go"}, {ID: "theme", Label: "theme.go"}}}, {ID: "docs", Label: "docs", Children: []nui.TreeNode{{ID: "readme", Label: "README.md"}}}}, nil, nui.Theme{}, &s.Live))
+		s.Tree.SetNodes(showcase.Options(cfg, "TreeNodeItems", []nui.TreeNode{{ID: "src", Label: "src", DefaultExpanded: true, Children: []nui.TreeNode{{ID: "main", Label: "main.go", Icon: lucide.FileCode()}, {ID: "theme", Label: "theme.go", Icon: lucide.FileCode()}, {ID: "components", Label: "components", DefaultExpanded: true, Children: []nui.TreeNode{{ID: "button-file", Label: "button.go", Icon: lucide.FileCode()}, {ID: "input-file", Label: "input.go", Icon: lucide.FileCode()}}}, {ID: "locked", Label: "generated.go (disabled)", Disabled: true}}}, {ID: "docs", Label: "docs", Children: []nui.TreeNode{{ID: "readme", Label: "README.md", Icon: lucide.FileText()}}}}, nil, nui.Theme{}, &s.Live))
 		return nil
 	})
 }
-func (s *treeExample) Dispose() {}
+func (s *treeExample) Dispose() { s.Tree.Close() }
 
 type command_paletteExample struct {
 	Live     showcase.Runtime
@@ -1361,7 +1361,7 @@ func New(id string) (Example, error) {
 		return s, nil
 	case "tree":
 		s := &treeExample{}
-		s.Tree.SetNodes([]nui.TreeNode{{ID: "src", Label: "src", Children: []nui.TreeNode{{ID: "main", Label: "main.go"}, {ID: "theme", Label: "theme.go"}}}, {ID: "docs", Label: "docs", Children: []nui.TreeNode{{ID: "readme", Label: "README.md"}}}})
+		s.Tree.SetNodes([]nui.TreeNode{{ID: "src", Label: "src", DefaultExpanded: true, Children: []nui.TreeNode{{ID: "main", Label: "main.go", Icon: lucide.FileCode()}, {ID: "theme", Label: "theme.go", Icon: lucide.FileCode()}, {ID: "components", Label: "components", DefaultExpanded: true, Children: []nui.TreeNode{{ID: "button-file", Label: "button.go", Icon: lucide.FileCode()}, {ID: "input-file", Label: "input.go", Icon: lucide.FileCode()}}}, {ID: "locked", Label: "generated.go (disabled)", Disabled: true}}}, {ID: "docs", Label: "docs", Children: []nui.TreeNode{{ID: "readme", Label: "README.md", Icon: lucide.FileText()}}}})
 		return s, nil
 	case "command-palette":
 		s := &command_paletteExample{}

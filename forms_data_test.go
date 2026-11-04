@@ -560,6 +560,7 @@ func TestTreeVisibleRowWork(t *testing.T) {
 			}, 400, 400)
 			tt.Key(0, ui.KeyTab)
 			tt.Key(0, ui.KeyEnd)
+			tt.Key(0, ui.KeySpace)
 			tt.Frame()
 			if state.RowBuilds > 24 {
 				t.Fatalf("built %d rows", state.RowBuilds)
