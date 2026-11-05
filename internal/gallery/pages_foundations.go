@@ -132,7 +132,7 @@ func (a *State) foundationPage(id string) *componentPage {
 			})
 		})
 		add("sidebar", "Long content beside a sidebar", "This static side panel belongs to this preview, independent of the Gallery directory.", func(c *ui.Context, t nui.Theme) {
-			ui.Row(c).Height(220).FillWidth().Gap(12).Children(func() {
+			ui.Row(c).Height(220).FillWidth().Gap(12).AlignItems(ui.Stretch).Children(func() {
 				ui.Column(c).Width(100).Children(func() { ui.Text(c, "Overview"); ui.Text(c, "Documents") })
 				nui.Main(c, t, func() {
 					ui.Scroll(c).Fill().Children(func() {
