@@ -424,6 +424,61 @@ func (c *client) capture(name string) []byte {
 	return data
 }
 
+func (c *client) checkListboxStates() {
+	c.navigate("listbox", "Listbox")
+	empty := c.find("No members")
+	c.call("input", map[string]any{"events": []any{map[string]any{"type": "wheel", "x": empty.Bounds.X - 10, "y": 100, "dx": 0, "dy": 2000, "precise": true}}}, nil)
+	if slices.Contains(c.find("No members").States, "offscreen") {
+		c.t.Fatal("empty member message was not visible")
+	}
+	c.find("Empty list")
+	c.find("Disabled list")
+	list := c.find("Disabled members list")
+	if !slices.Contains(list.States, "disabled") {
+		c.t.Fatal("disabled member list was enabled")
+	}
+	clicked := false
+	for _, n := range c.tree().Nodes {
+		if n.Role == "listItem" && n.Label == "Ada Lovelace" && slices.Contains(n.States, "disabled") && !slices.Contains(n.States, "offscreen") && n.Bounds.Y >= list.Bounds.Y && n.Bounds.Y+n.Bounds.Height <= list.Bounds.Y+list.Bounds.Height {
+			c.call("input", map[string]any{"events": []any{map[string]any{"type": "click", "x": n.Bounds.X + n.Bounds.Width/2, "y": n.Bounds.Y + n.Bounds.Height/2}}}, nil)
+			clicked = true
+			break
+		}
+	}
+	if !clicked {
+		c.t.Fatal("disabled member row was not visible")
+	}
+	c.key("Down")
+	c.key("Enter")
+	c.key("Space")
+	c.find("Disabled selected IDs: [lin] · 0 changes")
+	c.capture("listbox-empty-disabled")
+}
+
+func (c *client) checkGalleryStateExamples() {
+	c.navigate("select", "Select")
+	c.press("Unselected plan")
+	c.key("Enter")
+	c.find("Empty select")
+	c.capture("select-empty-unselected")
+	c.navigate("table", "Table")
+	message := c.find("No workspace records")
+	c.call("act", map[string]any{"id": message.ID, "action": "scrollIntoView"}, nil)
+	c.capture("table-empty")
+	c.press("Add sample record")
+	if c.has("No workspace records") {
+		c.t.Fatal("native empty table message survived adding a record")
+	}
+	c.press("Remove sample record")
+	message = c.find("No workspace records")
+	c.call("act", map[string]any{"id": message.ID, "action": "scrollIntoView"}, nil)
+	c.capture("table-empty-restored")
+	c.navigate("header", "Header")
+	c.press("constrained layout action")
+	c.find("Action completed · 1 actions")
+	c.capture("header-constrained")
+}
+
 func TestNativeGallery(t *testing.T) {
 	socket := os.Getenv("NUI_AUTOMATION_SOCKET")
 	if socket == "" {
@@ -466,11 +521,16 @@ func TestNativeGallery(t *testing.T) {
 	}
 	if os.Getenv("NUI_NATIVE_NARROW") == "1" {
 		c.checkNarrowDirectory()
+		c.checkListboxStates()
+		c.checkGalleryStateExamples()
 		return
 	}
 	c.checkGallerySidebar()
 	c.checkThemePalettes()
 	c.checkNestedSplitters()
+	c.checkListboxStates()
+	c.checkGalleryStateExamples()
+	c.navigate("button", "Button")
 	c.press("Save changes")
 	c.find("Saved 1 times")
 	c.idle()

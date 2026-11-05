@@ -76,6 +76,88 @@ func TestGallerySelectionAndColor(t *testing.T) {
 	tt.SetLocale("en")
 	requireText(t, tt, "Date: {2026-11-15 true}")
 }
+
+func TestGalleryListboxEmptyAndDisabled(t *testing.T) {
+	a := newStaticGallery()
+	t.Cleanup(a.Dispose)
+	tt := sceneTester(t, a, "listbox", "states")
+	requireText(t, tt, "Empty list")
+	requireText(t, tt, "No members")
+	requireText(t, tt, "Disabled list")
+	requireText(t, tt, "Disabled selected IDs: [lin] · 0 changes")
+	press(t, tt, "Ada Lovelace")
+	tt.Key(0, ui.KeyDown)
+	tt.Key(0, ui.KeyEnter)
+	tt.Key(0, ui.KeySpace)
+	requireText(t, tt, "Disabled selected IDs: [lin] · 0 changes")
+	if tt.Focused("Disabled members list") {
+		t.Fatal("disabled list accepted focus")
+	}
+	tt.SetSize(720, 820)
+	tt.SetPreferences(ui.Preferences{TextScale: 1.5, ReduceMotion: true})
+	tt.Frame()
+	requireText(t, tt, "No members")
+	requireText(t, tt, "Disabled selected IDs: [lin] · 0 changes")
+	captureGallery(t, tt, "listbox-empty-and-disabled")
+}
+
+func TestGalleryPopulatedReadOnlyExamples(t *testing.T) {
+	a := newStaticGallery()
+	t.Cleanup(a.Dispose)
+	for _, sample := range []struct{ id, label, summary string }{
+		{"pin-input", "states verification code", "Read-only code: 1234 · Disabled code: 1234"},
+		{"input-date", "states release date month", "Date: {2026-11-05 true}"},
+		{"input-time", "states reminder hour", "Time: {09:30:00 true}"},
+	} {
+		t.Run(sample.id, func(t *testing.T) {
+			tt := sceneTester(t, a, sample.id, "states")
+			requireText(t, tt, sample.summary)
+			press(t, tt, sample.label)
+			tt.Key(ui.Ctrl, ui.KeyA)
+			tt.Type("99")
+			tt.Key(0, ui.KeyUp)
+			tt.Key(0, ui.KeyBackspace)
+			tt.Frame()
+			requireText(t, tt, sample.summary)
+		})
+	}
+	tt := sceneTester(t, a, "input-menu", "states")
+	requireInput(t, tt, "Read-only search", "Team")
+	tt.Type("Blocked")
+	tt.Key(0, ui.KeyBackspace)
+	requireInput(t, tt, "Read-only search", "Team")
+}
+
+func TestGalleryEmptyExamplesRecover(t *testing.T) {
+	a := newStaticGallery()
+	t.Cleanup(a.Dispose)
+	tt := sceneTester(t, a, "select", "empty")
+	requireText(t, tt, "Choose a plan")
+	press(t, tt, "Unselected plan")
+	press(t, tt, "Personal")
+	requireText(t, tt, "Personal")
+	requireText(t, tt, "No options available")
+	captureGallery(t, tt, "select-empty-and-unselected")
+
+	tt = sceneTester(t, a, "table", "empty")
+	requireText(t, tt, "No workspace records")
+	press(t, tt, "Select first record")
+	requireTextContains(t, tt, "0 rows · 0 selected")
+	press(t, tt, "Add sample record")
+	if tt.HasText("No workspace records") {
+		t.Fatal("empty message survived adding a record")
+	}
+	requireText(t, tt, "Workspace 00001")
+	press(t, tt, "Select first record")
+	requireTextContains(t, tt, "1 rows · 1 selected")
+	press(t, tt, "Remove sample record")
+	requireText(t, tt, "No workspace records")
+	requireTextContains(t, tt, "0 rows · 0 selected")
+	tt.SetSize(720, 820)
+	tt.SetPreferences(ui.Preferences{TextScale: 1.5, ReduceMotion: true})
+	captureGallery(t, tt, "table-empty-restored")
+}
+
 func TestGalleryFormValidationCancellationAndRecovery(t *testing.T) {
 	a := newStaticGallery()
 	t.Cleanup(a.Dispose)

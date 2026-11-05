@@ -43,7 +43,12 @@ func (a *State) overlayPage(id string) *componentPage {
 			reviewer := nui.SearchState{}
 			saved := 0
 			var trigger ui.Handle
-			add(sample.id, sample.title, "Open the dialog. Nested Select and InputMenu consume the first Escape; a dismissible dialog consumes the second. Focus returns to its trigger.", func(c *ui.Context, t nui.Theme) {
+			description := map[string]string{
+				"basic":  "Open the dialog and edit its name. Escape, the close button or a footer action closes it and returns focus to its trigger.",
+				"nested": "Open the dialog. An open Select or InputMenu consumes the first Escape; the next Escape closes the dialog. Focus returns to its trigger.",
+				"policy": "This fullscreen dialog has no close button and ignores Escape and outside clicks. Use Cancel or Save in the footer to close it and restore focus.",
+			}[sample.id]
+			add(sample.id, sample.title, description, func(c *ui.Context, t nui.Theme) {
 				label := "Open " + sample.id + " dialog"
 				if sample.id == "nested" {
 					label = "Edit workspace"
@@ -173,7 +178,11 @@ func (a *State) overlayPage(id string) *componentPage {
 			open := false
 			draft := "Retained model"
 			changes := 0
-			add(sample.id, sample.title, "Toggle with Enter or Space. KeepMounted retains widget content while closed; the application draft survives either setting.", func(c *ui.Context, t nui.Theme) {
+			description := "Toggle with Enter or Space. KeepMounted retains widget content while closed; the application draft survives either setting."
+			if sample.disabled {
+				description = "This disclosure is intentionally closed and disabled. Pointer and keyboard input leave it closed and do not invoke change callbacks."
+			}
+			add(sample.id, sample.title, description, func(c *ui.Context, t nui.Theme) {
 				nui.Collapsible(c, t, &open, nui.CollapsibleOptions{Label: sample.title, Disabled: sample.disabled, KeepMounted: sample.keep, OnChange: func(bool) { changes++ }}, func(inner nui.Theme) {
 					nui.Input(c, inner, &draft, nui.InputOptions{Label: sample.id + " disclosure draft"}).FillWidth()
 				})
@@ -225,7 +234,12 @@ func (a *State) overlayPage(id string) *componentPage {
 		}{{"basic", "Page navigation", 1, true, true, false, nui.MD}, {"zero", "Explicit zero neighbors", 0, true, false, false, nui.SM}, {"states", "Disabled soft pagination", 2, false, true, true, nui.LG}} {
 			page := 5
 			changes := 0
-			add(sample.id, sample.title, "Use the controls or numbered buttons. SiblingCount=Set(0) intentionally shows no neighbors.", func(c *ui.Context, t nui.Theme) {
+			description := map[string]string{
+				"basic":  "Use the previous/next controls or numbered buttons. One neighboring page is shown on either side of the current page.",
+				"zero":   "No neighboring page numbers are shown. Use the first, previous, next and last controls to move between pages.",
+				"states": "All page buttons are disabled. Page 5 stays selected, and pointer or keyboard input does not invoke change callbacks.",
+			}[sample.id]
+			add(sample.id, sample.title, description, func(c *ui.Context, t nui.Theme) {
 				nui.Pagination(c, t, &page, nui.PaginationOptions{Label: sample.title, Total: 100, PageSize: 10, SiblingCount: nui.Set(sample.siblings), ShowControls: nui.Set(sample.controls), ShowEdges: nui.Set(sample.edges), Disabled: sample.disabled, Size: sample.size, Variant: nui.Soft, OnChange: func(int) { changes++ }})
 				ui.Textf(c, "Page %d · Changes: %d", page, changes)
 			})
@@ -237,7 +251,11 @@ func (a *State) overlayPage(id string) *componentPage {
 		}{{"linear", "Linear workflow", true, false}, {"nonlinear", "Nonlinear workflow", false, false}, {"vertical", "Vertical workflow", false, true}} {
 			step := "details"
 			changes := 0
-			add(sample.id, sample.title, "Linear steps unlock in order. The unavailable final step cannot activate.", func(c *ui.Context, t nui.Theme) {
+			description := "Choose any available step directly. The unavailable Publish step cannot activate."
+			if sample.linear {
+				description = "Steps unlock in order: choose Review before Approve. The unavailable Publish step cannot activate."
+			}
+			add(sample.id, sample.title, description, func(c *ui.Context, t nui.Theme) {
 				nui.Stepper(c, t, &step, []nui.StepItem{{ID: "details", Title: "Details", Description: "Describe the workspace"}, {ID: "review", Title: "Review", Description: "Check access"}, {ID: "approve", Title: "Approve", Description: "Confirm changes"}, {ID: "locked", Title: "Publish", Disabled: true}}, nui.StepperOptions{Label: sample.title, Linear: nui.Set(sample.linear), Vertical: sample.vertical, OnChange: func(string) { changes++ }})
 				ui.Textf(c, "Current step: %s · Changes: %d", step, changes)
 			})

@@ -97,6 +97,9 @@ func inputComponentsPage(id string) *componentPage {
 		})
 	case "checkbox-group", "radio-group":
 		options := []nui.Option[string]{{Value: "build", Label: "Build", Description: "Compile projects"}, {Value: "test", Label: "Test", Description: "Run checks"}, {Value: "deploy", Label: "Deploy", Description: "Unavailable for this workspace", Disabled: true}}
+		if id == "checkbox-group" {
+			options = append(options, nui.Option[string]{Value: "preview", Label: "Preview", Description: "Review local changes"})
+		}
 		for _, sample := range []struct {
 			id, title  string
 			horizontal bool
@@ -106,8 +109,16 @@ func inputComponentsPage(id string) *componentPage {
 			selected := []string{"build"}
 			single := "build"
 			changes := 0
-			add(sample.id, sample.title, "Use arrows and Space. Deploy is disabled; the checkbox group allows at most two values.", func(c *ui.Context, t nui.Theme) {
-				o := nui.ChoiceGroupOptions{Label: sample.title, Description: "Independent scenario selection", Horizontal: sample.horizontal, Variant: sample.variant, Indicator: sample.indicator, Highlight: true, Max: nui.Set(2), OnChange: func() { changes++ }}
+			title := sample.title
+			description := "Use arrows and Space. Select up to two of Build, Test and Preview; a third selection is blocked until one is cleared. Deploy is disabled."
+			if id == "radio-group" {
+				description = "Use arrows or Space to choose Build or Test. Deploy is disabled."
+				if sample.id == "table" {
+					title = "Joined single choice"
+				}
+			}
+			add(sample.id, title, description, func(c *ui.Context, t nui.Theme) {
+				o := nui.ChoiceGroupOptions{Label: title, Description: "Independent scenario selection", Horizontal: sample.horizontal, Variant: sample.variant, Indicator: sample.indicator, Highlight: true, Max: nui.Set(2), OnChange: func() { changes++ }}
 				if id == "checkbox-group" {
 					nui.CheckboxGroup(c, t, &selected, options, o)
 					ui.Textf(c, "Selected IDs: %v · Changes: %d", selected, changes)
@@ -142,7 +153,7 @@ func inputComponentsPage(id string) *componentPage {
 			})
 		})
 	case "select":
-		basic, duplicate, empty := "personal", "team-eu", ""
+		basic, duplicate, unselected, empty := "personal", "team-eu", "", ""
 		multiple := []string{"alpha"}
 		options := append(append([]nui.Option[string]{}, plans...), nui.Option[string]{Value: "locked", Label: "Enterprise", Disabled: true})
 		add("single", "Single selection", "Arrow keys and Enter select a value; Escape returns focus to the trigger.", func(c *ui.Context, t nui.Theme) {
@@ -158,6 +169,9 @@ func inputComponentsPage(id string) *componentPage {
 			ui.Textf(c, "Team IDs: %v", multiple)
 		})
 		add("empty", "Empty selection and list", "An empty value shows a placeholder; an empty list has no selectable items.", func(c *ui.Context, t nui.Theme) {
+			ui.Text(c, "Available options, no initial selection").TextColor(t.Muted)
+			nui.Select(c, t, &unselected, plans, nui.SelectOptions{Label: "Unselected plan", Placeholder: "Choose a plan"}).FillWidth()
+			ui.Text(c, "No available options").TextColor(t.Muted)
 			nui.Select(c, t, &empty, nil, nui.SelectOptions{Label: "Empty select", Placeholder: "No options available"}).FillWidth()
 		})
 	case "input-menu":
@@ -165,6 +179,8 @@ func inputComponentsPage(id string) *componentPage {
 		external := false
 		result := "No create request"
 		locked, readonly, loading := nui.SearchState{}, nui.SearchState{}, nui.SearchState{}
+		locked.Query, locked.Selected = "Personal", "personal"
+		readonly.Query, readonly.Selected = "Team", "team"
 		add("filter", "Editing and filtering", "Type a name to filter. Escape closes the results without leaving the field.", func(c *ui.Context, t nui.Theme) {
 			nui.InputMenu(c, t, &basic, plans, nui.InputMenuOptions{InputOptions: nui.InputOptions{Label: "Search workspaces", Placeholder: "Type Personal or Team"}}).FillWidth()
 			ui.Text(c, "Selected ID: "+basic.Selected)
@@ -174,7 +190,7 @@ func inputComponentsPage(id string) *componentPage {
 			nui.InputMenu(c, t, &multiple, propsOptions, nui.InputMenuOptions{InputOptions: nui.InputOptions{Label: "Team search", Placeholder: "Search teams or create one"}, Multiple: true, ExternalFilter: external, OnCreate: func(v string) { result = "Create requested: " + v }}).FillWidth()
 			ui.Text(c, result)
 		})
-		add("states", "Empty, disabled, read-only and loading", "Each field has its own search state. No background request is started.", func(c *ui.Context, t nui.Theme) {
+		add("states", "Empty, disabled, read-only and loading", "The empty search has no options. Disabled Personal and read-only Team retain their values. Loading shows an indicator without starting a background request; each field owns its search state.", func(c *ui.Context, t nui.Theme) {
 			nui.InputMenu(c, t, &empty, nil, nui.InputMenuOptions{InputOptions: nui.InputOptions{Label: "Empty search"}, EmptyText: "No matching teams"}).FillWidth()
 			nui.InputMenu(c, t, &locked, plans, nui.InputMenuOptions{InputOptions: nui.InputOptions{Label: "Disabled search", Disabled: true}}).FillWidth()
 			nui.InputMenu(c, t, &readonly, plans, nui.InputMenuOptions{InputOptions: nui.InputOptions{Label: "Read-only search", ReadOnly: true}}).FillWidth()

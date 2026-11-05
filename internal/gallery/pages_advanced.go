@@ -26,7 +26,12 @@ func (a *State) advancedPage(id string) *componentPage {
 			}
 			state.SetIndex(nui.NewCommandIndex(commands))
 			p.Deactivate = append(p.Deactivate, state.Close)
-			add(kind, "Commands · "+kind, "Type to search labels and keywords, Enter activates, Escape cancels; grouped Appearance opens a child level. Ctrl K opens the first palette; Ctrl Shift I runs its inspector action. Navigation uses component IDs even when the directory is filtered.", func(c *ui.Context, t nui.Theme) {
+			description := map[string]string{
+				"search": "Open with the button or Ctrl K. Search labels and keywords; Enter activates and Escape closes. Ctrl Shift I runs the inspector action. Navigation uses component IDs even when the directory is filtered.",
+				"groups": "Open this palette to compare Workspace and Preferences groups. Appearance opens a child level with light and dark theme actions; Back returns to the parent level.",
+				"empty":  "This palette intentionally has no commands. Open it to see the no-results message; searching cannot produce a match. Escape closes it.",
+			}[kind]
+			add(kind, "Commands · "+kind, description, func(c *ui.Context, t nui.Theme) {
 				nui.Button(c, t, "Open "+kind+" commands", nui.ButtonOptions{Leading: lucide.Search()}).OnClick(func() { state.Open = true })
 				nui.CommandPalette(c, t, state, nui.CommandPaletteOptions{Title: kind + " workspace commands", DisableShortcut: kind != "search", OnSelect: func(id string) { result = "Selected " + id }})
 				ui.Text(c, result)
@@ -199,13 +204,21 @@ func (a *State) advancedPage(id string) *componentPage {
 			changes := 0
 			draft := "Persistent pane draft"
 			notes := "Independent notes"
-			add(kind, title, fmt.Sprintf("The left pane sits beside a right pane split into top and bottom. Drag the vertical divider or use Left/Right for width; drag the horizontal divider or use Up/Down for height. Both positions are constrained to %.0f–%.0f%%; native panes retain a 40 DIP minimum.", minimum, maximum), func(c *ui.Context, t nui.Theme) {
+			description := fmt.Sprintf("The left pane sits beside a right pane split into top and bottom. Drag the vertical divider or use Left/Right for width; drag the horizontal divider or use Up/Down for height. Both positions are constrained to %.0f–%.0f%%; native panes retain a 40 DIP minimum.", minimum, maximum)
+			if kind == "disabled" {
+				description = "Both dividers and their pane contents are disabled. Dragging, arrow keys and text input leave the initial positions and draft unchanged."
+			}
+			add(kind, title, description, func(c *ui.Context, t nui.Theme) {
 				o := nui.SplitterOptions{Percent: true, Disabled: kind == "disabled", Min: nui.Set(minimum), Max: nui.Set(maximum), OnChange: func(float32) { changes++ }}
 				nui.Splitter(c.Key("pane-widths"), t, &width, o, func() {
 					ui.Scroll(c.Key("editor")).Fill().Padding(12).Gap(8).Children(func() {
 						ui.Text(c, "Left pane").Bold()
 						nui.Input(c.Key("draft"), t, &draft, nui.InputOptions{Label: kind + " pane draft"})
-						ui.Text(c, "Edit here to update the preview on the right.")
+						if kind == "disabled" {
+							ui.Text(c, "The draft stays unchanged while the panes are disabled.")
+						} else {
+							ui.Text(c, "Edit here to update the preview on the right.")
+						}
 					})
 				}, func() {
 					vertical := o
@@ -286,7 +299,7 @@ func (a *State) advancedPage(id string) *componentPage {
 				}
 				root.Children(func() {
 					action := func(c *ui.Context, t nui.Theme) {
-						nui.Button(c, t, kind+" layout action", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { clicks++; result = "Action completed" })
+						nui.Button(c, t, "Review", nui.ButtonOptions{Variant: nui.Outline}).Label(kind + " layout action").OnClick(func() { clicks++; result = "Action completed" })
 					}
 					switch id {
 					case "header":

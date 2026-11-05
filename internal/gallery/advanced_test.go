@@ -124,6 +124,36 @@ func TestGalleryNestedSplitters(t *testing.T) {
 	tt.Release(x, y+25)
 	tt.Key(0, ui.KeyDown)
 	requireText(t, tt, "Left width 40% · Right top height 55% · 0 changes")
+	press(t, tt, "disabled pane draft")
+	tt.Key(ui.Ctrl, ui.KeyA)
+	tt.Type("Blocked edit")
+	requireText(t, tt, "Persistent pane draft")
+	if tt.Focused("disabled pane draft") {
+		t.Fatal("disabled pane accepted focus")
+	}
+}
+
+func TestGalleryConstrainedLayoutActions(t *testing.T) {
+	for _, id := range []string{"header", "footer"} {
+		for _, scale := range []float32{1, 1.5} {
+			t.Run(fmt.Sprintf("%s/text-%g", id, scale), func(t *testing.T) {
+				a := newStaticGallery()
+				t.Cleanup(a.Dispose)
+				tt := sceneTester(t, a, id, "constrained")
+				tt.SetSize(720, 820)
+				tt.SetPreferences(ui.Preferences{TextScale: scale, ReduceMotion: true})
+				if id == "header" {
+					title, ok := tt.Find("Review workspace")
+					if !ok || title.H > 3*28*scale {
+						t.Fatalf("constrained header title wrapped excessively: %v", title)
+					}
+				}
+				press(t, tt, "constrained layout action")
+				requireText(t, tt, "Action completed · 1 actions")
+				captureGallery(t, tt, fmt.Sprintf("%s-constrained-text-%g", id, scale))
+			})
+		}
+	}
 }
 
 func waitCommandText(t *testing.T, tt *ui.Tester, text string) {
