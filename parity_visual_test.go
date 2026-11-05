@@ -530,6 +530,72 @@ func TestInputMenuToggleAndTagChips(t *testing.T) {
 	}
 }
 
+func TestInputMenuMultipleTagsPrecedeEditor(t *testing.T) {
+	for _, direction := range []ui.Direction{ui.LeftToRight, ui.RightToLeft} {
+		t.Run(map[ui.Direction]string{ui.LeftToRight: "ltr", ui.RightToLeft: "rtl"}[direction], func(t *testing.T) {
+			state := nui.SearchState{SelectedValues: []string{"rust", "ts", "go"}}
+			width := float32(440)
+			changes := 0
+
+			tt := ui.NewTester(func(c *ui.Context) {
+				th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
+				ui.Column(c).Padding(20).Children(func() {
+					nui.InputMenu(c, th, &state, []nui.Option[string]{{Value: "rust", Label: "Rust"}, {Value: "ts", Label: "TypeScript"}, {Value: "go", Label: "Go"}}, nui.InputMenuOptions{
+						Label: "Languages", Placeholder: "Type something...", Multiple: true,
+						OnValuesChange: func([]string) { changes++ },
+						Style:          func(root, editor, leading, trailing ui.Element) { root.Label("Language field") },
+					}).Width(width)
+				})
+			}, 500, 300)
+			tt.SetDirection(direction)
+			arrow := bounds(t, tt, "Show options")
+			previous := bounds(t, tt, "Rust")
+			for _, label := range []string{"TypeScript", "Go", "Languages", "Show options"} {
+				next := bounds(t, tt, label)
+				if direction == ui.LeftToRight && previous.X+previous.W > next.X || direction == ui.RightToLeft && next.X+next.W > previous.X {
+					t.Fatalf("%s is not after the preceding tag/editor: previous %v, next %v", label, previous, next)
+				}
+				if next.Y+next.H/2 != arrow.Y+arrow.H/2 {
+					t.Fatalf("%s unexpectedly wrapped in a wide field: %v, arrow %v", label, next, arrow)
+				}
+				previous = next
+			}
+			click(t, tt, "Languages")
+			tt.Type("draft")
+			width = 200
+			tt.Frame()
+			outer := bounds(t, tt, "Language field")
+			editor := bounds(t, tt, "Languages")
+			arrow = bounds(t, tt, "Show options")
+			if editor.Y <= bounds(t, tt, "Rust").Y || editor.W < 20 || editor.H <= 0 {
+				t.Fatalf("narrow field did not wrap tags and retain usable editor: %v", editor)
+			}
+			for _, label := range []string{"Rust", "TypeScript", "Go", "Languages", "Show options"} {
+				r := bounds(t, tt, label)
+				if r.X < outer.X || r.X+r.W > outer.X+outer.W || r.Y < outer.Y || r.Y+r.H > outer.Y+outer.H {
+					t.Fatalf("%s escaped the field: %v outside %v", label, r, outer)
+				}
+			}
+			if direction == ui.LeftToRight && editor.X+editor.W > arrow.X || direction == ui.RightToLeft && arrow.X+arrow.W > editor.X {
+				t.Fatalf("arrow is not at the trailing edge: editor %v, arrow %v", editor, arrow)
+			}
+			if state.Query != "draft" || !tt.Focused("Languages") {
+				t.Fatalf("wrapping discarded the draft or focus: %+v", state)
+			}
+			click(t, tt, "Remove TypeScript")
+			if !slices.Equal(state.SelectedValues, []string{"rust", "go"}) || changes != 1 || !tt.Focused("Languages") {
+				t.Fatalf("tag removal lost focus or emitted incorrect selection: %+v, changes %d", state, changes)
+			}
+			tt.Key(ui.Ctrl, ui.KeyA)
+			tt.Key(0, ui.KeyBackspace)
+			tt.Key(0, ui.KeyBackspace)
+			if !slices.Equal(state.SelectedValues, []string{"rust"}) || changes != 2 {
+				t.Fatalf("empty editor Backspace did not remove the last tag once: %+v, changes %d", state, changes)
+			}
+		})
+	}
+}
+
 func TestInputTagsChipsFollowSize(t *testing.T) {
 	// Nuxt's 10/12/14 chip text on 12/16/20 lines. The native font cannot draw
 	// 10 DIP text on a line shorter than its own metrics, so SM only grows.

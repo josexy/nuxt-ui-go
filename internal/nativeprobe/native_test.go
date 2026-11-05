@@ -1049,7 +1049,12 @@ func TestNativeGallery(t *testing.T) {
 	c.call("input", map[string]any{"events": []any{map[string]any{"type": "text", "text": "Beta"}}}, nil)
 	c.idle()
 	c.key("Enter")
-	c.find("Remove Beta")
+	tag, draft := c.find("Remove Beta"), c.find("Team search")
+	if tag.Bounds.X+tag.Bounds.Width > draft.Bounds.X {
+		t.Fatalf("native InputMenu tag is not before its draft: tag %+v, draft %+v", tag.Bounds, draft.Bounds)
+	}
+	c.key("Escape")
+	c.capture("input-menu-multiple-light")
 	c.press("Remove Beta")
 	c.key("Escape")
 	c.capture("props-selection-light")

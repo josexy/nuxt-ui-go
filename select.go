@@ -412,8 +412,13 @@ func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[stri
 	}
 	createID := "\x00nui:create"
 	root := inputShell(c, t, &state.Query, input, ComponentInputMenu, 0, 0, func() ui.Element {
-		editor = ui.TextInputBase(c.Key("input"), &state.Query).Role(ui.RoleComboBox)
-		memory = ui.Local(editor, "menu-identity", func() menuMemory { return menuMemory{} })
+		// Tags and the draft share the available space, while shell icons stay
+		// at the field edges even when the selected tags wrap onto more lines.
+		content := ui.Row(c.Key("content")).Grow(1).MinWidth(0).Basis(0).AlignItems(ui.Center).Gap(t.spacing(4))
+		if o.Multiple {
+			content.Wrap()
+		}
+		memory = ui.Local(content, "menu-identity", func() menuMemory { return menuMemory{} })
 		changed := memory.data.update(options)
 		if changed {
 			memory.filterKnown = false
@@ -432,31 +437,37 @@ func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[stri
 			}
 			createID += "_"
 		}
-		return editor
-	}, func(anchor ui.Element) {
 		memory.selection.update(state.SelectedValues)
 		size := inputDefaults(t, ComponentInputMenu, input).Size
-		if o.Multiple {
-			anchor.Wrap()
-			seen := map[string]bool{}
-			for _, id := range state.SelectedValues {
-				if seen[id] {
-					continue
-				}
-				seen[id] = true
-				label := id
-				if i, ok := memory.data.index[id]; ok {
-					label = options[i].Label
-				}
-				c.Key("selected:" + id)
-				tagChip(c, t, label, namedMessage(c, "removeNamed", label), size, o.ReadOnly, func() {
-					state.SelectedValues = slices.DeleteFunc(slices.Clone(state.SelectedValues), func(v string) bool { return v == id })
-					if o.OnValuesChange != nil {
-						o.OnValuesChange(slices.Clone(state.SelectedValues))
+		content.Children(func() {
+			if o.Multiple {
+				seen := map[string]bool{}
+				for _, id := range state.SelectedValues {
+					if seen[id] {
+						continue
 					}
-				})
+					seen[id] = true
+					label := id
+					if i, ok := memory.data.index[id]; ok {
+						label = options[i].Label
+					}
+					c.Key("selected:" + id)
+					tagChip(c, t, label, namedMessage(c, "removeNamed", label), size, o.ReadOnly, func() {
+						state.SelectedValues = slices.DeleteFunc(slices.Clone(state.SelectedValues), func(v string) bool { return v == id })
+						if o.OnValuesChange != nil {
+							o.OnValuesChange(slices.Clone(state.SelectedValues))
+						}
+					})
+				}
 			}
-		}
+			editor = ui.TextInputBase(c.Key("input"), &state.Query).Role(ui.RoleComboBox)
+			if o.Multiple {
+				// Leave room for a caret before moving the draft to the next line.
+				editor.Basis(t.text(40))
+			}
+		})
+		return editor
+	}, func(anchor ui.Element) {
 		focused := editor.Focused()
 		if editor.Changed() {
 			memory.open, memory.filtering = true, true
