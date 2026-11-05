@@ -21,7 +21,8 @@ fi
 
 project_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 cd -- "$project_root"
-export CGO_ENABLED=0 MYGO_LOCALE=en NUI_NATIVE_HIDDEN="$hidden"
+# Verify Gallery falls back to English even with a Chinese language preference.
+export CGO_ENABLED=0 MYGO_LOCALE=zh-Hans NUI_NATIVE_HIDDEN="$hidden"
 unset GOOS GOARCH
 export NUI_NATIVE_ARTIFACTS="$project_root/.work/native"
 mkdir -p -- "$NUI_NATIVE_ARTIFACTS"
@@ -45,12 +46,26 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 export MYGO_AUTOMATION="$socket_dir/gallery.sock"
 export NUI_AUTOMATION_SOCKET="$MYGO_AUTOMATION"
-args=(-static)
-if (( hidden )); then args+=(-hidden); fi
-"$NUI_NATIVE_ARTIFACTS/gallery-e2e" "${args[@]}" \
-    > "$NUI_NATIVE_ARTIFACTS/stdout.log" 2> "$NUI_NATIVE_ARTIFACTS/stderr.log" &
-gallery_pid=$!
-if ! go test ./internal/nativeprobe -run '^TestNativeGallery$' -v -count=1; then
-    printf 'Native validation failed; see %s\n' "$NUI_NATIVE_ARTIFACTS" >&2
-    exit 1
-fi
+artifact_dir="$NUI_NATIVE_ARTIFACTS"
+widths=(1080 720)
+if (( hidden )); then widths=(1080); fi
+for width in "${widths[@]}"; do
+    export NUI_NATIVE_ARTIFACTS="$artifact_dir" NUI_NATIVE_NARROW=0
+    if (( width == 720 )); then
+        export NUI_NATIVE_ARTIFACTS="$artifact_dir/narrow" NUI_NATIVE_NARROW=1
+        mkdir -p -- "$NUI_NATIVE_ARTIFACTS"
+    fi
+    args=(-static -width "$width")
+    if (( hidden )); then args+=(-hidden); fi
+    "$artifact_dir/gallery-e2e" "${args[@]}" \
+        > "$NUI_NATIVE_ARTIFACTS/stdout.log" 2> "$NUI_NATIVE_ARTIFACTS/stderr.log" &
+    gallery_pid=$!
+    if ! go test ./internal/nativeprobe -run '^TestNativeGallery$' -v -count=1; then
+        printf 'Native validation failed; see %s\n' "$NUI_NATIVE_ARTIFACTS" >&2
+        exit 1
+    fi
+    kill "$gallery_pid"
+    wait "$gallery_pid" 2>/dev/null || true
+    gallery_pid=''
+    rm -f -- "$socket_dir/gallery.sock"
+done

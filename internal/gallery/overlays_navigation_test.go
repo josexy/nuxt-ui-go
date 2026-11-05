@@ -1,64 +1,71 @@
 package gallery
 
 import (
-	"fmt"
-	"image/png"
-	"os"
-	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/egoist/mygo/ui"
 )
 
-func TestOverlayNavigationVisualArtifacts(t *testing.T) {
-	dir := os.Getenv("NUI_ARTIFACTS")
-	if dir == "" {
-		t.Skip("NUI_ARTIFACTS not set")
+func TestGalleryNestedModalEscapeAndDraft(t *testing.T) {
+	a := newStaticGallery()
+	t.Cleanup(a.Dispose)
+	tt := sceneTester(t, a, "modal", "nested")
+	press(t, tt, "Edit workspace")
+	press(t, tt, "Dialog workspace name")
+	tt.Key(ui.Ctrl, ui.KeyA)
+	tt.Type("Modal 中文 draft")
+	press(t, tt, "Dialog plan")
+	tt.Key(0, ui.KeyEscape)
+	requireText(t, tt, "Dialog workspace name")
+	tt.Key(0, ui.KeyEscape)
+	if !tt.Focused("Edit workspace") {
+		t.Fatal("modal did not restore trigger focus")
 	}
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		t.Fatal(err)
+	press(t, tt, "Edit workspace")
+	requireInput(t, tt, "Dialog workspace name", "Modal 中文 draft")
+	a.Deactivate()
+	tt.Frame()
+	if tt.HasText("Dialog workspace name") {
+		t.Fatal("hidden page retained modal")
 	}
-	for _, dark := range []bool{false, true} {
-		for _, scale := range []float32{1, 1.25, 1.5, 2} {
-			for _, scene := range []string{"menu", "modal", "side", "toast", "activity"} {
-				a := newStaticGallery()
-				a.Dark, a.Page = dark, 9
-				tt := ui.NewTester(a.View, 1080, 820)
-				tt.SetScale(scale)
-				switch scene {
-				case "menu":
-					press(t, tt, "Project actions")
-					tt.Key(0, ui.KeyEnd)
-					tt.Key(0, ui.KeyUp)
-					tt.Key(0, ui.KeyRight)
-				case "modal":
-					press(t, tt, "Review changes")
-					press(t, tt, "Review plan")
-				case "side":
-					press(t, tt, "Right panel")
-					tt.Advance(250 * time.Millisecond)
-				case "toast":
-					press(t, tt, "Show notification")
-					tt.Advance(250 * time.Millisecond)
-				case "activity":
-					press(t, tt, "Navigation & disclosure")
-					press(t, tt, "Activity")
-				}
-				tt.Move(0, 0)
-				f, err := os.Create(filepath.Join(dir, fmt.Sprintf("overlays-%s-dark-%v-scale-%g.png", scene, dark, scale)))
-				if err != nil {
-					t.Fatal(err)
-				}
-				err = png.Encode(f, tt.Image())
-				closeErr := f.Close()
-				if err != nil {
-					t.Fatal(err)
-				}
-				if closeErr != nil {
-					t.Fatal(closeErr)
-				}
-			}
-		}
+	a.WindowInactive = false
+	press(t, tt, "Edit workspace")
+	requireInput(t, tt, "Dialog workspace name", "Modal 中文 draft")
+}
+func TestGalleryToastActionsAndCleanup(t *testing.T) {
+	a := newStaticGallery()
+	t.Cleanup(a.Dispose)
+	tt := sceneTester(t, a, "toast", "actions")
+	press(t, tt, "Show action toast")
+	press(t, tt, "Review")
+	requireText(t, tt, "Reviews: 1 · Closed: 0")
+	press(t, tt, "Done")
+	requireText(t, tt, "Reviews: 1 · Closed: 1")
+	press(t, tt, "Show action toast")
+	a.Deactivate()
+	tt.Frame()
+	if tt.HasText("Workspace ready") {
+		t.Fatal("toast survived deactivation")
 	}
+}
+func TestGalleryManualTabsAndAccordion(t *testing.T) {
+	a := newStaticGallery()
+	t.Cleanup(a.Dispose)
+	tt := sceneTester(t, a, "tabs", "manual")
+	press(t, tt, "Overview")
+	tt.Key(0, ui.KeyRight)
+	requireText(t, tt, "Selected: overview · Changes: 0")
+	tt.Key(0, ui.KeyEnter)
+	requireText(t, tt, "Selected: settings · Changes: 1")
+	press(t, tt, "manual tab draft")
+	tt.Key(ui.Ctrl, ui.KeyA)
+	tt.Type("Persistent tab edit")
+	press(t, tt, "Overview")
+	press(t, tt, "Settings")
+	requireInput(t, tt, "manual tab draft", "Persistent tab edit")
+	tt = sceneTester(t, a, "accordion", "multiple")
+	press(t, tt, "Version history")
+	requireText(t, tt, "Open IDs: [access history]")
+	press(t, tt, "Billing settings")
+	requireText(t, tt, "Open IDs: [access history]")
 }

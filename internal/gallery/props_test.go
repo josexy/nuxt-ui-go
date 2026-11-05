@@ -1,109 +1,114 @@
 package gallery
 
 import (
-	"fmt"
-	"image/png"
-	"os"
-	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/egoist/mygo/ui"
-	nui "github.com/josexy/nuxt-ui-go"
 )
 
-func TestPropsGallery(t *testing.T) {
+func TestGalleryPopoverFocusAndIndependentScroll(t *testing.T) {
 	a := newStaticGallery()
-	a.Page = 17
 	t.Cleanup(a.Dispose)
-	tt := ui.NewTester(a.View, 1080, 1000)
-	press(t, tt, "Loading switch")
-	press(t, tt, "Sync workspace")
-	if a.Props.Enabled {
-		t.Fatal("loading preview accepted input")
-	}
-	press(t, tt, "Selection policies")
-	press(t, tt, "Team menu")
-	tt.Type("Alpha")
-	press(t, tt, "Alpha")
-	press(t, tt, "Team menu")
-	if !tt.HasText("Beta") {
-		t.Fatal("Gallery search reset")
-	}
+	tt := sceneTester(t, a, "popover", "click")
+	press(t, tt, "Open click popover")
+	press(t, tt, "click popover plan")
 	tt.Key(0, ui.KeyEscape)
-	a.Page = 18
+	requireText(t, tt, "Close click popover")
+	tt.Key(0, ui.KeyEscape)
+	if !tt.Focused("Open click popover") {
+		t.Fatal("popover failed to restore focus")
+	}
+	a.Navigate("scroll-area")
+	tt = ui.NewTester(a.View, 1080, 900)
+	firstLabel := "Long vertical list · Row 03 / 独立滚动区域"
+	otherLabel := "Wide scrollbar · Row 01 / 独立滚动区域"
+	first, other := galleryBounds(t, tt, firstLabel), galleryBounds(t, tt, otherLabel)
+	tt.Scroll(first.X+30, first.Y+10, 0, 20)
 	tt.Frame()
-	press(t, tt, "Shared orientation")
-	press(t, tt, "vertical")
-	if a.Props.Direction != nui.Vertical {
-		t.Fatal("orientation toggle")
-	}
-	press(t, tt, "Orientation name")
-	tt.Key(ui.Ctrl, ui.KeyA)
-	tt.Type("Edited")
-	press(t, tt, "Shared orientation")
-	press(t, tt, "horizontal")
-	if a.Props.Name != "Edited" {
-		t.Fatal("orientation value reset")
-	}
-	for _, width := range []int{720, 1080} {
-		tt.SetSize(width, 1000)
-		tt.SetPreferences(ui.Preferences{TextScale: 1.5, ReduceMotion: true})
-		tt.Move(0, 0)
-		tt.Advance(time.Second)
-		_ = tt.Image()
+	moved, unchanged := galleryBounds(t, tt, firstLabel), galleryBounds(t, tt, otherLabel)
+	if moved.Y >= first.Y || unchanged.Y != other.Y {
+		t.Fatalf("scroll leaked between models: %v -> %v; %v -> %v", first, moved, other, unchanged)
 	}
 }
 
-func TestPropsGalleryArtifacts(t *testing.T) {
-	dir := os.Getenv("NUI_PROP_ARTIFACTS")
-	if dir == "" {
-		t.Skip("NUI_PROP_ARTIFACTS not set")
+func TestGalleryButtonActivationAndBlockedCallbacks(t *testing.T) {
+	a := newStaticGallery()
+	t.Cleanup(a.Dispose)
+	tt := sceneTester(t, a, "button", "usage")
+	press(t, tt, "Save changes")
+	tt.Key(0, ui.KeyEnter)
+	tt.Key(0, ui.KeySpace)
+	requireText(t, tt, "Saved 3 times")
+	a.Dark = true
+	tt.Frame()
+	requireText(t, tt, "Saved 3 times")
+	tt = sceneTester(t, a, "button", "states")
+	press(t, tt, "Disabled")
+	tt.Key(0, ui.KeyEnter)
+	tt.Key(0, ui.KeySpace)
+	press(t, tt, "Loading")
+	tt.Key(0, ui.KeyEnter)
+	tt.Key(0, ui.KeySpace)
+	requireText(t, tt, "Blocked callbacks: 0")
+}
+func TestGalleryInheritedFieldsAndDisabledChoices(t *testing.T) {
+	a := newStaticGallery()
+	t.Cleanup(a.Dispose)
+	tt := sceneTester(t, a, "form-field", "inheritance")
+	press(t, tt, "Locked team")
+	tt.Key(ui.Ctrl, ui.KeyA)
+	tt.Type("Blocked edit")
+	requireText(t, tt, "Value: Locked workspace")
+	tt = sceneTester(t, a, "field-group", "inheritance")
+	press(t, tt, "Validate inheritance")
+	requireText(t, tt, "Not submitted")
+	press(t, tt, "Large disabled group name")
+	tt.Type("Blocked")
+	requireText(t, tt, "Value: Workspace")
+	tt = sceneTester(t, a, "checkbox-group", "selection")
+	press(t, tt, "Test")
+	press(t, tt, "Deploy")
+	requireText(t, tt, "Selected IDs: [build test] · Changes: 1")
+	tt = sceneTester(t, a, "radio-group", "selection")
+	press(t, tt, "Test")
+	requireText(t, tt, "Selected ID: test · Changes: 1")
+	tt.Key(0, ui.KeyDown)
+	tt.Key(0, ui.KeySpace)
+	requireText(t, tt, "Selected ID: build · Changes: 2")
+}
+func TestGalleryControlledInputsAndIsolation(t *testing.T) {
+	a := newStaticGallery()
+	t.Cleanup(a.Dispose)
+	tt := sceneTester(t, a, "checkbox", "boolean")
+	press(t, tt, "Accept terms")
+	requireText(t, tt, "Checked: true · Changes: 1")
+	tt.Key(0, ui.KeySpace)
+	requireText(t, tt, "Checked: false · Changes: 2")
+	tt = sceneTester(t, a, "switch", "controlled")
+	press(t, tt, "Email notifications")
+	requireText(t, tt, "Notifications: false · Changes: 1")
+	tt = sceneTester(t, a, "switch", "states")
+	press(t, tt, "Loading switch")
+	tt.Key(0, ui.KeySpace)
+	press(t, tt, "Disabled switch")
+	requireText(t, tt, "Disabled: true · Loading: false")
+	tt = sceneTester(t, a, "select-menu", "single")
+	press(t, tt, "single members menu")
+	press(t, tt, "Search single members menu")
+	tt.Type("Ada")
+	press(t, tt, "Ada Lovelace")
+	requireText(t, tt, "Selected IDs: [ada]")
+	press(t, tt, "single members menu")
+	requireText(t, tt, "Grace Hopper")
+	tt.Key(0, ui.KeyEscape)
+	tt = sceneTester(t, a, "input", "usage")
+	press(t, tt, "Workspace name")
+	tt.Key(ui.Ctrl, ui.KeyA)
+	tt.Type("Independent 中文 draft")
+	tt = sceneTester(t, a, "input", "variants")
+	if tt.HasText("Independent 中文 draft") {
+		t.Fatal("scenes share draft")
 	}
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		t.Fatal(err)
-	}
-	for _, dark := range []bool{false, true} {
-		for _, scene := range []string{"forms", "selection", "overlays", "horizontal", "vertical", "narrow"} {
-			a := newStaticGallery()
-			a.Page = 17
-			a.Dark = dark
-			a.Props.Demo = scene
-			width, height := 1080, 1000
-			if scene == "horizontal" || scene == "vertical" || scene == "narrow" {
-				a.Page = 18
-			}
-			if scene == "vertical" || scene == "narrow" {
-				a.Props.Direction = nui.Vertical
-			}
-			if scene == "narrow" {
-				width, height = 720, 1000
-			}
-			tt := ui.NewTester(a.View, width, height)
-			if scene == "narrow" {
-				tt.SetPreferences(ui.Preferences{TextScale: 1.5, ReduceMotion: true})
-			}
-			tt.Move(0, 0)
-			capture := func(suffix string) {
-				f, err := os.Create(filepath.Join(dir, fmt.Sprintf("props-%s%s-dark-%v.png", scene, suffix, dark)))
-				if err != nil {
-					t.Fatal(err)
-				}
-				err = png.Encode(f, tt.Image())
-				closeErr := f.Close()
-				if err != nil {
-					t.Fatal(err)
-				}
-				if closeErr != nil {
-					t.Fatal(closeErr)
-				}
-			}
-			capture("")
-			if a.Page == 18 {
-				tt.Scroll(float32(width-30), float32(height-50), 0, 650)
-				capture("-bottom")
-			}
-			a.Dispose()
-		}
-	}
+	tt = sceneTester(t, a, "input", "usage")
+	requireText(t, tt, "Current value: Independent 中文 draft")
 }

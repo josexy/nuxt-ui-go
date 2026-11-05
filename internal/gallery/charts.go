@@ -106,6 +106,7 @@ func (a *State) chartDemo(c *ui.Context, t nui.Theme) {
 		nui.Checkbox(c, t, &s.ChartGaps, nui.CheckboxOptions{Label: "Data gaps", Disabled: radial, OnChange: func(bool) { s.updateChartData() }})
 		nui.Checkbox(c, t, &a.Animations, nui.CheckboxOptions{Label: "Animate charts"})
 	})
+	t.Motion.Reduce = t.Motion.Reduce || !a.Animations
 	nui.Chart(c.Key("activity-chart"), t, &s.Chart, nui.ChartOptions{
 		Label: "Workspace activity", Kind: s.ChartKind, Curve: s.ChartCurve, Stack: s.ChartStack, Height: 220,
 		FormatTime: func(v time.Time) string { return v.Format("Jan 2006") },

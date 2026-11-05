@@ -12,6 +12,27 @@ import (
 	nui "github.com/josexy/nuxt-ui-go"
 )
 
+func TestGalleryAppPreviewsDoNotChangeOuterTheme(t *testing.T) {
+	a := newStaticGallery()
+	t.Cleanup(a.Dispose)
+	for _, id := range []string{"app", "theme"} {
+		for _, s := range a.page(id).Scenes {
+			tt := ui.NewTester(func(c *ui.Context) {
+				theme := nui.App(c, a.themeConfig())
+				outer := c.Theme()
+				ui.Column(c).Fill().Children(func() { s.Build(c, theme) })
+				if c.Theme() != outer {
+					t.Fatalf("%s/%s changed the outer theme scope", id, s.ID)
+				}
+			}, 1080, 820)
+			tt.Frame()
+			if a.Dark || a.Compact || a.Primary != "green" {
+				t.Fatalf("%s/%s changed window appearance", id, s.ID)
+			}
+		}
+	}
+}
+
 func TestGalleryPaletteMenusApplyThemeAndModes(t *testing.T) {
 	a := newStaticGallery()
 	var applied ui.Theme
@@ -130,7 +151,7 @@ func TestGalleryPaletteMenuHoverResizeAndReopen(t *testing.T) {
 	if a.Neutral != "olive" || a.ThemeMenu.Open {
 		t.Fatal("neutral selection failed after resize")
 	}
-	a.Page = 3
+	a.Navigate("theme")
 	tt.Frame()
 	press(t, tt, "Choose neutral color")
 	tt.Type("zinc")
@@ -138,7 +159,7 @@ func TestGalleryPaletteMenuHoverResizeAndReopen(t *testing.T) {
 	if a.Neutral != "zinc" || !tt.HasText("Neutral: Zinc") {
 		t.Fatal("foundation control did not share the selected palette")
 	}
-	a.Page = 0
+	a.Navigate("button")
 	tt.Frame()
 	press(t, tt, "Theme")
 	press(t, tt, "Neutral palette")
@@ -164,7 +185,8 @@ func TestGalleryThemeMenuArtifacts(t *testing.T) {
 	for _, dark := range []bool{false, true} {
 		for _, role := range []string{"Primary", "Neutral"} {
 			a := newStaticGallery()
-			a.Dark, a.Page, a.Neutral = dark, 3, "mauve"
+			a.Dark, a.Neutral = dark, "mauve"
+			a.Navigate("theme")
 			tt := ui.NewTester(a.View, 1080, 820)
 			press(t, tt, "Theme")
 			press(t, tt, role+" palette")

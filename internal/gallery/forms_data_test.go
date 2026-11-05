@@ -1,140 +1,126 @@
 package gallery
 
 import (
-	"fmt"
-	"image/png"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
-	nui "github.com/josexy/nuxt-ui-go"
 )
 
+func TestGalleryTreeCancellationAndStableSelection(t *testing.T) {
+	a := newStaticGallery()
+	t.Cleanup(a.Dispose)
+	tt := sceneTester(t, a, "tree", "lazy")
+	press(t, tt, "Load examples")
+	tt.Key(0, ui.KeyRight)
+	requireTextContains(t, tt, "Simulated load pending")
+	a.Navigate("button")
+	tt.Frame()
+	press(t, tt, "Complete tree load")
+	requireTextContains(t, tt, "Stale tree result rejected")
+	a.Navigate("tree")
+	tt.Frame()
+	press(t, tt, "Load examples")
+	tt.Key(0, ui.KeyRight)
+	press(t, tt, "Complete tree load")
+	requireTextContains(t, tt, "Examples loaded")
+	requireText(t, tt, "Button example")
+	press(t, tt, "Button example")
+	requireTextContains(t, tt, "1 selected")
+	press(t, tt, "lazy flat rows")
+	requireTextContains(t, tt, "1 selected")
+	requireText(t, tt, "Button example")
+	a.Deactivate()
+	tt.Frame()
+	requireTextContains(t, tt, "1 selected")
+}
 func TestGalleryNumberOrientation(t *testing.T) {
 	a := newStaticGallery()
-	a.Page = 11
-	tt := ui.NewTester(a.View, 1080, 820)
-	press(t, tt, "Seats")
+	t.Cleanup(a.Dispose)
+	tt := sceneTester(t, a, "input-number", "bounded")
+	press(t, tt, "bounded seats")
+	tt.Type("3")
 	tt.Key(ui.Ctrl, ui.KeyA)
 	tt.Type("-")
 	press(t, tt, "Number orientation")
 	press(t, tt, "vertical")
-	if a.FormsData.NumberOrientation != nui.Vertical || a.FormsData.NumberState.Text != "-" || a.FormsData.Number.Value != 3 {
-		t.Fatal("Gallery orientation selector changed the number draft or value")
-	}
-	press(t, tt, "Increase Seats")
-	if a.FormsData.Number.Value != 4 {
-		t.Fatal("Gallery vertical increase did not update the value")
-	}
+	requireText(t, tt, "Value: {3 true}")
+	press(t, tt, "Increase bounded seats")
+	requireText(t, tt, "Value: {3.5 true}")
 	press(t, tt, "Number orientation")
 	press(t, tt, "horizontal")
-	press(t, tt, "Decrease Seats")
-	if a.FormsData.NumberOrientation != nui.Horizontal || a.FormsData.Number.Value != 3 {
-		t.Fatal("Gallery horizontal decrease did not update the value")
-	}
+	press(t, tt, "Decrease bounded seats")
+	requireText(t, tt, "Value: {3 true}")
 }
-
 func TestGallerySelectionAndColor(t *testing.T) {
 	a := newStaticGallery()
-	a.Page = 11
-	tt := ui.NewTester(a.View, 1080, 820)
-	press(t, tt, "Project members")
-	press(t, tt, "Search Project members")
+	t.Cleanup(a.Dispose)
+	tt := sceneTester(t, a, "select-menu", "single")
+	press(t, tt, "single members menu")
+	press(t, tt, "Search single members menu")
 	tt.Type("Ada")
 	tt.Key(0, ui.KeyDown)
 	tt.Key(0, ui.KeyEnter)
-	if len(a.FormsData.Chosen) != 1 || a.FormsData.Chosen[0] != "ada" {
-		t.Fatalf("select menu %v open=%v active=%s searchFocus=%v", a.FormsData.Chosen, a.FormsData.Select.Open, a.FormsData.Select.Listbox.Active, tt.Focused("Search Project members"))
-	}
-	tt.Key(0, ui.KeyEscape)
-	press(t, tt, "Dates & color")
-	before := a.FormsData.Color
-	press(t, tt, "Accent color A")
+	requireText(t, tt, "Selected IDs: [ada]")
+	tt = sceneTester(t, a, "color-picker", "palette")
+	press(t, tt, "palette accent A")
 	tt.Key(ui.Ctrl, ui.KeyA)
 	tt.Type("128")
-	if a.FormsData.Color.A != 128 || a.FormsData.Color.R != before.R {
-		t.Fatal("alpha overwrote RGB")
-	}
 	tt.Frame()
-	if a.FormsData.Color.A != 128 {
-		t.Fatal("native picker overwrote alpha")
-	}
-	press(t, tt, "Choose Release date")
-	press(t, tt, "Release date calendar 2026-11-15")
-	if a.FormsData.Date.Value.Day != 15 {
-		t.Fatal("popup date sync")
-	}
+	requireText(t, tt, "Color: {34 197 94 128")
+	tt = sceneTester(t, a, "input-date", "calendar")
+	press(t, tt, "Choose calendar release date")
+	press(t, tt, "calendar release date calendar 2026-11-15")
+	requireText(t, tt, "Date: {2026-11-15 true}")
+	tt.SetLocale("zh-Hans")
+	requireText(t, tt, "Date: {2026-11-15 true}")
+	tt.SetLocale("en")
+	requireText(t, tt, "Date: {2026-11-15 true}")
 }
-func TestFormsDataVisualArtifacts(t *testing.T) {
-	dir := os.Getenv("NUI_ARTIFACTS")
-	if dir == "" {
-		t.Skip("NUI_ARTIFACTS not set")
-	}
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		t.Fatal(err)
-	}
-	for _, dark := range []bool{false, true} {
-		for _, scale := range []float32{1, 1.25, 1.5, 2} {
-			for _, scene := range []string{"select-menu", "date-popup", "wizard", "data-edit", "narrow"} {
-				a := newStaticGallery()
-				a.Dark = dark
-				a.Page = 11
-				tt := ui.NewTester(a.View, 1080, 820)
-				tt.SetScale(scale)
-				switch scene {
-				case "select-menu":
-					press(t, tt, "Project members")
-				case "date-popup":
-					a.Page = 12
-					tt.Frame()
-					press(t, tt, "Choose Release date")
-				case "wizard":
-					a.Page = 7
-					a.Settings.Page = 3
-					tt.Frame()
-					press(t, tt, "Continue")
-				case "data-edit":
-					a.Page = 13
-					tt.Frame()
-					press(t, tt, "Task 00001")
-					press(t, tt, "Edit task")
-				case "narrow":
-					tt.SetSize(720, 900)
-					tt.SetPreferences(ui.Preferences{TextScale: 1.5, ReduceMotion: true})
-				}
-				tt.Move(0, 0)
-				f, err := os.Create(filepath.Join(dir, fmt.Sprintf("forms-data-%s-dark-%v-scale-%g.png", scene, dark, scale)))
-				if err != nil {
-					t.Fatal(err)
-				}
-				err = png.Encode(f, tt.Image())
-				closeErr := f.Close()
-				if err != nil {
-					t.Fatal(err)
-				}
-				if closeErr != nil {
-					t.Fatal(closeErr)
-				}
-			}
-		}
-	}
+func TestGalleryFormValidationCancellationAndRecovery(t *testing.T) {
+	a := newStaticGallery()
+	t.Cleanup(a.Dispose)
+	tt := sceneTester(t, a, "form", "validation")
+	press(t, tt, "Submit validation")
+	requireText(t, tt, "Workspace name is required")
+	press(t, tt, "validation workspace name")
+	tt.Type("Native workspace")
+	press(t, tt, "Submit validation")
+	requireText(t, tt, "Workspace submitted · 1 successful submissions")
+	tt = sceneTester(t, a, "form", "async")
+	press(t, tt, "Submit async")
+	requireText(t, tt, "Simulated request pending")
+	a.Deactivate()
+	tt.Frame()
+	press(t, tt, "Complete simulated request")
+	requireText(t, tt, "Stale request rejected · 0 successful submissions")
+	a.WindowInactive = false
+	press(t, tt, "Submit async")
+	press(t, tt, "Complete simulated request")
+	requireText(t, tt, "Simulated request completed · 1 successful submissions")
 }
-
+func TestGalleryRangeOrientationAndCommit(t *testing.T) {
+	a := newStaticGallery()
+	t.Cleanup(a.Dispose)
+	tt := sceneTester(t, a, "slider", "range")
+	press(t, tt, "Range orientation")
+	press(t, tt, "vertical")
+	focus(t, tt, "Workspace range minimum")
+	tt.Key(0, ui.KeyUp)
+	requireText(t, tt, "Confirmed: 25 – 70")
+	press(t, tt, "Reverse range")
+	focus(t, tt, "Workspace range minimum")
+	tt.Key(0, ui.KeyUp)
+	requireText(t, tt, "Confirmed: 20 – 70")
+}
 func TestNarrowSectionsDoNotOverlap(t *testing.T) {
 	a := newStaticGallery()
-	a.Page = 11
+	t.Cleanup(a.Dispose)
+	a.Navigate("input")
 	tt := ui.NewTester(a.View, 720, 900)
 	tt.SetPreferences(ui.Preferences{TextScale: 1.5, ReduceMotion: true})
-	slider, ok := tt.Find("Budget range")
-	if !ok {
-		t.Fatal("range missing")
-	}
-	trigger, ok := tt.Find("Project members")
-	if !ok {
-		t.Fatal("trigger missing")
-	}
-	if trigger.Y < slider.Y+slider.H {
-		t.Fatalf("overlap: range=%+v trigger=%+v", slider, trigger)
+	input := galleryBounds(t, tt, "Workspace name")
+	next := galleryBounds(t, tt, "Outline input")
+	if next.Y < input.Y+input.H {
+		t.Fatalf("overlap: %v %v", input, next)
 	}
 }

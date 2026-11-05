@@ -18,8 +18,11 @@ func TestChartsGalleryControls(t *testing.T) {
 	if !a.Animations {
 		t.Fatal("normal Gallery must demonstrate motion")
 	}
-	a.Page = 15
-	tt := ui.NewTester(a.View, 1080, 820)
+	a.Advanced = newAdvanced()
+	tt := ui.NewTester(func(c *ui.Context) {
+		theme := nui.App(c, a.themeConfig())
+		ui.Scroll(c).Fill().Padding(20).Gap(12).Children(func() { a.chartDemo(c, theme) })
+	}, 1080, 820)
 	choose := func(control, value string) {
 		t.Helper()
 		press(t, tt, control)
@@ -65,9 +68,7 @@ func TestChartsGalleryControls(t *testing.T) {
 	// Removing and returning to both Cartesian and radial controls preserves identity.
 	for _, kind := range []string{"Scatter", "Pie", "Line", "Bars", "Donut"} {
 		press(t, tt, kind)
-		a.Page = 16
 		tt.Frame()
-		a.Page = 15
 		tt.Frame()
 	}
 }
@@ -100,11 +101,14 @@ func TestChartGalleryVisuals(t *testing.T) {
 	for _, dark := range []bool{false, true} {
 		for _, scene := range scenes {
 			a := newStaticGallery()
-			a.Page, a.Dark = 15, dark
+			a.Advanced, a.Dark = newAdvanced(), dark
 			a.Advanced.ChartKind, a.Advanced.ChartCurve, a.Advanced.ChartStack, a.Advanced.ChartAxis = scene.kind, scene.curve, scene.stack, scene.axis
 			a.Advanced.ChartNegative, a.Advanced.ChartGaps = scene.negative, scene.gaps
 			a.Advanced.updateChartData()
-			tt := ui.NewTester(a.View, 1080, 920)
+			tt := ui.NewTester(func(c *ui.Context) {
+				theme := nui.App(c, a.themeConfig())
+				ui.Scroll(c).Fill().Padding(20).Gap(12).Children(func() { a.chartDemo(c, theme) })
+			}, 1080, 920)
 			tt.Move(0, 0)
 			path := filepath.Join(dir, fmt.Sprintf("%s-dark-%t.png", scene.name, dark))
 			f, err := os.Create(path)

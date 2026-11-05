@@ -91,7 +91,11 @@ func (c *client) find(label string) node {
 			return n
 		}
 	}
-	c.t.Fatalf("window %d: missing %q", c.window, label)
+	labels := []string{}
+	for _, n := range nodes {
+		labels = append(labels, n.Label)
+	}
+	c.t.Fatalf("window %d: missing %q in %v", c.window, label, labels)
 	return node{}
 }
 func (c *client) press(label string) {
@@ -102,6 +106,8 @@ func (c *client) press(label string) {
 			break
 		}
 	}
+	c.call("act", map[string]any{"id": n.ID, "action": "scrollIntoView"}, nil)
+	c.idle()
 	if slices.Contains(n.States, "focusable") {
 		c.call("act", map[string]any{"id": n.ID, "action": "focus"}, nil)
 		c.idle()
@@ -114,39 +120,184 @@ func (c *client) key(key string) {
 	c.idle()
 }
 
+func (c *client) edit(label, value string) {
+	n := c.find(label)
+	c.call("act", map[string]any{"id": n.ID, "action": "focus"}, nil)
+	c.idle()
+	c.key("Ctrl+A")
+	c.key("Backspace")
+	if value != "" {
+		c.call("input", map[string]any{"events": []any{map[string]any{"type": "text", "text": value}}}, nil)
+		c.idle()
+	}
+}
+func (c *client) navigate(id, label string) {
+	if !c.has("Search components") {
+		c.press("Open component directory")
+	}
+	c.edit("Search components", id)
+	search := c.find("Search components")
+	for _, n := range c.tree().Nodes {
+		if n.Label == label && n.Role == "button" && n.Bounds.Y > search.Bounds.Y && n.Bounds.X < search.Bounds.X+search.Bounds.Width {
+			c.call("act", map[string]any{"id": n.ID, "action": "scrollIntoView"}, nil)
+			c.idle()
+			c.call("act", map[string]any{"id": n.ID, "action": "focus"}, nil)
+			c.idle()
+			c.call("act", map[string]any{"id": n.ID, "action": "press"}, nil)
+			c.idle()
+			if c.has("Search components") {
+				c.edit("Search components", "")
+			}
+			return
+		}
+	}
+	c.t.Fatalf("directory is missing %s (%s)", label, id)
+}
+func (c *client) has(label string) bool {
+	for _, n := range c.tree().Nodes {
+		if n.Label == label {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *client) checkNestedSplitters() {
+	c.navigate("splitter", "Splitter")
+	left, top, bottom := c.find("Left pane").Bounds, c.find("Right · top").Bounds, c.find("Right · bottom").Bounds
+	if top.X <= left.X+left.Width || top.Y != left.Y || bottom.X != top.X || bottom.Y <= top.Y+top.Height {
+		c.t.Fatal("native Splitter panes are not left + stacked right")
+	}
+	outer, inner := c.find("horizontal pane widths").Bounds, c.find("horizontal pane heights").Bounds
+	x, y := inner.X-.5, outer.Y+outer.Height/2
+	for _, event := range []map[string]any{{"type": "pointerDown", "x": x, "y": y}, {"type": "pointerMove", "x": x + 30, "y": y}, {"type": "pointerUp", "x": x + 30, "y": y}} {
+		c.call("input", map[string]any{"events": []any{event}}, nil)
+		c.idle()
+	}
+	wider := c.find("horizontal pane heights").Bounds
+	if wider.X <= inner.X || wider.Y != inner.Y || wider.Height != inner.Height {
+		c.t.Fatal("native outer Splitter did not resize independently")
+	}
+	c.key("Right")
+	inner = c.find("horizontal pane heights").Bounds
+	focused := false
+	for _, n := range c.tree().Nodes {
+		if n.Role == "splitter" && n.Bounds.Width > n.Bounds.Height && n.Bounds.X >= inner.X && n.Bounds.Y >= inner.Y && n.Bounds.Y < inner.Y+inner.Height {
+			c.call("act", map[string]any{"id": n.ID, "action": "focus"}, nil)
+			focused = true
+			break
+		}
+	}
+	if !focused {
+		c.t.Fatal("native inner Splitter is missing")
+	}
+	before := c.find("Right · bottom").Bounds
+	c.key("Down")
+	if after := c.find("Right · bottom").Bounds; after.Y <= before.Y || c.find("horizontal pane heights").Bounds.X != inner.X {
+		c.t.Fatal("native inner Splitter did not resize independently")
+	}
+	c.edit("horizontal pane draft", "嵌套分栏预览")
+	c.find("嵌套分栏预览")
+	c.capture("splitter-nested")
+	c.navigate("button", "Button")
+}
+
+func (c *client) checkNarrowDirectory() {
+	c.press("Open component directory")
+	c.key("Escape")
+	if c.tree().Focus != c.find("Open component directory").ID {
+		c.t.Fatal("directory Escape did not return focus")
+	}
+	c.navigate("input", "Input")
+	if c.has("Search components") {
+		c.t.Fatal("directory remained open after navigation")
+	}
+	c.edit("Workspace name", "窄窗口草稿")
+	c.navigate("button", "Button")
+	c.press("Save changes")
+	c.find("Saved 1 times")
+	c.navigate("input", "Input")
+	if c.find("Workspace name").Value != "窄窗口草稿" {
+		c.t.Fatal("narrow navigation lost draft")
+	}
+	c.capture("input-narrow-draft")
+	c.press("Open component directory")
+	c.edit("Search components", "")
+	first := c.find("App")
+	c.call("act", map[string]any{"id": first.ID, "action": "focus"}, nil)
+	c.key("End")
+	c.key("Enter")
+	c.find("Task 00001")
+	c.press("Open component directory")
+	last := c.find("Task browser")
+	c.call("act", map[string]any{"id": last.ID, "action": "focus"}, nil)
+	c.key("Home")
+	c.key("Enter")
+	c.find("Light and dark")
+	for _, item := range []struct{ id, label string }{{"modal", "Modal"}, {"table", "Table"}, {"chart", "Chart"}, {"sidebar", "Sidebar"}} {
+		c.navigate(item.id, item.label)
+		switch item.id {
+		case "modal":
+			c.press("Edit workspace")
+			c.press("Dialog plan")
+			c.key("Escape")
+			c.key("Escape")
+		case "table":
+			c.press("Select first record")
+		case "chart":
+			c.press("Update data")
+		case "sidebar":
+			for _, mode := range []string{"slideover", "modal", "drawer"} {
+				label := "Open inner " + mode + " sidebar"
+				c.press(label)
+				c.key("Escape")
+				if c.tree().Focus != c.find(label).ID {
+					c.t.Fatalf("%s sidebar did not restore focus", mode)
+				}
+			}
+		}
+		c.capture(item.id + "-narrow")
+	}
+	c.checkNestedSplitters()
+	c.press("Open component directory")
+	c.edit("Search components", "no-such-component")
+	c.find("No matching components. Clear the search to browse all.")
+	c.capture("directory-narrow-empty")
+	c.key("Escape")
+}
 func (c *client) checkSidebar() {
 	c.press("Workspace settings")
 	c.find("Access permissions and sharing")
 	c.capture("shell-compact-submenu")
 	c.press("Access permissions and sharing")
-	c.find("Opened permissions")
+	c.find("Selected: permissions")
 	c.key("Escape")
-	c.press("Toggle sidebar")
-	handle := c.find("Resize sidebar")
+	c.press("Toggle inner slideover sidebar")
+	handle := c.find("Resize inner slideover sidebar")
 	initial := handle.Bounds.X
 	c.call("act", map[string]any{"id": handle.ID, "action": "focus"}, nil)
 	c.key("Right")
-	if n := c.find("Resize sidebar"); math.Abs(n.Bounds.X-initial-10) > .1 {
+	if n := c.find("Resize inner slideover sidebar"); math.Abs(n.Bounds.X-initial-10) > .1 {
 		c.t.Fatalf("sidebar keyboard resize: %+v", n)
 	}
-	handle = c.find("Resize sidebar")
+	handle = c.find("Resize inner slideover sidebar")
 	x, y := handle.Bounds.X+handle.Bounds.Width/2, handle.Bounds.Y+handle.Bounds.Height/2
 	c.call("input", map[string]any{"events": []any{map[string]any{"type": "pointerDown", "x": x, "y": y}}}, nil)
 	c.idle()
 	c.call("input", map[string]any{"events": []any{map[string]any{"type": "pointerMove", "x": x + 40, "y": y}}}, nil)
 	c.idle()
 	c.call("input", map[string]any{"events": []any{map[string]any{"type": "pointerUp", "x": x + 40, "y": y}}}, nil)
-	if n := c.find("Resize sidebar"); math.Abs(n.Bounds.X-initial-50) > .1 {
+	if n := c.find("Resize inner slideover sidebar"); math.Abs(n.Bounds.X-initial-50) > .1 {
 		c.t.Fatalf("sidebar pointer resize: %+v", n)
 	}
 	c.capture("shell-resized")
-	handle = c.find("Resize sidebar")
+	handle = c.find("Resize inner slideover sidebar")
 	x = handle.Bounds.X + handle.Bounds.Width/2
 	c.call("input", map[string]any{"events": []any{map[string]any{"type": "click", "clicks": 2, "x": x, "y": y}}}, nil)
-	if n := c.find("Resize sidebar"); math.Abs(n.Bounds.X-initial) > .1 {
+	if n := c.find("Resize inner slideover sidebar"); math.Abs(n.Bounds.X-initial) > .1 {
 		c.t.Fatalf("sidebar double-click reset: %+v", n)
 	}
-	c.press("Toggle sidebar")
+	c.press("Toggle inner slideover sidebar")
 }
 
 func (c *client) checkGallerySidebar() {
@@ -173,7 +324,7 @@ func (c *client) checkGallerySidebar() {
 	if width := c.find("Gallery sidebar").Bounds.Width; math.Abs(width-64) > .1 {
 		c.t.Fatalf("Gallery compact width: %v", width)
 	}
-	c.press("Inputs & overlays")
+	c.press("Input")
 	c.find("Workspace name")
 	c.capture("gallery-sidebar-compact")
 	c.press("Toggle gallery sidebar")
@@ -187,7 +338,16 @@ func (c *client) checkGallerySidebar() {
 	if width := c.find("Gallery sidebar").Bounds.Width; math.Abs(width-256) > .1 {
 		c.t.Fatalf("Gallery double-click reset: %v", width)
 	}
-	c.press("Components")
+	c.navigate("button", "Button")
+	c.press("App")
+	c.key("End")
+	c.key("Enter")
+	c.find("Task 00001")
+	c.press("Task browser")
+	c.key("Home")
+	c.key("Enter")
+	c.find("Light and dark")
+	c.navigate("button", "Button")
 }
 
 func (c *client) theme(mode string) {
@@ -304,8 +464,13 @@ func TestNativeGallery(t *testing.T) {
 		t.Log("hidden window: first-frame smoke only; run without the hidden-smoke option for interaction")
 		return
 	}
+	if os.Getenv("NUI_NATIVE_NARROW") == "1" {
+		c.checkNarrowDirectory()
+		return
+	}
 	c.checkGallerySidebar()
 	c.checkThemePalettes()
+	c.checkNestedSplitters()
 	c.press("Save changes")
 	c.find("Saved 1 times")
 	c.idle()
@@ -336,6 +501,7 @@ func TestNativeGallery(t *testing.T) {
 		t.Fatal("window theme leaked")
 	}
 	c.window = first
+	c.navigate("theme", "Theme")
 	c.press("Local dialog")
 	c.find("Local theme dialog")
 	c.capture("local-dialog-light")
@@ -345,13 +511,13 @@ func TestNativeGallery(t *testing.T) {
 			t.Fatal("dialog leaked across windows")
 		}
 	}
-	c.press("Inputs & overlays")
-	if c.find("Plan").Value != "Team" {
+	c.navigate("select", "Select")
+	if c.find("Plan").Value != "Personal" {
 		t.Fatal("initial plan")
 	}
 	c.window = first
 	c.press("Close local dialog")
-	c.press("Inputs & overlays")
+	c.navigate("input", "Input")
 	n := c.find("Workspace name")
 	c.call("act", map[string]any{"id": n.ID, "action": "focus"}, nil)
 	c.idle()
@@ -366,42 +532,36 @@ func TestNativeGallery(t *testing.T) {
 	if !strings.Contains(strings.Join(ro.States, ","), "readOnly") {
 		t.Fatal("readonly semantics")
 	}
+	c.navigate("select", "Select")
 	c.press("Plan")
-	c.key("Home")
+	c.key("End")
 	c.key("Enter")
-	if got := c.find("Plan").Value; got != "Personal" {
+	if got := c.find("Plan").Value; got != "Team" {
 		c.capture("select-failure")
 		t.Fatalf("native select: got %q", got)
 	}
 	c.capture("inputs-dark")
 	c.window = second
-	if c.find("Plan").Value != "Team" || c.find("Workspace name").Value != "Nuxt workspace" {
+	if c.find("Plan").Value != "Personal" {
 		t.Fatal("model leaked across windows")
 	}
-	// The application locale must update every existing window. Keep a modal
-	// open in the first window while changing the language from the second.
+	c.navigate("input", "Input")
+	if c.find("Workspace name").Value != "Nuxt workspace" {
+		t.Fatal("input model leaked across windows")
+	}
+	// Keep a modal open while switching windows and confirm its draft survives.
 	c.window = first
+	c.navigate("modal", "Modal")
 	c.press("Edit workspace")
+	c.edit("Dialog workspace name", "原生中文验证")
 	closeID := c.find("Close Edit workspace").ID
 	c.window = second
-	c.press("Language / 语言")
-	if c.find("Language / 语言").Description != "简体中文" {
-		t.Fatal("language switch did not update the second window")
-	}
-	c.capture("i18n-second-zh")
-	c.window = first
-	if c.find("关闭Edit workspace").ID != closeID || c.find("Dialog workspace name").Value != "原生中文验证" {
-		t.Fatal("global locale change reset a modal or its edited value")
-	}
-	c.capture("i18n-modal-zh")
-	c.window = second
-	c.press("Language / 语言")
-	if c.find("Language / 语言").Description != "English" {
-		t.Fatal("language switch did not restore English")
+	if c.has("Language / 语言") {
+		t.Fatal("Gallery should not show a language switch")
 	}
 	c.window = first
-	if c.find("Close Edit workspace").ID != closeID {
-		t.Fatal("locale change replaced the modal close control")
+	if c.find("Close Edit workspace").ID != closeID || c.find("Dialog workspace name").Value != "原生中文验证" {
+		t.Fatal("switching windows reset a modal or its edited value")
 	}
 	c.press("Close Edit workspace")
 	c.window = first
@@ -409,7 +569,7 @@ func TestNativeGallery(t *testing.T) {
 	c.press("Dialog plan")
 	c.capture("modal-select-dark")
 	c.key("Escape")
-	c.find("Save workspace")
+	c.find("Save nested")
 	c.key("Escape")
 	tr := c.tree()
 	// MyGo omits accessibility focus while a different OS window is active.
@@ -417,33 +577,34 @@ func TestNativeGallery(t *testing.T) {
 		t.Fatal("native focus points to the wrong trigger")
 	}
 	c.key("Enter")
-	c.find("Save workspace") // the restored opener must activate from the keyboard
+	c.find("Save nested") // the restored opener must activate from the keyboard
 	c.key("Escape")
-	c.press("Data & menus")
-	c.press("Workspace actions")
+	c.navigate("dropdown-menu", "DropdownMenu")
+	c.press("Project actions nested")
 	c.press("Export")
 	c.press("CSV file")
-	c.find("Exported CSV")
+	c.find("CSV export prepared")
 	c.press("Rich actions")
 	c.press("Export options")
 	c.capture("rich-menu-dark")
 	c.press("Export rich CSV")
 	c.find("Rich CSV exported")
+	c.navigate("table", "Table")
 	c.capture("table-dark")
-	c.press("Workspace")
+	c.navigate("example/workspace", "Workspace")
 	c.press("Save workspace")
-	c.find("Workspace saved 2 times")
+	c.find("Workspace saved 1 times")
 	c.press("Add example document")
 	c.press("Foundation component notes")
 	c.find("Document opened")
 	c.press("Remove document")
 	c.capture("workspace-dark")
-	c.press("Display")
-	c.find("1 more person")
-	c.press("Notifications")
-	c.find("3 unread notifications")
+	c.navigate("avatar-group", "AvatarGroup")
+	c.find("2 more people")
+	c.navigate("chip", "Chip")
+	c.find("Notifications 3")
 	c.capture("display-dark")
-	c.press("Feedback")
+	c.navigate("progress", "Progress")
 	progress := c.find("Preparing files")
 	if progress.Role != "progress" || progress.Now == nil || *progress.Now != 42 || progress.Max == nil || *progress.Max != 100 {
 		t.Fatalf("progress semantics: %+v", progress)
@@ -457,6 +618,7 @@ func TestNativeGallery(t *testing.T) {
 	if got := c.find("Preparing files"); got.Now == nil || *got.Now != 59 {
 		t.Fatal("progress range did not follow value")
 	}
+	c.navigate("alert", "Alert")
 	c.press("Dismiss Your changes are saved")
 	for _, n := range c.tree().Nodes {
 		if n.Role == "status" && n.Label == "Your changes are saved" {
@@ -464,17 +626,17 @@ func TestNativeGallery(t *testing.T) {
 		}
 	}
 	c.capture("feedback-dark")
-	c.press("Theme & buttons")
+	c.navigate("theme", "Theme")
 	c.press("Choose primary color")
 	c.press("Blue")
 	c.press("Toggle density")
 	c.capture("theme-blue-compact-dark")
 	c.window = second
-	c.press("Workspace")
+	c.navigate("example/workspace", "Workspace")
 	c.press("Save workspace")
 	c.find("Workspace saved 1 times")
 	c.capture("workspace-second-light")
-	c.press("Forms & settings")
+	c.navigate("example/settings", "Settings")
 	c.press("Clear display name")
 	c.press("Save changes")
 	name := c.find("Display name *")
@@ -543,7 +705,7 @@ func TestNativeGallery(t *testing.T) {
 	c.key("Escape")
 	c.capture("workspace-light")
 	c.window = first
-	c.press("Forms & settings")
+	c.navigate("example/settings", "Settings")
 	if got := c.find("Display name *").Value; got != "Lin Chen / 林晓" {
 		t.Fatal("settings leaked across windows")
 	}
@@ -592,121 +754,152 @@ func TestNativeGallery(t *testing.T) {
 	c.press("Done filtering")
 	c.theme("Light")
 	c.window = second
-	c.press("Overlays & menus")
-	c.press("Project actions")
+	c.navigate("dropdown-menu", "DropdownMenu")
+	c.press("Project actions checks")
 	if n := c.find("Pin workspace"); n.Role != "menuItemCheckBox" {
 		t.Fatalf("checkbox menu role: %+v", n)
 	}
+	c.key("Escape")
+	c.press("Project actions nested")
 	c.key("End")
-	c.key("Up")
 	c.key("Right")
 	c.capture("menu-light")
 	c.key("Enter")
 	c.find("CSV export prepared")
-	contextTarget := c.find("Project context area")
+	c.navigate("context-menu", "ContextMenu")
+	contextTarget := c.find("Project context basic")
 	c.call("act", map[string]any{"id": contextTarget.ID, "action": "focus"}, nil)
 	c.idle()
 	c.key("Shift+F10")
-	c.find("Project context menu")
+	c.find("Project context menu basic")
 	c.capture("context-light")
 	c.key("Escape")
-	c.press("Review changes")
-	c.press("Review plan")
+	c.navigate("modal", "Modal")
+	c.press("Edit workspace")
+	c.press("Dialog plan")
 	c.capture("modal-select-light")
 	c.key("Escape")
-	c.find("Confirm changes")
+	c.find("Save nested")
 	c.key("Escape")
-	c.press("Bottom panel")
+	c.navigate("slideover", "Slideover")
+	c.press("Open bottom panel")
 	c.capture("bottom-light")
 	c.press("Done with preferences")
-	c.press("Navigation & disclosure")
+	c.navigate("accordion", "Accordion")
 	c.press("Sharing permissions")
 	c.capture("navigation-light")
-	c.press("Activity")
+	c.navigate("pagination", "Pagination")
 	c.press("Next page")
-	c.find("Activity page 2")
+	c.find("Page 6 · Changes: 1")
+	c.capture("pagination-light")
+	c.navigate("timeline", "Timeline")
 	c.capture("timeline-light")
-	c.press("Try again")
+	c.navigate("error", "Error")
+	c.press("Restore activity")
 	c.find("Activity restored")
-	c.press("Advanced forms")
-	c.press("Increase Seats")
-	if n := c.find("Seats"); n.Value != "4" {
+	c.navigate("input-number", "InputNumber")
+	c.edit("bounded seats", "3")
+	c.press("Increase bounded seats")
+	if n := c.find("bounded seats"); n.Value != "3.5" {
 		t.Fatalf("native number: %+v", n)
 	}
-	seatsID := c.find("Seats").ID
+	seatsID := c.find("bounded seats").ID
 	c.press("Number orientation")
 	c.press("vertical")
-	if n := c.find("Seats"); n.ID != seatsID || n.Value != "4" {
+	if n := c.find("bounded seats"); n.ID != seatsID || n.Value != "3.5" {
 		t.Fatalf("orientation reset the native editor: %+v", n)
 	}
-	c.press("Increase Seats")
-	if c.find("Seats").Value != "5" {
+	c.press("Increase bounded seats")
+	if c.find("bounded seats").Value != "4" {
 		t.Fatal("vertical number increase failed")
 	}
 	c.capture("input-number-vertical")
 	c.press("Number orientation")
 	c.press("horizontal")
-	c.press("Decrease Seats")
-	if n := c.find("Seats"); n.ID != seatsID || n.Value != "4" {
+	c.press("Decrease bounded seats")
+	if n := c.find("bounded seats"); n.ID != seatsID || n.Value != "3.5" {
 		t.Fatalf("horizontal number decrease or editor identity failed: %+v", n)
 	}
 	c.capture("input-number-horizontal")
-	c.press("Verification code")
+	c.navigate("pin-input", "PinInput")
+	c.press("numeric verification code")
 	c.call("input", map[string]any{"events": []any{map[string]any{"type": "text", "text": "123456"}}}, nil)
 	c.idle()
-	if n := c.find("Verification code"); n.Value != "123456" {
+	if n := c.find("numeric verification code"); n.Value != "123456" {
 		t.Fatalf("native PIN: %+v", n)
 	}
 	c.capture("advanced-light")
-	c.press("Project members")
+	c.navigate("select-menu", "SelectMenu")
+	c.press("single members menu")
+	c.press("Search single members menu")
 	c.call("input", map[string]any{"events": []any{map[string]any{"type": "text", "text": "Ada"}}}, nil)
 	c.idle()
 	c.key("Down")
 	c.key("Enter")
 	c.capture("select-menu-light")
 	c.key("Escape")
-	c.press("Dates & color")
-	c.press("Choose Release date")
-	c.press("Release date calendar 2026-11-15")
-	if n := c.find("Release date day"); n.Value != "15" {
+	c.navigate("input-date", "InputDate")
+	c.press("Choose calendar release date")
+	c.press("calendar release date calendar 2026-11-15")
+	if n := c.find("calendar release date day"); n.Value != "15" {
 		t.Fatalf("native date: %+v", n)
 	}
-	day := c.find("Release date day")
+	day := c.find("calendar release date day")
 	c.call("act", map[string]any{"id": day.ID, "action": "focus"}, nil)
 	c.key("Up")
-	if n := c.find("Release date day"); n.Value != "16" {
+	if n := c.find("calendar release date day"); n.Value != "16" {
 		t.Fatalf("native date increment: %+v", n)
 	}
-	c.key("Left")
-	if tr := c.tree(); tr.Focus != c.find("Release date month").ID {
-		t.Fatal("native segment navigation")
+	// Region settings can change the segment order without changing language.
+	month := c.find("calendar release date month")
+	if month.Bounds.X < day.Bounds.X {
+		c.key("Left")
+	} else {
+		c.key("Right")
 	}
-	hour := c.find("Reminder hour")
+	if tr := c.tree(); tr.Focus != c.find("calendar release date month").ID {
+		t.Fatalf("native segment navigation: focus %s, month %s", tr.Focus, month.ID)
+	}
+	c.navigate("input-time", "InputTime")
+	hour := c.find("24-hour reminder hour")
 	c.call("act", map[string]any{"id": hour.ID, "action": "focus"}, nil)
 	c.key("Right")
 	c.call("input", map[string]any{"events": []any{map[string]any{"type": "text", "text": "45"}}}, nil)
 	c.idle()
-	if n := c.find("Reminder minute"); n.Value != "45" {
+	if n := c.find("24-hour reminder minute"); n.Value != "45" {
 		t.Fatalf("native time typing: %+v", n)
 	}
-	start := c.find("Release window start month")
+	c.navigate("input-date", "InputDate")
+	start := c.find("range release date start month")
 	c.call("act", map[string]any{"id": start.ID, "action": "focus"}, nil)
 	c.call("input", map[string]any{"events": []any{map[string]any{"type": "text", "text": "2026-11-10"}}}, nil)
 	c.idle()
-	startYear := c.find("Release window start year")
-	c.call("act", map[string]any{"id": startYear.ID, "action": "focus"}, nil)
+	// Cross the visual boundary from the final start segment to the first end segment.
+	lastStart, firstEnd := start, c.find("range release date end month")
+	for _, part := range []string{"day", "year"} {
+		n := c.find("range release date start " + part)
+		if n.Bounds.X > lastStart.Bounds.X {
+			lastStart = n
+		}
+		n = c.find("range release date end " + part)
+		if n.Bounds.X < firstEnd.Bounds.X {
+			firstEnd = n
+		}
+	}
+	c.call("act", map[string]any{"id": lastStart.ID, "action": "focus"}, nil)
 	c.key("Right")
-	if tr := c.tree(); tr.Focus != c.find("Release window end month").ID {
+	if tr := c.tree(); tr.Focus != firstEnd.ID {
 		t.Fatal("native range navigation")
 	}
-	c.press("Accent color A")
+	c.navigate("color-picker", "ColorPicker")
+	c.press("palette accent A")
 	c.key("Ctrl+A")
 	c.call("input", map[string]any{"events": []any{map[string]any{"type": "text", "text": "128"}}}, nil)
 	c.idle()
 	c.capture("dates-light")
 	c.theme("Dark")
 	c.capture("dates-dark")
-	c.press("Task browser")
+	c.navigate("example/task-browser", "Task browser")
 	c.press("Task 00001")
 	c.press("Edit task")
 	c.capture("task-edit-dark")
@@ -714,17 +907,18 @@ func TestNativeGallery(t *testing.T) {
 	c.press("Filters")
 	c.capture("task-filters-dark")
 	c.press("Apply filters")
-	c.press("Forms & settings")
+	c.navigate("example/settings", "Settings")
 	c.press("Settings: Project setup")
 	c.press("Continue")
 	c.find("Enter a project name")
 	c.capture("wizard-dark")
 
-	c.press("Advanced interactions")
+	c.navigate("carousel", "Carousel")
 	c.capture("interactions-dark")
-	c.press("Next Review guide")
-	c.find("Inspect recent activity")
-	c.press("Search commands")
+	c.press("Next horizontal review guide")
+	c.find("Slide 2 · 1 changes · paused false")
+	c.navigate("command-palette", "CommandPalette")
+	c.press("Open search commands")
 	for range 40 {
 		found := false
 		for _, n := range c.tree().Nodes {
@@ -755,12 +949,13 @@ func TestNativeGallery(t *testing.T) {
 	}
 	c.capture("nested-commands-dark")
 	c.press("Use light theme")
-	c.press("Open inspector")
-	c.press("Resize Activity inspector")
+	c.navigate("drawer", "Drawer")
+	c.press("Open basic drawer")
+	c.press("Resize basic inspector")
 	c.key("End")
 	c.capture("drawer-light")
 	c.key("Escape")
-	c.press("Activity & attachments")
+	c.navigate("chart", "Chart")
 	c.press("Animate charts")
 	c.press("Update data")
 	c.press("Area")
@@ -795,26 +990,27 @@ func TestNativeGallery(t *testing.T) {
 	c.press("Time")
 	c.capture("chart-time-axis")
 	c.press("Animate charts")
-	c.press("Add sample attachment")
-	c.find("review.md")
+	c.navigate("file-upload", "FileUpload")
+	c.press("Add native sample")
+	c.find("review-1.md")
 	c.capture("chart-files-light")
-	c.press("Application layout")
+	c.navigate("navigation-menu", "NavigationMenu")
 	c.press("Workspace settings")
 	c.press("Members")
 	c.find("Opened members")
 	c.capture("shell-light")
-	c.press("Toggle sidebar")
+	c.navigate("sidebar", "Sidebar")
+	c.press("Toggle inner slideover sidebar")
 	c.capture("shell-compact-light")
 	c.checkSidebar()
 
-	c.press("Props & behavior")
-	c.press("Loading switch")
-	if !slices.Contains(c.find("Sync workspace").States, "disabled") {
+	c.navigate("switch", "Switch")
+	if !slices.Contains(c.find("Loading switch").States, "disabled") {
 		t.Fatal("loading switch was not disabled")
 	}
-	c.press("Loading switch")
 	c.capture("props-forms-light")
-	c.press("Grouped PIN")
+	c.navigate("pin-input", "PinInput")
+	c.press("numeric verification code")
 	c.capture("pin-empty-caret-light")
 	c.key("Ctrl+A")
 	c.call("input", map[string]any{"events": []any{map[string]any{"type": "text", "text": "123456"}}}, nil)
@@ -823,31 +1019,32 @@ func TestNativeGallery(t *testing.T) {
 	c.key("Right")
 	c.call("input", map[string]any{"events": []any{map[string]any{"type": "text", "text": "9"}}}, nil)
 	c.idle()
-	if n := c.find("Grouped PIN"); n.Value != "129456" {
+	if n := c.find("numeric verification code"); n.Value != "129456" {
 		t.Fatalf("native grouped PIN replacement: %+v", n)
 	}
 	c.call("input", map[string]any{"events": []any{map[string]any{"type": "text", "text": "8"}}}, nil)
 	c.idle()
-	if n := c.find("Grouped PIN"); n.Value != "129856" {
+	if n := c.find("numeric verification code"); n.Value != "129856" {
 		t.Fatalf("native sequential PIN replacement shifted the suffix: %+v", n)
 	}
 	c.key("Ctrl+Z")
-	if n := c.find("Grouped PIN"); n.Value != "129456" {
+	if n := c.find("numeric verification code"); n.Value != "129456" {
 		t.Fatalf("native PIN replacement undo: %+v", n)
 	}
 	c.capture("pin-grouped-focus-light")
 	c.key("Tab")
-	if tr := c.tree(); tr.Focus == c.find("Grouped PIN").ID {
+	if tr := c.tree(); tr.Focus == c.find("numeric verification code").ID {
 		t.Fatal("grouped PIN retained focus after Tab")
 	}
-	c.press("Selection policies")
-	c.press("Team menu")
-	c.call("input", map[string]any{"events": []any{map[string]any{"type": "text", "text": "Alpha"}}}, nil)
+	c.navigate("select-menu", "SelectMenu")
+	c.press("single members menu")
+	c.call("input", map[string]any{"events": []any{map[string]any{"type": "text", "text": "Ada"}}}, nil)
 	c.idle()
-	c.press("Alpha")
-	c.press("Team menu")
-	c.find("Beta")
+	c.press("Ada Lovelace")
+	c.press("single members menu")
+	c.find("Grace Hopper")
 	c.key("Escape")
+	c.navigate("input-menu", "InputMenu")
 	c.press("Team search")
 	c.call("input", map[string]any{"events": []any{map[string]any{"type": "text", "text": "Beta"}}}, nil)
 	c.idle()
@@ -856,29 +1053,25 @@ func TestNativeGallery(t *testing.T) {
 	c.press("Remove Beta")
 	c.key("Escape")
 	c.capture("props-selection-light")
-	c.press("Orientation")
-	editorID := c.find("Orientation name").ID
-	c.press("Shared orientation")
+	c.navigate("slider", "Slider")
+	c.press("Range orientation")
 	c.press("vertical")
-	if c.find("Orientation name").ID != editorID {
-		t.Fatal("shared orientation replaced editor")
-	}
-	minimum := c.find("Orientation range minimum")
+	minimum := c.find("Workspace range minimum")
 	c.call("act", map[string]any{"id": minimum.ID, "action": "focus"}, nil)
 	c.key("Up")
-	if n := c.find("Orientation range minimum"); n.Now == nil || *n.Now != 25 {
+	if n := c.find("Workspace range minimum"); n.Now == nil || *n.Now != 25 {
 		t.Fatalf("native vertical range: %+v", n)
 	}
 	c.capture("props-vertical-light")
-	c.press("Reverse sliders")
-	minimum = c.find("Orientation range minimum")
+	c.press("Reverse range")
+	minimum = c.find("Workspace range minimum")
 	c.call("act", map[string]any{"id": minimum.ID, "action": "focus"}, nil)
 	c.key("Up")
-	if n := c.find("Orientation range minimum"); n.Now == nil || *n.Now != 20 {
+	if n := c.find("Workspace range minimum"); n.Now == nil || *n.Now != 20 {
 		t.Fatalf("native inverted range: %+v", n)
 	}
-	c.press("Reverse sliders")
-	c.press("Shared orientation")
+	c.press("Reverse range")
+	c.press("Range orientation")
 	c.press("horizontal")
 	c.capture("props-horizontal-light")
 

@@ -95,10 +95,6 @@ CGO_ENABLED=0 go run .
 | 表单校验、编辑对话框、菜单和通知 | `go run ./examples/settings` | [设置页](examples/settings/) |
 | 搜索、筛选、分页、表格和树 | `go run ./examples/data-browser` | [数据浏览器](examples/data-browser/) |
 
-Gallery 顶部的 **Theme** 菜单可切换主色（Primary）、中性色（Neutral）和明暗模式。English / 简体中文 按钮切换组件内置文案；示例标题和业务数据由应用提供，不会自动翻译。
-
-图表页面可调整图型、坐标轴、曲线、堆叠方式和图例。需要静态展示时运行 `go run ./examples/gallery -static`。
-
 ## 按任务查文档
 
 | 任务 | 文档 |

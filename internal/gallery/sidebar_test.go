@@ -1,10 +1,6 @@
 package gallery
 
 import (
-	"fmt"
-	"image/png"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -19,13 +15,12 @@ func galleryBounds(t *testing.T, tt *ui.Tester, label string) ui.Rect {
 	}
 	return r
 }
-
 func TestGallerySidebarNavigationAndWidth(t *testing.T) {
 	a := newStaticGallery()
 	t.Cleanup(a.Dispose)
 	tt := ui.NewTester(a.View, 1080, 820)
 	if r := galleryBounds(t, tt, "Gallery sidebar"); r.W != 256 {
-		t.Fatalf("initial sidebar: %v", r)
+		t.Fatalf("initial width: %v", r)
 	}
 	r := galleryBounds(t, tt, "Resize gallery sidebar")
 	x, y := r.X+r.W/2, r.Y+r.H/2
@@ -33,126 +28,105 @@ func TestGallerySidebarNavigationAndWidth(t *testing.T) {
 	tt.Move(x+44, y)
 	tt.Release(x+44, y)
 	if a.Sidebar.Width.Value != 300 {
-		t.Fatalf("drag did not resize Gallery: %v", a.Sidebar.Width)
+		t.Fatal("resize")
 	}
 	press(t, tt, "Toggle gallery sidebar")
 	if !a.SidebarCollapsed || galleryBounds(t, tt, "Gallery sidebar").W != 64 {
-		t.Fatal("Gallery did not collapse")
+		t.Fatal("collapse")
 	}
-	press(t, tt, "Components")
-	tt.Key(0, ui.KeyDown)
-	if !tt.Focused("Inputs & overlays") {
-		t.Fatal("compact navigation lost arrow-key focus")
-	}
+	press(t, tt, "App")
+	tt.Key(0, ui.KeyEnd)
 	tt.Key(0, ui.KeyEnter)
-	if a.Page != 1 {
-		t.Fatal("compact keyboard navigation did not switch page")
+	if a.ActiveID != "example/task-browser" {
+		t.Fatalf("last item: %s", a.ActiveID)
 	}
-	tt.Key(0, ui.KeyTab)
-	if !tt.Focused("Resize gallery sidebar") {
-		t.Fatal("Tab did not leave the navigation group for the resize handle")
-	}
-	tt.Key(0, ui.KeyTab)
-	if !tt.Focused("Workspace name") {
-		t.Fatal("Tab did not enter the page's first input")
-	}
-	tt.Key(ui.Ctrl, ui.KeyA)
-	tt.Type("Preserved draft")
-	press(t, tt, "Components")
-	press(t, tt, "Inputs & overlays")
-	if a.Name != "Preserved draft" || !a.SidebarCollapsed || a.Sidebar.Width.Value != 300 {
-		t.Fatalf("page switch: draft=%q collapsed=%v width=%v page=%d", a.Name, a.SidebarCollapsed, a.Sidebar.Width, a.Page)
+	tt.Key(0, ui.KeyHome)
+	tt.Key(0, ui.KeyEnter)
+	if a.ActiveID != "app" {
+		t.Fatal("first item")
 	}
 	press(t, tt, "Toggle gallery sidebar")
 	if galleryBounds(t, tt, "Gallery sidebar").W != 300 {
-		t.Fatal("expansion did not restore resized width")
+		t.Fatal("restore width")
 	}
-	// Commands and other examples also navigate by assigning Page directly.
-	a.Page = 3
+	a.Navigate("input")
 	tt.Frame()
-	if a.navigationActive != "theme-buttons" {
-		t.Fatal("external navigation left stale selection")
+	press(t, tt, "Workspace name")
+	tt.Key(ui.Ctrl, ui.KeyA)
+	tt.Type("Saved draft")
+	press(t, tt, "Search components")
+	tt.Type("BUTTON")
+	if a.ActiveID != "input" || !tt.Focused("Search components") {
+		t.Fatal("filter navigated or stole focus")
 	}
-	// Every item remains reachable through the shared keyboard focus group.
-	press(t, tt, "Components")
-	tt.Key(0, ui.KeyEnd)
-	tt.Key(0, ui.KeyEnter)
-	if a.Page != 18 {
-		t.Fatal("last Gallery page is not keyboard reachable")
+	requireText(t, tt, "Current value: Saved draft")
+	tt.Key(ui.Ctrl, ui.KeyA)
+	tt.Type("加载")
+	if !tt.HasText("Button") {
+		t.Fatal("Chinese description search")
 	}
-	other := newStaticGallery()
-	t.Cleanup(other.Dispose)
-	otherTester := ui.NewTester(other.View, 1080, 820)
-	if other.SidebarCollapsed || galleryBounds(t, otherTester, "Gallery sidebar").W != 256 {
-		t.Fatal("sidebar state leaked between windows")
+	tt.Key(ui.Ctrl, ui.KeyA)
+	tt.Type("no-such-component")
+	requireText(t, tt, "No matching components")
+	tt.Key(ui.Ctrl, ui.KeyA)
+	tt.Key(0, ui.KeyBackspace)
+	if a.ActiveID != "input" {
+		t.Fatal("clearing search changed route")
+	}
+	b := newStaticGallery()
+	t.Cleanup(b.Dispose)
+	bt := ui.NewTester(b.View, 1080, 820)
+	if b.SidebarCollapsed || galleryBounds(t, bt, "Gallery sidebar").W != 256 {
+		t.Fatal("window isolation")
 	}
 }
-
 func TestGallerySidebarIndependentOfLayoutExample(t *testing.T) {
 	a := newStaticGallery()
 	t.Cleanup(a.Dispose)
-	a.Page = 16
+	a.Navigate("sidebar")
 	tt := ui.NewTester(a.View, 1080, 820)
 	press(t, tt, "Toggle gallery sidebar")
-	if !a.SidebarCollapsed || a.Advanced.Collapsed {
-		t.Fatal("outer toggle changed the example sidebar")
+	press(t, tt, "Toggle inner slideover sidebar")
+	if !a.SidebarCollapsed {
+		t.Fatal("inner toggle changed outer sidebar")
 	}
-	press(t, tt, "Toggle sidebar")
-	if !a.SidebarCollapsed || !a.Advanced.Collapsed {
-		t.Fatal("example toggle changed the Gallery sidebar")
-	}
+	requireText(t, tt, "Collapsed true")
 	press(t, tt, "Toggle gallery sidebar")
-	if a.SidebarCollapsed || !a.Advanced.Collapsed {
-		t.Fatal("Gallery expansion lost example state")
-	}
+	requireText(t, tt, "Collapsed true")
 	tt.SetSize(720, 820)
-	press(t, tt, "Toggle gallery sidebar")
-	press(t, tt, "Components")
-	if a.Page != 0 || galleryBounds(t, tt, "Gallery sidebar").W != 64 {
-		t.Fatal("narrow-window compact navigation")
+	press(t, tt, "Open component directory")
+	if !a.Sidebar.Open {
+		t.Fatal("narrow opener")
+	}
+	press(t, tt, "Button")
+	if a.ActiveID != "button" || a.Sidebar.Open {
+		t.Fatal("narrow navigation did not close directory")
+	}
+	if !tt.Focused("Open component directory") {
+		t.Fatal("directory focus restoration")
 	}
 }
-
 func TestGallerySidebarVisualArtifacts(t *testing.T) {
-	dir := os.Getenv("NUI_ARTIFACTS")
-	if dir == "" {
-		t.Skip("NUI_ARTIFACTS not set")
-	}
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		t.Fatal(err)
-	}
-	for _, scene := range []string{"expanded", "compact", "tooltip", "narrow-dark", "rtl"} {
+	for _, kind := range []string{"compact", "tooltip", "rtl", "narrow-dark"} {
 		a := newStaticGallery()
 		t.Cleanup(a.Dispose)
-		a.SidebarCollapsed = scene == "compact" || scene == "tooltip" || scene == "narrow-dark"
-		a.Dark = scene == "narrow-dark"
+		a.SidebarCollapsed = kind != "rtl"
+		a.Dark = kind == "narrow-dark"
 		tt := ui.NewTester(a.View, 1080, 820)
-		if scene == "narrow-dark" {
-			tt.SetSize(720, 820)
-		}
-		if scene == "rtl" {
+		if kind == "rtl" {
 			tt.SetDirection(ui.RightToLeft)
 			tt.SetPreferences(ui.Preferences{TextScale: 1.5, ReduceMotion: true})
 		}
-		if scene == "tooltip" {
-			r := galleryBounds(t, tt, "Inputs & overlays")
+		if kind == "narrow-dark" {
+			tt.SetSize(720, 820)
+			press(t, tt, "Open component directory")
+		}
+		if kind == "tooltip" {
+			r := galleryBounds(t, tt, "Button")
 			tt.Move(r.X+r.W/2, r.Y+r.H/2)
 			tt.Advance(time.Second)
-			if !tt.HasText("Inputs & overlays") {
-				t.Fatal("compact navigation tooltip missing")
-			}
+			requireText(t, tt, "Button")
 		}
-		f, err := os.Create(filepath.Join(dir, fmt.Sprintf("gallery-sidebar-%s.png", scene)))
-		if err != nil {
-			t.Fatal(err)
-		}
-		err = png.Encode(f, tt.Image())
-		closeErr := f.Close()
-		if err != nil {
-			t.Fatal(err)
-		}
-		if closeErr != nil {
-			t.Fatal(closeErr)
-		}
+		captureGallery(t, tt, "sidebar-"+kind)
 	}
 }
