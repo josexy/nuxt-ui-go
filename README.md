@@ -6,6 +6,8 @@
 
 **第一次使用，从下面的最小应用开始。** 想先查看组件效果，可以[运行 Gallery](#运行示例)；已有应用需要接入组件，直接查看[组件指南](docs/README.md)。
 
+![Gallery 组件展示：组件目录与按钮示例](docs/images/gallery.png)
+
 ## 安装与最小应用
 
 需要 **Go 1.27.3 或更高版本**，以及桌面图形会话。构建时设置 `CGO_ENABLED=0`。Windows、Linux、macOS 的验证程度不同，具体见[兼容性说明](docs/compatibility.md#环境与平台)。
