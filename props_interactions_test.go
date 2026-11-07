@@ -236,6 +236,86 @@ func TestPropsHorizontalListboxAndLoop(t *testing.T) {
 	}
 }
 
+func TestListboxFilterAndItemOptions(t *testing.T) {
+	var state nui.ListboxState
+	selected := []string{"tea"}
+	changes, queries, selections, attempts, highlights := 0, 0, 0, 0, 0
+	prevent, filter, loading, disabled := true, true, false, false
+	items := []nui.ListboxItem{
+		{ID: "heading", Label: "Drinks", Kind: nui.ListboxLabel},
+		{ID: "prefix", Label: "Cafeteria"},
+		{ID: "contains", Label: "A café"},
+		{ID: "exact", Label: "Café", Options: &nui.ListboxItemOptions{OnSelect: func(e *nui.ListboxEvent) {
+			attempts++
+			if prevent {
+				e.PreventDefault()
+			}
+		}}},
+		{ID: "separator", Kind: nui.ListboxSeparator},
+		{ID: "tea", Label: "Tea"},
+	}
+	tt := ui.NewTester(func(c *ui.Context) {
+		th := nui.App(c, nui.AppConfig{})
+		ui.Column(c).Disabled(disabled).Children(func() {
+			nui.Listbox(c, th, &selected, &state, items, nui.ListboxOptions{
+				Label: "Choices", Filter: filter, Loading: loading, Color: nui.Neutral, Highlight: true,
+				OnChange: func([]string) { changes++ }, OnSelect: func(string) { selections++ },
+				OnSearchTermChange: func(string) { queries++ },
+				OnHighlight:        func(string) { highlights++ },
+			}).Width(340)
+		})
+	}, 400, 300)
+	if state.Active != "tea" {
+		t.Fatal("selected item was not initially highlighted")
+	}
+	click(t, tt, "Search Choices")
+	tt.Type("cafe")
+	if state.Query != "cafe" || state.Active != "exact" || queries != 1 || tt.HasText("Tea") {
+		t.Fatalf("filter or relevance mismatch: query=%q active=%q queries=%d", state.Query, state.Active, queries)
+	}
+	if highlights != 1 {
+		t.Fatalf("query highlight notified %d times, want once", highlights)
+	}
+	tt.Key(0, ui.KeyDown)
+	if state.Active != "prefix" || !tt.Focused("Search Choices") {
+		t.Fatal("filter navigation did not retain editor focus or relevance order")
+	}
+	tt.Key(0, ui.KeyHome)
+	tt.Key(0, ui.KeyEnter)
+	if !slices.Equal(selected, []string{"tea"}) || changes != 0 || selections != 0 || attempts != 1 {
+		t.Fatalf("prevented activation: values=%v changes=%d selections=%d attempts=%d", selected, changes, selections, attempts)
+	}
+	prevent = false
+	tt.Key(0, ui.KeyEnter)
+	if !slices.Equal(selected, []string{"exact"}) || changes != 1 || selections != 1 || attempts != 2 {
+		t.Fatalf("filter Enter: values=%v changes=%d selections=%d attempts=%d", selected, changes, selections, attempts)
+	}
+	loading = true
+	tt.Frame()
+	tt.Key(0, ui.KeyEnter)
+	if tt.HasText("Cafeteria") || changes != 1 || attempts != 2 {
+		t.Fatal("loading list still exposed or activated its rows")
+	}
+	loading = false
+	tt.Key(ui.Ctrl, ui.KeyA)
+	tt.Key(0, ui.KeyBackspace)
+	filter = false
+	tt.Frame()
+	if !tt.Focused("Choices") {
+		t.Fatal("hiding the filter did not restore list focus")
+	}
+	tt.Key(0, ui.KeyHome)
+	if state.Active != "prefix" {
+		t.Fatal("keyboard navigation did not skip the structural heading")
+	}
+	disabled = true
+	tt.Frame()
+	tt.Key(0, ui.KeyEnter)
+	if changes != 1 || selections != 1 {
+		t.Fatal("ancestor-disabled list changed selection")
+	}
+}
+
 func TestPropsSliderOrientationPointerAndGap(t *testing.T) {
 	for _, orientation := range []nui.Orientation{nui.Horizontal, nui.Vertical} {
 		for _, inverted := range []bool{false, true} {

@@ -162,9 +162,10 @@ func TestButtonSizesDensityAndLoadingGeometry(t *testing.T) {
 }
 
 func TestAnimationLifecycle(t *testing.T) {
-	for _, kind := range []string{"button", "skeleton", "progress"} {
+	for _, kind := range []string{"button", "skeleton", "progress", "empty", "input"} {
 		t.Run(kind, func(t *testing.T) {
 			shown, offscreen, enabled := true, false, true
+			text := ""
 			tt := ui.NewTester(func(c *ui.Context) {
 				theme := nui.App(c, nui.AppConfig{})
 				ui.Scroll(c).Fill().Children(func() {
@@ -181,6 +182,10 @@ func TestAnimationLifecycle(t *testing.T) {
 						nui.Skeleton(c, theme, nui.SkeletonOptions{Animate: nui.Set(enabled)})
 					case "progress":
 						nui.Progress(c, theme, 0, nui.ProgressOptions{Indeterminate: true, Animate: nui.Set(enabled)})
+					case "empty":
+						nui.Empty(c, theme, nui.EmptyOptions{Title: "Loading", Loading: enabled})
+					case "input":
+						nui.Input(c, theme, &text, nui.InputOptions{Label: "Loading", Loading: enabled})
 					}
 				})
 			}, 300, 120)

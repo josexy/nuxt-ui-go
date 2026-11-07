@@ -148,7 +148,7 @@ func TestCalendarDirectionAndHiddenRange(t *testing.T) {
 		nui.Calendar(c, th, &selected, &state, nui.CalendarOptions{Label: "Dates"})
 	}, 400, 400)
 	tt.SetDirection(ui.RightToLeft)
-	click(t, tt, "Dates")
+	click(t, tt, "Dates 2026-11-15")
 	tt.Key(0, ui.KeyRight)
 	if state.Active.Day != 14 {
 		t.Fatalf("RTL right = %v", state.Active)

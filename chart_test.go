@@ -236,19 +236,26 @@ func TestChartInteractionAndAnimationLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	shown, offscreen, enabled, interactive := true, false, true, true
+	rtl := false
 	kind := ChartLine
 	legendCalls := 0
+	focusCalls, selectCalls := 0, 0
+	var activated ChartSelection
 	var plotBounds ui.Rect
 	tt := ui.NewTester(func(c *ui.Context) {
 		theme := App(c, AppConfig{})
-		ui.Scroll(c).Fill().Children(func() {
+		direction := ui.LeftToRight
+		if rtl {
+			direction = ui.RightToLeft
+		}
+		ui.Scroll(c).Fill().Direction(direction).Children(func() {
 			if offscreen {
 				ui.Box(c).Height(700)
 			}
 			if !shown {
 				return
 			}
-			Chart(c, theme, &s, ChartOptions{Label: "Metrics", Kind: kind, Height: 220, Animate: Set(enabled), InteractiveLegend: Set(interactive), OnLegendChange: func(string, bool) { legendCalls++ }})
+			Chart(c, theme, &s, ChartOptions{Label: "Metrics", Kind: kind, Height: 220, Animate: Set(enabled), InteractiveLegend: Set(interactive), OnLegendChange: func(string, bool) { legendCalls++ }, OnFocusChange: func(ChartSelection) { focusCalls++ }, OnSelect: func(point ChartSelection) { selectCalls++; activated = point }})
 			plotBounds = s.handle.Bounds(c)
 		})
 	}, 640, 400)
@@ -309,9 +316,16 @@ func TestChartInteractionAndAnimationLifecycle(t *testing.T) {
 	tt.Frame()
 	tt.Advance(time.Second)
 	click("Metrics")
+	focusCalls, selectCalls = 0, 0
 	tt.Key(0, ui.KeyHome)
 	if s.SelectedSlice != "one" {
 		t.Fatal("radial Home", s.SelectedSlice)
+	}
+	tt.Key(0, ui.KeyHome)
+	tt.Key(0, ui.KeyEnter)
+	tt.Key(0, ui.KeySpace)
+	if focusCalls != 1 || selectCalls != 2 || activated.SliceID != "one" {
+		t.Fatalf("chart notifications: focus=%d select=%d point=%+v", focusCalls, selectCalls, activated)
 	}
 	tt.Key(0, ui.KeyRight)
 	if s.SelectedSlice != "two" {
@@ -375,6 +389,31 @@ func TestChartInteractionAndAnimationLifecycle(t *testing.T) {
 	if tt.FramePending() {
 		t.Fatal("returning chart did not settle")
 	}
+	rtl, enabled = true, false
+	tt.Frame()
+	click("Metrics")
+	tt.Key(0, ui.KeyHome)
+	tt.Key(0, ui.KeyLeft)
+	if s.Selected != 1 {
+		t.Fatalf("RTL left selected %d", s.Selected)
+	}
+	tt.Key(0, ui.KeyRight)
+	if s.Selected != 0 {
+		t.Fatal("RTL right did not return to first X value")
+	}
+	tt.Move(plotBounds.X+plotBounds.W*(1-s.prepared.positions[2]), plotBounds.Y+plotBounds.H/2)
+	if s.Selected != 2 {
+		t.Fatalf("RTL pointer selected %d", s.Selected)
+	}
+	jan, _ := tt.Find("Jan")
+	mar, _ := tt.Find("Mar")
+	if jan.X <= mar.X {
+		t.Fatalf("RTL axis labels do not follow reversed data: Jan=%+v Mar=%+v", jan, mar)
+	}
+	ytick, ok := tt.Find("8")
+	if !ok || ytick.X < plotBounds.X+plotBounds.W-1 {
+		t.Fatalf("RTL Y labels are not on the right: tick=%+v plot=%+v", ytick, plotBounds)
+	}
 }
 
 func TestChartDefaultSeriesColorsAreDistinct(t *testing.T) {
@@ -392,8 +431,8 @@ func TestChartDefaultSeriesColorsAreDistinct(t *testing.T) {
 			}
 			seen[got] = true
 		}
-		if chartColor(th, ColorDefault, 6) != th.Primary || chartColor(th, Error, 3) != th.Error {
-			t.Fatal("series colors must cycle after six and honor explicit colors")
+		if chartColor(th, ColorDefault, 6) == th.Primary || chartColor(th, Error, 3) != th.Error || chartColor(th, Neutral, 0) != th.InvertedBackground {
+			t.Fatal("later series must use lighter colors while explicit colors and neutral remain distinct")
 		}
 	}
 }

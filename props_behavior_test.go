@@ -13,6 +13,7 @@ func TestSelectMenuResetAndOpeningKeys(t *testing.T) {
 		var state nui.SelectMenuState
 		var selected []string
 		var queries []string
+		var openings []bool
 		disabled, search := false, true
 		tt := ui.NewTester(func(c *ui.Context) {
 			theme := nui.App(c, nui.AppConfig{})
@@ -20,16 +21,23 @@ func TestSelectMenuResetAndOpeningKeys(t *testing.T) {
 				nui.SelectMenu(c, theme, &selected, &state, []nui.ListboxItem{{ID: "a", Label: "Alpha"}, {ID: "b", Label: "Beta"}}, nui.SelectMenuOptions{
 					Label: "Choose", Disabled: disabled, SearchInput: nui.Set(search),
 					ResetSearchTermOnBlur: nui.Set(!keep), ResetSearchTermOnSelect: nui.Set(!keep), OnQuery: func(q string) { queries = append(queries, q) },
+					OnOpenChange: func(open bool) { openings = append(openings, open) },
 				}).Width(300)
 				nui.Button(c, theme, "Outside", nui.ButtonOptions{}).Absolute().Top(440).Left(350)
 			})
 		}, 500, 500)
 		click(t, tt, "Choose")
+		if len(openings) != 1 || !openings[0] {
+			t.Fatalf("opening notifications: %v", openings)
+		}
 		tt.Type("Alpha")
 		click(t, tt, "Alpha")
 		tt.Advance(500 * time.Millisecond)
 		if state.Open || len(selected) != 1 || selected[0] != "a" {
 			t.Fatal("selection did not close")
+		}
+		if len(openings) != 2 || openings[1] {
+			t.Fatalf("selection close notifications: %v", openings)
 		}
 		if (state.Query != "") != keep {
 			t.Fatalf("keep=%v query=%q", keep, state.Query)
@@ -40,8 +48,12 @@ func TestSelectMenuResetAndOpeningKeys(t *testing.T) {
 		}
 		tt.Key(ui.Ctrl, ui.KeyA)
 		tt.Type("Beta")
+		beforeClose := len(openings)
 		tt.Key(0, ui.KeyEscape)
 		tt.Advance(500 * time.Millisecond)
+		if len(openings) != beforeClose+1 || openings[len(openings)-1] {
+			t.Fatalf("Escape notifications: %v", openings)
+		}
 		if !tt.Focused("Choose") {
 			t.Fatal("focus did not return")
 		}

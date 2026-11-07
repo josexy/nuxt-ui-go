@@ -3,28 +3,44 @@ package nui
 import (
 	"container/heap"
 	"context"
+	"maps"
 	"slices"
 	"strings"
 	"time"
 	"unicode"
 
 	"github.com/egoist/mygo/ui"
-	"github.com/josexy/nuxt-ui-go/icons/lucide"
 )
 
 type CommandAction struct {
 	Key                                               ui.Key
 	Mods                                              ui.Modifiers
 	ID, Label, Description, Group, Keywords, Shortcut string
+	Prefix, Suffix, Placeholder                       string
+	Kbds                                              []string
 	Icon                                              *ui.SVG
+	Avatar                                            *AvatarOptions
+	Chip                                              *ChipOptions
+	Loading, Active                                   bool
 	Disabled                                          bool
 	Children                                          []CommandAction
 	OnSelect                                          func()
+	// OnSelectEvent can cancel a leaf activation before closing or callbacks.
+	OnSelectEvent func(*CommandEvent)
+	Decoration
 }
+
+type CommandEvent struct {
+	ID        string
+	prevented bool
+}
+
+func (e *CommandEvent) PreventDefault() { e.prevented = true }
+
 type indexedCommand struct {
-	action          CommandAction
-	label, keywords []rune
-	order           int
+	action                               CommandAction
+	label, description, suffix, keywords []rune
+	order                                int
 }
 
 // CommandIndex is immutable after construction and safe to search on a worker.
@@ -38,32 +54,51 @@ type CommandIndex struct {
 func NewCommandIndex(actions []CommandAction) *CommandIndex {
 	x := &CommandIndex{levels: map[string][]indexedCommand{}}
 	seen := map[string]bool{}
-	var add func(string, []CommandAction, int)
-	add = func(parent string, items []CommandAction, depth int) {
+	var add func(string, []CommandAction, int, bool) []CommandAction
+	add = func(parent string, items []CommandAction, depth int, disabled bool) []CommandAction {
 		if depth > 32 {
 			panic("nui: CommandPalette nesting exceeds 32")
 		}
-		for _, a := range items {
+		if items == nil {
+			return nil
+		}
+		owned := make([]CommandAction, len(items))
+		for i, a := range items {
 			checkID(seen, a.ID, "CommandPalette")
-			children := a.Children
-			a.Children = slices.Clone(children)
-			x.levels[parent] = append(x.levels[parent], indexedCommand{a, []rune(strings.ToLower(a.Label)), []rune(strings.ToLower(a.Keywords)), x.count})
+			order := x.count
 			x.count++
+			a.Disabled = a.Disabled || disabled
+			a.Kbds = slices.Clone(a.Kbds)
+			a.UI = maps.Clone(a.UI)
+			if a.Avatar != nil {
+				v := *a.Avatar
+				v.UI = maps.Clone(v.UI)
+				a.Avatar = &v
+			}
+			if a.Chip != nil {
+				v := *a.Chip
+				v.UI = maps.Clone(v.UI)
+				a.Chip = &v
+			}
+			a.Children = add(a.ID, a.Children, depth+1, a.Disabled)
+			owned[i] = a
+			x.levels[parent] = append(x.levels[parent], indexedCommand{action: a, label: []rune(strings.ToLower(a.Label)), description: []rune(strings.ToLower(a.Description)), suffix: []rune(strings.ToLower(a.Suffix)), keywords: []rune(strings.ToLower(a.Keywords)), order: order})
 			if a.Key != ui.KeyUnknown {
 				x.shortcuts = append(x.shortcuts, a)
 			}
-			add(a.ID, children, depth+1)
 		}
+		return owned
 	}
-	add("", actions, 0)
+	add("", actions, 0, false)
 	return x
 }
 
 type CommandMatch struct {
-	Action     CommandAction
-	Highlights []int
-	Score      int
-	order      int
+	Action                                  CommandAction
+	Highlights                              []int
+	DescriptionHighlights, SuffixHighlights []int
+	Score                                   int
+	order                                   int
 }
 type commandHeap []CommandMatch
 
@@ -113,13 +148,20 @@ func fuzzy(label, query []rune, scratch []int) ([]int, int, bool) {
 // Search checks cancellation while scanning and retains at most limit matches.
 // Highlight offsets are Unicode rune indexes, not UTF-8 byte offsets.
 func (x *CommandIndex) Search(ctx context.Context, query, parent string, limit int) []CommandMatch {
+	return x.search(ctx, query, parent, limit, commandDefaultFields, false)
+}
+
+func (x *CommandIndex) search(ctx context.Context, query, parent string, limit int, fields commandFields, ignore bool) []CommandMatch {
 	if x == nil {
 		return nil
 	}
 	limit = commandLimit(limit)
 	q := []rune(strings.ToLower(strings.TrimSpace(query)))
 	h := commandHeap{}
-	scratch := make([]int, 0, len(q))
+	var scratch [4][]int
+	for i := range scratch {
+		scratch[i] = make([]int, 0, len(q))
+	}
 	for i, it := range x.levels[parent] {
 		if i%128 == 0 {
 			select {
@@ -128,19 +170,14 @@ func (x *CommandIndex) Search(ctx context.Context, query, parent string, limit i
 			default:
 			}
 		}
-		marks, score, ok := fuzzy(it.label, q, scratch)
-		if !ok {
-			_, score, ok = fuzzy(it.keywords, q, scratch)
-			marks = nil
-			score -= 20
-		}
+		marks, score, ok := matchCommand(it, q, scratch, fields, ignore)
 		if !ok {
 			continue
 		}
 		if len(h) >= limit && score <= h[0].Score {
 			continue
 		}
-		m := CommandMatch{it.action, slices.Clone(marks), score, it.order}
+		m := CommandMatch{Action: it.action, Highlights: slices.Clone(marks[0]), DescriptionHighlights: slices.Clone(marks[1]), SuffixHighlights: slices.Clone(marks[2]), Score: score, order: it.order}
 		if len(h) < limit {
 			heap.Push(&h, m)
 		} else if score > h[0].Score {
@@ -165,22 +202,29 @@ type commandResult struct {
 	ticket QueryTicket
 	items  []CommandMatch
 }
+type commandLevel struct{ id, label, placeholder string }
 type CommandPaletteState struct {
-	Open                  bool
-	Query                 string
-	Results               QueryState[CommandMatch]
-	index                 *CommandIndex
-	level                 []string
-	lastQuery, lastParent string
-	dirty, wasOpen        bool
-	mailbox               chan commandResult
-	list                  ListboxState
-	editor                ui.Handle
-	selected              []string
+	Open                                   bool
+	Query                                  string
+	Results                                QueryState[CommandMatch]
+	index                                  *CommandIndex
+	level                                  []commandLevel
+	lastQuery, lastParent                  string
+	lastLimit                              int
+	lastFields                             commandFields
+	lastIgnore, lastExternal, lastDisabled bool
+	lastDelay                              time.Duration
+	waiting                                bool
+	readyAt                                time.Time
+	dirty, wasOpen                         bool
+	mailbox                                chan commandResult
+	list                                   ListboxState
+	editor                                 ui.Handle
+	selected                               []string
 }
 
 func (s *CommandPaletteState) SetIndex(index *CommandIndex) {
-	s.Results.Cancel()
+	s.Refresh()
 	s.index = index
 	s.dirty = true
 	s.level = nil
@@ -188,10 +232,31 @@ func (s *CommandPaletteState) SetIndex(index *CommandIndex) {
 	s.Results.Items = nil
 	s.mailbox = nil
 }
-func (s *CommandPaletteState) Close() { s.Open = false; s.Results.Cancel(); s.mailbox = nil }
+
+// Refresh cancels pending work and searches again on the next build. Use it
+// after replacing a custom Search closure without changing Query or SetIndex.
+func (s *CommandPaletteState) Refresh() {
+	s.Results.Cancel()
+	s.Results.Items = nil
+	s.mailbox = nil
+	s.waiting = false
+	s.dirty = true
+}
+
+// Searching includes the debounce interval before a worker request starts.
+func (s *CommandPaletteState) Searching() bool { return s.waiting || s.Results.Loading }
+func (s *CommandPaletteState) Close() {
+	s.Open, s.wasOpen = false, false
+	s.Results.Cancel()
+	s.mailbox = nil
+	s.dirty = true
+	s.waiting = false
+	s.editor.CancelFocus()
+	s.list.List.CancelFocus()
+}
 func (s *CommandPaletteState) parent() string {
 	if len(s.level) > 0 {
-		return s.level[len(s.level)-1]
+		return s.level[len(s.level)-1].id
 	}
 	return ""
 }
@@ -199,17 +264,34 @@ func (s *CommandPaletteState) Back() {
 	if len(s.level) > 0 {
 		s.level = s.level[:len(s.level)-1]
 		s.Query = ""
-		s.dirty = true
+		s.Refresh()
 		s.editor.Focus()
 	}
 }
 
 type CommandPaletteOptions struct {
-	Title, Placeholder string
-	Limit              int
-	ShortcutKey        ui.Key
-	ShortcutMods       ui.Modifiers
-	DisableShortcut    bool
+	Title, Placeholder                                      string
+	Limit                                                   int
+	ShortcutKey                                             ui.Key
+	ShortcutMods                                            ui.Modifiers
+	DisableShortcut                                         bool
+	Disabled                                                bool
+	Size                                                    Size
+	SearchDelay                                             time.Duration
+	FilterFields                                            []string
+	IgnoreFilter, PreserveGroupOrder                        bool
+	Autofocus, SearchInput, Back                            Optional[bool]
+	SearchInputOptions                                      *InputOptions
+	Icon, ChildrenIcon, BackIcon, LoadingIcon, SelectedIcon *ui.SVG
+	ShowIcon                                                Optional[bool]
+	Loading, Loop                                           bool
+	HighlightOnHover                                        Optional[bool]
+	BackOptions                                             *ButtonOptions
+	EmptyText                                               string
+	BuildEmpty                                              func(*ui.Context, Theme, string)
+	OnSearchTermChange, OnHighlight                         func(string)
+	OnSelectEvent                                           func(*CommandEvent)
+	CloseOnSelect                                           Optional[bool]
 	// Search starts application work; publish Results.Complete on the UI thread.
 	// Nil uses the immutable index on a worker and a bounded mailbox.
 	Search   func(context.Context, QueryTicket, string, string)
@@ -223,8 +305,15 @@ func CommandPalette(c *ui.Context, t Theme, s *CommandPaletteState, o CommandPal
 		panic("nui: CommandPalette requires state")
 	}
 	host := ui.Box(c).Absolute().Size(0, 0).IgnoreInput(true)
+	if o.SearchDelay < 0 {
+		panic("nui: CommandPalette SearchDelay must be non-negative")
+	}
+	host.Disabled(o.Disabled || t.field.Disabled)
+	disabled := host.IsDisabled()
+	fields := commandFieldMask(o.FilterFields)
+	config := selected(defaults(t, ComponentCommandPalette, ComponentTheme{Size: MD}), ComponentTheme{Size: o.Size})
 	identity := ui.Local(host, "command", func() byte { return 0 })
-	if !o.DisableShortcut {
+	if !disabled && !o.DisableShortcut {
 		key, mods := o.ShortcutKey, o.ShortcutMods
 		if key == ui.KeyUnknown {
 			key = ui.KeyK
@@ -238,20 +327,12 @@ func CommandPalette(c *ui.Context, t Theme, s *CommandPaletteState, o CommandPal
 			}
 		})
 	}
-	if s.index != nil {
+	if s.index != nil && !disabled {
 		for _, a := range s.index.shortcuts {
 			if a.Disabled || len(a.Children) > 0 {
 				continue
 			}
-			c.OnShortcut(a.Mods, a.Key, func() {
-				s.Close()
-				if a.OnSelect != nil {
-					a.OnSelect()
-				}
-				if o.OnSelect != nil {
-					o.OnSelect(a.ID)
-				}
-			})
+			c.OnShortcut(a.Mods, a.Key, func() { activateCommand(s, a, o) })
 		}
 	}
 	if !s.Open {
@@ -259,43 +340,84 @@ func CommandPalette(c *ui.Context, t Theme, s *CommandPaletteState, o CommandPal
 			s.Close()
 		}
 		s.wasOpen = false
+		// Keep the modal host mounted for its explicit ReturnFocus transition.
+		ModalWithOptions(c.Key(identity), t, &s.Open, o.Modal, nil)
 		return host
 	}
 	if !s.wasOpen {
-		s.editor.Focus(c)
+		if !disabled && valueOr(o.Autofocus, true) {
+			if valueOr(o.SearchInput, true) {
+				s.editor.Focus(c)
+			} else {
+				s.list.List.Handle.Focus(c)
+			}
+		}
 		s.dirty = true
 	}
 	s.wasOpen = true
-	if s.mailbox != nil {
-		select {
-		case r := <-s.mailbox:
-			s.Results.Complete(r.ticket, r.items, nil)
+	if disabled != s.lastDisabled {
+		if disabled {
+			s.Results.Cancel()
 			s.mailbox = nil
-		default:
+			s.waiting = false
+		} else {
+			s.dirty = true
 		}
+		s.lastDisabled = disabled
 	}
-	if s.dirty || s.Query != s.lastQuery || s.parent() != s.lastParent {
+	limit := commandLimit(o.Limit)
+	wasWaiting := s.waiting
+	if !disabled && (s.dirty || s.Query != s.lastQuery || s.parent() != s.lastParent || limit != s.lastLimit || fields != s.lastFields || o.IgnoreFilter != s.lastIgnore || (o.Search != nil) != s.lastExternal) {
+		debounce := !s.dirty && s.parent() == s.lastParent && s.Query != s.lastQuery
+		s.Results.Cancel()
+		s.Results.Items = nil
+		s.Results.Error = ""
+		s.mailbox = nil
+		s.waiting = true
+		s.readyAt = c.Now()
+		if debounce {
+			s.readyAt = s.readyAt.Add(o.SearchDelay)
+		}
 		s.dirty = false
 		s.lastQuery, s.lastParent = s.Query, s.parent()
+		s.lastLimit = limit
+		s.lastFields, s.lastIgnore, s.lastExternal = fields, o.IgnoreFilter, o.Search != nil
 		s.selected = nil
 		s.list.Active = ""
 		s.list.List.ScrollTo(0, ui.Start)
+	}
+	if s.waiting && wasWaiting && s.lastDelay != o.SearchDelay {
+		s.readyAt = c.Now().Add(o.SearchDelay)
+	}
+	s.lastDelay = o.SearchDelay
+	if s.waiting && !disabled && !c.Now().Before(s.readyAt) {
+		s.waiting = false
 		ctx, ticket := s.Results.Start(context.Background(), s.Query)
-		s.Results.Items = nil
 		if o.Search != nil {
 			o.Search(ctx, ticket, s.Query, s.parent())
 		} else {
-			index, query, parent, limit := s.index, s.Query, s.parent(), o.Limit
+			index, query, parent, limit, ignore := s.index, s.Query, s.parent(), limit, o.IgnoreFilter
 			mailbox := make(chan commandResult, 1)
 			s.mailbox = mailbox
 			go func() {
-				items := index.Search(ctx, query, parent, limit)
+				items := index.search(ctx, query, parent, limit, fields, ignore)
 				select {
 				case <-ctx.Done():
 					return
 				case mailbox <- commandResult{ticket, items}:
 				}
 			}()
+		}
+	}
+	if s.waiting {
+		c.After(s.readyAt.Sub(c.Now()))
+	}
+	if s.mailbox != nil {
+		select {
+		case r := <-s.mailbox:
+			s.Results.Complete(r.ticket, r.items, nil)
+			s.mailbox = nil
+		default:
 		}
 	}
 	if s.mailbox != nil {
@@ -305,9 +427,9 @@ func CommandPalette(c *ui.Context, t Theme, s *CommandPaletteState, o CommandPal
 	if title == "" {
 		title = message(c, "commandPalette")
 	}
-	activate := func(id string) {
-		if s.Results.Loading || s.Query != s.lastQuery || s.parent() != s.lastParent {
-			return
+	activate := func(id string) bool {
+		if disabled || s.waiting || s.Results.Loading || s.Query != s.lastQuery || s.parent() != s.lastParent {
+			return false
 		}
 		for _, m := range s.Results.Items {
 			a := m.Action
@@ -315,21 +437,19 @@ func CommandPalette(c *ui.Context, t Theme, s *CommandPaletteState, o CommandPal
 				continue
 			}
 			if len(a.Children) > 0 {
-				s.level = append(s.level, id)
+				s.level = append(s.level, commandLevel{id, a.Label, a.Placeholder})
+				before := s.Query
 				s.Query = ""
-				s.dirty = true
+				s.Refresh()
+				if before != "" && o.OnSearchTermChange != nil {
+					o.OnSearchTermChange("")
+				}
 				s.editor.Focus(c)
-				return
+				return true
 			}
-			s.Close()
-			if a.OnSelect != nil {
-				a.OnSelect()
-			}
-			if o.OnSelect != nil {
-				o.OnSelect(id)
-			}
-			return
+			return activateCommand(s, a, o)
 		}
+		return false
 	}
 	mo := o.Modal
 	mo.Title = title
@@ -341,77 +461,14 @@ func CommandPalette(c *ui.Context, t Theme, s *CommandPaletteState, o CommandPal
 		}
 	}
 	panel := ModalWithOptions(c.Key(identity), t, &s.Open, mo, func(t Theme) {
-		if len(s.level) > 0 {
-			Button(c.Key("back"), t, message(c, "back"), ButtonOptions{Variant: Ghost}).OnClick(s.Back)
-		}
-		placeholder := o.Placeholder
-		if placeholder == "" {
-			placeholder = message(c, "searchActions")
-		}
-		Input(c.Key("search"), t, &s.Query, InputOptions{Label: namedMessage(c, "searchNamed", title), Placeholder: placeholder, Leading: lucide.Search(), OnSubmit: func(string) { activate(s.list.Active) }, Style: func(root, editor, leading, trailing ui.Element) {
-			editor.Bind(&s.editor).OnTextKey(func(k ui.TextKey) bool {
-				if k.Key == ui.KeyDown && k.Mods == 0 {
-					s.list.List.Handle.Focus(c)
-					return true
-				}
-				return false
-			})
-			finish(t, ComponentCommandPalette, Editor, root, PartStyle{}, o.Decoration)
-		}})
-		if s.Results.Loading {
+		commandInput(c, t, s, o, title, disabled, config.Size, activate)
+		if s.Results.Loading || s.waiting {
 			ui.Text(c, message(c, "searching")).Role(ui.RoleStatus).TextColor(t.Muted)
 		}
 		if s.Results.Error != "" {
 			ui.Text(c, s.Results.Error).Role(ui.RoleStatus).TextColor(t.Error)
 		}
-		items := make([]ListboxItem, 0, len(s.Results.Items))
-		matches := map[string]CommandMatch{}
-		limit := o.Limit
-		limit = commandLimit(limit)
-		for _, m := range s.Results.Items[:min(limit, len(s.Results.Items))] {
-			a := m.Action
-			items = append(items, ListboxItem{ID: a.ID, Label: a.Label, Description: a.Description, Group: a.Group, Icon: a.Icon, Disabled: a.Disabled})
-			matches[a.ID] = m
-		}
-		empty := ""
-		if strings.TrimSpace(s.Query) != "" {
-			empty = emptyMessage(c, "noMatch", "noResults")
-		}
-		Listbox(c, t, &s.selected, &s.list, items, ListboxOptions{EmptyText: empty, Style: func(slot Slot, e ui.Element) { finish(t, ComponentCommandPalette, slot, e, PartStyle{}, o.Decoration) }, Label: namedMessage(c, "resultsNamed", title), Height: 280, OnChange: func(ids []string) {
-			if len(ids) > 0 {
-				activate(ids[0])
-			}
-		}, Build: func(c *ui.Context, t Theme, it ListboxItem) {
-			m := matches[it.ID]
-			runes := []rune(it.Label)
-			spans := []ui.Span{}
-			start := 0
-			for start < len(runes) {
-				marked := slices.Contains(m.Highlights, start)
-				end := start + 1
-				for end < len(runes) && slices.Contains(m.Highlights, end) == marked {
-					end++
-				}
-				span := ui.Span{Text: string(runes[start:end])}
-				if marked {
-					span.Color = t.Primary
-					span.Background = t.Primary.Alpha(.12)
-					span.Radius = 2
-				}
-				spans = append(spans, span)
-				start = end
-			}
-			ui.Column(c).Grow(1).MinWidth(0).Children(func() {
-				ui.RichText(c, spans...).MinWidth(0).SingleLine()
-				// Nuxt shows the description under the label, muted, at the item's size.
-				if it.Description != "" {
-					ui.Text(c, it.Description).MinWidth(0).SingleLine().TextColor(t.Muted)
-				}
-			})
-			if m.Action.Shortcut != "" {
-				Kbd(c, t, []string{m.Action.Shortcut}, KbdOptions{})
-			}
-		}})
+		commandRows(c, t, s, o, title, disabled, config.Size, activate)
 	})
 	if panel.Valid() {
 		finish(t, ComponentCommandPalette, Root, panel, PartStyle{}, o.Decoration)

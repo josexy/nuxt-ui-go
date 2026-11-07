@@ -60,9 +60,11 @@ func TestParityInputMenuDeselectionIndicator(t *testing.T) {
 		nui.InputMenu(c, th, &s, []nui.Option[string]{{Value: "b", Label: "Beta"}}, nui.InputMenuOptions{Label: "Search", Multiple: true}).Width(300)
 	}, 500, 400)
 	click(t, tt, "Search")
+	tt.Key(0, ui.KeyDown)
 	click(t, tt, "Beta")
 	click(t, tt, "Remove Beta")
 	click(t, tt, "Search")
+	tt.Key(0, ui.KeyDown)
 	tt.Move(490, 390)
 	tt.Advance(time.Second)
 	if len(s.SelectedValues) != 0 {

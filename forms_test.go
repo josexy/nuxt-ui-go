@@ -180,7 +180,7 @@ func TestChoiceGroupsAndSwitch(t *testing.T) {
 		t.Fatalf("reordered selection %v", selected)
 	}
 	click(t, tt, "Radio A")
-	tt.Key(0, ui.KeyRight)
+	tt.Key(0, ui.KeyDown)
 	if radio != "c" || !tt.Focused("Radio C") {
 		t.Fatalf("radio skip/focus %s", radio)
 	}
@@ -305,8 +305,8 @@ func TestInputMenuEmptyDisabledCustomAndReorder(t *testing.T) {
 	}
 	tt.Key(ui.Ctrl, ui.KeyA)
 	tt.Type("Blocked")
-	if !tt.HasText("No matching data") {
-		t.Fatal("disabled-only popup missing")
+	if tt.HasText("No matching data") || !tt.HasText("Blocked") {
+		t.Fatal("disabled result was incorrectly reported as empty")
 	}
 	tt.Key(0, ui.KeyEnter)
 	if state.Selected != "b" {

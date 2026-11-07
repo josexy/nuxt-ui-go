@@ -13,11 +13,12 @@ import (
 // Simulated completions are explicit UI actions: no network or timer owns a
 // window after unmount. Tickets still exercise cancellation and stale results.
 type formExample struct {
-	Form    nui.FormState
-	Ticket  nui.FormTicket
-	Name    string
-	Success int
-	Result  string
+	Form             nui.FormState
+	Ticket           nui.FormTicket
+	Name             string
+	Success          int
+	Requests, Errors int
+	Result           string
 }
 
 func (s *formExample) finish() {
@@ -38,6 +39,7 @@ func dataPage(id string) *componentPage {
 	case "form":
 		for _, kind := range []string{"validation", "async", "disabled"} {
 			s := &formExample{Result: "Ready"}
+			loadingAuto, globalError := true, false
 			if kind != "validation" {
 				s.Name = "Native workspace"
 			}
@@ -48,12 +50,22 @@ func dataPage(id string) *componentPage {
 				"disabled":   "The populated form is disabled. Its name and submit button ignore input; the submission count stays at zero.",
 			}[kind]
 			add(kind, map[string]string{"validation": "Validation and synchronous submit", "async": "Simulated asynchronous request", "disabled": "Disabled form"}[kind], description, func(c *ui.Context, t nui.Theme) {
-				nui.Form(c, t, &s.Form, nui.FormOptions{Label: kind + " workspace form", Disabled: kind == "disabled", Validate: func(values nui.FormValues) nui.FormErrors {
+				if kind == "async" {
+					nui.Switch(c.Key("loading-auto"), t, &loadingAuto, nui.SwitchOptions{Label: "Disable form while submitting"})
+				}
+				if kind == "validation" {
+					nui.Switch(c.Key("global-error"), t, &globalError, nui.SwitchOptions{Label: "Reject form with a global error"})
+				}
+				nui.Form(c.Key("form"), t, &s.Form, nui.FormOptions{Label: kind + " workspace form", Disabled: kind == "disabled", LoadingAuto: nui.Set(loadingAuto), Validate: func(values nui.FormValues) nui.FormErrors {
+					if globalError {
+						return nui.FormErrors{"": "Workspace is unavailable"}
+					}
 					if strings.TrimSpace(values["name"]) == "" {
 						return nui.FormErrors{"name": "Workspace name is required"}
 					}
 					return nil
-				}, OnSubmit: func(nui.FormValues) {
+				}, OnError: func(nui.FormErrors) { s.Errors++; s.Result = "Validation failed" }, OnSubmit: func(nui.FormValues) {
+					s.Requests++
 					if kind == "async" {
 						s.Ticket = s.Form.BeginAsync()
 						s.Result = "Simulated request pending"
@@ -63,18 +75,49 @@ func dataPage(id string) *componentPage {
 					}
 				}}, func(ft nui.Theme) {
 					nui.FormField(c, ft, nui.FormFieldOptions{Name: "name", Value: s.Name, Label: kind + " workspace name", Required: true, Help: "Application validation runs on submit."}, func(ft nui.Theme) { nui.Input(c, ft, &s.Name, nui.InputOptions{Label: kind + " workspace name"}) })
-					nui.Button(c, t, "Submit "+kind, nui.ButtonOptions{Disabled: kind == "disabled" || s.Form.Submitting}).OnClick(s.Form.Submit)
+					nui.Button(c.Key("submit"), ft, "Submit "+kind, nui.ButtonOptions{}).OnClick(s.Form.Submit)
 				})
 				if kind == "async" {
 					ui.Row(c).Wrap().Gap(8).Children(func() {
 						nui.Button(c, t, "Complete simulated request", nui.ButtonOptions{}).OnClick(s.finish)
 						nui.Button(c, t, "Cancel request", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { s.Form.Cancel(); s.Result = "Request cancelled" })
+						nui.Button(c, t, "Repeat pending submit", nui.ButtonOptions{Variant: nui.Outline}).OnClick(s.Form.Submit)
 					})
 				}
+				if message := s.Form.Errors()[""]; message != "" {
+					ui.Text(c.Key("error"), message).TextColor(t.Error)
+				}
+				if kind == "validation" {
+					nui.Button(c.Key("reset"), t, "Restore form name", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { s.Name = "Restored workspace"; s.Form.Reset(); s.Result = "Form reset" })
+				}
 				ui.Textf(c, "%s · %d successful submissions", s.Result, s.Success)
+				ui.Textf(c, "Requests: %d · Errors: %d · Dirty: %t", s.Requests, s.Errors, s.Form.Field("name").Dirty)
 			})
 		}
 	case "input-number":
+		contractValue, contractState := nui.Set(18.98), &nui.NumberState{}
+		contractChanges := 0
+		increment, customIcons, snapping, focus := true, true, true, true
+		add("contract", "Starting values and step controls", "Step from 18.98 to the next grid value. Empty input starts at 40. Hold a control to repeat; hiding it keeps the editor intact.", func(c *ui.Context, t nui.Theme) {
+			ui.Row(c).Wrap().Gap(12).Children(func() {
+				nui.Switch(c.Key("snapping"), t, &snapping, nui.SwitchOptions{Label: "Snap number steps"})
+				nui.Switch(c.Key("focus"), t, &focus, nui.SwitchOptions{Label: "Focus number after stepping"})
+				nui.Switch(c.Key("icons"), t, &customIcons, nui.SwitchOptions{Label: "Custom number control icons"})
+			})
+			o := nui.InputNumberOptions{InputOptions: nui.InputOptions{Label: "Contract number"}, Min: nui.Set(0.0), Max: nui.Set(100.0), StartingValue: nui.Set(40.0), StepSnapping: nui.Set(snapping), FocusOnChange: nui.Set(focus), Increment: nui.Set(increment), OnValueChange: func(nui.Optional[float64]) { contractChanges++ }}
+			if customIcons {
+				o.IncrementIcon = lucide.ArrowUp()
+				o.DecrementIcon = lucide.ArrowDown()
+				o.IncrementOptions = &nui.ButtonOptions{Variant: nui.Soft, Color: nui.Info}
+			}
+			nui.InputNumber(c.Key("number"), t, &contractValue, contractState, o)
+			ui.Row(c).Wrap().Gap(8).Children(func() {
+				nui.Button(c.Key("empty"), t, "Use empty number", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() { contractValue = nui.Optional[float64]{} })
+				nui.Button(c.Key("limit"), t, "Use number limit", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() { contractValue = nui.Set(98.0) })
+				nui.Button(c.Key("hide"), t, "Toggle increment control", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() { increment = !increment })
+			})
+			ui.Textf(c, "Contract number: %v · Changes: %d", contractValue, contractChanges)
+		})
 		for _, kind := range []string{"bounded", "vertical", "states"} {
 			value := nui.Optional[float64]{}
 			state := &nui.NumberState{}
@@ -104,6 +147,27 @@ func dataPage(id string) *componentPage {
 			})
 		}
 	case "input-tags":
+		contractTags, contractTagsState := []string{"go", "vue"}, &nui.TagsState{}
+		changes, added, removed, rejected := 0, 0, 0, 0
+		uppercase, readOnly := true, false
+		add("contract", "Inline tags, keyboard selection and events", "Backspace first selects a tag, then removes it. Values normalize to lowercase; display labels can change without replacing their identity.", func(c *ui.Context, t nui.Theme) {
+			ui.Row(c).Wrap().Gap(12).Children(func() {
+				nui.Switch(c.Key("display"), t, &uppercase, nui.SwitchOptions{Label: "Uppercase tag labels"})
+				nui.Switch(c.Key("readonly"), t, &readOnly, nui.SwitchOptions{Label: "Read-only contract tags"})
+			})
+			o := nui.InputTagsOptions{InputOptions: nui.InputOptions{Label: "Contract tags", Placeholder: "Add a tag", ReadOnly: readOnly}, DeleteIcon: lucide.Minus(), MaxTags: 4, AddOnPaste: nui.Set(true), AddOnTab: true, AddOnBlur: true, ConvertValue: strings.ToLower, OnTagsChange: func([]string) { changes++ }, OnAddTag: func(string) { added++ }, OnRemoveTag: func(string) { removed++ }, OnInvalid: func(string) { rejected++ }}
+			if uppercase {
+				o.DisplayValue = strings.ToUpper
+			}
+			nui.InputTags(c.Key("tags"), t, &contractTags, contractTagsState, o)
+			nui.Button(c.Key("leave"), t, "Leave tags field", nui.ButtonOptions{Variant: nui.Outline})
+			nui.Button(c.Key("long"), t, "Add long tag", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() {
+				if len(contractTags) < 4 {
+					contractTags = append(contractTags, "用于验证窄窗口下标签换行和删除按钮布局的中文内容，用于验证窄窗口下标签换行和删除按钮布局的中文内容")
+				}
+			})
+			ui.Textf(c, "Tag changes: %d · Added: %d · Removed: %d · Rejected: %d", changes, added, removed, rejected)
+		})
 		for _, kind := range []string{"editable", "paste", "states"} {
 			tags := []string{"Go", "Desktop"}
 			state := &nui.TagsState{}
@@ -114,7 +178,7 @@ func dataPage(id string) *componentPage {
 				tags = nil
 			}
 			description := map[string]string{
-				"editable": "Enter adds a tag; Backspace removes. Paste comma/semicolon-separated values. Duplicates are rejected; maximum 6 tags, 12 UTF-16 units per draft.",
+				"editable": "Enter adds a tag; Backspace selects then removes. Paste comma/semicolon-separated values. Duplicates are rejected; maximum 6 tags, 12 UTF-16 units per draft.",
 				"paste":    "Start with no tags. Paste comma/semicolon-separated values or add on Enter, Tab or blur. Duplicates are allowed; maximum 6 tags, 12 UTF-16 units per draft.",
 				"states":   "The first tag list is read-only; the second is disabled. Existing tags stay visible, and neither list allows adding or removing tags.",
 			}[kind]
@@ -127,6 +191,19 @@ func dataPage(id string) *componentPage {
 			})
 		}
 	case "pin-input":
+		contractPin, contractPinState := "", &nui.PinState{}
+		highlight, styledParts := true, true
+		pinChanges, pinComplete := 0, 0
+		add("contract", "Highlight and separator parts", "The native PIN uses one editor. Highlight colors every cell; custom separator typography and spacing also reserve the correct width.", func(c *ui.Context, t nui.Theme) {
+			nui.Switch(c.Key("highlight"), t, &highlight, nui.SwitchOptions{Label: "Highlight all PIN cells"})
+			nui.Switch(c.Key("parts"), t, &styledParts, nui.SwitchOptions{Label: "Custom PIN separator spacing"})
+			o := nui.PinInputOptions{Label: "Contract verification code", Length: 6, Numeric: true, Color: nui.Neutral, Highlight: highlight, SeparatorEvery: 2, OnChange: func(string) { pinChanges++ }, OnComplete: func(string) { pinComplete++ }}
+			if styledParts {
+				o.UI = nui.Styles{nui.Root: {Gap: nui.Set(float32(10)), PaddingX: nui.Set(float32(4)), PaddingY: nui.Set(float32(4))}, nui.SeparatorSlot: {FontSize: nui.Set(t.TextScale * 20), Foreground: nui.Set(t.Info)}}
+			}
+			nui.PinInput(c.Key("pin"), t, &contractPin, contractPinState, o)
+			ui.Textf(c, "PIN characters: %d · Changes: %d · Complete: %d", len([]rune(contractPin)), pinChanges, pinComplete)
+		})
 		for _, kind := range []string{"numeric", "masked", "states"} {
 			value := ""
 			state := &nui.PinState{}
@@ -146,7 +223,12 @@ func dataPage(id string) *componentPage {
 				if kind != "numeric" {
 					length = 4
 				}
-				nui.PinInput(c, t, &value, state, nui.PinInputOptions{Label: kind + " verification code", Length: length, Numeric: kind == "numeric", Mask: kind == "masked", ReadOnly: kind == "states", Separator: []int{3}, OnComplete: func(v string) { complete = "Completed: " + v }})
+				nui.PinInput(c, t, &value, state, nui.PinInputOptions{Label: kind + " verification code", Length: length, Numeric: kind == "numeric", Mask: kind == "masked", ReadOnly: kind == "states", Separator: []int{3}, OnComplete: func(v string) {
+					complete = "Completed: " + v
+					if kind == "masked" {
+						complete = "Masked code complete"
+					}
+				}})
 				if kind == "states" {
 					nui.PinInput(c, t, &locked, lockedState, nui.PinInputOptions{Label: "Disabled verification", Length: 4, Disabled: true})
 					ui.Textf(c, "Read-only code: %s · Disabled code: %s", value, locked)
@@ -156,8 +238,35 @@ func dataPage(id string) *componentPage {
 			})
 		}
 	case "input-rating":
+		contractValue, contractChanges, contractMax := 3, 0, 5
+		hoverable, customParts, customIcons, readOnly, vertical := false, false, false, false, false
+		add("contract", "Rating parts and interaction", "Preview without changing the value. Neutral focus, custom icon layers and orientation keep the same rating; reducing the maximum clamps without a user event.", func(c *ui.Context, t nui.Theme) {
+			ui.Row(c).Wrap().Gap(12).Children(func() {
+				nui.Switch(c.Key("hover"), t, &hoverable, nui.SwitchOptions{Label: "Preview rating on hover"})
+				nui.Switch(c.Key("parts"), t, &customParts, nui.SwitchOptions{Label: "Custom rating layer colors"})
+				nui.Switch(c.Key("readonly"), t, &readOnly, nui.SwitchOptions{Label: "Read-only contract rating"})
+			})
+			opts := nui.InputRatingOptions{Label: "Contract rating", Max: contractMax, Color: nui.Neutral, Size: nui.XL, Clearable: true, Hoverable: nui.Set(hoverable), ReadOnly: readOnly, OnChange: func(int) { contractChanges++ }}
+			if vertical {
+				opts.Orientation = nui.Vertical
+			}
+			if customIcons {
+				opts.Icon, opts.EmptyIcon = lucide.Heart(), lucide.Circle()
+			}
+			if customParts {
+				opts.UI = nui.Styles{nui.Indicator: {Foreground: nui.Set(t.Info)}, nui.EmptyIconSlot: {Foreground: nui.Set(t.Warning)}}
+			}
+			nui.InputRating(c.Key("rating"), t, &contractValue, opts)
+			ui.Row(c).Wrap().Gap(8).Children(func() {
+				nui.Button(c.Key("icons"), t, "Toggle rating icons", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() { customIcons = !customIcons })
+				nui.Button(c.Key("orientation"), t, "Toggle rating orientation", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() { vertical = !vertical })
+				nui.Button(c.Key("maximum"), t, "Shrink rating maximum", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() { contractMax = 3 })
+			})
+			ui.Textf(c, "Contract rating: %d · Changes: %d", contractValue, contractChanges)
+		})
 		for _, kind := range []string{"clearable", "vertical", "states"} {
 			value := 3
+			reduceMotion := false
 			locked := 2
 			changes := 0
 			description := map[string]string{
@@ -166,6 +275,10 @@ func dataPage(id string) *componentPage {
 				"states":    "The first rating is read-only; the second is disabled. Pointer and keyboard input leave both ratings unchanged.",
 			}[kind]
 			add(kind, "Rating · "+kind, description, func(c *ui.Context, t nui.Theme) {
+				if kind == "clearable" {
+					nui.Checkbox(c.Key("reduce-motion"), t, &reduceMotion, nui.CheckboxOptions{Label: "Reduce rating motion"})
+					t.Motion.Reduce = t.Motion.Reduce || reduceMotion
+				}
 				o := nui.InputRatingOptions{Label: kind + " project rating", Clearable: true, ReadOnly: kind == "states", OnChange: func(int) { changes++ }}
 				if kind == "vertical" {
 					o.Orientation = nui.Vertical
@@ -182,6 +295,7 @@ func dataPage(id string) *componentPage {
 			})
 		}
 	case "listbox", "select-menu":
+		addSelectionContract(p, id == "select-menu")
 		items := append([]nui.ListboxItem{}, projectMembers...)
 		items = append(items, nui.ListboxItem{ID: "team-eu", Label: "Team", Group: "Regions"}, nui.ListboxItem{ID: "team-us", Label: "Team", Group: "Regions"})
 		for _, kind := range []string{"single", "multiple", "states"} {
@@ -227,6 +341,7 @@ func dataPage(id string) *componentPage {
 			})
 		}
 	case "calendar":
+		addCalendarContract(p)
 		for _, kind := range []string{"single", "range", "constraints"} {
 			value := nui.DateSelection{}
 			state := &nui.CalendarState{}
@@ -245,6 +360,7 @@ func dataPage(id string) *componentPage {
 			})
 		}
 	case "input-date":
+		addDateInputContract(p)
 		for _, kind := range []string{"segments", "calendar", "range", "states"} {
 			value := nui.Optional[nui.Date]{}
 			state := &nui.DateInputState{}
@@ -286,6 +402,7 @@ func dataPage(id string) *componentPage {
 			})
 		}
 	case "input-time":
+		addTimeInputContract(p)
 		for _, kind := range []string{"24-hour", "12-hour", "states"} {
 			value := nui.Optional[nui.ClockTime]{}
 			state := &nui.TimeInputState{}
@@ -308,6 +425,7 @@ func dataPage(id string) *componentPage {
 			})
 		}
 	case "color-picker":
+		addColorPickerContract(p)
 		for _, kind := range []string{"palette", "hex", "disabled"} {
 			value := ui.Hex("#22c55e")
 			state := &nui.ColorPickerState{}
@@ -319,7 +437,7 @@ func dataPage(id string) *componentPage {
 			add(kind, "Color · "+kind, description, func(c *ui.Context, t nui.Theme) {
 				nui.ColorPicker(c, t, &value, state, nui.ColorPickerOptions{Label: kind + " accent", Disabled: kind == "disabled", OnChange: func(ui.Color) { changes++ }})
 				if kind == "hex" {
-					nui.Button(c, t, "Set blue accent", nui.ButtonOptions{}).OnClick(func() { value = ui.Hex("#3b82f6"); changes++ })
+					nui.Button(c, t, "Set blue accent", nui.ButtonOptions{}).OnClick(func() { value = ui.Hex("#3b82f6") })
 				}
 				ui.Textf(c, "Color: %v · %d changes", value, changes)
 			})
@@ -331,6 +449,9 @@ func dataPage(id string) *componentPage {
 		}{{"small", "Small sortable data", 12}, {"empty", "Empty table", 0}, {"virtual", "10,000 virtual rows", 10000}} {
 			model := &State{}
 			model.SetRows(sample.rows)
+			loading := false
+			sortChanges, selectionChanges := 0, 0
+			activated := "None"
 			description := "Click Workspace/Members to sort and drag a header boundary to resize. Selection follows record IDs, including after sorting. Wheel scrolls the bounded table; only visible cells build."
 			if sample.rows == 0 {
 				description = "This table initially has no records. Its column headers remain visible, and selecting the first record is disabled while empty. Add a sample record to compare the populated state."
@@ -343,16 +464,21 @@ func dataPage(id string) *componentPage {
 					}
 					nui.Button(c, t, "Select first record", nui.ButtonOptions{Disabled: len(model.Rows) == 0}).OnClick(func() { model.Selection.Add(model.Rows[0].ID) })
 					nui.Button(c, t, "Clear selection", nui.ButtonOptions{Variant: nui.Outline}).OnClick(model.Selection.Clear)
+					nui.Button(c, t, "Clear sorting", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { model.Sort = ui.SortOrder{} })
+					nui.Checkbox(c, t, &loading, nui.CheckboxOptions{Label: "Show table loading"})
 				})
-				table := model.Table(c, t)
+				model.TableConfig = nui.TableOptions{Loading: loading, Caption: "Workspace records", BuildLoading: func(c *ui.Context, _ nui.Theme) { ui.Text(c, "Loading workspaces") }, OnSortChange: func([]ui.SortOrder) { sortChanges++ }, OnSelectionChange: func([]string) { selectionChanges++ }, OnActivate: func(id string) { activated = id }}
 				if sample.rows == 0 && len(model.Rows) == 0 {
-					table.Height(100)
-					ui.Text(c, "No workspace records").TextColor(t.Muted)
+					model.TableConfig.Height = 140
 				}
+				model.Table(c, t)
 				ui.Textf(c, "%d rows · %d selected · %d cells built", len(model.Rows), model.Selection.Len(), model.CellCalls)
+				ui.Textf(c, "Sort changes: %d · Selection changes: %d · Activated: %s", sortChanges, selectionChanges, activated)
 			})
 		}
+		add("contract", "Sorting and loading", "Multi-column and manual sorting, stable IDs, column styles and loading content use the public Table component. Enter or double-click activates a row; sorting headers are mouse controls in MyGo.", tableParityExample())
 	case "tree":
+		addTreeContract(p)
 		for _, kind := range []string{"nested", "linked", "lazy"} {
 			state := &nui.TreeState{}
 			state.SetNodes([]nui.TreeNode{{ID: "project", Label: "Project", DefaultExpanded: true, Children: []nui.TreeNode{{ID: "source", Label: "Source", Children: []nui.TreeNode{{ID: "main", Label: "main.go"}, {ID: "theme", Label: "theme.go"}}}, {ID: "guide", Label: "Guide"}, {ID: "locked", Label: "Locked", Disabled: true}}}, {ID: "remote", Label: "Load examples", Lazy: kind == "lazy", Children: func() []nui.TreeNode {

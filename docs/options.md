@@ -31,10 +31,14 @@ Go 的零值不一定是组件最终使用的值。例如 Pagination 的 `PageSi
 | InputTags / InputRating / Slider | AddOnPaste=false；Hoverable=false；Step=1 |
 | SelectMenu | SearchInput=true；选择后和关闭后均重置搜索词 |
 | Carousel / FileUpload | Arrows=false；Layout=UploadGrid |
-| Sidebar | Resizable=false；Collapsible、Toggle、AutoClose=true；展开/收起宽度 256/64 DIP |
+| Sidebar | Resizable=false；Collapsible、Toggle、AutoClose=true；展开/收起宽度 256/64 DIP；Description 为空，Actions 仅展开或移动菜单显示 |
+| Header / Footer / FooterColumns | Header Title 默认为空；Footer 无顶部边线；FooterColumns 首选最小列宽 160 DIP、列间距 32 DIP |
 | 弹层与通知 | Popover.Dismissible=true；Toast.Close、Toast.Progress=true |
 | Listbox / Accordion | HighlightOnHover=true；Collapsible=true |
-| InputDate | ShowCalendar=false；HideCalendar 优先关闭日历 |
+| Calendar | Primary / Solid / MD；FixedWeeks、MonthControls、YearControls、ViewControl=true；NumberOfMonths 默认 1，YearsPerPage 默认 12 |
+| ColorPicker | Size=MD，默认 SV 边长 168 DIP；Throttle 未设置为 50 毫秒，显式 0 不节流；模型即时更新 |
+| InputDate / InputDateRange | ShowCalendar=false；HideCalendar 优先关闭；DateStep 各项 0 使用 1；范围分隔默认为减号 |
+| InputTime | TwelveHour 未设置时使用区域小时制；Granularity 未设置时由 Seconds 决定，默认分钟；TimeStep 各项 0 使用 1；StepSnapping=false |
 
 FileUpload 的 `Dropzone`、`Interactive`、`FileDelete`、`Preview` 默认均为 true。`UploadLayout` 的零值是 `UploadLayoutDefault`，填写选项时使用枚举名称，不依赖底层数字。
 
@@ -85,11 +89,15 @@ Select 单选和多选都继承 ComponentSelect 的 Color、Variant、Size 和 U
 
 ### SelectMenu 的搜索与重置
 
-`SearchInput` 默认 true。设为 false 后不创建搜索框，也不会用保留的 Query 筛选列表。触发器上的 ↑、↓ 均可打开菜单：有搜索框时聚焦搜索框，否则聚焦列表；禁用触发器不能打开。
+`SearchInput` 默认 true。设为 false 后隐藏搜索框，保留的 Query 仍参与筛选；ExternalFilter 或 IgnoreFilter 跳过本地筛选。触发器上的 ↑、↓ 均可打开菜单：默认聚焦可用搜索框，FocusSearch=false 时聚焦列表；禁用触发器不能打开。
 
 默认在选择后和关闭后清空 Query，分别由 `ResetSearchTermOnSelect`、`ResetSearchTermOnBlur` 控制。关闭包括 Escape、外部点击和应用修改打开状态。
 
 再次选择同一个值也会关闭、重置并触发 OnSelect；OnChange 只在选中值实际变化时触发。Invalid / ErrorMessage 会同步影响字段错误语义和边框。
+
+Clearable 显示清空按钮，ClearOptions / ClearIcon 配置按钮。按钮始终清除查询，ResetModelValueOnClear 默认 true，设为 false 时保留选中值。OnClear 在重置后通知一次，OnOpenChange 只通知用户操作造成的实际开关变化。
+
+Listbox 使用 Filter / FilterInput 配置内置筛选，SelectMenu 使用 SearchInput / FilterInput。两者都支持 SearchTerm 指针、FilterFields、IgnoreFilter 和 OnSearchTermChange。SearchTerm 未设置时使用各自 State.Query；外部赋值不发出搜索通知。
 
 ### Pagination 的相邻页和外观
 
@@ -104,19 +112,29 @@ Select 单选和多选都继承 ComponentSelect 的 Color、Variant、Size 和 U
 
 ## 常用参数入口
 
+Table 的 Sortable、ManualSorting 和 List.SortBy 分别控制列是否可排序、由应用排序、多列排序。Loading 保留现有行并显示加载线，BuildLoading 只在空表加载时替换空内容；Caption 与 BuildCaption 分别提供描述和可见标题。排序、选择和激活通知以及原生限制见 [Table 文档](forms-data.md#table)。
+
+Tree 的 OnSelect / OnToggle 可以取消操作，OnChange / OnExpandedChange 报告实际选择和展开变化。TreeNode.UI / Style 控制单项部件，BuildLeading / BuildTrailing 替换非交互首尾内容。部分选中状态与多选联动、懒加载和空分支的规则见 [Tree 文档](forms-data.md#tree)。
+
 ### 开关、标签和评分
 
 | 组件 | 常用选项与行为 |
 | --- | --- |
 | Switch | Loading 阻止鼠标和键盘切换；LoadingIcon、CheckedIcon、UncheckedIcon 配置图标；减少动态效果时停止旋转 |
 | Checkbox / CheckboxGroup / RadioGroup | Variant 可选 ChoiceList、ChoiceCard、ChoiceTable；Indicator 可选 IndicatorStart、IndicatorEnd、IndicatorHidden；Highlight 强调边框或指示器，未选中时也生效 |
-| InputTags | AddOnTab、AddOnBlur、AddOnPaste 控制何时添加标签；Duplicate 控制重复项；MaxLength 限制编辑文本 |
+| InputTags | AddOnTab、AddOnBlur、AddOnPaste 控制添加时机；Duplicate、ConvertValue、DisplayValue 控制值与显示；MaxLength 限制编辑文本 |
 | PinInput | Color、Variant、Size 设置外观；`Separator: []int{3}` 在第三格后分组，仍使用一个编辑器和一个 Tab 停靠点 |
-| InputRating | Clearable 允许点击当前评分或按空格清零；Hoverable 开启悬停预览；未设置 EmptyIcon 时沿用 Icon |
+| InputRating | Clearable 允许点击当前评分或按空格清零；Hoverable 默认 false；EmptyIcon 未设置时沿用 Icon，Indicator / IconSlot / EmptyIconSlot 分别配置填充层及两种图标 |
 
 Checkbox 只使用 CheckedIcon，不使用 Switch 的 UncheckedIcon。ChoiceCard 选中后会着色，隐藏指示器时仍能识别选中状态。
 
+Checkbox 的 Loading、LoadingIcon 和 UncheckedIcon，以及 RadioGroup 的 Max，来自共享选项类型，对相应组件不生效；保留这些字段以兼容已有代码。单个 Checkbox 的 ChoiceTable、Switch 的 Variant / Indicator 是 Go 原生扩展。网站参数面板和 API 表会分别说明适用范围。
+
+CheckboxGroup / RadioGroup 的 Option.Icon 已生效；隐藏指示器时显示于项目标签上方，普通 Radio 指示器仍为圆点。Loop 控制方向键循环，多选组默认 false，单选组默认 true；Set(false) 明确关闭循环。两类组均使用一个 Tab 停靠点，横纵布局分别使用左右、上下方向键。
+
 InputTags 的 MaxLength 按 UTF-16 单元限制用户插入，0 表示不限；它限制的是编辑草稿，不负责提交时的标签长度校验。启用 AddOnPaste 后，粘贴会按标签处理，即使因重复或数量上限被拒绝，也不会再作为普通文本插入；关闭时按普通文本粘贴。启用 AddOnTab 后，非空草稿会在 Tab / Shift+Tab 时提交并保留焦点，空草稿则正常移动焦点。
+
+InputNumber 的 StepSnapping、FocusOnChange、Increment 和 Decrement 默认 true，滚轮默认开启。空值首次增减使用 StartingValue，不会先额外加减一步。PinInput.Highlight 默认 false；SeparatorSlot 和 Root.Gap / Padding 可调整分隔符及间距。完整行为见[数值、标签、PIN](forms-data.md#数值标签pin评分)。
 
 InputRating 的横向方向键随 RTL 调整，纵向使用 ↑↓，另一轴按键无效。评分到首尾停止；Home/PageUp 到 1，End/PageDown 到 Max。清零后悬停预览随即消失。
 
@@ -128,6 +146,7 @@ InputRating 的横向方向键随 RTL 调整，纵向使用 ↑↓，另一轴�
 | RangeSlider | 两个滑块可交叉，随后自动排序并转移活动焦点；小于 `Step × MinStepsBetweenThumbs` 的移动被拒绝；Tooltip 分别显示两个值 |
 | Tabs | ActivationMode 默认 ActivationAutomatic；ActivationManual 下方向键只移动焦点，Enter/Space 才激活并通知一次 |
 | Accordion | Collapsible 默认 true；单开模式设为 false 后不能再次点击收起当前项，仍可切到另一项；多开模式不受此选项限制 |
+| Collapsible / Accordion | Disabled 只禁用标题；KeepMounted 默认 false，true 保留隐藏控件。TrailingIcon 默认 ChevronDown，Accordion 单项图标优先；AccordionItem.UI 可覆盖本项样式 |
 | Carousel | Arrows 控制翻页按钮，Dots 开启圆点导航；圆点的页码名称支持语言切换 |
 
 ### 弹层和通知
@@ -135,8 +154,12 @@ InputRating 的横向方向键随 RTL 调整，纵向使用 ↑↓，另一轴�
 | 组件 | 常用选项与行为 |
 | --- | --- |
 | Popover | Mode 默认 PopoverClick，可改为 PopoverHover；OpenDelay / CloseDelay 只用于悬停模式，类型为 time.Duration，默认 0 |
-| Tooltip | Placement、Offset 控制位置；Open 可绑定打开状态；Kbds 显示快捷键 |
-| Toast | Close 控制关闭按钮，Progress 控制倒计时条；Actions 可配置多个动作，每项含 Label、OnAction、ButtonOptions、Close |
+| Tooltip | Placement、Offset 控制位置；Open 可绑定打开状态；Kbds 显示并补充锚点说明；DelayDuration 可显式设置悬停延迟，0 表示立即显示 |
+| Modal / Slideover | CloseButton 控制关闭按钮是否显示，Close / CloseIcon 配置按钮；Transition=false 跳过过渡，OnClosePrevent 通知被 Dismissible=false 阻止的关闭尝试 |
+| Slideover | Inset 增加边缘间距和圆角；Extent 只设置对应轴尺寸，Width / MaxHeight / Fullscreen 不参与布局 |
+| Toast | Close / Progress 控制是否显示；CloseOptions / CloseIcon、Avatar、ProgressOptions 配置外观；Actions 的稳定 ID 保留重排焦点，单项 Close=false 可保留通知 |
+| DropdownMenu / ContextMenu | Size 默认 MD，Loop 默认 false；Filter / SearchTerm 配置筛选，MenuItem.Content 配置子级；Close=false 保留叶项选择后的菜单，OnCheckedChange 和 OnOpenChange 分别通知值与开关变化 |
+| Tabs | Content 默认 true；false 卸载全部面板，KeepMounted 只保留未激活面板。TabItem 支持 Avatar、Badge / BadgeOptions 和 UI，Indicator 配置当前活动背景或指示线 |
 
 Popover 的 Dismissible 默认 true，控制 Escape 和外部点击关闭，应用始终可以直接修改 open。悬停模式允许指针跨过锚点与面板之间的间隙；Escape 关闭后，指针停在原处不会立即重新打开。网站参数面板中的延迟以毫秒填写。
 
@@ -150,9 +173,15 @@ Toast 动作默认执行后关闭通知，单项设置 `Close: nui.Set(false)` �
 | --- | --- |
 | Sidebar | State 保存展开宽度和窄窗口打开状态；MinWidth/MaxWidth 默认 160/480 DIP；Breakpoint 未设置或为 0 时始终使用桌面布局 |
 | NavigationMenu | 纵向 Compact 模式默认提供 Tooltip 和子级 Popover，可分别用 `nui.Set(false)` 关闭；PopupPlacement 修改子级弹层位置 |
-| FileUpload | Variant 使用 UploadArea / UploadButton；Layout 使用 UploadList / UploadGrid；Dropzone、Interactive、FileDelete、Preview 控制交互与显示 |
+| Breadcrumb | Color、SeparatorIcon 配置外观；项目 Avatar、Active、UI 可单独设置；提供 OnSelect 的末项也可操作 |
+| Pagination | FirstIcon、PrevIcon、NextIcon、LastIcon、EllipsisIcon 覆盖默认图标；ActiveColor / ActiveVariant 独立设置当前页 |
+| Stepper | StepItem.Content 构建当前正文，UI 覆盖单项；Disabled 只禁用步骤标题；List / Panel 分别配置列表和正文 |
+| Timeline | CurrentID 优先于 Current；Reverse 不重排数据；DateSlot 配置 Time，OnSelect 不自动改进度 |
+| Banner | CloseButton 控制显示，Close / CloseIcon 配置关闭按钮；OnSelect 与内部动作独立，OnClose 只通知用户关闭 |
+| ErrorView | Clear 默认 true，但默认按钮仍需 OnRetry；Retry 配置按钮，Actions 始终优先，StatusSlot 配置状态码 |
+| FileUpload | Variant 使用 UploadArea / UploadButton；Layout 默认 UploadGrid；Position 仅影响区域内的列表。ShowIcon、FileImage、FileDelete、Preview 默认 true，支持图标、删除按钮配置及 Highlight |
 
-可交互的 UploadArea 整个区域都是按钮，点击或按 Enter/Space 打开文件选择器，名称取 Label。Choose 按钮只在 UploadButton 或 `Interactive: nui.Set(false)` 时出现。Preview=false 只隐藏预览，Files 数据仍保留。Sidebar 的区域回调、尺寸和键盘操作见[侧栏说明](advanced.md#sidebar-状态与尺寸)。
+可交互的 UploadArea 点击或按 Enter/Space 打开文件选择器，名称优先取 Label。内置列表时，文件动作与标题/图标选择入口分开，保证原生辅助技术可以访问各动作。Choose 按钮只在 UploadButton 或 `Interactive: nui.Set(false)` 时出现；Dropzone=false 取消文件拖放目标。Preview=false 隐藏整个列表，FileImage=false 只隐藏应用提供的预览配件，Files 数据均保留。选择或移除改变队列时发送 OnChange，新拒绝项由 OnReject 通知；移除后返回选择入口焦点。完整默认值与资源职责见 [FileUpload](advanced.md#fileupload-与资源所有权)。Sidebar 的区域回调、尺寸和键盘操作见[侧栏说明](advanced.md#sidebar-状态与尺寸)。
 
 ## InputMenu 值与搜索策略
 
@@ -180,9 +209,15 @@ Toast 动作默认执行后关闭通知，单项设置 `Close: nui.Set(false)` �
 
 ### 打开和重置
 
-OpenOnClick 默认 true，OpenOnFocus 默认 false。ResetSearchTermOnSelect 和 ResetSearchTermOnBlur 默认均为 true，分别控制选择后和关闭后的草稿。单选恢复选中标签，多选清空草稿，Autocomplete 保留自由文本。
+OpenOnClick 和 OpenOnFocus 默认均为 false。输入文字、方向键或尾部按钮仍可打开；需要点击即打开时显式设置 OpenOnClick: Set(true)。SearchSelect 保留旧的点击打开行为。Open 可绑定持久 bool；Loop 默认 false，HighlightOnHover 默认 true。
+
+ResetSearchTermOnSelect 和 ResetSearchTermOnBlur 默认均为 true，分别控制选择后和关闭后的草稿。单选恢复选中标签，多选清空草稿。Autocomplete 忽略 Multiple、ResetSearchTermOnSelect 和 ResetModelValueOnClear，选中建议时始终回填完整文字，普通失焦保留自由文本。
+
+ResetModelValueOnClear 只控制清空按钮，默认 true；false 保留选中值。它不控制键盘删除普通文字。多选可以在空草稿时清空全部标签，或通过 DeleteIcon 按钮逐项移除；实际多选值变化只通知一次 OnValuesChange。键盘删除标签后焦点返回输入框。
 
 ## 示例
+
+FormOptions.LoadingAuto 默认 true，异步处理期间禁用表单控件且保留字段快照；设置 Set(false) 可继续编辑并使旧结果失效。OnError 在提交校验失败时调用一次，包含全局错误；详细的提交、取消和重置规则见 [Form](forms-data.md#form)。
 
 Gallery 的 **Props & behavior** 页面演示加载、选择上限、标签添加、手动 Tabs、搜索重置、分页、弹层和文件预览；**Orientation** 页面演示方向切换。启动命令见[运行示例](../README.md#运行示例)。
 

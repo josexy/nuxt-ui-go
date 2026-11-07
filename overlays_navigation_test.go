@@ -500,6 +500,66 @@ func TestTabsReorderRemoveAndDisabled(t *testing.T) {
 	}
 }
 
+func TestDisclosureMountedStateMotionAndDisabledContent(t *testing.T) {
+	for _, accordion := range []bool{false, true} {
+		t.Run(fmt.Sprint(accordion), func(t *testing.T) {
+			open, keep, reduce, disabled := true, false, true, true
+			ids := []string{"one"}
+			draft := "Draft"
+			actions, changes := 0, 0
+			tt := ui.NewTester(func(c *ui.Context) {
+				th := nui.App(c, nui.AppConfig{})
+				th.Motion.Reduce = reduce
+				body := func(c *ui.Context, th nui.Theme) {
+					nui.Input(c.Key("draft"), th, &draft, nui.InputOptions{Label: "Disclosure draft"})
+					nui.Button(c.Key("action"), th, "Body action", nui.ButtonOptions{}).OnClick(func() { actions++ })
+				}
+				if accordion {
+					nui.Accordion(c, th, &ids, []nui.AccordionItem{{ID: "one", Label: "Header", Content: body}}, nui.AccordionOptions{Disabled: disabled, KeepMounted: keep, OnChange: func() { changes++ }})
+				} else {
+					nui.Collapsible(c, th, &open, nui.CollapsibleOptions{Label: "Header", Disabled: disabled, KeepMounted: keep, OnChange: func(bool) { changes++ }}, func(th nui.Theme) { body(c, th) })
+				}
+			}, 500, 350)
+			click(t, tt, "Body action")
+			if actions != 1 {
+				t.Fatal("disabled trigger also disabled open content")
+			}
+			click(t, tt, "Disclosure draft")
+			tt.Key(ui.Ctrl, ui.KeyA)
+			tt.Type("Edited")
+			keep = true
+			tt.Frame()
+			tt.Key(ui.Ctrl, ui.KeyZ)
+			if draft != "Draft" || !tt.Focused("Disclosure draft") {
+				t.Fatal("mounting-policy update discarded editor state")
+			}
+			disabled = false
+			open = false
+			ids = nil
+			tt.Frame()
+			if tt.HasText("Disclosure draft") || !tt.Focused("Header") || changes != 0 {
+				t.Fatal("reduced-motion external close did not hide and restore focus silently")
+			}
+			open = true
+			ids = []string{"one"}
+			tt.Frame()
+			reduce = false
+			keep = false
+			tt.Frame()
+			open = false
+			ids = nil
+			tt.Frame()
+			if !tt.HasText("Body action") {
+				t.Fatal("exit content was not retained for animation")
+			}
+			click(t, tt, "Body action")
+			if actions != 1 {
+				t.Fatal("closing content remained interactive")
+			}
+		})
+	}
+}
+
 func TestModalIdentitySurvivesOtherOverlayRemoval(t *testing.T) {
 	open := false
 	draft := "Draft"

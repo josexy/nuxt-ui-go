@@ -80,6 +80,37 @@ func TestGalleryInheritedFieldsAndDisabledChoices(t *testing.T) {
 	tt.Key(0, ui.KeySpace)
 	requireText(t, tt, "Selected ID: build · Changes: 2")
 }
+func TestGalleryCheckboxExplainsSharedLoadingOption(t *testing.T) {
+	a := newStaticGallery()
+	t.Cleanup(a.Dispose)
+	tt := sceneTester(t, a, "checkbox", "states")
+	press(t, tt, "Locked checkbox")
+	requireText(t, tt, "Disabled: true · Shared loading value: false")
+	press(t, tt, "Checkbox ignores Loading")
+	requireText(t, tt, "Disabled: true · Shared loading value: true")
+	tt.Key(0, ui.KeySpace)
+	requireText(t, tt, "Disabled: true · Shared loading value: false")
+}
+
+func TestGalleryCheckboxIconScenariosRemainInteractive(t *testing.T) {
+	a := newStaticGallery()
+	t.Cleanup(a.Dispose)
+	tt := sceneTester(t, a, "checkbox", "tri-state")
+	press(t, tt, "Custom mixed icon")
+	requireText(t, tt, "Check state: 2")
+	press(t, tt, "Select all files")
+	requireText(t, tt, "Check state: 1")
+	press(t, tt, "Reset mixed state")
+	requireText(t, tt, "Check state: 2")
+	tt = sceneTester(t, a, "checkbox", "hidden-icons")
+	press(t, tt, "Workspace alerts")
+	press(t, tt, "No automatic icon")
+	press(t, tt, "Icon only choice")
+	requireText(t, tt, "Hidden choices: [true true true]")
+	tt.Key(0, ui.KeySpace)
+	requireText(t, tt, "Hidden choices: [true true false]")
+}
+
 func TestGalleryControlledInputsAndIsolation(t *testing.T) {
 	a := newStaticGallery()
 	t.Cleanup(a.Dispose)
@@ -96,6 +127,14 @@ func TestGalleryControlledInputsAndIsolation(t *testing.T) {
 	tt.Key(0, ui.KeySpace)
 	press(t, tt, "Disabled switch")
 	requireText(t, tt, "Disabled: true · Loading: false")
+	press(t, tt, "Toggle loading state")
+	press(t, tt, "Loading switch")
+	requireText(t, tt, "Disabled: true · Loading: true")
+	tt.Key(0, ui.KeySpace)
+	requireText(t, tt, "Busy: false · Changes: 2")
+	press(t, tt, "Toggle loading state")
+	press(t, tt, "Loading switch")
+	requireText(t, tt, "Busy: true · Changes: 2")
 	tt = sceneTester(t, a, "select-menu", "single")
 	press(t, tt, "single members menu")
 	press(t, tt, "Search single members menu")

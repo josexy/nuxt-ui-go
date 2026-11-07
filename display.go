@@ -15,6 +15,7 @@ type BadgeOptions struct {
 	Size              Size
 	Square            bool
 	Leading, Trailing *ui.SVG
+	Avatar            *AvatarOptions // Used when Leading is nil.
 	Decoration
 }
 
@@ -34,7 +35,7 @@ func Badge(c *ui.Context, t Theme, label string, opts BadgeOptions) ui.Element {
 		if v.Size == XS || v.Size == SM {
 			style.Radius = Set(t.radius(4))
 		}
-		if opts.Square {
+		if opts.Square || label == "" {
 			style.PaddingX = style.PaddingY
 		}
 		return Styles{Root: style}
@@ -45,6 +46,12 @@ func Badge(c *ui.Context, t Theme, label string, opts BadgeOptions) ui.Element {
 	e.Children(func() {
 		if opts.Leading != nil {
 			decorated(Leading, ui.Icon(c, opts.Leading).Size(size, size), styles, opts.Style)
+		} else if opts.Avatar != nil {
+			diameter := Optional[float32]{}
+			if opts.Avatar.Size == SizeDefault {
+				diameter = Set(t.text([5]float32{16, 16, 16, 20, 20}[sizeIndex(config.Size)]))
+			}
+			decorated(Leading, avatar(c, t, *opts.Avatar, diameter), styles, opts.Style)
 		}
 		// An empty label must not reserve a gap beside icon-only badges.
 		if label != "" {
@@ -91,14 +98,28 @@ func Initials(name string) string {
 	return strings.ToUpper(string(r))
 }
 func Avatar(c *ui.Context, t Theme, opts AvatarOptions) ui.Element {
+	return avatar(c, t, opts, Optional[float32]{})
+}
+
+// A containing component may supply its default diameter without
+// changing the standalone Avatar sizes or explicit AvatarOptions.Size.
+func avatar(c *ui.Context, t Theme, opts AvatarOptions, diameter Optional[float32]) ui.Element {
+	return avatarWithIcon(c, t, opts, diameter, nil)
+}
+
+func avatarWithIcon(c *ui.Context, t Theme, opts AvatarOptions, diameter Optional[float32], buildIcon func(*ui.Context, *ui.SVG, float32, ui.Color) ui.Element) ui.Element {
 	config, styles := resolve(t, ComponentAvatar, ComponentTheme{Color: Neutral, Size: MD}, ComponentTheme{Color: opts.Color, Size: opts.Size, UI: opts.UI}, func(v ComponentTheme) Styles {
 		color, bg := t.color(v.Color), t.color(v.Color).Alpha(.10)
 		if v.Color == Neutral {
 			color, bg = t.Muted, t.Elevated
 		}
-		return Styles{Root: {Background: Set(bg), Foreground: Set(color), Radius: Set(float32(999)), Font: Set(t.Font), FontSize: Set(t.text([5]float32{12, 14, 16, 18, 20}[sizeIndex(v.Size)])), Weight: Set(500)}}
+		fontSize := t.text([5]float32{12, 14, 16, 18, 20}[sizeIndex(v.Size)])
+		if diameter.Set {
+			fontSize = diameter.Value / 2
+		}
+		return Styles{Root: {Background: Set(bg), Foreground: Set(color), Radius: Set(float32(999)), Font: Set(t.Font), FontSize: Set(fontSize), Weight: Set(500)}}
 	})
-	size := avatarSize(t, config.Size)
+	size := valueOr(diameter, avatarSize(t, config.Size))
 	e := ui.Box(c).Size(size, size).Shrink(0).Center().Clip()
 	styles[Root].apply(e)
 	alt := opts.Alt
@@ -110,9 +131,14 @@ func Avatar(c *ui.Context, t Theme, opts AvatarOptions) ui.Element {
 	}
 	e.Children(func() {
 		if opts.Image != nil {
-			ui.Image(c, opts.Image).Size(size, size).Fit(ui.Cover)
+			decorated(Body, ui.Image(c, opts.Image).Fill().Fit(ui.Cover), styles, opts.Style)
 		} else if opts.Icon != nil {
-			decorated(Leading, ui.Icon(c, opts.Icon).Size(size*.5, size*.5), styles, opts.Style)
+			if buildIcon != nil {
+				color := valueOr(styles[Leading].Foreground, styles[Root].Foreground.Value)
+				decorated(Leading, buildIcon(c, opts.Icon, size*.5, color), styles, opts.Style)
+			} else {
+				decorated(Leading, ui.Icon(c, opts.Icon).Size(size*.5, size*.5), styles, opts.Style)
+			}
 		} else {
 			text := opts.Text
 			if text == "" {
@@ -175,10 +201,24 @@ func AvatarGroup(c *ui.Context, t Theme, items []AvatarItem, opts AvatarGroupOpt
 	// first avatar over its following neighbor, as Nuxt's row-reverse group does.
 	e := ui.Row(c).Reverse().Justify(ui.End).AlignItems(ui.Center)
 	finish(t, ComponentAvatarGroup, Root, e, PartStyle{Gap: Set(-overlap)}, opts.Decoration)
+	itemStyle := mergeStyle(PartStyle{BorderWidth: Set(ring), BorderColor: Set(t.Background)}, t.components[ComponentAvatarGroup].UI[Item])
+	itemStyle = mergeStyle(itemStyle, opts.UI[Item])
+	decorateItem := func(item ui.Element) {
+		// Nuxt's base ring is outside the avatar, unlike an ordinary inset border.
+		style := itemStyle
+		style.BorderWidth = Optional[float32]{}
+		style.apply(item)
+		if itemStyle.BorderWidth.Value > 0 {
+			item.Shadow(0, 0, 0, itemStyle.BorderWidth.Value, itemStyle.BorderColor.Value)
+		}
+		if opts.Style != nil {
+			opts.Style(Item, item)
+		}
+	}
 	e.Children(func() {
 		if len(items) > limit {
-			Avatar(c.Key("overflow"), t, AvatarOptions{Text: fmt.Sprintf("+%d", len(items)-limit), Size: config.Size, Color: config.Color,
-				Alt: formatMessage(c, "morePeople", map[string]any{"count": len(items) - limit})}).Shadow(0, 0, 0, ring, t.Background)
+			decorateItem(Avatar(c.Key("overflow"), t, AvatarOptions{Text: fmt.Sprintf("+%d", len(items)-limit), Size: config.Size, Color: config.Color,
+				Alt: formatMessage(c, "morePeople", map[string]any{"count": len(items) - limit})}))
 		}
 		for i := min(limit, len(items)) - 1; i >= 0; i-- {
 			item := items[i]
@@ -189,7 +229,7 @@ func AvatarGroup(c *ui.Context, t Theme, items []AvatarItem, opts AvatarGroupOpt
 			if o.Color == ColorDefault {
 				o.Color = config.Color
 			}
-			Avatar(c.Key(avatarItemKey(item.ID)), t, o).Shadow(0, 0, 0, ring, t.Background)
+			decorateItem(Avatar(c.Key(avatarItemKey(item.ID)), t, o))
 		}
 	})
 	return e
@@ -222,13 +262,20 @@ func Chip(c *ui.Context, t Theme, opts ChipOptions, content func()) ui.Element {
 		if opts.Hidden {
 			return
 		}
-		config := selected(defaults(t, ComponentChip, ComponentTheme{Color: Primary, Size: MD}), ComponentTheme{Color: opts.Color, Size: opts.Size})
+		config, styles := resolve(t, ComponentChip, ComponentTheme{Color: Primary, Size: MD}, ComponentTheme{Color: opts.Color, Size: opts.Size, UI: opts.UI}, func(v ComponentTheme) Styles {
+			font := t.text([5]float32{6, 7, 8, 9, 10}[sizeIndex(v.Size)])
+			background := t.color(v.Color)
+			if v.Color == Neutral {
+				background = t.InvertedBackground
+			}
+			return Styles{Indicator: {Background: Set(background), Foreground: Set(t.Inverted), Font: Set(t.Font), FontSize: Set(font), Weight: Set(500)}}
+		})
 		h := t.text([5]float32{6, 7, 8, 9, 10}[sizeIndex(config.Size)])
-		w := h
-		font := h
+		textStyle := styles[Indicator]
+		w := max(h, 2*textStyle.PaddingX.Value)
 		if opts.Text != "" {
-			tw, _ := c.MeasureText(1000, ui.Span{Text: opts.Text, Font: t.Font, Size: font, Weight: 500})
-			w = max(h, tw)
+			tw, _ := c.MeasureText(1000, ui.Span{Text: opts.Text, Font: textStyle.Font.Value, Size: textStyle.FontSize.Value, Weight: textStyle.Weight.Value})
+			w = max(h, tw+2*textStyle.PaddingX.Value)
 		}
 		chip := ui.Box(c).Size(w, h).Radius(999).Center().IgnoreInput(true)
 		if content != nil {
@@ -252,9 +299,6 @@ func Chip(c *ui.Context, t Theme, opts ChipOptions, content func()) ui.Element {
 				chip.Translate(x, y)
 			}
 		}
-		_, styles := resolve(t, ComponentChip, ComponentTheme{Color: Primary, Size: MD}, ComponentTheme{Color: opts.Color, Size: opts.Size, UI: opts.UI}, func(v ComponentTheme) Styles {
-			return Styles{Indicator: {Background: Set(t.color(v.Color)), Foreground: Set(t.Inverted), FontSize: Set(font), Weight: Set(500)}}
-		})
 		decorated(Indicator, chip, styles, opts.Style)
 		chip.Shadow(0, 0, 0, 1, t.Background)
 		if opts.Text != "" {
@@ -269,6 +313,10 @@ func Chip(c *ui.Context, t Theme, opts ChipOptions, content func()) ui.Element {
 func FormatKey(key, goos string) string {
 	mac := goos == "darwin"
 	switch strings.ToLower(key) {
+	case "command":
+		return "⌘"
+	case "win":
+		return "⊞"
 	case "cmdorctrl", "primary":
 		if mac {
 			return "⌘"
@@ -360,13 +408,17 @@ func Kbd(c *ui.Context, t Theme, keys []string, opts KbdOptions) ui.Element {
 type UserOptions struct {
 	Name, Description  string
 	Avatar             AvatarOptions
+	Chip               *ChipOptions
 	Size               Size
+	Orientation        Orientation
 	Vertical, Disabled bool
 	OnActivate         func()
+	Leading, Body      func()
 	Decoration
 }
 
 func User(c *ui.Context, t Theme, opts UserOptions) ui.Element {
+	opts.Vertical = vertical(opts.Orientation) || opts.Vertical
 	var e ui.Element
 	if opts.OnActivate != nil {
 		e = ui.ButtonBase(c).Disabled(opts.Disabled).FocusRing(false).OnClick(opts.OnActivate).Label(opts.Name)
@@ -377,8 +429,17 @@ func User(c *ui.Context, t Theme, opts UserOptions) ui.Element {
 	if opts.Vertical {
 		e.Column().AlignItems(ui.Start)
 	}
+	interactive := opts.OnActivate != nil && !e.IsDisabled()
+	highlighted := interactive && (e.Hovered() || e.FocusVisible())
 	config, styles := resolve(t, ComponentUser, ComponentTheme{Size: MD}, ComponentTheme{Size: opts.Size, UI: opts.UI}, func(v ComponentTheme) Styles {
-		return Styles{Root: {Gap: Set(t.spacing([5]float32{6, 8, 8, 10, 10}[sizeIndex(v.Size)])), Radius: Set(t.Radius)}, Label: {Foreground: Set(t.Highlighted), FontSize: Set(t.text([5]float32{12, 12, 14, 14, 16}[sizeIndex(v.Size)])), Weight: Set(500)}, Description: {Foreground: Set(t.Muted), FontSize: Set(t.text([5]float32{12, 12, 12, 14, 14}[sizeIndex(v.Size)]))}}
+		name, description := t.Highlighted, t.Muted
+		if opts.OnActivate != nil {
+			name = t.Text
+			if highlighted {
+				name, description = t.Highlighted, t.Toned
+			}
+		}
+		return Styles{Root: {Gap: Set(t.spacing([5]float32{6, 8, 8, 10, 10}[sizeIndex(v.Size)])), Radius: Set(t.Radius)}, Label: {Foreground: Set(name), FontSize: Set(t.text([5]float32{12, 12, 14, 14, 16}[sizeIndex(v.Size)])), Weight: Set(500)}, Description: {Foreground: Set(description), FontSize: Set(t.text([5]float32{12, 12, 12, 14, 14}[sizeIndex(v.Size)]))}}
 	})
 	decorated(Root, e, styles, opts.Style)
 	if e.FocusVisible() {
@@ -386,22 +447,54 @@ func User(c *ui.Context, t Theme, opts UserOptions) ui.Element {
 	}
 	e.Children(func() {
 		// As Nuxt's, a User without avatar options shows no avatar.
-		if a := opts.Avatar; a.Image != nil || a.Icon != nil || a.Text != "" || a.Alt != "" || a.Color != ColorDefault || a.Size != SizeDefault || len(a.UI) > 0 || a.Style != nil {
-			avatar := opts.Avatar
-			avatar.Size = config.Size
-			if avatar.Alt == "" {
-				avatar.Alt = opts.Name
+		if opts.Leading != nil {
+			leading := ui.Column(c.Key("leading")).Shrink(0)
+			decorated(Leading, leading, styles, opts.Style)
+			leading.Children(opts.Leading)
+		} else if a := opts.Avatar; a.Image != nil || a.Icon != nil || a.Text != "" || a.Alt != "" || a.Color != ColorDefault || a.Size != SizeDefault || len(a.UI) > 0 || a.Style != nil {
+			a.Size = config.Size
+			if a.Alt == "" {
+				a.Alt = opts.Name
 			}
-			Avatar(c, t, avatar)
+			drawAvatar := func() {
+				part := Avatar(c.Key("avatar"), t, a)
+				scale := float32(1)
+				if highlighted {
+					scale = 1.15
+				}
+				if t.motion(c) && t.Motion.Transition > 0 {
+					scale = part.AnimateWith("nui-user-avatar", scale, t.Motion.Transition, ui.EaseOut)
+				} else {
+					part.Jump("nui-user-avatar", scale)
+				}
+				part.Scale(scale, scale)
+				decorated(Leading, part, styles, opts.Style)
+			}
+			if opts.Chip != nil {
+				chip := *opts.Chip
+				chip.Size, chip.Inset = config.Size, true
+				Chip(c.Key("leading"), t, chip, drawAvatar)
+			} else {
+				// Keep the avatar parent stable when the chip is added or removed,
+				// without applying Chip theme styles when no chip was requested.
+				ui.Box(c.Key("leading")).Shrink(0).Children(drawAvatar)
+			}
 		}
-		wrapper := ui.Column(c).MinWidth(0).Grow(1)
+		wrapper := ui.Column(c.Key("body")).MinWidth(0).Grow(1)
 		if config.Size == XS {
 			wrapper.Row().AlignItems(ui.Center).Gap(t.spacing(6))
 		}
+		decorated(Body, wrapper, styles, opts.Style)
 		wrapper.Children(func() {
-			decorated(Label, ui.Text(c, opts.Name).SingleLine(), styles, opts.Style)
+			if opts.Body != nil {
+				opts.Body()
+				return
+			}
+			if opts.Name != "" {
+				decorated(Label, ui.Text(c.Key("name"), opts.Name).SingleLine(), styles, opts.Style)
+			}
 			if opts.Description != "" {
-				decorated(Description, ui.Text(c, opts.Description).SingleLine(), styles, opts.Style)
+				decorated(Description, ui.Text(c.Key("description"), opts.Description).SingleLine(), styles, opts.Style)
 			}
 		})
 	})

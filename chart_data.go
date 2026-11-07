@@ -54,6 +54,28 @@ type ChartSlice struct {
 	Color     Color
 }
 
+// ChartSelection identifies the focused X row or radial slice. Index is -1 when
+// nothing is focused; SliceID is empty for Cartesian charts.
+type ChartSelection struct {
+	Index   int
+	SliceID string
+}
+
+func (s *ChartState) chartSelection(kind ChartKind) ChartSelection {
+	if chartRadial(kind) {
+		for i, slice := range s.slices {
+			if slice.ID == s.SelectedSlice {
+				return ChartSelection{Index: i, SliceID: slice.ID}
+			}
+		}
+		return ChartSelection{Index: -1}
+	}
+	if s.Selected < 0 || s.Selected >= len(s.x) {
+		return ChartSelection{Index: -1}
+	}
+	return ChartSelection{Index: s.Selected}
+}
+
 type chartAxis uint8
 
 const (
@@ -81,6 +103,7 @@ type ChartState struct {
 	prepared      *chartPrepared
 	animation     chartAnimation
 	handle        ui.Handle
+	frame         ui.Handle
 	piePointer    ui.Point
 	pieHovered    bool
 }
@@ -104,6 +127,9 @@ func (s *ChartState) setData(xs []float64, series []ChartSeries, axis chartAxis,
 			return fmt.Errorf("nui: chart series %s has %d values for %d X values", v.ID, len(v.Values), len(xs))
 		}
 		copySeries[i].Values = slices.Clone(v.Values)
+		if copySeries[i].Label == "" {
+			copySeries[i].Label = v.ID
+		}
 		for j, y := range copySeries[i].Values {
 			if !chartFinite(y) {
 				copySeries[i].Values[j] = math.NaN()
@@ -170,6 +196,11 @@ func (s *ChartState) SetSlices(values []ChartSlice) error {
 		return fmt.Errorf("nui: chart slice total is too large")
 	}
 	s.slices = slices.Clone(values)
+	for i := range s.slices {
+		if s.slices[i].Label == "" {
+			s.slices[i].Label = s.slices[i].ID
+		}
+	}
 	for id := range s.hiddenSlices {
 		if !seen[id] {
 			delete(s.hiddenSlices, id)
@@ -222,6 +253,7 @@ func (s *ChartState) SetSliceVisible(id string, visible bool) bool {
 }
 
 type chartConfig struct {
+	rtl        bool
 	width      int
 	kind       ChartKind
 	curve      ChartCurve
@@ -452,6 +484,15 @@ func (s *ChartState) prepareChart(config chartConfig) *chartPrepared {
 			mark.left, mark.right = append(mark.left, left), append(mark.right, left+bw)
 		}
 		p.scene.marks = append(p.scene.marks, mark)
+	}
+	if config.rtl {
+		for i := range p.scene.marks {
+			mark := &p.scene.marks[i]
+			for j := range mark.x {
+				mark.x[j] = 1 - mark.x[j]
+				mark.left[j], mark.right[j] = 1-mark.right[j], 1-mark.left[j]
+			}
+		}
 	}
 	return p
 }

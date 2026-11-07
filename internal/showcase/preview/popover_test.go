@@ -75,7 +75,7 @@ func TestPopoverConfiguredPlacementAndSizing(t *testing.T) {
 	if p.W != 260 || p.H > 60 {
 		t.Fatalf("width/maximum height did not take effect: %v", p)
 	}
-	delete(fields, "Width")
+	fields["Width"] = nil // Clear the demo's explicit width to test content sizing.
 	delete(fields, "MaxHeight")
 	cfg.Values["label"] = "Open additional workspace configuration details"
 	tester.Frame()
@@ -130,5 +130,29 @@ func TestPopoverConfiguredHoverDelays(t *testing.T) {
 	tester.Advance(2 * time.Millisecond)
 	if tester.HasText("Additional information") {
 		t.Fatal("did not close after configured delay")
+	}
+}
+
+func TestPopoverPreviewReanchorPreservesDraft(t *testing.T) {
+	tester, cfg := exampleTester(t, "popover")
+	clickExample(t, tester, "Open details")
+	clickExample(t, tester, "Popover draft")
+	tester.Key(ui.Ctrl, ui.KeyA)
+	cfg.Values["alternate"], cfg.Values["styled"], cfg.Values["reduced"] = true, true, true
+	tester.Frame()
+	if !tester.Focused("Popover draft") {
+		t.Fatal("panel controls discarded editor focus")
+	}
+	tester.Type("Reanchored draft")
+	clickExample(t, tester, "Close")
+	if !tester.Focused("Alternate anchor") {
+		t.Fatal("closing did not focus the configured anchor")
+	}
+	clickExample(t, tester, "Alternate anchor")
+	clickExample(t, tester, "Popover draft")
+	tester.Key(ui.Ctrl, ui.KeyA)
+	tester.Command("copy")
+	if tester.Clipboard() != "Reanchored draft" {
+		t.Fatal("closing lost the persistent draft")
 	}
 }

@@ -17,6 +17,7 @@ func (a *State) advancedPage(id string) *componentPage {
 	}
 	switch id {
 	case "command-palette":
+		addCommandContract(p)
 		for _, kind := range []string{"search", "groups", "empty"} {
 			state := &nui.CommandPaletteState{}
 			result := "No command selected"
@@ -38,6 +39,7 @@ func (a *State) advancedPage(id string) *componentPage {
 			})
 		}
 	case "navigation-menu":
+		addNavigationContract(p)
 		for _, kind := range []string{"horizontal", "vertical", "compact"} {
 			active := "activity"
 			state := &nui.NavigationState{}
@@ -50,6 +52,7 @@ func (a *State) advancedPage(id string) *componentPage {
 			})
 		}
 	case "drawer":
+		addDrawerContract(p)
 		for _, kind := range []string{"basic", "snap", "policy"} {
 			state := &nui.DrawerState{}
 			handle := &ui.Handle{}
@@ -74,6 +77,7 @@ func (a *State) advancedPage(id string) *componentPage {
 			})
 		}
 	case "file-upload":
+		addFileUploadContract(p)
 		for _, kind := range []string{"native", "rules", "simulation"} {
 			state := &nui.FileUploadState{}
 			ticket := nui.UploadTicket{}
@@ -128,6 +132,7 @@ func (a *State) advancedPage(id string) *componentPage {
 			})
 		}
 	case "chart":
+		addChartContract(p)
 		model := &State{Advanced: newAdvanced()}
 		add("explorer", "Interactive chart explorer", "Compare all six chart kinds, numeric/category/time axes, five curves and four stacking modes. Click legends or focus the chart and use arrows. Update changes data without recreating the model; negative values and missing samples are cartesian only.", model.chartDemo)
 		for _, kind := range []string{"time", "donut"} {
@@ -148,6 +153,7 @@ func (a *State) advancedPage(id string) *componentPage {
 			})
 		}
 	case "carousel":
+		addCarouselContract(p, a)
 		for _, kind := range []string{"horizontal", "vertical", "autoplay"} {
 			state := &nui.CarouselState{}
 			arrows, dots, wrap := true, true, kind != "vertical"
@@ -175,6 +181,7 @@ func (a *State) advancedPage(id string) *componentPage {
 			})
 		}
 	case "marquee":
+		addMarqueeContract(p, a)
 		for _, kind := range []string{"horizontal", "vertical", "static"} {
 			state := &nui.MarqueeState{}
 			reverse := false
@@ -199,14 +206,14 @@ func (a *State) advancedPage(id string) *componentPage {
 				minimum, maximum = 35, 65
 			}
 			if kind == "disabled" {
-				title = "Disabled nested panes"
+				title = "Locked nested dividers"
 			}
 			changes := 0
 			draft := "Persistent pane draft"
 			notes := "Independent notes"
-			description := fmt.Sprintf("The left pane sits beside a right pane split into top and bottom. Drag the vertical divider or use Left/Right for width; drag the horizontal divider or use Up/Down for height. Both positions are constrained to %.0f–%.0f%%; native panes retain a 40 DIP minimum.", minimum, maximum)
+			description := fmt.Sprintf("The left pane sits beside a right pane split into top and bottom. The one-DIP lines meet at the junction, with wider overlapping drag targets. Drag the vertical divider or use Left/Right for width; drag the horizontal divider or use Up/Down for height. Both positions are constrained to %.0f–%.0f%%; native panes retain a 40 DIP minimum.", minimum, maximum)
 			if kind == "disabled" {
-				description = "Both dividers and their pane contents are disabled. Dragging, arrow keys and text input leave the initial positions and draft unchanged."
+				description = "Both dividers are locked; the editor and notes remain usable. Disable an ancestor container to disable the entire subtree."
 			}
 			add(kind, title, description, func(c *ui.Context, t nui.Theme) {
 				o := nui.SplitterOptions{Percent: true, Disabled: kind == "disabled", Min: nui.Set(minimum), Max: nui.Set(maximum), OnChange: func(float32) { changes++ }}
@@ -215,7 +222,7 @@ func (a *State) advancedPage(id string) *componentPage {
 						ui.Text(c, "Left pane").Bold()
 						nui.Input(c.Key("draft"), t, &draft, nui.InputOptions{Label: kind + " pane draft"})
 						if kind == "disabled" {
-							ui.Text(c, "The draft stays unchanged while the panes are disabled.")
+							ui.Text(c, "The divider is locked; you can still edit this draft.")
 						} else {
 							ui.Text(c, "Edit here to update the preview on the right.")
 						}
@@ -240,6 +247,7 @@ func (a *State) advancedPage(id string) *componentPage {
 				ui.Textf(c, "Left width %.0f%% · Right top height %.0f%% · %d changes", width, height, changes)
 			})
 		}
+		addSplitterContract(p)
 	case "sidebar":
 		for _, kind := range []string{"slideover", "modal", "drawer"} {
 			state := &nui.SidebarState{}
@@ -249,6 +257,7 @@ func (a *State) advancedPage(id string) *componentPage {
 			right := false
 			changes := 0
 			draft := "Inner workspace"
+			sidebarDraft := "Persistent sidebar draft"
 			opener := &ui.Handle{}
 			p.Deactivate = append(p.Deactivate, func() { state.Open = false })
 			add(kind, "Sidebar · "+kind, "Each inner sidebar owns collapse, width and overlay state. At window widths below 880 DIP use its opener; selecting a route closes the overlay and returns focus. Resize on desktop; toggle side to compare RTL mirroring.", func(c *ui.Context, t nui.Theme) {
@@ -267,12 +276,17 @@ func (a *State) advancedPage(id string) *componentPage {
 						mode = nui.SidebarDrawer
 					}
 					buildSidebar := func() {
-						nui.Sidebar(c, t, &collapsed, nui.SidebarOptions{Title: kind + " workspace sidebar", ToggleLabel: "Toggle inner " + kind + " sidebar", ResizeLabel: "Resize inner " + kind + " sidebar", Width: nui.Set(float32(220)), MinWidth: nui.Set(float32(160)), MaxWidth: nui.Set(float32(320)), State: state, Resizable: true, Side: nui.Set(side), Breakpoint: nui.Set(float32(880)), Mode: mode, NavigationKey: active, ReturnFocus: opener, OnResize: func(float32) { changes++ }, OnCollapsedChange: func(bool) { changes++ }}, func(c *ui.Context, t nui.Theme, compact bool) {
-							nui.NavigationMenu(c, t, &active, navigation, shellNavigation, nui.NavigationOptions{Label: kind + " inner navigation", Vertical: true, Compact: compact})
+						nui.Sidebar(c.Key("sidebar"), t, &collapsed, nui.SidebarOptions{Title: kind + " workspace sidebar", Description: "Project navigation", ToggleLabel: "Toggle inner " + kind + " sidebar", ResizeLabel: "Resize inner " + kind + " sidebar", Width: nui.Set(float32(220)), MinWidth: nui.Set(float32(160)), MaxWidth: nui.Set(float32(320)), State: state, Resizable: true, Side: nui.Set(side), Breakpoint: nui.Set(float32(880)), Mode: mode, NavigationKey: active, ReturnFocus: opener, OnResize: func(float32) { changes++ }, OnCollapsedChange: func(bool) { changes++ }, Actions: func(c *ui.Context, t nui.Theme, scope nui.SidebarScope) {
+							nui.Button(c, t, "", nui.ButtonOptions{Leading: lucide.RefreshCw(), AccessibleLabel: kind + " sidebar header action", Variant: nui.Ghost, Color: nui.Neutral, Square: true}).OnClick(func() { changes++ })
+						}}, func(c *ui.Context, t nui.Theme, compact bool) {
+							if !compact {
+								nui.Input(c.Key("sidebar-draft"), t, &sidebarDraft, nui.InputOptions{Label: kind + " sidebar draft"})
+							}
+							nui.NavigationMenu(c.Key("navigation"), t, &active, navigation, shellNavigation, nui.NavigationOptions{Label: kind + " inner navigation", Vertical: true, Compact: compact})
 						})
 					}
 					body := func() {
-						ui.Column(c).Grow(1).MinWidth(0).Padding(12).Gap(12).Children(func() {
+						ui.Column(c.Key("workspace")).Grow(1).MinWidth(0).Padding(12).Gap(12).Children(func() {
 							ui.Text(c, "Selected: "+active)
 							nui.Input(c, t, &draft, nui.InputOptions{Label: kind + " inner workspace name"})
 						})
@@ -289,6 +303,7 @@ func (a *State) advancedPage(id string) *componentPage {
 			})
 		}
 	case "header", "footer", "footer-columns":
+		addLayoutContract(p, id)
 		for _, kind := range []string{"simple", "actions", "constrained"} {
 			result := "Ready"
 			clicks := 0

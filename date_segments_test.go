@@ -114,9 +114,13 @@ func TestTimeSegmentsHourCycleAndHiddenSeconds(t *testing.T) {
 	var state nui.TimeInputState
 	twelve, seconds := true, true
 	changes := 0
+	step := nui.TimeStep{}
+	precision := nui.TimeGranularityDefault
+	snap := false
+	var minimum nui.Optional[nui.ClockTime]
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.InputTime(c, th, &value, &state, nui.InputTimeOptions{Label: "Time", TwelveHour: nui.Set(twelve), Seconds: seconds, OnValueChange: func(nui.Optional[nui.ClockTime]) { changes++ }})
+		nui.InputTime(c, th, &value, &state, nui.InputTimeOptions{Label: "Time", TwelveHour: nui.Set(twelve), Seconds: seconds, Granularity: precision, Step: step, StepSnapping: snap, Min: minimum, OnValueChange: func(nui.Optional[nui.ClockTime]) { changes++ }})
 	}, 450, 150)
 	click(t, tt, "Time AM/PM")
 	tt.Type("a")
@@ -152,6 +156,53 @@ func TestTimeSegmentsHourCycleAndHiddenSeconds(t *testing.T) {
 	if value.Value != (nui.ClockTime{Hour: 6, Minute: 45, Second: 42}) {
 		t.Fatalf("paste lost hidden seconds: %v", value)
 	}
+	value = nui.Set(nui.ClockTime{Hour: 11, Minute: 55, Second: 42})
+	twelve, snap, step.Minute = true, true, 5
+	tt.Frame()
+	click(t, tt, "Time hour")
+	tt.Key(0, ui.KeyUp)
+	if value.Value.Hour != 12 {
+		t.Fatal("hour increment did not cross noon")
+	}
+	click(t, tt, "Time minute")
+	tt.Key(0, ui.KeyUp)
+	if value.Value.Minute != 0 || value.Value.Hour != 12 {
+		t.Fatal("minute step did not wrap without carrying")
+	}
+	tt.Type("08")
+	tt.Frame()
+	if value.Value.Minute != 10 || value.Value.Second != 42 {
+		t.Fatalf("blur snapping: %v", value)
+	}
+	click(t, tt, "Time minute")
+	before := changes
+	precision = nui.TimeHour
+	tt.Frame()
+	if !tt.Focused("Time hour") || changes != before || value.Value.Minute != 10 {
+		t.Fatal("hour precision lost focus or changed hidden minutes")
+	}
+	tt.SetClipboard("03 PM")
+	tt.Key(ui.Ctrl, ui.KeyV)
+	if value.Value != (nui.ClockTime{Hour: 15, Minute: 10, Second: 42}) {
+		t.Fatalf("hour-only paste: %v", value)
+	}
+	minimum = nui.Set(nui.ClockTime{Hour: 16})
+	tt.Frame()
+	if state.Error == "" {
+		t.Fatal("new bound did not invalidate existing value")
+	}
+	before = changes
+	tt.SetClipboard("02 PM")
+	tt.Key(ui.Ctrl, ui.KeyV)
+	if changes != before || value.Value.Hour != 15 || state.Error == "" {
+		t.Fatal("out-of-range time committed")
+	}
+	minimum = nui.Optional[nui.ClockTime]{}
+	value = nui.Set(nui.ClockTime{Hour: 17, Minute: 12, Second: 42})
+	tt.Frame()
+	if state.Error != "" || changes != before {
+		t.Fatal("controlled time update notified or retained error")
+	}
 }
 
 func TestSegmentsReplaceAllAndFormFormatting(t *testing.T) {
@@ -162,7 +213,7 @@ func TestSegmentsReplaceAllAndFormFormatting(t *testing.T) {
 	changes := 0
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.Form(c, th, &form, nui.FormOptions{}, func(ft nui.Theme) {
+		nui.Form(c, th, &form, nui.FormOptions{LoadingAuto: nui.Set(false)}, func(ft nui.Theme) {
 			nui.FormField(c, ft, nui.FormFieldOptions{Name: "time", Label: "Time", Value: value.Value.String()}, func(it nui.Theme) {
 				nui.InputTime(c, it, &value, &state, nui.InputTimeOptions{Label: "Time", TwelveHour: nui.Set(twelve), Seconds: seconds, OnValueChange: func(nui.Optional[nui.ClockTime]) { changes++ }})
 			})
@@ -289,10 +340,12 @@ func TestSegmentsReadOnlyDisabledAndRangeNavigation(t *testing.T) {
 	var state nui.DateRangeInputState
 	readonly, disabled := false, false
 	changes := 0
+	rangeChanges, clears := 0, 0
+	var maximum nui.Optional[nui.Date]
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		nui.FormField(c, th, nui.FormFieldOptions{Label: "Range", Disabled: disabled}, func(ft nui.Theme) {
-			nui.InputDateRange(c, ft, &value, &state, nui.InputDateOptions{Label: "Range", ReadOnly: readonly, Calendar: nui.CalendarOptions{OnChange: func(nui.DateSelection) { changes++ }}})
+			nui.InputDateRange(c, ft, &value, &state, nui.InputDateOptions{Label: "Range", ReadOnly: readonly, Clearable: true, OnClear: func() { clears++ }, OnRangeChange: func(nui.DateSelection) { rangeChanges++ }, Calendar: nui.CalendarOptions{Max: maximum, OnChange: func(nui.DateSelection) { changes++ }}})
 		})
 	}, 500, 180)
 	click(t, tt, "Range start year")
@@ -335,6 +388,18 @@ func TestSegmentsReadOnlyDisabledAndRangeNavigation(t *testing.T) {
 	tt.Key(ui.Ctrl, ui.KeyV)
 	if value.End.Set || state.End.Error == "" || changes != 1 {
 		t.Fatal("reverse range committed")
+	}
+	value = nui.DateSelection{Start: nui.Set(nui.Date{Year: 2024, Month: 2, Day: 10}), End: nui.Set(nui.Date{Year: 2024, Month: 2, Day: 20})}
+	tt.Frame()
+	click(t, tt, "Clear Range")
+	if value.Start.Set || value.End.Set || changes != 2 || rangeChanges != 2 || clears != 1 {
+		t.Fatalf("range clear was not atomic: %v %d %d %d", value, changes, rangeChanges, clears)
+	}
+	maximum = nui.Set(nui.Date{Year: 2024, Month: 2, Day: 29})
+	value = nui.DateSelection{Start: nui.Set(nui.Date{Year: 2025, Month: 1, Day: 1})}
+	tt.Frame()
+	if state.Start.Error == "" || changes != 2 {
+		t.Fatal("external out-of-bounds start was not reported quietly")
 	}
 }
 

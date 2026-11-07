@@ -10,7 +10,22 @@ $previousHidden = $env:NUI_NATIVE_HIDDEN
 $previousNarrow = $env:NUI_NATIVE_NARROW
 $previousLocale = $env:MYGO_LOCALE
 $galleryProcess = $null
+# Input injection does not move the OS cursor. A Windows mouse move at its
+# actual position can otherwise interrupt an injected drag or hover sequence.
+if (-not ('NuxtUINativeProbePointer' -as [type])) {
+    Add-Type -TypeDefinition @'
+using System.Runtime.InteropServices;
+public static class NuxtUINativeProbePointer {
+    [StructLayout(LayoutKind.Sequential)] public struct Point { public int X; public int Y; }
+    [DllImport("user32.dll")] public static extern bool GetCursorPos(out Point p);
+    [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
+}
+'@
+}
+$probePointer = New-Object NuxtUINativeProbePointer+Point
+$restorePointer = [NuxtUINativeProbePointer]::GetCursorPos([ref]$probePointer)
 try {
+    [NuxtUINativeProbePointer]::SetCursorPos(0, 0) | Out-Null
     $artifactDir = Join-Path $projectRoot '.work/native'
     New-Item -ItemType Directory -Force $artifactDir | Out-Null
     $env:CGO_ENABLED = '0'
@@ -65,5 +80,8 @@ try {
     $env:NUI_NATIVE_HIDDEN = $previousHidden
     $env:NUI_NATIVE_NARROW = $previousNarrow
     $env:MYGO_LOCALE = $previousLocale
+    if ($restorePointer) {
+        [NuxtUINativeProbePointer]::SetCursorPos($probePointer.X, $probePointer.Y) | Out-Null
+    }
     Pop-Location
 }

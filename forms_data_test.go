@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"slices"
 	"strings"
 	"testing"
@@ -32,7 +33,7 @@ func TestNumberIntermediateAndBounds(t *testing.T) {
 		t.Fatalf("number %v", value)
 	}
 	click(t, tt, "Increase Amount")
-	if value.Value != -2.25 {
+	if value.Value != -2.25 || !tt.Focused("Amount") {
 		t.Fatalf("step %v", value)
 	}
 	click(t, tt, "Amount")
@@ -58,7 +59,7 @@ func TestNumberIntermediateAndBounds(t *testing.T) {
 	if changes != before || value.Set {
 		t.Fatal("read-only changed")
 	}
-	for _, text := range []string{"NaN", "Inf", "1e999", "11"} {
+	for _, text := range []string{"NaN", "Inf", "1e999", "11", "0x1p2", "1_000"} {
 		if _, ok := nui.ParseNumber(text, nui.InputNumberOptions{Max: nui.Set(10.0)}); ok {
 			t.Fatalf("accepted %s", text)
 		}
@@ -88,6 +89,10 @@ func TestTagsPinRatingTriAndRange(t *testing.T) {
 	tt.Command("paste")
 	if !slices.Equal(tags, []string{"Go", "Vue", "原生"}) {
 		t.Fatalf("tags %v", tags)
+	}
+	tt.Key(0, ui.KeyBackspace)
+	if len(tags) != 3 {
+		t.Fatal("first backspace must select the last tag")
 	}
 	tt.Key(0, ui.KeyBackspace)
 	if len(tags) != 2 {
@@ -134,10 +139,16 @@ func TestFormRegistrationHiddenFieldsAndStaleValidation(t *testing.T) {
 	name, email := "", ""
 	hide := false
 	submitted := 0
+	disabled, async, globalError := false, false, false
+	errorEvents := 0
+	var pending nui.FormTicket
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.Form(c, th, &state, nui.FormOptions{Validate: func(v nui.FormValues) nui.FormErrors {
+		nui.Form(c, th, &state, nui.FormOptions{Disabled: disabled, Validate: func(v nui.FormValues) nui.FormErrors {
 			e := nui.FormErrors{}
+			if globalError {
+				e[""] = "Workspace is unavailable"
+			}
 			if v["name"] == "" {
 				e["name"] = "Required"
 			}
@@ -145,7 +156,13 @@ func TestFormRegistrationHiddenFieldsAndStaleValidation(t *testing.T) {
 				e["email"] = "Must differ"
 			}
 			return e
-		}, OnSubmit: func(nui.FormValues) { submitted++ }}, func(inner nui.Theme) {
+		}, OnError: func(nui.FormErrors) { errorEvents++ }, OnSubmit: func(nui.FormValues) {
+			submitted++
+			state.Submit() // A callback cannot recursively queue another submit.
+			if async {
+				pending = state.BeginAsync()
+			}
+		}}, func(inner nui.Theme) {
 			nui.FormField(c.Key("name"), inner, nui.FormFieldOptions{Name: "name", Value: name, Label: "Name"}, func(ft nui.Theme) { nui.Input(c, ft, &name, nui.InputOptions{Label: "Name input"}) })
 			if !hide {
 				nui.FormField(c.Key("email"), inner, nui.FormFieldOptions{Name: "email", Value: email, Label: "Email"}, func(ft nui.Theme) { nui.Input(c, ft, &email, nui.InputOptions{}) })
@@ -186,6 +203,53 @@ func TestFormRegistrationHiddenFieldsAndStaleValidation(t *testing.T) {
 	tt.Frame()
 	if !state.Field("email").Visible {
 		t.Fatal("reappearing field")
+	}
+	async = true
+	state.Submit()
+	tt.Frame()
+	state.Submit()
+	tt.Frame()
+	if submitted != 2 || !state.Submitting || state.Values()["name"] != "Bob" {
+		t.Fatal("pending submission repeated or loading removed its values")
+	}
+	click(t, tt, "Name input")
+	tt.Type("blocked")
+	if name != "Bob" || !state.CompleteAsync(pending, nil) {
+		t.Fatal("loading allowed editing or invalidated its own ticket")
+	}
+	tt.Frame()
+	if state.Field("name").Dirty {
+		t.Fatal("successful async submit did not clear dirty state")
+	}
+	disabled = true
+	state.Submit()
+	tt.Frame()
+	disabled = false
+	tt.Frame()
+	if submitted != 2 {
+		t.Fatal("disabled submit was replayed after enabling")
+	}
+	globalError = true
+	state.Submit()
+	tt.Frame()
+	if submitted != 2 || errorEvents != 2 || state.Errors()[""] != "Workspace is unavailable" {
+		t.Fatal("form-wide validation error did not block submit and report once")
+	}
+	errors := state.Errors()
+	errors[""] = "modified copy"
+	if state.Errors()[""] != "Workspace is unavailable" {
+		t.Fatal("error snapshot changed the form")
+	}
+	state.SetErrors(nui.FormErrors{"name": "Server error", "": "Form error"})
+	state.ClearErrors("name")
+	if state.Errors()["name"] != "" || state.Errors()[""] != "Form error" {
+		t.Fatal("clearing one field changed unrelated errors")
+	}
+	name = "Restored"
+	state.Reset()
+	tt.Frame()
+	if state.Field("name").Dirty || len(state.Errors()) != 0 {
+		t.Fatal("reset used the previous build's value as its baseline")
 	}
 }
 func TestQueryCancellationAndListbox(t *testing.T) {
@@ -249,6 +313,18 @@ func TestCalendarCivilBoundariesAndTime(t *testing.T) {
 	o.IsDateDisabled = func(d nui.Date) bool { return d.Day == 25 }
 	if _, ok := nui.SelectDate(first, nui.Date{Year: 2024, Month: 2, Day: 20}, o); ok {
 		t.Fatal("disabled interior")
+	}
+	o.IsDateUnavailable, o.IsDateDisabled = o.IsDateDisabled, nil
+	if _, ok := nui.SelectDate(first, nui.Date{Year: 2024, Month: 2, Day: 20}, o); ok {
+		t.Fatal("unavailable interior accepted without opt-in")
+	}
+	o.AllowNonContiguousRanges = true
+	if _, ok := nui.SelectDate(first, nui.Date{Year: 2024, Month: 2, Day: 20}, o); !ok {
+		t.Fatal("noncontiguous range rejected")
+	}
+	o.ReadOnly = true
+	if _, ok := nui.SelectDate(first, nui.Date{Year: 2024, Month: 2, Day: 20}, o); ok {
+		t.Fatal("read-only selection accepted")
 	}
 	for _, text := range []string{"12:00 AM", "12:00 PM", "01:15 PM"} {
 		v, ok := nui.ParseClockTime(text, true, false)
@@ -385,7 +461,7 @@ func TestInvalidEditorBlocksFormAndCancelsTicket(t *testing.T) {
 	submitted := 0
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.Form(c, th, &form, nui.FormOptions{OnSubmit: func(nui.FormValues) { submitted++ }}, func(ft nui.Theme) {
+		nui.Form(c, th, &form, nui.FormOptions{LoadingAuto: nui.Set(false), OnSubmit: func(nui.FormValues) { submitted++ }}, func(ft nui.Theme) {
 			nui.FormField(c, ft, nui.FormFieldOptions{Name: "amount", Value: fmt.Sprint(value), Label: "Amount"}, func(it nui.Theme) {
 				nui.InputNumber(c, it, &value, &ns, nui.InputNumberOptions{Label: "Budget input", Min: nui.Set(0.0), Max: nui.Set(10.0)})
 			})
@@ -475,11 +551,18 @@ func TestTableInsertionResizeAndScrollIdentity(t *testing.T) {
 	}
 	state.SetRows(rows, func(s string) string { return s })
 	cols := []nui.TableColumn[string]{{ID: "name", Title: "Name", Width: 250, MinWidth: 150, MaxWidth: 400, Value: func(s string) string { return s }, Compare: strings.Compare}, {ID: "id", Title: "ID", Width: 150, Value: func(s string) string { return s }}}
+	manual, loading := false, false
+	sortChanges, selectionChanges := 0, 0
+	activated := ""
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.Table(c, th, &state, cols, nui.TableOptions{Label: "Table", Height: 300}).Width(420)
+		nui.Table(c, th, &state, cols, nui.TableOptions{Label: "Table", Caption: "Records caption", Height: 300, ManualSorting: manual, Loading: loading, BuildLoading: func(c *ui.Context, _ nui.Theme) { ui.Text(c, "Fetching rows") }, OnSortChange: func([]ui.SortOrder) { sortChanges++ }, OnSelectionChange: func([]string) { selectionChanges++ }, OnActivate: func(id string) { activated = id }}).Width(420)
 	}, 500, 400)
 	click(t, tt, "Record 000")
+	tt.Key(0, ui.KeyEnter)
+	if selectionChanges != 1 || activated != "Record 000" {
+		t.Fatalf("table events: selection=%d activate=%q", selectionChanges, activated)
+	}
 	state.SetRows(append([]string{"Inserted"}, rows...), func(s string) string { return s })
 	tt.Frame()
 	if !state.Selection.Has("Record 000") {
@@ -498,6 +581,95 @@ func TestTableInsertionResizeAndScrollIdentity(t *testing.T) {
 	tt.Frame()
 	if !state.Selection.Has("Record 000") {
 		t.Fatal("scroll changed business selection")
+	}
+	if selectionChanges != 1 || sortChanges != 0 {
+		t.Fatal("external rows, sizing or scrolling emitted a value event")
+	}
+	state.SetRows([]string{"c", "b", "a"}, func(s string) string { return s })
+	cols[0].Compare = func(a, b string) int {
+		if a < b {
+			return math.MinInt
+		}
+		if a > b {
+			return 1
+		}
+		return 0
+	}
+	state.Sort = ui.SortOrder{Column: "name", Descending: true}
+	tt.Frame()
+	if state.Row(0) != "c" {
+		t.Fatal("descending comparator overflow")
+	}
+	state.SetRows([]string{"b", "a", "c"}, func(s string) string { return s })
+	state.Sort = ui.SortOrder{Column: "name"}
+	tt.Frame()
+	state.Sort = ui.SortOrder{}
+	tt.Frame()
+	if state.Row(0) != "b" || state.Row(1) != "a" {
+		t.Fatal("clearing sort lost input order")
+	}
+	state.SetRows([]string{"b2", "a2", "b1", "a1"}, func(s string) string { return s })
+	reverse := false
+	cols[0].Compare = func(a, b string) int {
+		if reverse {
+			return strings.Compare(b[:1], a[:1])
+		}
+		return strings.Compare(a[:1], b[:1])
+	}
+	cols[1].Compare = strings.Compare
+	orders := []ui.SortOrder{{Column: "name"}, {Column: "id"}}
+	state.List.SortBy = &orders
+	tt.Frame()
+	if state.Row(0) != "a1" || state.Row(1) != "a2" || state.Row(2) != "b1" {
+		t.Fatal("secondary sort ignored")
+	}
+	orders = orders[:1]
+	tt.Frame()
+	if state.Row(0) != "a2" || state.Row(1) != "a1" {
+		t.Fatal("equal keys retained a previous sort instead of input order")
+	}
+	reverse = true
+	state.InvalidateSort()
+	tt.Frame()
+	if state.Row(0) != "b2" {
+		t.Fatal("explicit comparator invalidation ignored")
+	}
+	orders = []ui.SortOrder{{Column: "id"}}
+	tt.Frame()
+	cols = cols[:1]
+	tt.Frame()
+	if len(orders) != 0 || state.Sort.Column != "" || state.Row(0) != "b2" {
+		t.Fatal("removed sort column remained active")
+	}
+	if sortChanges != 0 || selectionChanges != 1 {
+		t.Fatal("controlled sort changes emitted notifications")
+	}
+	manual = true
+	state.List.SortBy = nil
+	state.Sort = ui.SortOrder{Column: "name", Descending: true}
+	cols[0].Compare, cols[0].Sortable = nil, nui.Set(true)
+	state.SetRows([]string{"b", "a", "c"}, func(s string) string { return s })
+	tt.Frame()
+	click(t, tt, "Name")
+	if state.Sort.Descending || state.Row(0) != "b" || sortChanges != 1 {
+		t.Fatalf("manual sort: sort=%+v first=%s events=%d", state.Sort, state.Row(0), sortChanges)
+	}
+	cols[0].Sortable = nui.Set(false)
+	tt.Frame()
+	click(t, tt, "Name")
+	if state.Sort.Column != "" || sortChanges != 1 {
+		t.Fatal("disabled column still sorted")
+	}
+	state.SetRows(nil, func(s string) string { return s })
+	tt.Frame()
+	header, empty := bounds(t, tt, "Name"), bounds(t, tt, "No data")
+	if empty.Y < header.Y+header.H {
+		t.Fatal("empty content precedes the header")
+	}
+	loading = true
+	tt.Frame()
+	if !tt.HasText("Fetching rows") || tt.HasText("No data") {
+		t.Fatal("loading slot did not replace empty content")
 	}
 }
 
@@ -521,10 +693,29 @@ func TestTicketsBelongToTheirState(t *testing.T) {
 func TestColorRepresentationsPreserveOtherChannels(t *testing.T) {
 	value := ui.Hex("#22c55e")
 	var state nui.ColorPickerState
+	var form nui.FormState
+	shown, disabled := true, false
+	direction := ui.LeftToRight
+	changes := 0
+	last := value
+	size := nui.MD
+	throttle := nui.Set(time.Duration(0))
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.ColorPicker(c, th, &value, &state, nui.ColorPickerOptions{Label: "Color"})
+		if shown {
+			ui.Column(c).Direction(direction).Children(func() {
+				nui.Form(c, th, &form, nui.FormOptions{LoadingAuto: nui.Set(false)}, func(ft nui.Theme) {
+					nui.FormField(c, ft, nui.FormFieldOptions{Name: "color", Label: "Stored color", Value: fmt.Sprint(value), Disabled: disabled}, func(it nui.Theme) {
+						nui.ColorPicker(c, it, &value, &state, nui.ColorPickerOptions{Label: "Color", Size: size, Throttle: throttle, OnChange: func(v ui.Color) { changes++; last = v }})
+					})
+				})
+			})
+		}
 	}, 400, 650)
+	tt.Frame()
+	if form.Field("color").Dirty {
+		t.Fatal("RGBA editors made the untouched color field dirty")
+	}
 	click(t, tt, "Hex")
 	tt.Key(ui.Ctrl, ui.KeyA)
 	tt.Type("#11223344")
@@ -543,6 +734,85 @@ func TestColorRepresentationsPreserveOtherChannels(t *testing.T) {
 	tt.Frame()
 	if value != (ui.Color{R: 100, G: 34, B: 51, A: 255}) {
 		t.Fatalf("alpha %v", value)
+	}
+	before := changes
+	click(t, tt, "Color R")
+	tt.Key(ui.Ctrl, ui.KeyA)
+	tt.Key(0, ui.KeyBackspace)
+	tt.Type("100")
+	if changes != before {
+		t.Fatal("restoring the same channel emitted a color change")
+	}
+	for i, current := range []nui.Size{nui.XS, nui.SM, nui.MD, nui.LG, nui.XL} {
+		size = current
+		tt.Frame()
+		if got := bounds(t, tt, "Color").W; got != float32(152+i*8) {
+			t.Fatalf("picker size %v: %v", size, got)
+		}
+	}
+	if !tt.Focused("Color R") || changes != before {
+		t.Fatal("resizing changed focus or notified")
+	}
+	throttle = nui.Set(100 * time.Millisecond)
+	tt.Frame()
+	tt.Advance(200 * time.Millisecond)
+	tt.Key(0, ui.KeyUp)
+	tt.Key(0, ui.KeyUp)
+	if value.R != 102 || changes != before+1 {
+		t.Fatalf("immediate model / throttled notification: %v %d", value, changes-before)
+	}
+	tt.Advance(100 * time.Millisecond)
+	if changes != before+2 || last.R != 102 {
+		t.Fatal("throttle lost its trailing value")
+	}
+	tt.Key(0, ui.KeyUp)
+	value = ui.RGB(10, 20, 30)
+	tt.Frame()
+	tt.Advance(200 * time.Millisecond)
+	if changes != before+2 || value != ui.RGB(10, 20, 30) {
+		t.Fatal("external update replayed pending user value")
+	}
+	tt.Key(0, ui.KeyUp)
+	tt.Key(0, ui.KeyUp)
+	disabled = true
+	tt.Frame()
+	tt.Advance(200 * time.Millisecond)
+	if changes != before+3 || value.R != 12 {
+		t.Fatalf("disabled picker: changes=%d want=%d color=%v", changes, before+3, value)
+	}
+	disabled = false
+	tt.Frame()
+	click(t, tt, "Color R")
+	tt.Key(0, ui.KeyUp)
+	tt.Key(0, ui.KeyUp)
+	shown = false
+	tt.Frame()
+	shown = true
+	tt.Frame()
+	tt.Advance(200 * time.Millisecond)
+	if changes != before+4 || value.R != 14 {
+		t.Fatal("remount replayed a stale notification")
+	}
+	original := ui.Oklch(.6, .4, 30)
+	value = original
+	tt.Frame()
+	click(t, tt, "Color G")
+	tt.Key(0, ui.KeyUp)
+	if value != (ui.Color{R: original.R, G: original.G + 1, B: original.B, A: original.A}) {
+		t.Fatal("channel edit retained stale wide-gamut data")
+	}
+	direction = ui.RightToLeft
+	value = ui.RGBA(10, 20, 30, .5)
+	tt.Frame()
+	r := bounds(t, tt, "Opacity")
+	tt.ClickAt(r.X+r.W*.25, r.Y+r.H/2)
+	if value.A >= 100 {
+		t.Fatalf("RTL opacity input disagrees with its painted track: %d", value.A)
+	}
+	alpha := value.A
+	tt.Key(0, ui.KeyRight)
+	if value.A <= alpha || bounds(t, tt, "R").X <= bounds(t, tt, "Color R").X {
+		t.Fatal("color axis or RTL form direction is incorrect")
 	}
 }
 func TestTreeVisibleRowWork(t *testing.T) {

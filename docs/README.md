@@ -109,6 +109,6 @@ Go 中的 `Error` 已用于语义颜色，因此错误展示组件命名为 `Err
 | --- | --- |
 | 中英文切换和文案覆盖 | [国际化](i18n.md) |
 | Lucide 图标名称和用法 | [图标文档](../icons/lucide/README.md) |
-| 平台支持、输入法和无障碍限制 | [兼容性与已知限制](compatibility.md) |
+| 平台支持、组件差异、输入法和无障碍限制 | [兼容性与已知限制](compatibility.md) |
 | 可运行示例和开发检查 | [运行示例](../README.md#运行示例)、[Taskfile.yml](../Taskfile.yml) |
 | 版本变化 | [更新日志](../CHANGELOG.md) |

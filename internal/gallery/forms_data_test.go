@@ -45,11 +45,13 @@ func TestGalleryNumberOrientation(t *testing.T) {
 	press(t, tt, "vertical")
 	requireText(t, tt, "Value: {3 true}")
 	press(t, tt, "Increase bounded seats")
-	requireText(t, tt, "Value: {3.5 true}")
+	requireText(t, tt, "Value: {0 true}")
+	press(t, tt, "Increase bounded seats")
+	requireText(t, tt, "Value: {0.5 true}")
 	press(t, tt, "Number orientation")
 	press(t, tt, "horizontal")
 	press(t, tt, "Decrease bounded seats")
-	requireText(t, tt, "Value: {3 true}")
+	requireText(t, tt, "Value: {0 true}")
 }
 func TestGallerySelectionAndColor(t *testing.T) {
 	a := newStaticGallery()

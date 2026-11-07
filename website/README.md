@@ -82,6 +82,7 @@ pnpm --dir website preview
 ## 已知边界
 
 - 全部公开 Options 字段可配置，包含嵌套对象、数据列表、UI/Style、图标/SVG、图片、持久指针与回调。回调提供事件记录、同步内容、样式、格式化、谓词、返回值、搜索和懒加载等预设；不提供任意 Go 程序在线编译。
+- 共享 Options 中只适用于其他组件的字段仍保留参考信息，并显示不适用提示；Go 原生扩展单独说明。字段说明按实际调用组件确定，不仅根据类型别名判断。
 - 字段未覆盖时保留示例行为，重置按钮移除覆盖；显式 `null` 清空或恢复 Optional 的未设置状态，`false` 与 `0` 保持显式设置。
 - 单列表最多 100 项，图片限制 2 MB / 4096 像素。无效参数会显示具体错误并保留上一次有效预览；未同步时不允许复制过期代码。
 - 改颜色、尺寸或语言会更新同一预览实例，保留输入与选择；切换到另一个组件或重置会创建新示例。参数面板在本次浏览会话内保留各组件的配置。
@@ -96,6 +97,8 @@ The site uses Nuxt 4, Nuxt UI 4 and Nuxt Content. Live previews run the actual G
 Use Go from the repository's `go.mod`, Node 24 and pnpm 10.33.3. Run `pnpm --dir website install --frozen-lockfile`, then `pnpm --dir website dev`. Run `check` and `generate` before publishing. Frontend checks cover formatting, types and the static build; Go regression tests and standalone snippet compilation are retained. Generated output is `website/.output/public/`.
 
 Every public Options field has an editor, including nested styles, data and callback presets. The preview and standalone Go code share typed conversion and validation. Unset, explicit false/zero and cleared values remain distinct. The shared example catalog owns controls, templates and code generation. API signatures and embedded option fields come from the current Go source. Run `prepare:site` after changing Go sources and refresh the browser. Generated preview Go code is committed and checked for drift; generated website pages and binaries are ignored.
+
+Fields inherited from shared Options that do not apply to the current component remain documented with an explicit hint. Native extensions are identified separately. Field descriptions follow the actual component call, preserving the meaning of aliased types without changing existing configuration IDs.
 
 Keep descriptions focused on purpose. Write `guide` as Markdown with basic usage and concrete preview steps; a non-empty `note` appears under Things to know. Update both languages and check the preview controls and outcomes, keeping example settings distinct from component defaults.
 

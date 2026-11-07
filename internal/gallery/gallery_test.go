@@ -87,7 +87,7 @@ func sceneTester(t *testing.T, a *State, id, sceneID string) *ui.Tester {
 					nui.Toast(c, theme, notice)
 				}
 				a.pendingToasts = nil
-				nui.ToastViewport(c, theme, nui.ToastViewportOptions{})
+				nui.ToastViewport(c, theme, a.toastViewport)
 				ui.Scroll(c.Key(id + "/" + s.ID)).Fill().Padding(20).Gap(12).Children(func() { s.Build(c, theme) })
 			}, 1080, 820)
 		}
@@ -181,7 +181,7 @@ func TestTableVirtualizesSortsAndPreservesSelection(t *testing.T) {
 			}
 			press(t, tt, "Workspace")
 			press(t, tt, "Workspace")
-			if !a.Sort.Descending || a.Rows[0].ID == "workspace-0" {
+			if !a.Sort.Descending || a.RowID(0) == "workspace-0" {
 				t.Fatalf("sorting failed: %+v", a.Sort)
 			}
 			if !a.Selection.Has("workspace-0") {
@@ -196,7 +196,7 @@ func TestTableVirtualizesSortsAndPreservesSelection(t *testing.T) {
 			if !ok {
 				t.Fatal("table missing")
 			}
-			x, y := box.X+300, header.Y+header.H/2
+			x, y := box.X+297, header.Y+header.H/2
 			tt.Press(x, y)
 			tt.Move(x+40, y)
 			tt.Release(x+40, y)

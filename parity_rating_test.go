@@ -26,6 +26,30 @@ func labelStars() func(nui.Slot, ui.Element) {
 	}
 }
 
+func TestInputRatingRestoringMotionKeepsCurrentScale(t *testing.T) {
+	value, reduce := 0, false
+	tt := ui.NewTester(func(c *ui.Context) {
+		th := nui.App(c, nui.AppConfig{})
+		th.Motion.Reduce = reduce
+		ui.Column(c).Padding(20).Children(func() {
+			nui.InputRating(c, th, &value, nui.InputRatingOptions{Label: "Stars", Style: labelStars()})
+		})
+	}, 300, 100)
+	star := bounds(t, tt, "Star 1")
+	reduce = true
+	tt.Frame()
+	tt.Move(star.X+star.W/2, star.Y+star.H/2)
+	before := bounds(t, tt, "Star 1")
+	if before.W <= star.W {
+		t.Fatal("reduced motion lost the hover scale")
+	}
+	reduce = false
+	tt.Frame()
+	if after := bounds(t, tt, "Star 1"); after.W != before.W {
+		t.Fatalf("restoring motion reverted the hovered star: %+v -> %+v", before, after)
+	}
+}
+
 func TestInputRatingKeyboardMatchesNuxt(t *testing.T) {
 	for _, tc := range []struct {
 		name                string
@@ -74,11 +98,15 @@ func TestInputRatingKeyboardMatchesNuxt(t *testing.T) {
 func TestInputRatingRingsCurrentStarAndHugsStars(t *testing.T) {
 	value := 3
 	var orientation nui.Orientation
+	var tone nui.Color
+	var parts nui.Styles
+	highContrast := false
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
+		th.HighContrast = highContrast
 		ui.Column(c).Padding(20).Gap(10).Children(func() {
 			nui.Button(c, th, "Before", nui.ButtonOptions{})
-			nui.InputRating(c, th, &value, nui.InputRatingOptions{Label: "Stars", Orientation: orientation, Style: labelStars()})
+			nui.InputRating(c, th, &value, nui.InputRatingOptions{Label: "Stars", Orientation: orientation, Color: tone, UI: parts, Style: labelStars()})
 		})
 	}, 300, 260)
 	// Five 20 DIP stars 2 apart, instead of the column's 260 DIP width.
@@ -109,6 +137,32 @@ func TestInputRatingRingsCurrentStarAndHugsStars(t *testing.T) {
 	tt.Frame()
 	if r := bounds(t, tt, "Stars"); r.W != 20 || r.H != 108 {
 		t.Fatalf("vertical rating %v, want 20x108", r)
+	}
+	orientation, tone, highContrast, value = nui.Horizontal, nui.Neutral, true, 3
+	tt.Frame()
+	star := bounds(t, tt, "Star 3")
+	if got := tt.Image().RGBAAt(int(star.X+star.W/2), int(star.Y)-2); got != rgba(nui.Light().InvertedBackground) {
+		t.Fatalf("neutral focus ring = %v, want inverted background", got)
+	}
+	red, blue := ui.RGB(255, 0, 0), ui.RGB(0, 0, 255)
+	parts = nui.Styles{nui.Indicator: {Foreground: nui.Set(red)}, nui.EmptyIconSlot: {Foreground: nui.Set(blue)}}
+	tt.Frame()
+	if countColor(tt.Image(), bounds(t, tt, "Star 3"), rgba(red)) == 0 || countColor(tt.Image(), bounds(t, tt, "Star 5"), rgba(blue)) == 0 {
+		t.Fatal("rating layers ignored their foreground styles")
+	}
+	parts[nui.IconSlot] = nui.PartStyle{Foreground: nui.Set(blue)}
+	tt.Frame()
+	if countColor(tt.Image(), bounds(t, tt, "Star 3"), rgba(red)) != 0 {
+		t.Fatal("icon foreground did not override the filled layer")
+	}
+	tt.SetDirection(ui.RightToLeft)
+	tt.Key(0, ui.KeyLeft)
+	if value != 4 {
+		t.Fatal("RTL left arrow did not increase the rating")
+	}
+	tt.Key(0, ui.KeyRight)
+	if value != 3 {
+		t.Fatal("RTL right arrow did not decrease the rating")
 	}
 }
 
@@ -197,6 +251,9 @@ func TestInputRatingStarsGrowOnHover(t *testing.T) {
 	tt.Advance(time.Second)
 	if got := extent(); got != rest {
 		t.Fatalf("a read-only star grows on hover: %d, want %d", got, rest)
+	}
+	if got := tt.Cursor(); got != ui.CursorDefault {
+		t.Fatalf("read-only rating cursor = %v, want default", got)
 	}
 }
 

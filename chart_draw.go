@@ -154,7 +154,7 @@ func chartInterpolate(a, b *chartScene, u float32) *chartScene {
 
 func chartRadius(r ui.Rect) float32 { return max(0, min(r.W, r.H)/2-10) }
 
-func drawChartScene(p *ui.Painter, r ui.Rect, t Theme, scene *chartScene, alpha float32, selectedSlice string, lineWidth, pointSize float32) {
+func drawChartScene(p *ui.Painter, r ui.Rect, t Theme, scene *chartScene, alpha float32, selectedSlice string, lineWidth, pointSize float32, points bool, palette []ui.Color) {
 	if scene.empty {
 		return
 	}
@@ -166,12 +166,12 @@ func drawChartScene(p *ui.Painter, r ui.Rect, t Theme, scene *chartScene, alpha 
 			if wedge.id == selectedSlice {
 				radius += 4
 			}
-			p.FillPath(plot.Sector(r.X+r.W/2, r.Y+r.H/2, inner, radius, wedge.arc), chartColor(t, wedge.color, wedge.index).Alpha(alpha))
+			p.FillPath(plot.Sector(r.X+r.W/2, r.Y+r.H/2, inner, radius, wedge.arc), chartColorWithPalette(t, wedge.color, wedge.index, palette).Alpha(alpha))
 		}
 		return
 	}
 	for _, mark := range scene.marks {
-		color := chartColor(t, mark.color, mark.index).Alpha(alpha)
+		color := chartColorWithPalette(t, mark.color, mark.index, palette).Alpha(alpha)
 		switch scene.config.kind {
 		case ChartBar:
 			for i, x := range mark.x {
@@ -199,6 +199,13 @@ func drawChartScene(p *ui.Painter, r ui.Rect, t Theme, scene *chartScene, alpha 
 			if lineWidth > 0 {
 				p.StrokePath(plot.Line(r, mark.x, mark.y, plot.Curve(scene.config.curve)), lineWidth, color)
 			}
+			if points && scene.config.kind == ChartLine && pointSize > 0 {
+				for i, x := range mark.x {
+					if chartFinite(float64(x)) && chartFinite(float64(mark.y[i])) {
+						p.Fill(ui.Rect{X: plot.X(r, x) - pointSize/2, Y: plot.Y(r, mark.y[i]) - pointSize/2, W: pointSize, H: pointSize}, color, pointSize/2)
+					}
+				}
+			}
 		}
 	}
 }
@@ -209,16 +216,29 @@ var chartPalettes = [5]Palette{BluePalette(), VioletPalette(), AmberPalette(), R
 // chartColor follows Nuxt's six distinct series colors, starting with primary;
 // the fixed hues use shade 500, or 400 in dark themes.
 func chartColor(t Theme, color Color, index int) ui.Color {
+	return chartColorWithPalette(t, color, index, nil)
+}
+
+func chartColorWithPalette(t Theme, color Color, index int, palette []ui.Color) ui.Color {
 	if color != ColorDefault {
-		return t.color(color)
+		return inputColor(t, color)
 	}
 	i := index % 6
-	if i == 0 {
-		return t.Primary
-	}
 	shade := 500
 	if t.Dark {
 		shade = 400
 	}
-	return chartPalettes[i-1].Shade(shade)
+	result := t.Primary
+	if i > 0 {
+		result = chartPalettes[i-1].Shade(shade)
+	}
+	count := 6
+	if len(palette) > 0 {
+		count = len(palette)
+		result = palette[index%count]
+	}
+	if round := index / count; round > 0 {
+		result = result.Mix(t.Background, 1-float32(math.Pow(.65, float64(round))))
+	}
+	return result
 }

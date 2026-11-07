@@ -15,6 +15,7 @@ type ButtonOptions struct {
 	Neutral, Disabled, Loading, Block, Square bool
 	AccessibleLabel                           string
 	Leading, Trailing                         *ui.SVG
+	Avatar                                    *AvatarOptions // Used when no leading icon or leading loading indicator is shown.
 	LoadingIcon                               *ui.SVG
 	LoadingTrailing                           bool // Place loading at the trailing edge unless Leading is set.
 	Active                                    bool
@@ -85,11 +86,7 @@ func button(c *ui.Context, t Theme, label string, opts ButtonOptions, chosen Opt
 	})
 	m := buttonMetrics(t, config.Size)
 	if t.motion(c) && t.Motion.Transition > 0 {
-		s := styles[Root]
-		if s.Background.Set {
-			s.Background.Value = e.AnimateColor("background", s.Background.Value, ui.Animation{Duration: t.Motion.Transition})
-		}
-		styles[Root] = s
+		e.Transition(ui.ElementTransition{Colors: true, Duration: t.Motion.Transition})
 	}
 	styles[Root].apply(e)
 	if opts.Block {
@@ -118,6 +115,12 @@ func button(c *ui.Context, t Theme, label string, opts ButtonOptions, chosen Opt
 			leadingPart = loadingSVG(c, spinner, m.Icon, mergeValue(styles[Root].Foreground, styles[Leading].Foreground).Value, animated, t.Motion.Spin)
 		} else if opts.Leading != nil {
 			leadingPart = ui.Icon(c, opts.Leading).Size(m.Icon, m.Icon).Shrink(0)
+		} else if opts.Avatar != nil {
+			diameter := Optional[float32]{}
+			if opts.Avatar.Size == SizeDefault {
+				diameter = Set(m.Icon)
+			}
+			leadingPart = avatar(c, t, *opts.Avatar, diameter)
 		}
 		if label != "" {
 			labelPart = ui.Text(c, label).SingleLine().MinWidth(0)
@@ -144,7 +147,11 @@ func button(c *ui.Context, t Theme, label string, opts ButtonOptions, chosen Opt
 
 // Paint-time scheduling stops automatically when clipped or absent from the scene.
 func loadingSVG(c *ui.Context, icon *ui.SVG, size float32, color ui.Color, animated bool, period time.Duration) ui.Element {
-	return ui.Box(c).Size(size, size).Shrink(0).Draw(func(p *ui.Painter, r ui.Rect) {
+	return drawLoadingSVG(ui.Box(c).Size(size, size).Shrink(0), icon, color, animated, period)
+}
+
+func drawLoadingSVG(element ui.Element, icon *ui.SVG, color ui.Color, animated bool, period time.Duration) ui.Element {
+	return element.Draw(func(p *ui.Painter, r ui.Rect) {
 		angle := float32(0)
 		if animated {
 			p.AnimationFrame()

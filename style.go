@@ -154,30 +154,59 @@ const (
 type Slot string
 
 const (
-	Root          Slot = "root"
-	Label         Slot = "label"
-	Leading       Slot = "leading"
-	Trailing      Slot = "trailing"
-	Header        Slot = "header"
-	Body          Slot = "body"
-	Footer        Slot = "footer"
-	Description   Slot = "description"
-	Hint          Slot = "hint"
-	Help          Slot = "help"
-	ErrorSlot     Slot = "error"
-	Indicator     Slot = "indicator"
-	Editor        Slot = "editor"
-	Segment       Slot = "segment"
-	Panel         Slot = "panel"
-	Item          Slot = "item"
-	EmptySlot     Slot = "empty"
-	Thumb         Slot = "thumb"
-	Backdrop      Slot = "backdrop"
-	Trigger       Slot = "trigger"
-	List          Slot = "list"
-	Close         Slot = "close"
-	Actions       Slot = "actions"
-	SeparatorSlot Slot = "separator"
+	Root                Slot = "root"
+	IncrementSlot       Slot = "increment"
+	DecrementSlot       Slot = "decrement"
+	Label               Slot = "label"
+	Leading             Slot = "leading"
+	Trailing            Slot = "trailing"
+	Header              Slot = "header"
+	Body                Slot = "body"
+	Footer              Slot = "footer"
+	Description         Slot = "description"
+	Hint                Slot = "hint"
+	Help                Slot = "help"
+	ErrorSlot           Slot = "error"
+	Indicator           Slot = "indicator"
+	IconSlot            Slot = "icon"
+	EmptyIconSlot       Slot = "emptyIcon"
+	Editor              Slot = "editor"
+	Segment             Slot = "segment"
+	Panel               Slot = "panel"
+	ContainerSlot       Slot = "container"
+	CenterSlot          Slot = "center"
+	XAxisSlot           Slot = "xAxis"
+	YAxisSlot           Slot = "yAxis"
+	Item                Slot = "item"
+	EmptySlot           Slot = "empty"
+	Thumb               Slot = "thumb"
+	Backdrop            Slot = "backdrop"
+	Trigger             Slot = "trigger"
+	List                Slot = "list"
+	Close               Slot = "close"
+	BackSlot            Slot = "back"
+	Actions             Slot = "actions"
+	SeparatorSlot       Slot = "separator"
+	First               Slot = "first"
+	Previous            Slot = "previous"
+	Next                Slot = "next"
+	Last                Slot = "last"
+	Ellipsis            Slot = "ellipsis"
+	DateSlot            Slot = "date"
+	StatusSlot          Slot = "status"
+	LoadingSlot         Slot = "loading"
+	LoadingIconSlot     Slot = "loadingIcon"
+	ItemLabelSlot       Slot = "itemLabel"
+	ItemLabelPrefixSlot Slot = "itemLabelPrefix"
+	ItemLabelSuffixSlot Slot = "itemLabelSuffix"
+	ItemLeadingSlot     Slot = "itemLeading"
+	ItemTrailingSlot    Slot = "itemTrailing"
+	GridSlot            Slot = "grid"
+	GridRowSlot         Slot = "gridRow"
+	HeadingSlot         Slot = "heading"
+	CaptionSlot         Slot = "caption"
+	WeekDaySlot         Slot = "weekDay"
+	WeekNumberSlot      Slot = "weekNumber"
 )
 
 // PartStyle contains appearance and spacing only. It cannot remove roles or input behavior.
@@ -278,6 +307,18 @@ func (s PartStyle) apply(e ui.Element) {
 func cloneStyles(src Styles) Styles {
 	out := make(Styles, len(src))
 	maps.Copy(out, src)
+	return out
+}
+
+// mergeStyles overlays individual parts without mutating either input map.
+func mergeStyles(base, overrides Styles) Styles {
+	if len(overrides) == 0 {
+		return base
+	}
+	out := cloneStyles(base)
+	for slot, style := range overrides {
+		out[slot] = mergeStyle(out[slot], style)
+	}
 	return out
 }
 
@@ -409,6 +450,9 @@ func (t Theme) color(c Color) ui.Color {
 
 func appearance(t Theme, color Color, variant Variant, hover, focus bool) PartStyle {
 	c := t.color(color)
+	if color == Neutral && variant == Solid {
+		c = t.InvertedBackground
+	}
 	s := PartStyle{Background: Set(ui.Transparent), Foreground: Set(c), BorderWidth: Set(float32(0)), BorderColor: Set(ui.Transparent)}
 	switch variant {
 	case Solid:

@@ -12,14 +12,23 @@ type ToastOptions struct {
 	ID, Title, Description, Action string
 	Color                          Color
 	Icon                           *ui.SVG
+	Avatar                         *AvatarOptions
 	Timeout                        time.Duration
 	OnAction, OnClose              func()
 	UI                             Styles
 	Orientation                    Optional[Orientation]
 	Close, Progress                Optional[bool]
+	CloseOptions                   *ButtonOptions
+	CloseIcon                      *ui.SVG
+	ProgressOptions                *ToastProgressOptions
 	Actions                        []ToastActionOptions
 }
+type ToastProgressOptions struct {
+	Color Color
+	UI    Styles
+}
 type ToastActionOptions struct {
+	ID       string
 	Label    string
 	OnAction func()
 	Close    Optional[bool]
@@ -29,14 +38,21 @@ type toastAppearance struct {
 	Theme           Theme
 	Color           Color
 	Icon            *ui.SVG
+	Avatar          *AvatarOptions
 	UI              Styles
 	Orientation     Orientation
 	Close, Progress bool
+	CloseOptions    *ButtonOptions
+	CloseIcon       *ui.SVG
+	ProgressOptions *ToastProgressOptions
 	Actions         []ToastActionOptions
 }
 
 // Toast adds or replaces a notification in this window's native queue. Call from an action.
 func Toast(c *ui.Context, t Theme, o ToastOptions) string {
+	// A window notification keeps the visual theme, not the field/form scope
+	// from which the application published it.
+	t.field, t.group, t.form = fieldDefaults{}, groupPart{}, nil
 	if o.Timeout == 0 {
 		o.Timeout = 5 * time.Second
 	}
@@ -44,10 +60,50 @@ func Toast(c *ui.Context, t Theme, o ToastOptions) string {
 	orientation := valueOr(o.Orientation, Vertical)
 	vertical(orientation)
 	actions := slices.Clone(o.Actions)
+	ids := map[string]bool{}
 	for i := range actions {
-		actions[i].UI = cloneStyles(actions[i].UI)
+		if actions[i].ID != "" {
+			if ids[actions[i].ID] {
+				panic("nui: Toast action IDs must be unique")
+			}
+			ids[actions[i].ID] = true
+		}
+		actions[i].ButtonOptions = *cloneToastButton(&actions[i].ButtonOptions)
 	}
-	return c.AddToast(ui.Toast{ID: o.ID, Title: o.Title, Description: o.Description, Action: o.Action, Timeout: o.Timeout, OnAction: o.OnAction, OnClose: o.OnClose, Data: toastAppearance{Theme: t, Color: color, Icon: o.Icon, UI: cloneStyles(o.UI), Orientation: orientation, Close: valueOr(o.Close, true), Progress: valueOr(o.Progress, true), Actions: actions}})
+	var progress *ToastProgressOptions
+	if o.ProgressOptions != nil {
+		copied := *o.ProgressOptions
+		copied.UI = cloneStyles(copied.UI)
+		progress = &copied
+	}
+	return c.AddToast(ui.Toast{ID: o.ID, Title: o.Title, Description: o.Description, Action: o.Action, Timeout: o.Timeout, OnAction: o.OnAction, OnClose: o.OnClose, Data: toastAppearance{Theme: t, Color: color, Icon: o.Icon, Avatar: cloneToastAvatar(o.Avatar), UI: cloneStyles(o.UI), Orientation: orientation, Close: valueOr(o.Close, true), CloseOptions: cloneToastButton(o.CloseOptions), CloseIcon: o.CloseIcon, Progress: valueOr(o.Progress, true), ProgressOptions: progress, Actions: actions}})
+}
+
+func cloneToastAvatar(src *AvatarOptions) *AvatarOptions {
+	if src == nil {
+		return nil
+	}
+	value := *src
+	value.UI = cloneStyles(value.UI)
+	return &value
+}
+func cloneToastButton(src *ButtonOptions) *ButtonOptions {
+	if src == nil {
+		return nil
+	}
+	value := *src
+	value.UI, value.Avatar = cloneStyles(value.UI), cloneToastAvatar(value.Avatar)
+	return &value
+}
+
+type toastActionKey struct {
+	id    string
+	index int
+}
+type toastFocus struct {
+	orientation Orientation
+	actions     map[toastActionKey]*ui.Handle
+	legacy      ui.Handle
 }
 
 // CloseToast closes the ID, or all notifications for an empty ID.
@@ -74,13 +130,18 @@ type ToastViewportOptions struct {
 func ToastViewport(c *ui.Context, t Theme, o ToastViewportOptions) ui.Element {
 	ui.Box(c).Absolute().Size(0, 0).IgnoreInput(true)
 	return ui.ToastViewportBase(c, func(viewport ui.Element, toasts []ui.Toast) {
-		viewport.Padding(t.spacing(16)).Gap(t.spacing(8)).AlignItems(ui.End)
-		if o.Position >= ToastTopRight {
+		top := o.Position >= ToastTopRight
+		start, end := ui.Start, ui.End
+		if c.Direction() == ui.RightToLeft {
+			start, end = end, start
+		}
+		viewport.Padding(t.spacing(16)).Gap(t.spacing(8)).AlignItems(end)
+		if top {
 			viewport.Justify(ui.Start)
 		}
 		switch o.Position {
 		case ToastBottomLeft, ToastTopLeft:
-			viewport.AlignItems(ui.Start)
+			viewport.AlignItems(start)
 		case ToastBottomCenter, ToastTopCenter:
 			viewport.AlignItems(ui.Center)
 		}
@@ -92,7 +153,12 @@ func ToastViewport(c *ui.Context, t Theme, o ToastViewportOptions) ui.Element {
 		if len(toasts) > limit {
 			toasts = toasts[len(toasts)-limit:]
 		}
-		for _, ts := range toasts {
+		for i := range toasts {
+			index := i
+			if top {
+				index = len(toasts) - 1 - i
+			}
+			ts := toasts[index]
 			appearance, ok := ts.Data.(toastAppearance)
 			if !ok {
 				appearance = toastAppearance{Theme: t, Color: Primary, Orientation: Vertical, Close: true, Progress: true}
@@ -101,25 +167,45 @@ func ToastViewport(c *ui.Context, t Theme, o ToastViewportOptions) ui.Element {
 			d := Decoration{UI: appearance.UI}
 			color := inner.color(appearance.Color)
 			parts := ui.ToastBase(c, ts)
-			w, _ := c.Size()
+			focus := ui.Local(parts.Root, "nui-toast-focus", func() toastFocus {
+				return toastFocus{orientation: appearance.Orientation, actions: map[toastActionKey]*ui.Handle{}}
+			})
+			relocated := focus.orientation != appearance.Orientation
+			focus.orientation = appearance.Orientation
+			bindAction := func(button ui.Element, handle *ui.Handle) {
+				restore := relocated && handle.Focused(c) && !button.IsDisabled()
+				button.Bind(handle)
+				if restore {
+					handle.Focus(c)
+				}
+			}
 			// Nuxt's sm:w-96 toast with p-4; the progress bar is clipped to its corners.
 			width := float32(384)
 			if o.Width.Set {
 				width = o.Width.Value
 			}
-			root := parts.Root.Column().MinWidth(0).Width(min(width, max(0, w-32))).Label(ts.Title).Clip()
+			root := parts.Root.Column().MinWidth(0).Width(max(0, width)).MaxWidthPercent(100).Label(ts.Title).Clip()
 			recipe := dialogStyle(inner)
 			recipe.PaddingX, recipe.PaddingY = Set(inner.spacing(16)), Set(inner.spacing(16))
 			finish(inner, ComponentToast, Panel, root, recipe, d)
-			if !inner.Motion.Reduce {
-				root.Transition(ui.ElementTransition{Duration: 150 * time.Millisecond, Enter: &ui.Motion{Y: 8}, Exit: &ui.Motion{Y: 8}})
+			if inner.motion(c) {
+				shift := float32(8)
+				if top {
+					shift = -shift
+				}
+				root.Transition(ui.ElementTransition{Duration: 150 * time.Millisecond, Enter: &ui.Motion{Y: shift}, Exit: &ui.Motion{Y: shift}})
 			}
 			root.Children(func() {
 				actions := func() {
-					ui.Row(c.Key("actions")).Wrap().Gap(inner.spacing(6)).Children(func() {
+					group := ui.Row(c.Key("actions")).Wrap()
+					if appearance.Orientation == Vertical {
+						group.Margin(inner.spacing(10), 0, 0, 0)
+					}
+					finish(inner, ComponentToast, Actions, group, PartStyle{Gap: Set(inner.spacing(6))}, d)
+					group.Children(func() {
 						if ts.Action != "" {
 							action := parts.ActionButton().Label(ts.Action).Padding(4, 8).Radius(inner.radius(4)).TextColor(color).FocusRing(true)
-							finish(inner, ComponentToast, Actions, action, PartStyle{}, d)
+							bindAction(action, &focus.legacy)
 							action.Children(func() { ui.Text(c, ts.Action).FontWeight(500) })
 						}
 						for i, action := range appearance.Actions {
@@ -134,7 +220,11 @@ func ToastViewport(c *ui.Context, t Theme, o ToastViewportOptions) ui.Element {
 							if opts.Size == SizeDefault {
 								opts.Size = XS
 							}
-							Button(c.Key(i), inner, action.Label, opts).OnClick(func() {
+							key := toastActionKey{id: action.ID}
+							if action.ID == "" {
+								key.index = i
+							}
+							button := Button(c.Key(key), inner, action.Label, opts).OnClick(func() {
 								if action.OnAction != nil {
 									action.OnAction()
 								}
@@ -142,19 +232,41 @@ func ToastViewport(c *ui.Context, t Theme, o ToastViewportOptions) ui.Element {
 									CloseToast(c, ts.ID)
 								}
 							})
+							if focus.actions[key] == nil {
+								focus.actions[key] = &ui.Handle{}
+							}
+							bindAction(button, focus.actions[key])
 						}
 					})
 				}
 				hasActions := ts.Action != "" || len(appearance.Actions) > 0
-				ui.Row(c).MinWidth(0).AlignItems(ui.Start).Gap(10).Children(func() {
+				row := ui.Row(c).MinWidth(0).AlignItems(ui.Start).Gap(inner.spacing(10))
+				if appearance.Orientation == Horizontal {
+					row.AlignItems(ui.Center)
+				}
+				row.Children(func() {
 					icon := appearance.Icon
-					if icon != nil {
-						finish(inner, ComponentToast, Leading, ui.Icon(c, icon).Size(20, 20).Shrink(0), PartStyle{Foreground: Set(color)}, d)
+					if appearance.Avatar != nil {
+						diameter := Optional[float32]{}
+						if appearance.Avatar.Size == SizeDefault {
+							diameter = Set(inner.text(44))
+						}
+						finish(inner, ComponentToast, Leading, avatar(c.Key("avatar"), inner, *appearance.Avatar, diameter), PartStyle{}, d)
+					} else if icon != nil {
+						finish(inner, ComponentToast, Leading, ui.Icon(c.Key("icon"), icon).Size(inner.text(20), inner.text(20)).Shrink(0), PartStyle{Foreground: Set(color)}, d)
 					}
-					ui.Column(c).Grow(1).MinWidth(0).Gap(4).Children(func() {
-						finish(inner, ComponentToast, Label, ui.Text(c, ts.Title), PartStyle{Foreground: Set(inner.Highlighted), Weight: Set(500)}, d)
+					body := ui.Column(c.Key("body")).Grow(1).MinWidth(0)
+					finish(inner, ComponentToast, Body, body, PartStyle{}, d)
+					body.Children(func() {
+						if ts.Title != "" {
+							finish(inner, ComponentToast, Label, ui.Text(c, ts.Title), PartStyle{Foreground: Set(inner.Highlighted), Weight: Set(500)}, d)
+						}
 						if ts.Description != "" {
-							finish(inner, ComponentToast, Description, ui.Text(c, ts.Description), PartStyle{Foreground: Set(inner.Muted)}, d)
+							text := ui.Text(c, ts.Description)
+							if ts.Title != "" {
+								text.Margin(inner.spacing(4), 0, 0, 0)
+							}
+							finish(inner, ComponentToast, Description, text, PartStyle{Foreground: Set(inner.Muted)}, d)
 						}
 						if hasActions && appearance.Orientation == Vertical {
 							actions()
@@ -164,14 +276,8 @@ func ToastViewport(c *ui.Context, t Theme, o ToastViewportOptions) ui.Element {
 						actions()
 					}
 					if appearance.Close {
-						// Nuxt's unpadded neutral link button with a 20 DIP icon.
-						close := parts.CloseButton().Label(namedMessage(c, "dismissNamed", ts.Title)).Size(20, 20).FocusRing(true)
-						iconColor := inner.Muted
-						if close.Hovered() || close.Pressed() {
-							iconColor = inner.Text
-						}
-						finish(inner, ComponentToast, Close, close, PartStyle{Foreground: Set(iconColor)}, d)
-						close.Children(func() { ui.Icon(c, lucide.X()).Size(20, 20) })
+						close := Button(c.Key("close"), inner, "", toastCloseOptions(c, appearance, ts.Title)).OnClick(func() { CloseToast(c, ts.ID) })
+						finish(inner, ComponentToast, Close, close, PartStyle{}, d)
 					}
 				})
 				if appearance.Progress && ts.Timeout >= 0 {
@@ -181,12 +287,51 @@ func ToastViewport(c *ui.Context, t Theme, o ToastViewportOptions) ui.Element {
 					}
 					left := parts.Left()
 					// Pinned to the bottom edge across the full width, as Nuxt's.
-					Progress(c.Key("progress"), inner, 100*float64(left)/float64(total), ProgressOptions{Color: appearance.Color, Size: SM}).Absolute().Left(0).Right(0).Bottom(0)
-					if left > 0 && inner.motion(c) && !viewport.Hovered() && !viewport.FocusWithin() {
-						c.After(50 * time.Millisecond)
+					opts := ProgressOptions{Color: appearance.Color, Size: SM}
+					if appearance.ProgressOptions != nil {
+						if appearance.ProgressOptions.Color != ColorDefault {
+							opts.Color = appearance.ProgressOptions.Color
+						}
+						opts.UI = appearance.ProgressOptions.UI
+					}
+					Progress(c.Key("progress"), inner, 100*float64(left)/float64(total), opts).Absolute().Left(0).Right(0).Bottom(0)
+					if left > 0 && !viewport.Hovered() && !viewport.FocusWithin() {
+						tick := max(50*time.Millisecond, min(time.Second, total/100))
+						if !inner.motion(c) {
+							tick = max(tick, 250*time.Millisecond)
+						}
+						c.After(tick)
 					}
 				}
 			})
 		}
 	})
+}
+
+func toastCloseOptions(c *ui.Context, appearance toastAppearance, title string) ButtonOptions {
+	opts := ButtonOptions{}
+	if appearance.CloseOptions != nil {
+		opts = *appearance.CloseOptions
+	}
+	if opts.Size == SizeDefault {
+		opts.Size = MD
+	}
+	if opts.Color == ColorDefault {
+		opts.Color = Neutral
+	}
+	if opts.Variant == VariantDefault {
+		opts.Variant = LinkVariant
+	}
+	if opts.AccessibleLabel == "" {
+		opts.AccessibleLabel = namedMessage(c, "dismissNamed", title)
+	}
+	if opts.Leading == nil {
+		opts.Leading = appearance.CloseIcon
+		if opts.Leading == nil {
+			opts.Leading = lucide.X()
+		}
+	}
+	opts.UI = cloneStyles(opts.UI)
+	opts.UI[Root] = mergeStyle(PartStyle{PaddingX: Set(float32(0)), PaddingY: Set(float32(0))}, opts.UI[Root])
+	return opts
 }

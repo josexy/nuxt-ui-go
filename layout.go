@@ -12,7 +12,14 @@ func Container(c *ui.Context, t Theme, opts ContainerOptions, children func()) u
 	if opts.MaxWidth.Set {
 		width = opts.MaxWidth.Value
 	}
-	padding := t.spacing(24)
+	windowWidth, _ := c.Size()
+	padding := float32(16)
+	if windowWidth >= 1024 {
+		padding = 32
+	} else if windowWidth >= 640 {
+		padding = 24
+	}
+	padding = t.spacing(padding)
 	if opts.Padding.Set {
 		padding = opts.Padding.Value
 	}
@@ -58,15 +65,20 @@ func surface(t Theme, variant Variant) PartStyle {
 	return s
 }
 func Card(c *ui.Context, t Theme, opts CardOptions, body func()) ui.Element {
+	windowWidth, _ := c.Size()
+	contentPadding := float32(16)
+	if windowWidth >= 640 {
+		contentPadding = 24
+	}
 	config, styles := resolve(t, ComponentCard, ComponentTheme{Variant: Outline}, ComponentTheme{Variant: opts.Variant, UI: opts.UI}, func(v ComponentTheme) Styles {
 		fg, muted := t.Highlighted, t.Muted
 		if v.Variant == Solid {
 			fg = t.Inverted
 			muted = t.Dimmed
 		}
-		pad := PartStyle{PaddingX: Set(t.spacing(24)), PaddingY: Set(t.spacing(16)), Gap: Set(t.spacing(8))}
+		pad := PartStyle{PaddingX: Set(t.spacing(contentPadding)), PaddingY: Set(t.spacing(16)), Gap: Set(t.spacing(8))}
 		header := mergeStyle(pad, PartStyle{Gap: Set(t.spacing(4))})
-		return Styles{Root: surface(t, v.Variant), Header: header, Body: mergeStyle(pad, PartStyle{PaddingY: Set(t.spacing(24))}), Footer: pad, Label: {Foreground: Set(fg), Weight: Set(600), FontSize: Set(t.text(16)), LineHeight: Set(float32(24.0 / 16))}, Description: {Foreground: Set(muted), FontSize: Set(t.text(14))}}
+		return Styles{Root: surface(t, v.Variant), Header: header, Body: mergeStyle(pad, PartStyle{PaddingY: Set(t.spacing(contentPadding))}), Footer: pad, Label: {Foreground: Set(fg), Weight: Set(600), FontSize: Set(t.text(16)), LineHeight: Set(float32(24.0 / 16))}, Description: {Foreground: Set(muted), FontSize: Set(t.text(14))}}
 	})
 	e := ui.Column(c).MinWidth(0).Clip()
 	styles[Root].apply(e)
@@ -75,13 +87,13 @@ func Card(c *ui.Context, t Theme, opts CardOptions, body func()) ui.Element {
 		sections := 0
 		divide := func() {
 			if sections > 0 && config.Variant != Solid {
-				ui.Box(c).Height(1).Background(t.Border)
+				ui.Box(c.Key(sections)).Height(1).Background(t.Border)
 			}
 			sections++
 		}
 		if opts.Header != nil || opts.Title != "" || opts.Description != "" {
 			divide()
-			h := ui.Column(c)
+			h := ui.Column(c.Key("header"))
 			styles[Header].apply(h)
 			h.Children(func() {
 				if opts.Header != nil {
@@ -91,7 +103,11 @@ func Card(c *ui.Context, t Theme, opts CardOptions, body func()) ui.Element {
 						decorated(Label, ui.Text(c, opts.Title), styles, opts.Style)
 					}
 					if opts.Description != "" {
-						decorated(Description, ui.Text(c, opts.Description), styles, opts.Style)
+						description := ui.Text(c, opts.Description)
+						if opts.Title == "" {
+							description.Margin(t.spacing(4), 0, 0, 0)
+						}
+						decorated(Description, description, styles, opts.Style)
 					}
 				}
 			})
@@ -101,7 +117,7 @@ func Card(c *ui.Context, t Theme, opts CardOptions, body func()) ui.Element {
 		}
 		if body != nil {
 			divide()
-			b := ui.Column(c).MinWidth(0)
+			b := ui.Column(c.Key("body")).MinWidth(0)
 			styles[Body].apply(b)
 			b.Children(body)
 			if opts.Style != nil {
@@ -110,7 +126,7 @@ func Card(c *ui.Context, t Theme, opts CardOptions, body func()) ui.Element {
 		}
 		if opts.Footer != nil {
 			divide()
-			f := ui.Row(c).AlignItems(ui.Center).Wrap()
+			f := ui.Row(c.Key("footer")).AlignItems(ui.Center).Wrap()
 			styles[Footer].apply(f)
 			f.Children(opts.Footer)
 			if opts.Style != nil {
@@ -146,7 +162,7 @@ type SeparatorOptions struct {
 	Avatar      *AvatarOptions
 	Content     func()
 	Color       Color
-	Size        Size // XS..XL correspond to 1..5 pixels.
+	Size        Size // XS..XL correspond to 1..5 DIP.
 	Type        SeparatorType
 	Position    SeparatorPosition
 	Vertical    bool // Kept for existing callers; either this or Orientation can select vertical.
@@ -172,8 +188,10 @@ func Separator(c *ui.Context, t Theme, opts SeparatorOptions) ui.Element {
 		e.FillWidth()
 	}
 	e.Children(func() {
+		lineIndex := 0
 		line := func() {
-			l := ui.Box(c).Grow(1)
+			l := ui.Box(c.Key(lineIndex)).Grow(1)
+			lineIndex++
 			if vert {
 				l.Width(thickness)
 			} else {
@@ -212,23 +230,27 @@ func Separator(c *ui.Context, t Theme, opts SeparatorOptions) ui.Element {
 		}
 		hasContent := opts.Content != nil || opts.Label != "" || opts.Icon != nil || opts.Avatar != nil
 		content := func() {
-			container := ui.Row(c).Shrink(0)
+			container := ui.Row(c.Key("content")).Shrink(0)
 			finish(t, ComponentSeparator, Body, container, PartStyle{Foreground: Set(t.Text), Weight: Set(500)}, opts.Decoration)
 			container.Children(func() {
 				switch {
 				case opts.Content != nil:
 					opts.Content()
 				case opts.Label != "":
-					finish(t, ComponentSeparator, Label, ui.Text(c, opts.Label).SingleLine(), PartStyle{FontSize: Set(t.text(14))}, opts.Decoration)
+					label := ui.Text(c, opts.Label).TextAlign(ui.Center)
+					if !vert {
+						label.SingleLine()
+					}
+					finish(t, ComponentSeparator, Label, label, PartStyle{FontSize: Set(t.text(14))}, opts.Decoration)
 				case opts.Icon != nil:
 					icon := Icon(c, t, opts.Icon, IconOptions{Size: Set(t.text(20)), Color: Set(t.Text)})
 					finish(t, ComponentSeparator, Leading, icon, PartStyle{}, opts.Decoration)
 				case opts.Avatar != nil:
-					avatar := *opts.Avatar
-					if avatar.Size == SizeDefault {
-						avatar.Size = XS
+					diameter := Optional[float32]{}
+					if opts.Avatar.Size == SizeDefault {
+						diameter = Set(t.text(20))
 					}
-					Avatar(c, t, avatar)
+					finish(t, ComponentSeparator, Leading, avatar(c, t, *opts.Avatar, diameter), PartStyle{}, opts.Decoration)
 				}
 			})
 		}

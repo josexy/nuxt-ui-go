@@ -34,6 +34,7 @@ type SidebarScope struct {
 
 type SidebarOptions struct {
 	Title, ToggleLabel, ResizeLabel string
+	Description                     string
 	Width, CollapsedWidth           Optional[float32]
 	MinWidth, MaxWidth              Optional[float32]
 	// SideLeft (default) is the leading side; SideRight is trailing. Both mirror in RTL.
@@ -53,9 +54,11 @@ type SidebarOptions struct {
 	// HeaderContent replaces the default title; FooterContent replaces Footer.
 	// ToggleContent replaces the desktop collapse / narrow-window open button.
 	HeaderContent, FooterContent, ToggleContent func(*ui.Context, Theme, SidebarScope)
-	OnResize                                    func(float32)
-	OnCollapsedChange                           func(bool)
-	OnOpenChange                                func(bool)
+	// Actions adds header actions while expanded or in the narrow-window menu.
+	Actions           func(*ui.Context, Theme, SidebarScope)
+	OnResize          func(float32)
+	OnCollapsedChange func(bool)
+	OnOpenChange      func(bool)
 	// ReturnFocus overrides the default built-in toggle when using an external opener.
 	ReturnFocus *ui.Handle
 	Decoration
@@ -64,11 +67,13 @@ type SidebarOptions struct {
 type sidebarMemory struct {
 	state               SidebarState
 	trigger, resize     ui.Handle
+	root                ui.Handle
 	drawer              DrawerState
 	dragging            bool
 	startX, startWidth  float32
 	navigation          string
 	initialized, mobile bool
+	right               bool
 }
 
 // Sidebar preserves the original collapsed-pointer API. Supply State to control
@@ -96,6 +101,8 @@ func Sidebar(c *ui.Context, t Theme, collapsed *bool, o SidebarOptions, content 
 	}
 	root := ui.Column(c).AlignSelf(ui.Stretch).MinWidth(0).MinHeight(0).Shrink(0).Role(ui.RoleGroup).Label(o.Title).Disabled(o.Disabled)
 	m := ui.Local(root, "sidebar", func() sidebarMemory { return sidebarMemory{} })
+	root.Bind(&m.root)
+	containedFocus := m.root.FocusWithin(c)
 	s := o.State
 	if s == nil {
 		s = &m.state
@@ -109,6 +116,7 @@ func Sidebar(c *ui.Context, t Theme, collapsed *bool, o SidebarOptions, content 
 	}
 	windowWidth, _ := c.Size()
 	mobile := breakpoint > 0 && windowWidth < breakpoint
+	wasMobile := m.mobile
 	disabled := root.IsDisabled()
 	collapsible := valueOr(o.Collapsible, true)
 	changeCollapse := func(v bool) {
@@ -139,10 +147,15 @@ func Sidebar(c *ui.Context, t Theme, collapsed *bool, o SidebarOptions, content 
 	}
 	scope := SidebarScope{Collapsed: *collapsed && !mobile, Open: s.Open, Mobile: mobile, Collapse: changeCollapse, SetOpen: changeOpen}
 	physicalRight := (side == SideRight) != (c.Direction() == ui.RightToLeft)
+	if m.right != physicalRight {
+		m.dragging = false
+	}
+	m.right = physicalRight
 	w := expanded
 	if scope.Collapsed {
 		w = compact
 	}
+	restoreFocus := containedFocus && ((mobile && !wasMobile && !s.Open) || (!mobile && w == 0 && m.root.Bounds(c).W > 0))
 	root.Width(w)
 	padding := t.spacing(16)
 	if scope.Collapsed {
@@ -175,35 +188,43 @@ func Sidebar(c *ui.Context, t Theme, collapsed *bool, o SidebarOptions, content 
 			}
 			return
 		}
-		header := ui.Row(c.Key("header")).MinWidth(0).MinHeight(t.spacing(64)).Shrink(0).AlignItems(ui.Center)
-		finish(t, ComponentSidebar, Header, header, PartStyle{PaddingX: Set(padding), Gap: Set(t.spacing(6))}, o.Decoration)
-		header.Children(func() {
-			if !scope.Collapsed || o.HeaderContent != nil {
-				ui.Column(c.Key("heading")).Grow(1).MinWidth(0).Children(func() {
-					if o.HeaderContent != nil {
-						o.HeaderContent(c, t, scope)
-					} else if !scope.Collapsed {
-						finish(t, ComponentSidebar, Label, ui.Text(c.Key("title"), o.Title).SingleLine().MinWidth(0), PartStyle{Foreground: Set(t.Highlighted), FontSize: Set(t.text(16)), LineHeight: Set(float32(24.0 / 16)), Weight: Set(600)}, o.Decoration)
-					}
-				})
-			} else {
-				header.Justify(ui.Center)
-			}
-			if valueOr(o.Toggle, true) && collapsible {
-				sidebarToggle(c.Key("toggle"), t, m, o, scope, physicalRight)
-			}
-		})
+		hasHeading := o.HeaderContent != nil || (!scope.Collapsed && (o.Title != "" || o.Description != ""))
+		hasActions := o.Actions != nil && !scope.Collapsed
+		showToggle := valueOr(o.Toggle, true) && collapsible
+		if hasHeading || hasActions || showToggle {
+			header := ui.Row(c.Key("header")).MinWidth(0).MinHeight(t.spacing(64)).Shrink(0).AlignItems(ui.Center).BorderWidth(0, 0, 1, 0).BorderColor(t.Border)
+			finish(t, ComponentSidebar, Header, header, PartStyle{PaddingX: Set(padding), Gap: Set(t.spacing(6))}, o.Decoration)
+			header.Children(func() {
+				if hasHeading {
+					ui.Column(c.Key("heading")).Grow(1).MinWidth(0).Children(func() {
+						if o.HeaderContent != nil {
+							o.HeaderContent(c, t, scope)
+						} else {
+							sidebarHeading(c, t, o)
+						}
+					})
+				} else {
+					header.Justify(ui.Center)
+				}
+				if hasActions {
+					sidebarActions(c.Key("actions"), t, o, scope)
+				}
+				if showToggle {
+					sidebarToggle(c.Key("toggle"), t, m, o, scope, physicalRight)
+				}
+			})
+		}
 		if o.Header != nil && o.HeaderContent == nil {
 			ui.Column(c.Key("legacy-header")).MinWidth(0).Padding(0, 8).Children(func() { o.Header(c, t) })
 		}
 		body := ui.Scroll(c.Key("body")).Grow(1).MinWidth(0).MinHeight(0)
-		finish(t, ComponentSidebar, Body, body, PartStyle{PaddingX: Set(padding), PaddingY: Set(t.spacing(8)), Gap: Set(t.spacing(16))}, o.Decoration)
+		finish(t, ComponentSidebar, Body, body, PartStyle{PaddingX: Set(padding), PaddingY: Set(t.spacing(16)), Gap: Set(t.spacing(16))}, o.Decoration)
 		if content != nil {
 			body.Children(func() { content(c, t, scope.Collapsed) })
 		}
 		if o.Footer != nil || o.FooterContent != nil {
-			footer := ui.Column(c.Key("footer")).MinWidth(0).Shrink(0)
-			finish(t, ComponentSidebar, Footer, footer, PartStyle{PaddingX: Set(padding), PaddingY: Set(t.spacing(8)), Gap: Set(t.spacing(6))}, o.Decoration)
+			footer := ui.Column(c.Key("footer")).MinWidth(0).Shrink(0).BorderWidth(1, 0, 0, 0).BorderColor(t.Border)
+			finish(t, ComponentSidebar, Footer, footer, PartStyle{PaddingX: Set(padding), PaddingY: Set(t.spacing(16)), Gap: Set(t.spacing(6))}, o.Decoration)
 			footer.Children(func() { sidebarFooter(c, t, o, scope) })
 		}
 		if o.Resizable {
@@ -214,7 +235,32 @@ func Sidebar(c *ui.Context, t Theme, collapsed *bool, o SidebarOptions, content 
 	root.Children(func() {
 		sidebarOverlay(c.Key("overlay"), t, m, s, o, scope, expanded, physicalRight, disabled, content)
 	})
+	if restoreFocus && !disabled {
+		switch {
+		case o.ReturnFocus != nil:
+			o.ReturnFocus.Focus(c)
+		case valueOr(o.Toggle, true) && o.ToggleContent == nil && (mobile || (w > 0 && collapsible)):
+			m.trigger.Focus(c)
+		case !mobile && o.Resizable:
+			m.resize.Focus(c)
+		}
+	}
 	return root
+}
+
+func sidebarHeading(c *ui.Context, t Theme, o SidebarOptions) {
+	if o.Title != "" {
+		finish(t, ComponentSidebar, Label, ui.Text(c.Key("title"), o.Title).SingleLine().MinWidth(0), PartStyle{Foreground: Set(t.Highlighted), FontSize: Set(t.text(16)), LineHeight: Set(float32(24.0 / 16)), Weight: Set(600)}, o.Decoration)
+	}
+	if o.Description != "" {
+		finish(t, ComponentSidebar, Description, ui.Text(c.Key("description"), o.Description).SingleLine().MinWidth(0), PartStyle{Foreground: Set(t.Muted), FontSize: Set(t.text(14)), LineHeight: Set(float32(20.0 / 14))}, o.Decoration)
+	}
+}
+
+func sidebarActions(c *ui.Context, t Theme, o SidebarOptions, scope SidebarScope) {
+	actions := ui.Row(c).MinWidth(0).Shrink(0).AlignItems(ui.Center)
+	finish(t, ComponentSidebar, Actions, actions, PartStyle{Gap: Set(t.spacing(6))}, o.Decoration)
+	actions.Children(func() { o.Actions(c, t, scope) })
 }
 
 func sidebarToggle(c *ui.Context, t Theme, m *sidebarMemory, o SidebarOptions, scope SidebarScope, right bool) {
@@ -337,7 +383,7 @@ func sidebarOverlay(c *ui.Context, t Theme, m *sidebarMemory, s *SidebarState, o
 	}
 	// Keep the desktop content as the only active copy after a breakpoint change.
 	open := s.Open && scope.Mobile && !disabled
-	mo := ModalOptions{Title: o.Title, Fullscreen: true, CloseLabel: message(c, "closeSidebar"), OnClose: func() { scope.SetOpen(false) }, plain: true}
+	mo := ModalOptions{Title: o.Title, Description: o.Description, Fullscreen: true, CloseLabel: message(c, "closeSidebar"), CloseButton: Set(true), OnClose: func() { scope.SetOpen(false) }, plain: true}
 	if valueOr(o.Toggle, true) && o.ToggleContent == nil {
 		mo.ReturnFocus = &m.trigger
 	}
@@ -345,22 +391,40 @@ func sidebarOverlay(c *ui.Context, t Theme, m *sidebarMemory, s *SidebarState, o
 		mo.ReturnFocus = o.ReturnFocus
 	}
 	mo.Header = func(c *ui.Context, t Theme) {
-		if o.HeaderContent != nil {
-			o.HeaderContent(c, t, scope)
-		} else if o.Header != nil {
-			o.Header(c, t)
-		} else {
-			ui.Text(c, o.Title).FontWeight(600)
-		}
+		ui.Row(c.Key("sidebar-header-content")).MinWidth(0).AlignItems(ui.Center).Gap(t.spacing(6)).Children(func() {
+			ui.Column(c.Key("heading")).Grow(1).MinWidth(0).Children(func() {
+				if o.HeaderContent != nil {
+					o.HeaderContent(c, t, scope)
+				} else if o.Header != nil {
+					o.Header(c, t)
+				} else {
+					sidebarHeading(c, t, o)
+				}
+			})
+			if o.Actions != nil {
+				sidebarActions(c.Key("actions"), t, o, scope)
+			}
+		})
 	}
 	if o.Footer != nil || o.FooterContent != nil {
 		mo.Footer = func(c *ui.Context, t Theme) { sidebarFooter(c, t, o, scope) }
 	}
 	mo.Style = func(slot Slot, e ui.Element) {
+		base := PartStyle{}
 		if slot == Panel {
 			e.Disabled(disabled)
 		}
-		finish(t, ComponentSidebar, slot, e, PartStyle{}, o.Decoration)
+		switch slot {
+		case Header:
+			e.BorderWidth(0, 0, 1, 0).BorderColor(t.Border)
+			base = PartStyle{PaddingX: Set(t.spacing(16)), PaddingY: Set(float32(0))}
+		case Body:
+			base = PartStyle{PaddingX: Set(t.spacing(16)), PaddingY: Set(t.spacing(16)), Gap: Set(t.spacing(16))}
+		case Footer:
+			e.Justify(ui.Start).BorderWidth(1, 0, 0, 0).BorderColor(t.Border)
+			base = PartStyle{PaddingX: Set(t.spacing(16)), PaddingY: Set(t.spacing(16)), Gap: Set(t.spacing(6))}
+		}
+		finish(t, ComponentSidebar, slot, e, base, o.Decoration)
 	}
 	build := func(t Theme) {
 		if content != nil && scope.Mobile {
@@ -374,7 +438,7 @@ func sidebarOverlay(c *ui.Context, t Theme, m *sidebarMemory, s *SidebarState, o
 		ModalWithOptions(c, t, &open, mo, build)
 	case SidebarDrawer:
 		m.drawer.Open = open
-		Drawer(c, t, &m.drawer, DrawerOptions{ModalOptions: mo, SnapPoints: []float32{.85}}, build)
+		Drawer(c, t, &m.drawer, DrawerOptions{ModalOptions: mo, SnapPoints: []float32{.85}, pinnedRegions: true}, build)
 	default:
 		edge := SideLeft
 		if right {

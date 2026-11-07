@@ -49,6 +49,25 @@ func (d Demo) Normalize(input Config) (Config, error) {
 	if err := d.validateData(cfg); err != nil {
 		return Config{}, err
 	}
+	if d.ID == "table" {
+		resolved := map[string]any{}
+		for _, b := range bindings {
+			resolved[b.ID] = literalDefaults(b.literal, b.typ, cfg)
+			if patch, ok := cfg.Options[b.ID]; ok {
+				resolved[b.ID] = mergePatch(resolved[b.ID], patch)
+			}
+		}
+		opts, _ := resolved["TableOptions"].(map[string]any)
+		if opts["ManualSorting"] != true {
+			columns, _ := resolved["TableItems"].([]any)
+			for i, item := range columns {
+				col, _ := item.(map[string]any)
+				if col["Sortable"] == true && col["Compare"] == nil {
+					return Config{}, fmt.Errorf("TableItems[%d]: Sortable requires Compare or TableOptions.ManualSorting", i)
+				}
+			}
+		}
+	}
 	return cfg, nil
 }
 
@@ -72,8 +91,12 @@ func validateFields(t reflect.Type, spec any, path string) error {
 				if key == "FilterFields" {
 					if items, ok := raw.([]any); ok {
 						allowed := []string{"label", "description", "value"}
-						if t.Name() == "SelectMenuOptions" {
+						if t.Name() == "SelectMenuOptions" || t.Name() == "ListboxOptions" {
 							allowed = append(allowed, "id", "group")
+						} else if t.Name() == "MenuOptions" || t.Name() == "MenuContentOptions" {
+							allowed = []string{"label", "description", "id", "shortcut"}
+						} else if t.Name() == "CommandPaletteOptions" {
+							allowed = []string{"label", "description", "suffix", "keywords"}
 						}
 						for _, item := range items {
 							v, ok := item.(string)
@@ -90,6 +113,12 @@ func validateFields(t reflect.Type, spec any, path string) error {
 					}
 				}
 				if n, ok := number(raw); ok {
+					if t.Name() == "DrawerOptions" && (key == "DismissDistance" || key == "DismissVelocity") && n < 0 {
+						return fmt.Errorf("%s.%s must be non-negative", path, key)
+					}
+					if key == "SearchDelay" && t.Name() == "CommandPaletteOptions" && n < 0 {
+						return fmt.Errorf("%s.SearchDelay must be non-negative", path)
+					}
 					if slices.Contains([]string{"Width", "Height", "MinWidth", "MaxWidth", "MinHeight", "MaxHeight", "Gap", "Padding", "PaddingX", "PaddingY", "Radius", "BorderWidth", "FontSize", "LineHeight", "ThumbSize", "IconSize", "Step", "Duration", "Delay", "Interval", "MaxFiles", "MaxSize", "MaxLength", "Length", "Count", "Rows", "Columns", "PageSize", "VisibleCount", "Overscan"}, key) && n < 0 {
 						return fmt.Errorf("%s.%s must be non-negative", path, key)
 					}
@@ -160,6 +189,22 @@ func validateResolved(t reflect.Type, spec any, path string) error {
 			return fallback
 		}
 		switch t.Name() {
+		case "DateStep", "TimeStep":
+			for key := range m {
+				if num(key, 0) < 0 {
+					return fmt.Errorf("%s.%s must be non-negative", path, key)
+				}
+			}
+		case "ColorPickerOptions":
+			if num("Throttle", 50) < 0 {
+				return fmt.Errorf("%s: Throttle must be non-negative", path)
+			}
+		case "InputTimeOptions":
+			lo, _ := m["Min"].(string)
+			hi, _ := m["Max"].(string)
+			if lo != "" && hi != "" && lo > hi {
+				return fmt.Errorf("%s: Max time precedes Min", path)
+			}
 		case "SidebarOptions":
 			if num("MaxWidth", 480) < num("MinWidth", 160) || (m["Resizable"] == true && num("CollapsedWidth", 64) > num("MinWidth", 160)) {
 				return fmt.Errorf("%s: require CollapsedWidth <= MinWidth <= MaxWidth when resizable", path)
@@ -174,14 +219,26 @@ func validateResolved(t reflect.Type, spec any, path string) error {
 			if num("Max", 100) <= num("Min", 0) {
 				return fmt.Errorf("%s: Max must exceed Min", path)
 			}
-		case "InputNumberOptions", "SplitterOptions":
+		case "MarqueeOptions":
+			if num("Repeat", 4) < 0 || num("Repeat", 4) > 100 {
+				return fmt.Errorf("%s: preview Repeat must be 0..100", path)
+			}
+		case "SplitterOptions":
+			limit := float64(1e7)
+			if m["Percent"] == true {
+				limit = 100
+			}
+			if min(limit, num("Max", limit)) < max(0, num("Min", 0)) || num("KeyboardResizeBy", 0) < 0 {
+				return fmt.Errorf("%s: invalid Splitter range or negative keyboard step", path)
+			}
+		case "InputNumberOptions":
 			if num("Max", 1e7) < num("Min", 0) {
 				return fmt.Errorf("%s: Max must not be less than Min", path)
 			}
-			if t.Name() == "SplitterOptions" && m["Percent"] == true && num("Min", 0) > 100 {
-				return fmt.Errorf("%s: percentage Min exceeds 100", path)
-			}
 		case "CalendarOptions":
+			if num("NumberOfMonths", 0) < 0 || num("NumberOfMonths", 0) > 12 || num("YearsPerPage", 0) < 0 || num("YearsPerPage", 0) > 120 || num("MaximumDays", 0) < 0 {
+				return fmt.Errorf("%s: NumberOfMonths must be 0..12, YearsPerPage 0..120, and MaximumDays nonnegative", path)
+			}
 			if num("WeekStart", 0) < 0 || num("WeekStart", 0) > 6 {
 				return fmt.Errorf("%s: WeekStart must be 0..6", path)
 			}

@@ -24,7 +24,7 @@ NuxtUI Go 使用 MyGo 的原生布局、输入和绘制，外观参考 Nuxt UI v
 
 当前 MyGo 依赖有一个已知问题：**选中文字后开始输入法（IME）组合输入，再取消组合，原选中文字可能丢失。** 可通过撤销恢复。
 
-受影响的入口包括 Input、Textarea、InputMenu、InputTags、PinInput 文本模式、SelectMenu、ColorPicker 内部 HEX 输入框和 CommandPalette。应用需要编辑重要文本时，应在目标系统的输入法上验证这个过程。
+受影响的入口包括 Input、Textarea、InputMenu、InputTags、PinInput 文本模式、Listbox 筛选框、SelectMenu、ColorPicker 内部 HEX 输入框和 CommandPalette。应用需要编辑重要文本时，应在目标系统的输入法上验证这个过程。
 
 `PinInputOptions{Numeric: true}`、InputNumber、InputDate、InputTime 使用数字或日期时间格式，不启用 IME。其他输入方式仍需按目标平台检查。
 
@@ -36,25 +36,30 @@ NuxtUI Go 使用 MyGo 的原生布局、输入和绘制，外观参考 Nuxt UI v
 | --- | --- | --- |
 | 主题与尺寸 | DIP、原生字体、XS/SM/MD/LG/XL 尺寸 | 字体和回退字体可能增加行高；无 Tailwind/CSS 运行时；原生禁用透明度为 50%，部分尺寸、状态和动画与 Nuxt 不同 |
 | 语言与输入 | 英文、简体中文、公历日期、区域分段顺序、12/24 小时制 | 数字使用 ASCII，小数点为 `.`；无完整地区数字输入、多历法、时间范围和分段撤销/重做 |
-| 弹层 | Tooltip、Popover、Modal、Slideover 等 | Tooltip 悬停延迟为 600ms；Popover、Select、菜单、Tooltip、Modal 关闭时立即消失；Slideover 有退出动画 |
+| 分段日期时间 | 日期单值与范围、地区顺序、步长、日期/时间边界及不可用谓词、时间精度、原生可选日历 | Date 不包含时刻；ClockTime 不包含日期、毫秒或时区；时间范围用两个 InputTime 组合，完整读屏体验未验证 |
+| ColorPicker | sRGB 字节通道、HEX/HEXA、原生键盘、透明度、色板、尺寸与通知节流 | 采用 MyGo 横向轨道；内部 SV/轨道/HEX 部件未公开，无 HSL/CMYK/Lab 文本编辑或广色域编辑，完整读屏体验未验证 |
+| 弹层 | Tooltip、Popover、Modal、Slideover 等 | Tooltip 悬停默认延迟为 600ms，可用 DelayDuration 覆盖；Popover、Select、菜单、Tooltip、Modal 关闭时立即消失；Slideover 有退出动画 |
 | 通知 | Toast 队列、动作按钮、超时和暂停 | 同时最多显示 3 条，较早的排队项仍会计时 |
 
 ### 数据和文件
 
 | 范围 | 支持内容 | 尚未提供或需由应用实现 |
 | --- | --- | --- |
-| Table / Tree | 原生虚拟列表、稳定 ID；Tree 支持已加载节点的父子选择联动 | 完整 TanStack 配置、冻结列、多层表头、行分组聚合、树拖拽；Tree 迁移说明见[组件文档](forms-data.md#tree) |
-| Chart | 6 类图、分类/数值/时间轴、堆叠、图例交互 | 完整 Unovis 功能、双 Y 轴、对数轴、刷选缩放 |
-| FileUpload | 原生文件选择、规则检查、进度和取消状态 | 网络上传、文件内容验证、文件流和持久化 |
+| Calendar | 公历单日/范围、日/月/年导航、多月换行、范围限制 | 不提供离散多日期或独立年月值模型；WeekStart 默认周日，周序号按显式周起点计算，不承诺完整 Intl locale 周规则 |
+| Table / Tree | 原生虚拟列表、稳定 ID；Table 支持多列/手动排序、独立模型通知与加载内容；Tree 支持已加载节点的父子选择联动 | Table 表头无独立键盘焦点；完整 TanStack 配置、冻结列、多层表头、行分组聚合、树拖拽未提供；见 [Table 文档](forms-data.md#table)及 [Tree 文档](forms-data.md#tree) |
+| Listbox / SelectMenu | 稳定字符串 ID、结构行、头像与圆点、过滤排序、单项取消动作和原生虚拟列表 | 不接收任意 Vue 对象或动态属性路径；搜索使用 Unicode 大小写折叠及附加符号归一化，不等同于完整 Intl 地区排序；虚拟化无 overscan / estimateSize 公开配置 |
+| Chart | 6 类原生图形、分类/数值/时间轴、堆叠、交互图例、坐标与提示配置、RTL 和行/扇区选择通知 | 参考 TanStack Charts；不提供任意 definition、独立 Web point/group 对象、双 Y 轴、对数轴或刷选缩放，见 [Chart 文档](advanced.md#chart) |
+| FileUpload | 原生选择与队列、类型/大小/数量规则、拒绝通知、应用提供的预览配件、进度和取消状态 | 网络上传、内容验证、图片加载、文件流和持久化；Dialog.Multiple 只控制单次选择，网站使用模拟 Choose，详见 [FileUpload 文档](advanced.md#fileupload-与资源所有权) |
 
 ### 布局和导航
 
 | 范围 | 当前行为与限制 |
 | --- | --- |
-| Drawer | 通过底部独立手柄拖动，不支持四边拖拽或正文滚动联动手势 |
-| Carousel / Splitter | Carousel 可从末项回到首项，拖拽仍有边界；Splitter 只分成两个面板 |
+| Drawer | 通过底部独立手柄拖动，内容整体滚动；不支持四边拖拽、Vaul 背景缩放或正文滚动联动手势。SnapPoints 只接受高度比例，原生关闭阈值与动画另行说明 |
+| Carousel / Splitter | Carousel 的按钮/键盘/自动播放可循环，拖拽仍有边界；Active 只门控自动播放，无完整 Embla 插件或 ARIA tablist；Splitter 只分成两个面板 |
 | NavigationMenu / Sidebar | 支持图标导航、Tooltip、子级 Popover、调宽和按窗口 DIP 宽度切换弹层；路由和持久化由应用实现 |
-| 布局切换 | Sidebar 跨断点会卸载并重建控件；应用模型可以保留，控件局部滚动状态不会自动迁移 |
+| 布局切换 | Sidebar 跨断点会重建控件，保留应用模型；移除当前编辑内容后恢复可用入口焦点，控件局部滚动及选择状态不自动迁移 |
+| Header / Footer / FooterColumns | 原生标题区与页脚使用构建回调，不包含网页全部插槽、路由和粘性定位。Header 菜单由 Sidebar 等组件组合；FooterColumns 的 Active、单项可取消导航及样式已接入，其他 NavigationItem 字段另有适用说明 |
 | 其他 Nuxt 功能 | 没有 Web mega menu、CSS 断点、DOM 插槽或 NuxtLink 兼容层；也未提供完整 Page、Dashboard、AI Chat、Editor、Content、颜色模式专用组件和 LocaleSelect，可直接调用主题与语言 API |
 
 各组件的可用选项、默认值、键盘操作和样式部件以[组件文档](README.md)为准。

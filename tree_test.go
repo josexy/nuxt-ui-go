@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"image/color"
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	nui "github.com/josexy/nuxt-ui-go"
@@ -29,8 +31,9 @@ func treeChosen(t *testing.T, s *nui.TreeState, want ...string) {
 func TestTreeSelectionAndExpansionEvents(t *testing.T) {
 	var s nui.TreeState
 	s.SetNodes([]nui.TreeNode{{ID: "root", Label: "Root", Children: []nui.TreeNode{{ID: "a", Label: "Alpha"}, {ID: "b", Label: "Beta"}}}})
-	selects, toggles, changes := 0, 0, 0
-	o := nui.TreeOptions{Label: "Files", OnSelect: func(e *nui.TreeEvent) { selects++ }, OnToggle: func(e *nui.TreeEvent) { toggles++ }, OnChange: func() { changes++ }}
+	selects, toggles, changes, expansions := 0, 0, 0, 0
+	var expanded []string
+	o := nui.TreeOptions{Label: "Files", OnSelect: func(e *nui.TreeEvent) { selects++ }, OnToggle: func(e *nui.TreeEvent) { toggles++ }, OnChange: func() { changes++ }, OnExpandedChange: func(ids []string) { expansions++; expanded = ids }}
 	tt := treeTester(&s, &o)
 	click(t, tt, "Root")
 	if !tt.HasText("Alpha") || !s.Outline.Open.Has("root") {
@@ -65,6 +68,14 @@ func TestTreeSelectionAndExpansionEvents(t *testing.T) {
 		t.Fatal("left must collapse parent")
 	}
 	treeChosen(t, &s, "a")
+	if expansions != 2 || len(expanded) != 0 {
+		t.Fatalf("expansion notification: %d %v", expansions, expanded)
+	}
+	s.SetExpanded("root", true)
+	tt.Frame()
+	if expansions != 2 {
+		t.Fatal("external expansion emitted a user event")
+	}
 }
 
 func TestTreePreventDefaultAndNodeHandlers(t *testing.T) {
@@ -85,6 +96,18 @@ func TestTreePreventDefaultAndNodeHandlers(t *testing.T) {
 	}
 	click(t, tt, "Child")
 	treeChosen(t, &s, "c")
+	// Replacing the indexed model during selection must not let the old click
+	// toggle a new node that happens to reuse the same business ID.
+	s.SetExpanded("p", false)
+	s.SetNodes([]nui.TreeNode{{ID: "p", Label: "Original", Children: []nui.TreeNode{{ID: "old", Label: "Old child"}}}})
+	o.OnSelect = func(*nui.TreeEvent) {
+		s.SetNodes([]nui.TreeNode{{ID: "p", Label: "Replacement", Children: []nui.TreeNode{{ID: "new", Label: "New child"}}}})
+	}
+	tt.Frame()
+	click(t, tt, "Original")
+	if s.Outline.Open.Has("p") {
+		t.Fatal("old selection action expanded a replacement node")
+	}
 }
 
 func TestTreeMultipleRangeDisabledAndLoop(t *testing.T) {
@@ -138,6 +161,23 @@ func TestTreeMultipleRangeDisabledAndLoop(t *testing.T) {
 	click(t, tt, "Alpha")
 	tt.Key(0, ui.KeySpace)
 	treeChosen(t, &s, "a", "b", "c")
+	// Repeated characters cycle; extending a prefix keeps the current match.
+	o.Disabled, o.Multiple = false, false
+	s.SetNodes([]nui.TreeNode{{ID: "a", Label: "Alpha"}, {ID: "b1", Label: "Bran"}, {ID: "b2", Label: "Bravo"}})
+	tt.Frame()
+	click(t, tt, "Alpha")
+	tt.Advance(2 * time.Second)
+	tt.Type("b")
+	tt.Type("b")
+	if s.Active != "b2" {
+		t.Fatal("repeated typeahead character did not cycle")
+	}
+	tt.Advance(2 * time.Second)
+	tt.Type("b")
+	tt.Type("r")
+	if s.Active != "b1" {
+		t.Fatal("extended prefix skipped its current match")
+	}
 }
 
 func TestTreePropagationAndIndeterminate(t *testing.T) {
@@ -174,6 +214,28 @@ func TestTreePropagationAndIndeterminate(t *testing.T) {
 	tt.Frame()
 	if !partial {
 		t.Fatal("external selection did not update mixed state")
+	}
+	o.PropagateSelect, o.BubbleSelect = false, false
+	tt.Frame()
+	if partial {
+		t.Fatal("partial state exposed when both linkage modes are disabled")
+	}
+	o.BubbleSelect = true
+	s.Selection.Clear()
+	s.Selection.Add("p")
+	tt.Frame()
+	if partial {
+		t.Fatal("bubble-only parent with no selected descendants is partial")
+	}
+	o.BubbleSelect, o.PropagateSelect = false, true
+	tt.Frame()
+	if !partial {
+		t.Fatal("propagate-only selected parent lost partial state")
+	}
+	o.Multiple = false
+	tt.Frame()
+	if partial {
+		t.Fatal("single selection exposed a linked partial state")
 	}
 }
 
@@ -247,6 +309,25 @@ func TestTreeLazyAncestorCollapseRetryAndDispose(t *testing.T) {
 	if !tt.HasText("Loaded") {
 		t.Fatal("loaded rows not indexed")
 	}
+	leading := 0
+	o.Style = func(slot nui.Slot, _ ui.Element) {
+		if slot == nui.Leading {
+			leading++
+		}
+	}
+	s.SetNodes([]nui.TreeNode{{ID: "empty", Label: "Empty branch", Lazy: true, DefaultExpanded: true}})
+	tt.Frame()
+	if leading == 0 {
+		t.Fatal("unresolved branch lost its folder icon")
+	}
+	if !s.CompleteLoad(ticket, nil, nil) {
+		t.Fatal("empty result rejected")
+	}
+	leading = 0
+	tt.Frame()
+	if leading != 0 || !s.Outline.Open.Has("empty") {
+		t.Fatal("empty branch icons or expansion state")
+	}
 }
 
 func TestTreeRTLHiddenRowsAndInheritedDisabled(t *testing.T) {
@@ -256,10 +337,14 @@ func TestTreeRTLHiddenRowsAndInheritedDisabled(t *testing.T) {
 		{ID: "q", Label: "Other", Children: []nui.TreeNode{{ID: "c", Label: "Child"}}},
 	})
 	disabled := false
+	accent := ui.RGB(126, 34, 206)
 	tt := ui.NewTester(func(c *ui.Context) {
 		theme := nui.App(c, nui.AppConfig{})
+		theme.InvertedBackground, theme.HighContrast = accent, true
 		ui.Column(c).Direction(ui.RightToLeft).Disabled(disabled).Children(func() {
-			nui.Tree(c, theme, &s, nui.TreeOptions{Label: "Files", ExpandOnClick: nui.Set(false)}).Width(360)
+			nui.FormField(c, theme, nui.FormFieldOptions{Label: "Files"}, func(ft nui.Theme) {
+				nui.Tree(c, ft, &s, nui.TreeOptions{Color: nui.Neutral, ExpandOnClick: nui.Set(false)}).Width(360)
+			})
 		})
 	}, 400, 400)
 	click(t, tt, "Parent")
@@ -273,6 +358,13 @@ func TestTreeRTLHiddenRowsAndInheritedDisabled(t *testing.T) {
 	tt.Key(0, ui.KeyLeft)
 	if s.Active != "p" {
 		t.Fatal("entering disabled children escaped to a different branch")
+	}
+	if !tt.Focused("Files") {
+		t.Fatal("tree did not inherit its field name")
+	}
+	r := bounds(t, tt, "Parent")
+	if countWhere(tt.Image(), r, func(v color.RGBA) bool { return v == rgba(accent) }) == 0 {
+		t.Fatalf("neutral tree focus missing in %v", r)
 	}
 	// Same-size external changes must invalidate the visible index too.
 	s.Outline.Open.Remove("p")

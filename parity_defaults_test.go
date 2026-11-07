@@ -140,10 +140,10 @@ func TestErrorViewDefaults(t *testing.T) {
 			}
 		}})
 	}, 600, 500)
-	// Nuxt's 48 px title with line-height 1; native fonts keep their own
-	// ascent and descent, so the line is at least that tall.
-	if title := bounds(t, tt, "Not found"); title.H < 48 || title.H > 72 {
-		t.Fatalf("title line %v, want a 48 DIP title", title.H)
+	// Below the 640 DIP breakpoint Nuxt uses a 36/40 title. Native fonts
+	// retain their own ascent and descent when they exceed the CSS line box.
+	if title := bounds(t, tt, "Not found"); title.H < 40 || title.H > 50 {
+		t.Fatalf("title line %v, want a 36 DIP title at narrow width", title.H)
 	}
 	retry := bounds(t, tt, "Try again")
 	if retry.H != 36 || tt.Image().RGBAAt(int(retry.X)+3, int(retry.Y+retry.H/2)) != rgba(nui.Light().Primary) {
@@ -174,10 +174,17 @@ func TestEmptyTextsAndLegacyOverrides(t *testing.T) {
 func TestMarqueeDefaults(t *testing.T) {
 	var s nui.MarqueeState
 	builds := 0
+	repeat := nui.Optional[int]{}
+	parts := 0
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
-		builds = 0
-		nui.Marquee(c, th, &s, nui.MarqueeOptions{Label: "News"}, func() {
+		builds, parts = 0, 0
+		nui.Marquee(c, th, &s, nui.MarqueeOptions{Label: "News", Repeat: repeat, Decoration: nui.Decoration{Style: func(slot nui.Slot, e ui.Element) {
+			if slot == nui.Body {
+				parts++
+				e.Background(ui.RGB(230, 240, 250))
+			}
+		}}}, func() {
 			builds++
 			ui.Text(c, "Short").TextColor(ui.RGB(0, 0, 0))
 		}).Width(400)
@@ -194,6 +201,26 @@ func TestMarqueeDefaults(t *testing.T) {
 	if c := tt.Image().RGBAAt(1, 22); c != white {
 		t.Fatalf("edge pixel %v, want the faded background", c)
 	}
+	region, _ := tt.Find("News")
+	content, _ := tt.Find("Short")
+	if dy := content.Y + content.H/2 - region.Y - region.H/2; dy < -.1 || dy > .1 {
+		t.Fatalf("marquee content is not centered across its motion axis: region=%v content=%v", region, content)
+	}
+	s.Paused = true
+	for _, copies := range []int{1, 2, 6, 0, 4} {
+		repeat = nui.Set(copies)
+		s.Offset = -1000
+		tt.Frame()
+		if builds != copies || parts != copies {
+			t.Fatalf("Repeat=%d: content=%d, styled parts=%d", copies, builds, parts)
+		}
+		if s.Offset < 0 || s.Offset >= 464 {
+			t.Fatalf("phase outside the content period: %g", s.Offset)
+		}
+		if copies == 0 && (s.Offset != 0 || tt.HasText("Short")) {
+			t.Fatal("Repeat=0 retained content or phase")
+		}
+	}
 }
 
 func TestCheckboxGroupMaxKeepsItemsFocusable(t *testing.T) {
@@ -203,7 +230,7 @@ func TestCheckboxGroupMaxKeepsItemsFocusable(t *testing.T) {
 		nui.CheckboxGroup(c, th, &selected, []nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}}, nui.CheckboxGroupOptions{Label: "Letters", Max: nui.Set(1)})
 	}, 300, 200)
 	tt.Key(0, ui.KeyTab)
-	tt.Key(0, ui.KeyTab)
+	tt.Key(0, ui.KeyDown)
 	if !tt.Focused("Beta") {
 		t.Fatal("the item beyond Max is not focusable")
 	}

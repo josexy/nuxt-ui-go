@@ -6,7 +6,9 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	nui "github.com/josexy/nuxt-ui-go"
@@ -77,7 +79,7 @@ func TestInputNumberOrientationKeepsEditorAndButtons(t *testing.T) {
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		ui.Column(c).Padding(24).Children(func() {
-			nui.InputNumber(c, th, &value, &state, nui.InputNumberOptions{Label: "Amount", Orientation: orientation, Step: .5, OnValueChange: func(nui.Optional[float64]) { changes++ }}).Width(320)
+			nui.InputNumber(c, th, &value, &state, nui.InputNumberOptions{Label: "Amount", Orientation: orientation, Step: .5, FocusOnChange: nui.Set(false), OnValueChange: func(nui.Optional[float64]) { changes++ }}).Width(320)
 		})
 	}, 400, 160)
 	click(t, tt, "Amount")
@@ -136,19 +138,20 @@ func TestInputNumberOrientationDisabledBoundsAndKeyboard(t *testing.T) {
 			click(t, tt, "Increase Amount")
 			click(t, tt, "Increase Amount")
 			click(t, tt, "Increase Amount")
-			if value.Value != 1 || changes != 2 {
+			click(t, tt, "Increase Amount")
+			if value.Value != 1 || changes != 3 {
 				t.Fatal("upper-bound button changed value or emitted a duplicate callback")
 			}
 			click(t, tt, "Decrease Amount")
 			click(t, tt, "Decrease Amount")
 			click(t, tt, "Decrease Amount")
-			if value.Value != 0 || changes != 4 {
+			if value.Value != 0 || changes != 5 {
 				t.Fatal("lower-bound button changed value or emitted a duplicate callback")
 			}
 			click(t, tt, "Amount")
 			tt.Key(0, ui.KeyUp)
 			tt.Key(0, ui.KeyDown)
-			if value.Value != 0 || changes != 6 {
+			if value.Value != 0 || changes != 7 {
 				t.Fatal("editor's arrow keys changed with orientation")
 			}
 			for mode := range 3 {
@@ -158,11 +161,90 @@ func TestInputNumberOrientationDisabledBoundsAndKeyboard(t *testing.T) {
 				click(t, tt, "Amount")
 				tt.Key(0, ui.KeyUp)
 				tt.Type("9")
-				if value.Value != 0 || state.Text != "0" || changes != 6 {
+				if value.Value != 0 || state.Text != "0" || changes != 7 {
 					t.Fatalf("mode %d allowed editing", mode)
 				}
 			}
 		})
+	}
+}
+
+func TestInputNumberStepPrecisionAndPendingPress(t *testing.T) {
+	for _, sample := range []struct {
+		name    string
+		value   nui.Optional[float64]
+		options nui.InputNumberOptions
+		key     ui.Key
+		want    float64
+	}{
+		{"empty", nui.Optional[float64]{}, nui.InputNumberOptions{Min: nui.Set(5.0), Step: 2}, ui.KeyUp, 5},
+		{"starting", nui.Optional[float64]{}, nui.InputNumberOptions{StartingValue: nui.Set(40.0), Step: 3}, ui.KeyDown, 40},
+		{"off-grid up", nui.Set(18.98), nui.InputNumberOptions{}, ui.KeyUp, 19},
+		{"off-grid down", nui.Set(18.98), nui.InputNumberOptions{}, ui.KeyDown, 18},
+		{"page", nui.Set(18.98), nui.InputNumberOptions{}, ui.KeyPageUp, 28},
+		{"tiny step", nui.Set(1e-13), nui.InputNumberOptions{Step: 1e-13}, ui.KeyUp, 2e-13},
+		{"large decimal", nui.Set(9000.1), nui.InputNumberOptions{Step: .1}, ui.KeyUp, 9000.2},
+		{"decimal maximum", nui.Set(.2), nui.InputNumberOptions{Min: nui.Set(.1), Max: nui.Set(.3), Step: .1}, ui.KeyUp, .3},
+		{"off-grid maximum", nui.Set(9.0), nui.InputNumberOptions{Max: nui.Set(9.5)}, ui.KeyUp, 9},
+		{"free step", nui.Set(1.4), nui.InputNumberOptions{StepSnapping: nui.Set(false)}, ui.KeyUp, 2.4},
+		{"out-of-range direction", nui.Set(20.0), nui.InputNumberOptions{Max: nui.Set(10.0), AllowInvalid: true}, ui.KeyUp, 20},
+	} {
+		t.Run(sample.name, func(t *testing.T) {
+			value, state := sample.value, &nui.NumberState{}
+			calls := 0
+			sample.options.Label = "Precision"
+			sample.options.OnValueChange = func(nui.Optional[float64]) { calls++ }
+			tt := ui.NewTester(func(c *ui.Context) { nui.InputNumber(c, nui.App(c, nui.AppConfig{}), &value, state, sample.options) }, 360, 100)
+			click(t, tt, "Precision")
+			tt.Key(0, sample.key)
+			wantCalls := 1
+			if sample.value == nui.Set(sample.want) {
+				wantCalls = 0
+			}
+			if value != nui.Set(sample.want) || state.Text != strconv.FormatFloat(sample.want, 'f', -1, 64) || calls != wantCalls {
+				t.Fatalf("value=%v text=%q calls=%d", value, state.Text, calls)
+			}
+		})
+	}
+	value, state := nui.Set(5.0), &nui.NumberState{}
+	disabled, shown, mounted := false, true, true
+	calls := 0
+	tt := ui.NewTester(func(c *ui.Context) {
+		if mounted {
+			nui.InputNumber(c, nui.App(c, nui.AppConfig{}), &value, state, nui.InputNumberOptions{InputOptions: nui.InputOptions{Label: "Repeat"}, Increment: nui.Set(shown), IncrementDisabled: disabled, OnValueChange: func(nui.Optional[float64]) { calls++ }}).Width(300)
+		}
+	}, 360, 100)
+	r := bounds(t, tt, "Increase Repeat")
+	tt.Press(r.X+r.W/2, r.Y+r.H/2)
+	tt.Advance(400 * time.Millisecond)
+	tt.Advance(60 * time.Millisecond)
+	tt.Release(r.X+r.W/2, r.Y+r.H/2)
+	if value.Value != 8 || calls != 3 || !tt.Focused("Repeat") {
+		t.Fatal("press repeat, release count or editor focus")
+	}
+	tt.Press(r.X+r.W/2, r.Y+r.H/2)
+	disabled = true
+	tt.Frame()
+	tt.Advance(time.Second)
+	tt.Release(r.X+r.W/2, r.Y+r.H/2)
+	if value.Value != 9 || calls != 4 {
+		t.Fatal("disabled hold kept repeating")
+	}
+	shown = false
+	tt.Frame()
+	if _, ok := tt.Find("Increase Repeat"); ok {
+		t.Fatal("hidden increment still present")
+	}
+	editor := bounds(t, tt, "Repeat")
+	tt.Scroll(editor.X+5, editor.Y+5, 0, 20)
+	if value.Value != 10 || calls != 5 {
+		t.Fatal("focused wheel did not step once")
+	}
+	mounted = false
+	tt.Frame()
+	tt.Advance(time.Second)
+	if calls != 5 {
+		t.Fatal("unmounted number continued its work")
 	}
 }
 
