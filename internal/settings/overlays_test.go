@@ -16,21 +16,22 @@ func TestSettingsEditConfirmationUndoAndFilters(t *testing.T) {
 	if !a.EditOpen {
 		t.Fatal("menu did not open edit dialog")
 	}
-	press(t, tt, "Profile name *")
+	// "Profile name *" names the whole field; its visible label focuses the input.
+	press(t, tt, "Profile name")
 	tt.Key(ui.Ctrl, ui.KeyA)
 	tt.Key(0, ui.KeyBackspace)
 	press(t, tt, "Apply profile")
 	if !a.EditOpen || !tt.HasText("Enter your display name.") {
 		t.Fatal("invalid edit accepted")
 	}
-	press(t, tt, "Profile name *")
+	press(t, tt, "Profile name")
 	tt.Type("New profile")
 	press(t, tt, "Apply profile")
 	if a.Name != "New profile" || a.EditOpen || !tt.Focused("Actions") || !tt.HasText("Profile updated") {
 		t.Fatal("apply, toast or menu opener focus")
 	}
 	press(t, tt, "Edit profile")
-	press(t, tt, "Profile name *")
+	press(t, tt, "Profile name")
 	tt.Key(ui.Ctrl, ui.KeyA)
 	tt.Type("Unsaved draft")
 	tt.Key(0, ui.KeyEscape)

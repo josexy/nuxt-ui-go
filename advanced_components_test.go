@@ -774,7 +774,8 @@ func TestNavigationSplitterAndLayouts(t *testing.T) {
 	if !collapsed {
 		t.Fatal("sidebar")
 	}
-	click(t, tt, "Divider")
+	// The focusable divider is one DIP wide; pressing its wider grip focuses it.
+	clickOver(t, tt, "Divider")
 	for range 20 {
 		tt.Key(0, ui.KeyRight)
 	}
@@ -868,14 +869,14 @@ func TestNavigationSplitterAndLayouts(t *testing.T) {
 		if draft != "editable while locked" {
 			t.Fatalf("Disabled also disabled the panel: %q", draft)
 		}
-		click(t, p, "Divider")
+		clickOver(t, p, "Divider") // its grip takes the press
 		p.Key(0, ui.KeyRight)
 		if value != 50 || changes != 0 {
 			t.Fatal("disabled divider moved")
 		}
 		disabled = false
 		p.Frame()
-		click(t, p, "Divider")
+		clickOver(t, p, "Divider")
 		p.Key(0, ui.KeyRight)
 		if math.Abs(float64(value-55)) > .01 || changes != 1 {
 			t.Fatalf("keyboard step: %g, %d changes", value, changes)

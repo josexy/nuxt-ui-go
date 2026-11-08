@@ -102,7 +102,7 @@ func TestTagsPinRatingTriAndRange(t *testing.T) {
 	if len(tags) != 1 {
 		t.Fatal("remove tag")
 	}
-	click(t, tt, "Code")
+	clickOver(t, tt, "Code") // the slots take the press for the named editor
 	tt.SetClipboard("12a345")
 	tt.Command("paste")
 	tt.Frame()
@@ -113,7 +113,7 @@ func TestTagsPinRatingTriAndRange(t *testing.T) {
 	if pin != "123" {
 		t.Fatalf("backspace PIN %q", pin)
 	}
-	click(t, tt, "Rating")
+	clickOver(t, tt, "Rating") // the star at the group's center takes the press
 	tt.Key(0, ui.KeyEnd)
 	if rating != 5 {
 		t.Fatalf("rating %d", rating)
@@ -850,7 +850,8 @@ func TestDateRangeInputSynchronizesEndpoints(t *testing.T) {
 		th := nui.App(c, nui.AppConfig{})
 		nui.InputDateRange(c, th, &value, &state, nui.InputDateOptions{Label: "Period", ShowCalendar: true})
 	}, 600, 500)
-	click(t, tt, "Period start")
+	// "Period start" names the group of segments; a press reaches one of them.
+	click(t, tt, "Period start day")
 	tt.Key(ui.Ctrl, ui.KeyA)
 	tt.Type("2024-03-01")
 	if value.End.Set {

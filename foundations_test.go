@@ -272,6 +272,39 @@ func TestKeyboardActionsChipAndDisabledParent(t *testing.T) {
 	}
 }
 
+// Links follow the web and WAI-ARIA: Enter activates them, while Space is
+// left to the container around them (MyGo 0.8). Buttons keep both keys.
+func TestLinkRolesActivateOnEnterOnly(t *testing.T) {
+	calls := map[string]int{}
+	tt := ui.NewTester(func(c *ui.Context) {
+		theme := nui.App(c, nui.AppConfig{})
+		ui.Column(c).Padding(16).Gap(16).AlignItems(ui.Start).Children(func() {
+			nui.Link(c.Key("link"), theme, "Documentation", nui.LinkOptions{}).OnClick(func() { calls["Documentation"]++ })
+			nui.Breadcrumb(c.Key("breadcrumb"), theme, []nui.BreadcrumbItem{
+				{ID: "home", Label: "Home", OnSelect: func() { calls["Home"]++ }},
+				{ID: "current", Label: "Current"},
+			}, nui.BreadcrumbOptions{})
+			nui.FooterColumns(c.Key("footer"), theme, []nui.FooterColumn{
+				{ID: "company", Title: "Company", Items: []nui.NavigationItem{{ID: "about", Label: "About"}}},
+			}, nui.FooterColumnsOptions{OnNavigate: func(id string) { calls[id]++ }})
+		})
+	}, 600, 400)
+	for _, link := range []struct{ name, id string }{{"Documentation", "Documentation"}, {"Home", "Home"}, {"About", "about"}} {
+		tt.Key(0, ui.KeyTab)
+		if !tt.Focused(link.name) {
+			t.Fatalf("%s not reached by Tab", link.name)
+		}
+		tt.Key(0, ui.KeySpace)
+		if calls[link.id] != 0 {
+			t.Fatalf("Space activated link %s", link.name)
+		}
+		tt.Key(0, ui.KeyEnter)
+		if calls[link.id] != 1 {
+			t.Fatalf("Enter activated link %s %d times", link.name, calls[link.id])
+		}
+	}
+}
+
 func TestIdentityAndProgressEdgeCases(t *testing.T) {
 	for in, want := range map[string]string{"": "?", "  Ada Lovelace ": "AL", "林晓": "林晓", "éva smith": "ÉS", "😀": "😀"} {
 		if got := nui.Initials(in); got != want {

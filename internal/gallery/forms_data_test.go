@@ -106,15 +106,22 @@ func TestGalleryListboxEmptyAndDisabled(t *testing.T) {
 func TestGalleryPopulatedReadOnlyExamples(t *testing.T) {
 	a := newStaticGallery()
 	t.Cleanup(a.Dispose)
-	for _, sample := range []struct{ id, label, summary string }{
-		{"pin-input", "states verification code", "Read-only code: 1234 · Disabled code: 1234"},
-		{"input-date", "states release date month", "Date: {2026-11-05 true}"},
-		{"input-time", "states reminder hour", "Time: {09:30:00 true}"},
+	for _, sample := range []struct {
+		id, label, summary string
+		covered            bool // the PIN slots take the press for the named editor
+	}{
+		{"pin-input", "states verification code", "Read-only code: 1234 · Disabled code: 1234", true},
+		{"input-date", "states release date month", "Date: {2026-11-05 true}", false},
+		{"input-time", "states reminder hour", "Time: {09:30:00 true}", false},
 	} {
 		t.Run(sample.id, func(t *testing.T) {
 			tt := sceneTester(t, a, sample.id, "states")
 			requireText(t, tt, sample.summary)
-			press(t, tt, sample.label)
+			if sample.covered {
+				pressOver(t, tt, sample.label)
+			} else {
+				press(t, tt, sample.label)
+			}
 			tt.Key(ui.Ctrl, ui.KeyA)
 			tt.Type("99")
 			tt.Key(0, ui.KeyUp)

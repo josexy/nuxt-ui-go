@@ -255,7 +255,7 @@ ToastViewport defaults to the bottom right and a width of 384 DIP. It also suppo
 
 Limit accepts 1–3; 0 or an out-of-range value is treated as 3. MyGo shows at most the 3 newest toasts. Older queued toasts keep counting down and may reappear after newer ones close; Limit is not the queue capacity. Nuxt UI's max defaults to 5 and discards older toasts beyond the limit, so the rules differ.
 
-The queue timer pauses while the pointer is over the notification area, while focus is inside a toast, or while the window is unfocused. The default countdown bar pauses with it; hide it with `Progress: nui.Set(false)`. Persistent toasts have no countdown. With reduced motion, the remaining time is still updated, but it is shown in steps at least 250 ms apart without interpolation. Toasts enter and exit with a 150 ms, 8 DIP fade and slide toward the matching screen edge; with reduced motion, they switch immediately. An empty queue draws no panel.
+The queue timer pauses while the pointer is over the notification area, or while focus is inside a toast and the window has focus. It keeps running while the window is in the background or hidden, even with focus left inside a toast, so a toast whose time runs out there closes before the window shows again. The default countdown bar pauses with it; hide it with `Progress: nui.Set(false)`. Persistent toasts have no countdown. With reduced motion, the remaining time is still updated, but it is shown in steps at least 250 ms apart without interpolation. Toasts enter and exit with a 150 ms, 8 DIP fade and slide toward the matching screen edge; with reduced motion, they switch immediately. An empty queue draws no panel.
 
 Toasts use RoleStatus, and the action and close buttons are keyboard accessible. Actual screen reader announcements have not been verified.
 
@@ -311,7 +311,7 @@ Nuxt UI's Collapsible uses a trigger slot supplied by the app. Go's Label, Icon,
 
 ### Breadcrumb: show the current location
 
-BreadcrumbItem contains ID, Label, Icon, Avatar, Active, Disabled, OnSelect, and UI. The options provide Label, Color, SeparatorIcon, and MaxItems. Items with OnSelect are actionable, including the last one; items with a nil callback are static text. Your app provides the path and the navigation actions.
+BreadcrumbItem contains ID, Label, Icon, Avatar, Active, Disabled, OnSelect, and UI. The options provide Label, Color, SeparatorIcon, and MaxItems. Items with OnSelect are actionable links, including the last one: the pointer and Enter activate them, while Space, as on the web, does not. Items with a nil callback are static text. Your app provides the path and the navigation actions.
 
 When Active is unset, only the last item is active; an explicit false turns off the active style. Color defaults to Primary, and with Neutral the active text uses Highlighted. Inactive items are 14 DIP Muted text without padding, and actionable items change to the Text color on hover. The separator arrow is 20 DIP, and items are 6 DIP apart. In RTL, the default arrow is reversed, while a custom SeparatorIcon is kept as is. Icon takes precedence over Avatar, and the default avatar diameter is 20 DIP. The path stays on one line, and long text is truncated to fit.
 

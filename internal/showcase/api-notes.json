@@ -2244,8 +2244,8 @@
     "en": "Empty generates an ID. The same ID replaces content/configuration and resets the timeout without calling the previous OnClose. Pass the returned ID to CloseToast."
   },
   "ToastOptions.Timeout": {
-    "zh": "默认 5 秒：0 使用默认值，负值常驻。与 Nuxt UI duration=0 表示常驻不同。悬停、通知内焦点或窗口失焦会暂停整个队列。",
-    "en": "Zero uses the five-second default; negative values persist. This differs from Nuxt UI duration=0. Hover, focus in the viewport or an inactive window pauses the whole queue."
+    "zh": "默认 5 秒：0 使用默认值，负值常驻。与 Nuxt UI duration=0 表示常驻不同。悬停，或窗口有焦点时通知内的焦点，会暂停整个队列；窗口在后台或隐藏时计时继续。",
+    "en": "Zero uses the five-second default; negative values persist. This differs from Nuxt UI duration=0. Hover, or focus in the viewport while the window has focus, pauses the whole queue; it keeps running while the window is in the background or hidden."
   },
   "ToastOptions.Avatar": {
     "zh": "可选头像，优先于 Icon。未设置 Size 时直径 44 DIP，显式尺寸沿用 Avatar。发布时复制配置及 UI。",

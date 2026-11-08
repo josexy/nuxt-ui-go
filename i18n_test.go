@@ -52,7 +52,7 @@ func TestLocaleSwitchPinInputNamePreservesEditing(t *testing.T) {
 					OnChange: func(string) { changes++ }, OnComplete: func(string) { completes++ },
 				})
 			}, 400, 120)
-			click(t, tt, english)
+			clickOver(t, tt, english) // the slots take the press for the named editor
 			tt.Key(ui.Ctrl, ui.KeyA)
 			tt.SetLocale("zh-Hans")
 			if !tt.Focused(chinese) || tt.HasText(english) {

@@ -37,6 +37,18 @@ func clickExample(t *testing.T, tester *ui.Tester, label string) {
 	}
 }
 
+// clickExampleOver clicks the center of label's box for whatever covers it
+// there, as a splitter's grip over its one-DIP focusable divider. Use
+// clickExample wherever label itself takes the click.
+func clickExampleOver(t *testing.T, tester *ui.Tester, label string) {
+	t.Helper()
+	r, ok := tester.Find(label)
+	if !ok {
+		t.Fatalf("missing %q", label)
+	}
+	tester.ClickAt(r.X+r.W/2, r.Y+r.H/2)
+}
+
 func TestExampleMenusReportEveryAction(t *testing.T) {
 	for _, id := range []string{"dropdown-menu", "context-menu"} {
 		t.Run(id, func(t *testing.T) {
@@ -229,13 +241,13 @@ func TestExampleSelectionAndDisclosure(t *testing.T) {
 		}
 		cfg.Values["disabled"] = false
 		tester.Frame()
-		clickExample(t, tester, "Panel divider")
+		clickExampleOver(t, tester, "Panel divider")
 		tester.Key(0, ui.KeyEnd)
 		tester.Key(0, ui.KeyRight)
 		if !tester.HasText("Value: 70 · Changes: 1") {
 			t.Fatal("splitter boundary notification count")
 		}
-		clickExample(t, tester, "Nested panel divider")
+		clickExampleOver(t, tester, "Nested panel divider")
 		tester.Key(0, ui.KeyDown)
 		if !tester.HasText("Nested value: 60 · Changes: 1") {
 			t.Fatal("nested splitter did not resize independently")
@@ -470,7 +482,8 @@ func TestExampleDateRangeRespectsQuickControls(t *testing.T) {
 			tester, cfg := exampleTester(t, "input-date")
 			cfg.Values[control] = true
 			tester.Frame()
-			clickExample(t, tester, "Date range start")
+			// "Date range start" names the group of segments; a press reaches one of them.
+			clickExample(t, tester, "Date range start day")
 			tester.Type("2030-11-06")
 			tester.Key(ui.Ctrl, ui.KeyA)
 			tester.Key(ui.Ctrl, ui.KeyC)
@@ -479,7 +492,7 @@ func TestExampleDateRangeRespectsQuickControls(t *testing.T) {
 			}
 			cfg.Values[control] = false
 			tester.Frame()
-			clickExample(t, tester, "Date range start")
+			clickExample(t, tester, "Date range start day")
 			tester.Type("2030-11-06")
 			tester.Key(ui.Ctrl, ui.KeyA)
 			tester.Key(ui.Ctrl, ui.KeyC)

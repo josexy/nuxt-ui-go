@@ -16,6 +16,23 @@ import (
 func newStaticGallery() *State { a := New(); a.Animations = false; return a }
 func press(t *testing.T, tt *ui.Tester, label string) {
 	t.Helper()
+	scrollIntoView(t, tt, label)
+	if err := tt.Click(label); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// pressOver scrolls label into view and clicks the center of its box for
+// whatever covers it there, as the PIN slots drawn over their hidden editor.
+// Use press wherever label itself takes the click.
+func pressOver(t *testing.T, tt *ui.Tester, label string) {
+	t.Helper()
+	r := scrollIntoView(t, tt, label)
+	tt.ClickAt(r.X+r.W/2, r.Y+r.H/2)
+}
+
+func scrollIntoView(t *testing.T, tt *ui.Tester, label string) ui.Rect {
+	t.Helper()
 	for range 12 {
 		bounds, ok := tt.Find(label)
 		if !ok {
@@ -23,10 +40,7 @@ func press(t *testing.T, tt *ui.Tester, label string) {
 		}
 		height := float32(tt.Image().Bounds().Dy())
 		if bounds.Y >= 0 && bounds.Y+bounds.H <= height {
-			if err := tt.Click(label); err != nil {
-				t.Fatal(err)
-			}
-			return
+			return bounds
 		}
 		delta := bounds.Y + bounds.H - height + 80
 		if bounds.Y < 0 {
@@ -36,6 +50,7 @@ func press(t *testing.T, tt *ui.Tester, label string) {
 		tt.Frame()
 	}
 	t.Fatalf("could not scroll %q into view", label)
+	return ui.Rect{}
 }
 func requireInput(t *testing.T, tt *ui.Tester, label, value string) {
 	t.Helper()
