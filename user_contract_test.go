@@ -103,7 +103,7 @@ func TestUserActivationAndDisabledParent(t *testing.T) {
 			nui.User(c, th, nui.UserOptions{Name: "Profile", Avatar: nui.AvatarOptions{Text: "AU"}, Chip: &nui.ChipOptions{Text: "9"}, Disabled: disabled, OnActivate: func() { calls++ }})
 		})
 	}, 260, 100)
-	click(t, tt, "9")
+	clickOver(t, tt, "9") // the chip ignores input; the press activates the user
 	tt.Key(0, ui.KeyEnter)
 	tt.Key(0, ui.KeySpace)
 	if calls != 3 {

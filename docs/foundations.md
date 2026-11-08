@@ -270,7 +270,7 @@ MyGo draws disabled controls at 50% opacity, and the library adds no further tra
 
 Chip's four corner positions are physical left and right and are not mirrored in RTL. Inset places the chip inside the host's bounds. When the content builder is nil, the chip is shown on its own without corner offsets. The text width is computed from the font, font size, font weight, and horizontal padding in Indicator.UI. Style runs after measurement, so if you change the text size there, set the width and height as well; a large custom font size usually also needs a taller chip.
 
-**Links:** When Link's URL is non-empty, activating the link opens the address through `Services.OpenURL`. When the URL is empty, use `.OnClick` on the returned element for in-app navigation. If you set both URL and OnClick, keep MyGo's action override rules in mind.
+**Links:** When Link's URL is non-empty, activating the link opens the address through `Services.OpenURL`. When the URL is empty, use `.OnClick` on the returned element for in-app navigation. If you set both URL and OnClick, keep MyGo's action override rules in mind. A focused link activates with Enter; as on the web, Space does not activate it and is left to the container around it. Use Button where Space should activate too.
 
 ### Images, avatars, and icons
 

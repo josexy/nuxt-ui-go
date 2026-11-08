@@ -110,12 +110,6 @@ func TestToastFocusBackgroundPauseAndLimit(t *testing.T) {
 		t.Fatal("native newest-three queue")
 	}
 	tt.Move(0, 0)
-	tt.SetFocused(false)
-	tt.Advance(2 * time.Second)
-	if !tt.HasText("Notice 4") {
-		t.Fatal("background window timeout was not paused")
-	}
-	tt.SetFocused(true)
 	tt.Key(0, ui.KeyTab)
 	if !tt.Focused("Undo") {
 		t.Fatalf("toast action not keyboard reachable: %v", tt.Texts())
@@ -124,6 +118,14 @@ func TestToastFocusBackgroundPauseAndLimit(t *testing.T) {
 	if !tt.HasText("Notice 4") {
 		t.Fatal("focused toast timeout was not paused")
 	}
+	// Focus left in the toasts holds them only while the window has it;
+	// in a background window their time runs on (MyGo 0.8).
+	tt.SetFocused(false)
+	tt.Advance(1100 * time.Millisecond)
+	if tt.HasText("Notice 4") {
+		t.Fatal("background window held the toasts")
+	}
+	tt.SetFocused(true)
 	click(t, tt, "Queue")
 	tt.Move(0, 0)
 	tt.Advance(1100 * time.Millisecond)
@@ -296,7 +298,7 @@ func TestModalSlideoverFocusAndDismiss(t *testing.T) {
 	if !modal || closed != 0 {
 		t.Fatal("non dismissible modal escaped")
 	}
-	click(t, tt, "Outside")
+	clickOver(t, tt, "Outside") // the backdrop covering it must take the press
 	if outside != 0 || !modal {
 		t.Fatal("modal background interactive")
 	}
@@ -317,7 +319,7 @@ func TestModalSlideoverFocusAndDismiss(t *testing.T) {
 	if r.X < 390 || r.W != 300 {
 		t.Fatalf("side geometry %v", r)
 	}
-	click(t, tt, "Outside")
+	clickOver(t, tt, "Outside")
 	if outside != 0 || side {
 		t.Fatal("slideover backdrop")
 	}

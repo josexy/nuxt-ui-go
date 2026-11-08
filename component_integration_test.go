@@ -17,6 +17,17 @@ func click(t *testing.T, tt *ui.Tester, label string) {
 	}
 }
 
+// clickOver clicks the center of label's box for whatever covers it there.
+// Click requires label itself to take the press; use this only where another
+// element deliberately receives it: a modal backdrop, a splitter's grip, the
+// PIN slots drawn over their hidden editor, or decoration passing the press
+// through to its control.
+func clickOver(t *testing.T, tt *ui.Tester, label string) {
+	t.Helper()
+	r := bounds(t, tt, label)
+	tt.ClickAt(r.X+r.W/2, r.Y+r.H/2)
+}
+
 func TestButtonActionsStatesAndParts(t *testing.T) {
 	var clicks, blocked int
 	tt := ui.NewTester(func(c *ui.Context) {
