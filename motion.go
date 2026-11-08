@@ -10,15 +10,14 @@ import (
 	"github.com/josexy/nuxt-ui-go/icons/lucide"
 )
 
-// motionVisible uses committed window geometry. Applications must also set Active=false
-// for panels kept mounted but hidden by their own clipping/visibility mechanism.
-func motionVisible(c *ui.Context, e ui.Element, active Optional[bool]) bool {
+// motionVisible reports whether some of e showed in the frame before, within
+// the window and the scroll containers and clips around it. Applications must
+// also set Active=false for panels they hide by other means, such as covering them.
+func motionVisible(e ui.Element, active Optional[bool]) bool {
 	if active.Set && !active.Value {
 		return false
 	}
-	r := e.Bounds()
-	w, h := c.Size()
-	return r.W > 0 && r.H > 0 && r.X < w && r.Y < h && r.X+r.W > 0 && r.Y+r.H > 0
+	return e.InView()
 }
 
 type DrawerState struct {
@@ -288,7 +287,7 @@ func Carousel(c *ui.Context, t Theme, s *CarouselState, items []CarouselItem, o 
 			s.identity, s.offset, s.held, s.ignoreDrag = "", 0, false, false
 			return
 		}
-		running := o.Autoplay > 0 && len(items) > 1 && !root.IsDisabled() && !s.Paused && !s.held && !t.Motion.Reduce && !c.Preferences().ReduceMotion && motionVisible(c, view, o.Active) && !root.Hovered() && !s.root.FocusWithin(c)
+		running := o.Autoplay > 0 && len(items) > 1 && !root.IsDisabled() && !s.Paused && !s.held && !t.Motion.Reduce && !c.Preferences().ReduceMotion && motionVisible(view, o.Active) && !root.Hovered() && !s.root.FocusWithin(c)
 		if running {
 			if s.last.IsZero() {
 				s.last = c.Now()
@@ -478,11 +477,67 @@ func Carousel(c *ui.Context, t Theme, s *CarouselState, items []CarouselItem, o 
 }
 
 type MarqueeState struct {
+	// Offset is the content's phase within one period of it and its gap, as
+	// of the last build: between builds the content moves in frames that only
+	// paint. Set it to move the content there.
 	Offset  float32
 	Paused  bool
-	last    time.Time
 	content string
+	written float32 // Offset as the last build left it; another value is the app's.
 }
+
+// marqueeTravel is how far one run of a Marquee strip's pose heads, in DIPs,
+// and marqueeRenew how far from 0 a pose goes before a strip starts again from
+// 0: float32 keeps poses that far exact to a few thousandths of a DIP. Tests
+// shorten them to see runs and strips start again.
+var (
+	marqueeTravel float32 = 65536
+	marqueeRenew  float64 = 1 << 20
+)
+
+// marqueeRun is how a Marquee moves its strip, kept with the marquee's root:
+// the strip is posed in every build, at rest at p, or moving since t0 from p0
+// in direction dir at speed, while the phase went on from phase0. A build
+// then translates the strip so that its phase shows exactly, and wraps it
+// back within its copies as it goes.
+type marqueeRun struct {
+	t0                 time.Time
+	phase0, p0, p      float32
+	dir, speed, length float32
+	moving             bool
+	// A strip of another generation is a new element: its first pose shows at
+	// once, so it moves only from the next frame, freshAt being its first.
+	// renew asks the next build for one, at 0.
+	gen          int
+	built, renew bool
+	freshAt      time.Time
+	vertical     bool
+}
+
+type marqueeStripKey struct{ gen int }
+
+func marqueeRunTime(speed float32) time.Duration {
+	return time.Duration(float64(marqueeTravel/speed) * float64(time.Second))
+}
+
+// pose returns where the strip's pose is at now.
+func (r *marqueeRun) pose(now time.Time) float32 {
+	if !r.moving {
+		return r.p
+	}
+	return r.p0 + r.dir*r.speed*float32(min(now.Sub(r.t0), marqueeRunTime(r.speed)).Seconds())
+}
+
+// phase returns how far the content went along its period at now.
+func (r *marqueeRun) phase(now time.Time, period float32) float32 {
+	d := r.phase0 + r.speed*float32(now.Sub(r.t0).Seconds())
+	phase := float32(math.Mod(finite(float64(d)), float64(period)))
+	if phase >= period {
+		phase = 0 // rounded up to float32
+	}
+	return phase
+}
+
 type MarqueeOptions struct {
 	Label              string
 	Vertical, Reverse  bool
@@ -534,18 +589,26 @@ func Marquee(c *ui.Context, t Theme, s *MarqueeState, o MarqueeOptions, content 
 	if s.content != o.ContentKey {
 		s.content = o.ContentKey
 		s.Offset = 0
-		s.last = time.Time{}
 	}
+	run := ui.Local(root, "nui-marquee-run", func() marqueeRun { return marqueeRun{} })
 	if repeat == 0 {
-		s.Offset, s.last = 0, time.Time{}
+		s.Offset, s.written = 0, 0
+		*run = marqueeRun{gen: run.gen + 1}
 		return root
 	}
-	var measure ui.Element
 	root.Children(func() {
+		now := c.Now()
 		extent := root.Bounds().W
 		if o.Vertical {
 			extent = root.Bounds().H
 		}
+		if run.renew || run.built && run.vertical != o.Vertical {
+			// Start again from 0 with a strip of a new generation.
+			*run = marqueeRun{gen: run.gen + 1, length: run.length}
+		}
+		// The strip moves every copy at once: posed, it moves in frames that
+		// only paint, without building the view.
+		strip := ui.Box(c.Key(marqueeStripKey{run.gen})).Absolute().Left(0).Top(0).Right(0).Bottom(0).IgnoreInput(true).Role(ui.RoleNone)
 		// Each copy is at least as long as the marquee, its items spread
 		// around, as Nuxt's w-full min-w-max justify-around content.
 		copyOf := func(key string) ui.Element {
@@ -563,52 +626,113 @@ func Marquee(c *ui.Context, t Theme, s *MarqueeState, o MarqueeOptions, content 
 			})
 			return e
 		}
-		measure = copyOf("content")
+		// Every copy is built even before the first committed measurement.
+		var measure ui.Element
+		copies := make([]ui.Element, 0, repeat-1)
+		strip.Children(func() {
+			measure = copyOf("content")
+			for i := 1; i < repeat; i++ {
+				copies = append(copies, copyOf(fmt.Sprintf("repeat-%d", i)).Role(ui.RoleNone))
+			}
+		})
 		length := measure.Bounds().W
 		if o.Vertical {
 			length = measure.Bounds().H
 		}
+		if length > 0 {
+			run.length = length
+		} else if !run.built {
+			length = run.length // a strip of a new generation is not measured yet
+		}
 		period := length + gap
+		// The strip wraps back within its copies, which repeat every period.
+		span := period * float32(max(1, repeat-1))
 		if period > 0 {
 			s.Offset = float32(math.Mod(finite(float64(s.Offset)), float64(period)))
 			if s.Offset < 0 {
 				s.Offset += period
 			}
-		}
-		running := period > gap && !root.IsDisabled() && !s.Paused && (!o.PauseOnHover || !root.Hovered()) && !root.FocusWithin() && !t.Motion.Reduce && !c.Preferences().ReduceMotion && motionVisible(c, root, o.Active)
-		if running {
-			if !s.last.IsZero() {
-				delta := min(c.Now().Sub(s.last), 100*time.Millisecond)
-				s.Offset = float32(math.Mod(float64(s.Offset+speed*float32(delta.Seconds())), float64(period)))
+			if s.Offset >= period {
+				s.Offset = 0 // rounded up to float32
 			}
-			s.last = c.Now()
-			c.AnimationFrame()
-		} else {
-			s.last = time.Time{}
 		}
-		offset := s.Offset
+		external := s.Offset != s.written
+		if run.moving && !external {
+			s.Offset = run.phase(now, period)
+		}
+		motion := !t.Motion.Reduce && !c.Preferences().ReduceMotion
+		running := period > gap && !root.IsDisabled() && !s.Paused && (!o.PauseOnHover || !root.Hovered()) && !root.FocusWithin() && motion && motionVisible(root, o.Active) && !c.Instant()
+		dir := float32(-1)
 		if o.Reverse {
-			offset = period - offset
+			dir = 1
 		}
-		if t.Motion.Reduce || c.Preferences().ReduceMotion {
-			offset = 0
+		far := math.Abs(float64(run.pose(now))) > marqueeRenew
+		if run.moving && (!running || external || far || run.dir != dir || run.speed != speed || now.Sub(run.t0) >= marqueeRunTime(run.speed)-time.Second) {
+			// The run stops where it got to; one that goes on starts again
+			// from there. A pose so far from 0 that float32 blurs it starts
+			// again from 0, in the next build, once this one has shown the
+			// phase where the run left it.
+			run.p, run.moving, run.renew = run.pose(now), false, far
+		}
+		if !motion {
 			s.Offset = 0
 		}
-		if o.Vertical {
-			measure.Translate(0, -offset)
-		} else {
-			measure.Translate(-offset, 0)
+		if running && !run.moving && run.built && !run.renew && !run.freshAt.Equal(now) {
+			run.moving, run.t0, run.phase0, run.p0, run.dir, run.speed = true, now, s.Offset, run.p, dir, speed
 		}
-		// Every copy is built even before the first committed measurement.
-		for i := 1; i < repeat; i++ {
-			copy := copyOf(fmt.Sprintf("repeat-%d", i)).Role(ui.RoleNone)
-			at := float32(i)*period - offset
+		if !run.built {
+			run.built, run.freshAt, run.vertical = true, now, o.Vertical
+		}
+		target, a := run.p, ui.Animation{Duration: time.Millisecond, Ease: ui.Linear}
+		if run.moving {
+			target, a = run.p0+run.dir*marqueeTravel, ui.Animation{Duration: marqueeRunTime(run.speed), Ease: ui.Linear}
+		}
+		pose := ui.Pose{X: target}
+		if o.Vertical {
+			pose = ui.Pose{Y: target}
+		}
+		strip.AnimatePose(pose, a)
+		// Where the phase shows: content going backwards comes from the far
+		// copy, which repeats the first.
+		shown := -s.Offset
+		if o.Reverse && motion {
+			shown = s.Offset - span
+		}
+		at := shown - run.pose(now)
+		if o.Vertical {
+			strip.Translate(0, at)
+		} else {
+			strip.Translate(at, 0)
+		}
+		for i, copy := range copies {
 			if o.Vertical {
-				copy.Translate(0, at)
+				copy.Translate(0, float32(i+1)*period)
 			} else {
-				copy.Translate(at, 0)
+				copy.Translate(float32(i+1)*period, 0)
 			}
 		}
+		switch {
+		case run.moving:
+			// Build again before the strip leaves its copies, and at least
+			// once a second to see whether the marquee still shows.
+			wrap := time.Duration(float64((span-s.Offset)/speed) * float64(time.Second))
+			c.After(max(time.Millisecond, min(time.Second, wrap)))
+		case running:
+			c.After(time.Millisecond) // a new strip moves from the next frame
+		}
+		if !root.InView() {
+			// Nothing has measured the marquee before its first frame: once
+			// it paints, build again with its size. One out of view never
+			// paints, so it never asks.
+			services, ask := c.Services(), true
+			strip.Draw(func(_ *ui.Painter, r ui.Rect) {
+				if ask && r.W > 0 && r.H > 0 {
+					ask = false
+					services.Invalidate()
+				}
+			})
+		}
+		s.written = s.Offset
 		if valueOr(o.Overlay, true) {
 			// The edges fade into the background over a third of the marquee.
 			fade := func(key string, start bool) {

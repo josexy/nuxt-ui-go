@@ -387,15 +387,17 @@ When Repeat is unset, the content is repeated 4 times; an explicit `nui.Set(0)` 
 
 When ContentKey changes, scrolling restarts from the beginning. PauseOnHover defaults to false; when enabled, hovering pauses the motion. Focus, Paused, Active=false, a disabled parent, and reduced motion also stop it. Horizontal motion follows RTL. An offset set from outside is normalized to the current content cycle, so the position stays valid when the container shrinks; a non-finite offset resets to 0.
 
+The content moves in frames that only repaint, without building the view: Marquee builds again about once a second, to wrap the content back within its copies and to check whether it still shows. MarqueeState.Offset is therefore the phase as of the last build; read it in a build. Assistive technology also sees the copies where the last build placed them.
+
 Root styles the container, and Body styles each copy. Body.Gap changes only the spacing between items inside a copy; copies are still separated by Gap. The usual override order of theme, instance UI, and the final Style applies.
 
 **The content callback runs Repeat times on every build, so put only display elements in it.** Do not put business buttons, inputs, or side effects there. The underlying layer has no API for hiding a whole subtree from assistive technology, so verify how repeated content is read with the screen readers you target. To limit resource use, the website preview allows at most 100 copies; the Go API sets no such limit.
 
 ### Stopping animation when hidden
 
-Both components request the next frame through drawing and use no timer goroutines. By default, visibility is determined from the committed window rectangle. If your app clips content in custom ways, hides or minimizes it, or keeps a hidden container mounted, set Active=false at the same time, or stop building the component.
+Neither component builds the view on every frame, and neither uses timer goroutines: Carousel autoplay asks for one build per interval, and Marquee moves its content in frames that only repaint, building about once a second. Visibility is what showed in the previous frame within the window and the scroll containers and clips around the component, so content scrolled out of a ScrollArea, clipped away, or kept mounted in a hidden panel (Tabs or Collapsible with KeepMounted) stops by itself, as it does in a minimized or covered window. Set Active=false for content your app hides by other means, such as covering it with another element, or stop building the component.
 
-After unmounting, no more frames are requested and no paused time accumulates. If you keep hidden content mounted, your app should still manage Active explicitly.
+After unmounting, no more frames are requested and no paused time accumulates.
 
 ## Splitter, HeaderLayout, FooterLayout, and FooterColumns
 

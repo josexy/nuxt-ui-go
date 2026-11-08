@@ -10,7 +10,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
@@ -294,7 +293,11 @@ func (s *FileUploadState) Dispose() {
 	}
 }
 func (s *FileUploadState) Pending() bool { return s.pending.Loading }
-func (s *FileUploadState) load(job func(context.Context) ([]UploadFile, error)) {
+
+// load runs job on a worker. Its result waits in the mailbox for the next
+// build, which the worker asks for once it is there, rather than the window
+// polling for as long as a native dialog stays open.
+func (s *FileUploadState) load(services ui.Services, job func(context.Context) ([]UploadFile, error)) {
 	ctx, ticket := s.pending.Start(context.Background(), "")
 	s.Error = ""
 	mailbox := make(chan uploadResult, 1)
@@ -305,6 +308,7 @@ func (s *FileUploadState) load(job func(context.Context) ([]UploadFile, error)) 
 		case <-ctx.Done():
 			return
 		case mailbox <- uploadResult{ticket, files, err}:
+			services.Invalidate()
 		}
 	}()
 }
@@ -401,9 +405,7 @@ func FileUpload(c *ui.Context, t Theme, s *FileUploadState, o FileUploadOptions)
 		default:
 		}
 	}
-	if s.mailbox != nil {
-		c.After(20 * time.Millisecond)
-	}
+	services := c.Services()
 	choose := func() {
 		if o.Disabled || s.Pending() {
 			return
@@ -413,7 +415,7 @@ func FileUpload(c *ui.Context, t Theme, s *FileUploadState, o FileUploadOptions)
 			dialog := o.Dialog
 			job = func(ctx context.Context) ([]UploadFile, error) { return PickUploadFiles(ctx, dialog) }
 		}
-		s.load(job)
+		s.load(services, job)
 	}
 	opacity := float32(1)
 	if o.Disabled {
@@ -450,7 +452,7 @@ func FileUpload(c *ui.Context, t Theme, s *FileUploadState, o FileUploadOptions)
 		if dropzone {
 			if paths := zone.DroppedFiles(); len(paths) > 0 {
 				paths = slices.Clone(paths)
-				s.load(func(ctx context.Context) ([]UploadFile, error) { return InspectUploadFiles(ctx, paths) })
+				s.load(services, func(ctx context.Context) ([]UploadFile, error) { return InspectUploadFiles(ctx, paths) })
 			}
 		}
 		zone.Children(func() {

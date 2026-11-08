@@ -1,6 +1,7 @@
 package nui
 
 import (
+	"maps"
 	"slices"
 	"strings"
 
@@ -174,19 +175,53 @@ func commandListUI(styles Styles) Styles {
 	return out
 }
 
-func commandRows(c *ui.Context, t Theme, s *CommandPaletteState, o CommandPaletteOptions, title string, disabled bool, size Size, activate func(string) bool) {
+// commandRowsCache keeps the rows made from the palette's results: only data,
+// and callbacks that reach the state and the results' actions, never UI
+// values of a build. Its results keep the slice they were made from alive,
+// so a new slice of Results never takes its address.
+type commandRowsCache struct {
+	results               []CommandMatch
+	index                 *CommandIndex
+	parent, group         string
+	limit                 int
+	preserve, made        bool
+	styles                Styles
+	elevated, highlighted ui.Color
+	items                 []ListboxItem
+	matches               map[string]CommandMatch
+	listUI                Styles
+}
+
+func (r *commandRowsCache) current(results []CommandMatch, s *CommandPaletteState, group string, limit int, preserve bool, styles Styles, t Theme) bool {
+	return r.made && len(r.results) == len(results) && (len(results) == 0 || &r.results[0] == &results[0]) &&
+		r.index == s.index && r.parent == s.parent() && r.group == group && r.limit == limit && r.preserve == preserve &&
+		r.elevated == t.Elevated && r.highlighted == t.Highlighted && maps.Equal(r.styles, styles)
+}
+
+// commandItems returns the Listbox rows of the results, made again only when
+// the results, the level or the look they were made with change: a frame
+// with the palette open then neither groups nor copies them.
+func commandItems(t Theme, s *CommandPaletteState, o CommandPaletteOptions) *commandRowsCache {
 	limit := commandLimit(o.Limit)
-	ordered := groupCommands(s.Results.Items[:min(limit, len(s.Results.Items))], s.index, s.parent(), o.PreserveGroupOrder)
-	items := make([]ListboxItem, 0, len(ordered))
-	matches := map[string]CommandMatch{}
+	results := s.Results.Items
+	group := ""
+	if len(s.level) > 0 {
+		group = s.level[len(s.level)-1].label
+	}
 	styles := mergeStyles(Styles{Panel: {BorderWidth: Set(float32(0)), Radius: Set(float32(0))}}, t.components[ComponentCommandPalette].UI)
 	styles = mergeStyles(styles, o.UI)
-	var previous []string
+	r := &s.rows
+	if r.current(results, s, group, limit, o.PreserveGroupOrder, styles, t) {
+		return r
+	}
+	ordered := groupCommands(results[:min(limit, len(results))], s.index, s.parent(), o.PreserveGroupOrder)
+	*r = commandRowsCache{results: results, index: s.index, parent: s.parent(), group: group, limit: limit, preserve: o.PreserveGroupOrder, made: true,
+		styles: styles, elevated: t.Elevated, highlighted: t.Highlighted, items: make([]ListboxItem, 0, len(ordered)), matches: make(map[string]CommandMatch, len(ordered)), listUI: commandListUI(styles)}
 	for _, match := range ordered {
 		a := match.Action
 		item := ListboxItem{ID: a.ID, Label: commandLabel(a), Description: a.Description, Group: a.Group, Icon: a.Icon, Avatar: a.Avatar, Chip: a.Chip, Disabled: a.Disabled}
-		if len(s.level) > 0 && item.Group == "" {
-			item.Group = s.level[len(s.level)-1].label
+		if item.Group == "" {
+			item.Group = group
 		}
 		if a.Loading {
 			item.Icon, item.Avatar, item.Chip = nil, nil, nil
@@ -195,14 +230,20 @@ func commandRows(c *ui.Context, t Theme, s *CommandPaletteState, o CommandPalett
 		if a.Active {
 			nodeUI = mergeStyles(mergeStyles(Styles{Item: {Background: Set(t.Elevated), Foreground: Set(t.Highlighted)}}, styles), a.UI)
 		}
-		item.Options = &ListboxItemOptions{OnSelect: func(*ListboxEvent) { previous = slices.Clone(s.selected) }, Decoration: Decoration{UI: commandListUI(nodeUI), Style: func(slot Slot, e ui.Element) {
+		item.Options = &ListboxItemOptions{OnSelect: func(*ListboxEvent) { s.previous = slices.Clone(s.selected) }, Decoration: Decoration{UI: commandListUI(nodeUI), Style: func(slot Slot, e ui.Element) {
 			if a.Style != nil {
 				a.Style(commandSlot(slot), e)
 			}
 		}}}
-		items = append(items, item)
-		matches[a.ID] = match
+		r.items = append(r.items, item)
+		r.matches[a.ID] = match
 	}
+	return r
+}
+
+func commandRows(c *ui.Context, t Theme, s *CommandPaletteState, o CommandPaletteOptions, title string, disabled bool, size Size, activate func(string) bool) {
+	rows := commandItems(t, s, o)
+	items, matches := rows.items, rows.matches
 	pending := s.waiting || s.Results.Loading
 	if len(items) == 0 && !pending && s.Results.Error == "" && o.BuildEmpty != nil {
 		part := ui.Column(c.Key("empty")).FillWidth().MinWidth(0).Padding(t.spacing(24)).Role(ui.RoleStatus)
@@ -215,10 +256,13 @@ func commandRows(c *ui.Context, t Theme, s *CommandPaletteState, o CommandPalett
 		empty = emptyMessage(c, "noMatch", "noResults")
 	}
 	Listbox(c.Key("results"), t, &s.selected, &s.list, items, ListboxOptions{Label: namedMessage(c, "resultsNamed", title), Size: size, Height: 280, Disabled: disabled, Loading: pending, LoadingIcon: o.LoadingIcon, EmptyText: empty, Loop: o.Loop, HighlightOnHover: o.HighlightOnHover, SelectionBehavior: SelectionReplace, SelectedIcon: o.SelectedIcon, OnSelect: func(id string) {
+		// The row's OnSelect kept the choice from before this selection.
+		previous := s.previous
+		s.previous = nil
 		if !activate(id) {
 			s.selected = previous
 		}
-	}, OnHighlight: o.OnHighlight, Decoration: Decoration{UI: commandListUI(styles), Style: func(slot Slot, e ui.Element) {
+	}, OnHighlight: o.OnHighlight, Decoration: Decoration{UI: rows.listUI, Style: func(slot Slot, e ui.Element) {
 		if slot == Item {
 			e.AlignItems(ui.Start)
 		}

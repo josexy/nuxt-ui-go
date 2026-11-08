@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+Components that animate, wait, or are hidden no longer keep the window building the view.
+
+### Migration notes
+
+- Marquee moves its content in frames that only repaint and builds the view about once a second, instead of on every frame. MarqueeState.Offset is therefore the phase as of the last build; read it in a build. Content scrolled out of a ScrollArea, clipped away, or kept mounted in a hidden panel now stops the motion, as it does Carousel autoplay, so Active=false is only needed for content hidden by other means.
+
+### Performance
+
+- A Chart or horizontal Listbox inside a hidden KeepMounted panel no longer rebuilds the view continuously; it measures itself once it shows.
+- A toast's progress bar empties in frames that only repaint, so a toast no longer rebuilds the view at the display's rate for its whole lifetime.
+- FileUpload and CommandPalette no longer poll every 16–20 ms while a worker or the native file dialog is pending; the worker wakes the window when its result is ready.
+- An open CommandPalette no longer regroups and copies its results on every frame, and a Table with OnSelectionChange no longer copies the whole selection on every frame.
+- Skeleton's pulse repaints at 30 frames a second.
+
 ## v0.0.1 - 2026-11-07
 
 Visual and interaction parity with Nuxt UI v4.12.0.

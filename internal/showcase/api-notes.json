@@ -4660,8 +4660,8 @@
     "en": "Viewport height, default 180 DIP; must be finite. Nonpositive uses the default. Controls occupy additional space."
   },
   "CarouselOptions.Active": {
-    "zh": "默认 true，只门控自动播放；false 不禁用手动导航。窗口不活动、不可见或应用隐藏但保留构建时使用。不同于 Embla active。",
-    "en": "Defaults to true and only gates autoplay; false preserves manual navigation. Use for window inactivity or hidden-but-mounted views. Differs from Embla active."
+    "zh": "默认 true，只门控自动播放；false 不禁用手动导航。滚出或被裁剪出可见区域、保持挂载的隐藏面板已会停止自动播放；窗口不活动或应用以其他方式遮挡时使用。不同于 Embla active。",
+    "en": "Defaults to true and only gates autoplay; false preserves manual navigation. Scrolling or clipping out of view and hidden kept-mounted panels already stop autoplay; use it for window inactivity or other hiding, such as covering. Differs from Embla active."
   },
   "CarouselOptions.Autoplay": {
     "zh": "正值为翻页间隔；非正值关闭。悬停、组件内焦点、禁用、不可见、Paused 或减少动态效果时暂停；不会创建后台定时任务。",
@@ -4764,8 +4764,8 @@
     "en": "Container height; nonpositive values use 44 DIP and values must be finite. Allow enough space for vertical content."
   },
   "MarqueeOptions.Active": {
-    "zh": "未设置为 true；false 停止动画调度，手动暂停状态保留。外部隐藏或窗口不活动时由应用同步。",
-    "en": "Unset means true; false stops scheduling and retains manual pause state. Applications supply custom visibility/window activity."
+    "zh": "未设置为 true；false 停止动画调度，手动暂停状态保留。滚出或被裁剪出可见区域、保持挂载的隐藏面板已会停止运动；应用以其他方式遮挡或窗口不活动时由应用同步。",
+    "en": "Unset means true; false stops scheduling and retains manual pause state. Scrolling or clipping out of view and hidden kept-mounted panels already stop the motion; applications supply other hiding, such as covering, and window activity."
   },
   "MarqueeOptions.Overlay": {
     "zh": "默认 true，两端各三分之一渐隐到主题背景；显式 false 关闭。",

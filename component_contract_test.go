@@ -253,6 +253,7 @@ func TestTimelineAndMarquee(t *testing.T) {
 	}, 400, 100)
 	tt.Move(20, 20)
 	tt.Advance(time.Second)
+	tt.Frame() // Offset is the phase as of the last build.
 	if marquee.Offset == 0 {
 		t.Fatal("marquee default unexpectedly pauses on hover")
 	}

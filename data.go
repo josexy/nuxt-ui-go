@@ -2,7 +2,6 @@ package nui
 
 import (
 	"cmp"
-	"maps"
 	"slices"
 
 	"github.com/egoist/mygo/ui"
@@ -231,24 +230,33 @@ func Table[T any](c *ui.Context, t Theme, s *TableState[T], columns []TableColum
 			// Changed distinguishes a native input notice from external model edits.
 			// The mounted snapshot survives notice/rebuild passes without holding Parts.
 			if !table.Changed() || !events.initialized {
-				events.sort = slices.Clone(s.applied)
-				if o.OnSelectionChange != nil {
-					events.selection = tableSelection(&s.Selection)
+				if !events.initialized || !slices.Equal(events.sort, s.applied) {
+					events.sort = slices.Clone(s.applied)
+				}
+				// Every build compares, so that outside edits never count as the
+				// user's; an unchanged choice reads it without copying it.
+				if o.OnSelectionChange != nil && (!events.initialized || tableSelectionDiffers(events.selection, &s.Selection)) {
+					events.selection = snapshotTableSelection(events.selection, &s.Selection)
 				}
 				events.initialized = true
 			}
 			table.OnChange(func() {
-				previousSort, previousSelection := events.sort, events.selection
+				previousSort := events.sort
 				s.sort(columns, o.ManualSorting)
 				events.sort = slices.Clone(s.applied)
+				selectionChanged := false
 				if o.OnSelectionChange != nil {
-					events.selection = tableSelection(&s.Selection)
+					selectionChanged = tableSelectionDiffers(events.selection, &s.Selection)
+					if selectionChanged {
+						events.selection = snapshotTableSelection(events.selection, &s.Selection)
+					}
 				}
 				if o.OnSortChange != nil && !slices.Equal(previousSort, events.sort) {
 					o.OnSortChange(slices.Clone(events.sort))
 				}
-				if o.OnSelectionChange != nil && !maps.Equal(previousSelection, events.selection) {
-					ids := slices.Sorted(maps.Keys(events.selection))
+				if selectionChanged {
+					ids := slices.Clone(events.selection)
+					slices.Sort(ids)
 					o.OnSelectionChange(ids)
 				}
 				if o.OnChange != nil {

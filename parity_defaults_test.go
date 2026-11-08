@@ -191,6 +191,7 @@ func TestMarqueeDefaults(t *testing.T) {
 	}, 500, 100)
 	tt.Frame() // Geometry is committed after the first frame.
 	tt.Advance(time.Second)
+	tt.Frame() // Offset is the phase as of the last build.
 	if s.Offset == 0 {
 		t.Fatal("short content does not scroll")
 	}

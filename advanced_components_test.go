@@ -691,6 +691,7 @@ func TestMarqueeStops(t *testing.T) {
 	tt.Move(390, 190)
 	tt.Frame()
 	tt.Advance(time.Second)
+	tt.Frame() // Offset is the phase as of the last build.
 	if s.Offset == 0 {
 		t.Fatal("marquee did not advance")
 	}

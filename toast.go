@@ -294,13 +294,19 @@ func ToastViewport(c *ui.Context, t Theme, o ToastViewportOptions) ui.Element {
 						}
 						opts.UI = appearance.ProgressOptions.UI
 					}
+					// The toasts' time stops as MyGo's ToastViewportBase stops it. The
+					// bar empties in frames that only paint; reduced motion steps
+					// it four times a second instead of moving it smoothly.
+					stopped := viewport.Hovered() || viewport.FocusWithin() && c.WindowActive()
+					opts.countdown = &progressCountdown{left: left, total: total, at: c.Now(), running: left > 0 && !stopped}
+					if !inner.motion(c) {
+						opts.countdown.fps = 4
+					}
 					Progress(c.Key("progress"), inner, 100*float64(left)/float64(total), opts).Absolute().Left(0).Right(0).Bottom(0)
-					if left > 0 && !viewport.Hovered() && !viewport.FocusWithin() {
-						tick := max(50*time.Millisecond, min(time.Second, total/100))
-						if !inner.motion(c) {
-							tick = max(tick, 250*time.Millisecond)
-						}
-						c.After(tick)
+					if opts.countdown.running {
+						// A build closes the toast on time, and keeps the bar's
+						// accessible value current once a second.
+						c.After(min(left, time.Second))
 					}
 				}
 			})
