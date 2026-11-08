@@ -90,25 +90,26 @@ func (d Demo) Source(input Config) (string, string, error) {
 			}
 		}
 	}
-	state := d.State
+	var state strings.Builder
+	state.WriteString(d.State)
 	configuredSetup, err := d.configuredSetup(cfg, false, values)
 	if err != nil {
 		return "", "", err
 	}
-	setup := ""
+	var setup strings.Builder
 	for _, path := range sortedPointerKeys(values.pointers) {
 		p := values.pointers[path]
-		state += "\n" + p.name + " " + p.typ
-		setup += "\ns." + p.name + " = " + p.init
+		state.WriteString("\n" + p.name + " " + p.typ)
+		setup.WriteString("\ns." + p.name + " = " + p.init)
 	}
-	setup += "\n" + configuredSetup
+	setup.WriteString("\n" + configuredSetup)
 	windowAssignment := ""
 	if values.window {
-		state += "\nWindow *mygo.Window"
+		state.WriteString("\nWindow *mygo.Window")
 		windowAssignment = "s.Window = "
 	}
 	if values.focus {
-		state += "\nReturnFocus ui.Handle"
+		state.WriteString("\nReturnFocus ui.Handle")
 		body = "nui.Button(c.Key(\"preview-return-focus\"), t, \"Focus target\", nui.ButtonOptions{Variant: nui.Outline}).AlignSelf(ui.Start).Bind(&s.ReturnFocus)\n" + body
 	}
 	formattedBody, err := format.Source([]byte(body))
@@ -117,7 +118,7 @@ func (d Demo) Source(input Config) (string, string, error) {
 	}
 	body = string(formattedBody)
 	if cleanup := d.disposeBody(); cleanup != "" {
-		setup += "\ndefer " + cleanup
+		setup.WriteString("\ndefer " + cleanup)
 	}
 	mode := map[string]string{"light": "LightMode", "dark": "DarkMode", "system": "SystemMode"}[cfg.Mode]
 	primaryPalette := fmt.Sprintf("palettes.Primary, _ = nui.PaletteByName(%q)", cfg.Primary)
@@ -149,13 +150,13 @@ func main() {
  })
  if err := mygo.App.Run(); err != nil { log.Fatal(err) }
 }
-`, state, body, setup, primaryPalette, strconv.Quote(cfg.Neutral), mode, primaryTheme, primaryTheme, strconv.Quote(cfg.Locale), windowAssignment, strconv.Quote(d.Name+" · NuxtUI Go"), appConfig)
+`, state.String(), body, setup.String(), primaryPalette, strconv.Quote(cfg.Neutral), mode, primaryTheme, primaryTheme, strconv.Quote(cfg.Locale), windowAssignment, strconv.Quote(d.Name+" · NuxtUI Go"), appConfig)
 	full, err := FormatSource("main", code)
 	if err != nil {
 		return "", "", err
 	}
 	fragment := "// Inside a view; c is *ui.Context, t is nui.Theme.\n"
-	if state != "" {
+	if state.String() != "" {
 		fragment += "// Keep s (example state) outside the view. See the complete example.\n"
 	}
 	return fragment + body, full, nil

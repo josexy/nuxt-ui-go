@@ -20,7 +20,7 @@ func addDateInputContract(p *componentPage) {
 			nui.Checkbox(c, t, &blocked, nui.CheckboxOptions{Label: "Unavailable date 20"})
 			nui.Checkbox(c, t, &styled, nui.CheckboxOptions{Label: "Custom date separator"})
 		})
-		o := nui.InputDateOptions{InputOptions: nui.InputOptions{Label: "Contract date", Color: nui.Neutral, ReadOnly: readonly, Clearable: true, Loading: loading, LoadingTrailing: true, Avatar: &nui.AvatarOptions{Text: "Ada"}, OnClear: func() { clears++ }}, ShowCalendar: true,
+		o := nui.InputDateOptions{Label: "Contract date", Color: nui.Neutral, ReadOnly: readonly, Clearable: true, Loading: loading, LoadingTrailing: true, Avatar: &nui.AvatarOptions{Text: "Ada"}, OnClear: func() { clears++ }, ShowCalendar: true,
 			Calendar: nui.CalendarOptions{Today: nui.Set(nui.Date{Year: 2024, Month: 2, Day: 15}), Min: nui.Set(nui.Date{Year: 2024, Month: 2, Day: 1}), Max: nui.Set(nui.Date{Year: 2024, Month: 3, Day: 31})},
 			Step:     nui.DateStep{Day: 2}, OnValueChange: func(nui.Optional[nui.Date]) { changes++ }, OnRangeChange: func(nui.DateSelection) { rangeChanges++ }}
 		if blocked {
@@ -54,7 +54,7 @@ func addTimeInputContract(p *componentPage) {
 			nui.Checkbox(c, t, &limited, nui.CheckboxOptions{Label: "Limit contract time to working hours"})
 			nui.Checkbox(c, t, &loading, nui.CheckboxOptions{Label: "Trailing time loader"})
 		})
-		o := nui.InputTimeOptions{InputOptions: nui.InputOptions{Label: "Contract time", Color: nui.Neutral, ReadOnly: readonly, Clearable: true, Avatar: &nui.AvatarOptions{Text: "Ada"}, Loading: loading, LoadingTrailing: true, OnClear: func() { clears++ }}, TwelveHour: nui.Set(twelve), Seconds: seconds, Step: nui.TimeStep{Minute: 5}, StepSnapping: snap, OnValueChange: func(nui.Optional[nui.ClockTime]) { changes++ }}
+		o := nui.InputTimeOptions{Label: "Contract time", Color: nui.Neutral, ReadOnly: readonly, Clearable: true, Avatar: &nui.AvatarOptions{Text: "Ada"}, Loading: loading, LoadingTrailing: true, OnClear: func() { clears++ }, TwelveHour: nui.Set(twelve), Seconds: seconds, Step: nui.TimeStep{Minute: 5}, StepSnapping: snap, OnValueChange: func(nui.Optional[nui.ClockTime]) { changes++ }}
 		if hourOnly {
 			o.Granularity = nui.TimeHour
 		}

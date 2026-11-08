@@ -46,11 +46,11 @@ func TestUserChipFollowsAvatarAndSize(t *testing.T) {
 	showAvatar := true
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		opts := nui.UserOptions{Name: "Member", Size: nui.XS, Chip: &nui.ChipOptions{Text: "9", Size: nui.XL, Inset: false, Decoration: nui.Decoration{Style: func(slot nui.Slot, e ui.Element) {
+		opts := nui.UserOptions{Name: "Member", Size: nui.XS, Chip: &nui.ChipOptions{Text: "9", Size: nui.XL, Inset: false, Style: func(slot nui.Slot, e ui.Element) {
 			if slot == nui.Indicator {
 				e.Label("User marker")
 			}
-		}}}}
+		}}}
 		if showAvatar {
 			opts.Avatar = nui.AvatarOptions{Text: "AU", Alt: "Member avatar", Size: nui.XL}
 		}

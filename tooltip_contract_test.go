@@ -58,7 +58,7 @@ func TestTooltipKeysAndPanelGap(t *testing.T) {
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		a := nui.Button(c, th, "Anchor", nui.ButtonOptions{}).Absolute().Left(150).Top(100)
-		nui.Tooltip(c, th, a, "Save", nui.TooltipOptions{Open: &open, Kbds: []string{"A", "B"}, Decoration: nui.Decoration{UI: nui.Styles{nui.Panel: {Gap: nui.Set(gap)}}}})
+		nui.Tooltip(c, th, a, "Save", nui.TooltipOptions{Open: &open, Kbds: []string{"A", "B"}, UI: nui.Styles{nui.Panel: {Gap: nui.Set(gap)}}})
 	}, 500, 300)
 	tt.Advance(time.Second)
 	a, b := bounds(t, tt, "A"), bounds(t, tt, "B")

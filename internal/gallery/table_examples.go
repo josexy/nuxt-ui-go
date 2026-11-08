@@ -44,7 +44,7 @@ func tableParityExample() func(*ui.Context, nui.Theme) {
 		ui.Column(c.Key("direction")).Direction(direction).Children(func() {
 			nui.Table(c.Key("table"), t, &state, []nui.TableColumn[string]{
 				{ID: "group", Title: "Group", Width: 160, MinWidth: 100, Value: func(v string) string { return v[:1] }, Compare: func(a, b string) int { return strings.Compare(a[:1], b[:1]) }},
-				{ID: "id", Title: "Record ID", Width: 180, MinWidth: 100, Value: func(v string) string { return v }, Compare: strings.Compare, Decoration: nui.Decoration{UI: nui.Styles{nui.Label: {Weight: nui.Set(600)}}}},
+				{ID: "id", Title: "Record ID", Width: 180, MinWidth: 100, Value: func(v string) string { return v }, Compare: strings.Compare, UI: nui.Styles{nui.Label: {Weight: nui.Set(600)}}},
 			}, nui.TableOptions{Label: "Contract table", Caption: "Four records in input order B2, A2, B1, A1", Height: 220, ManualSorting: manual, Loading: loading, LoadingColor: nui.Info, LoadingAnimation: animation, Disabled: disabled,
 				BuildCaption: func(c *ui.Context, t nui.Theme) { ui.Text(c, "Project records").TextColor(t.Highlighted) },
 				BuildEmpty:   func(c *ui.Context, _ nui.Theme) { ui.Text(c, "No contract records") },

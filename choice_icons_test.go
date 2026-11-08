@@ -292,7 +292,7 @@ func TestCheckboxTriCustomIconsKeepStateAndEvents(t *testing.T) {
 		th := nui.App(c, nui.AppConfig{})
 		ui.Column(c).Padding(20).Children(func() {
 			nui.CheckboxTri(c.Key("tri"), th, &value, nui.CheckboxTriOptions{
-				CheckboxOptions:   nui.CheckboxOptions{Label: "Select all", CheckedIcon: lucide.Heart(), Indicator: placement, Disabled: disabled, OnChange: func(bool) { changes++ }},
+				Label: "Select all", CheckedIcon: lucide.Heart(), Indicator: placement, Disabled: disabled, OnChange: func(bool) { changes++ },
 				IndeterminateIcon: custom,
 				OnStateChange:     func(nui.CheckState) { states++ },
 			}).Width(220)

@@ -200,12 +200,7 @@ func navigationMenu(c *ui.Context, t Theme, active *string, s *NavigationState, 
 		if it.ID == *active || it.Active {
 			return true
 		}
-		for _, child := range it.Children {
-			if containsActive(child) {
-				return true
-			}
-		}
-		return false
+		return slices.ContainsFunc(it.Children, containsActive)
 	}
 	var focusedChild func([]NavigationItem) bool
 	focusedChild = func(items []NavigationItem) bool {

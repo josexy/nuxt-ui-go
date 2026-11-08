@@ -36,7 +36,7 @@ func TestRangeSliderUsesIndicatorAndThumbStyles(t *testing.T) {
 	fill, thumb := ui.RGB(255, 0, 255), ui.RGB(0, 255, 0)
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
-		nui.RangeSlider(c, th, &low, &high, nui.RangeSliderOptions{Label: "Range", Decoration: nui.Decoration{UI: nui.Styles{nui.Indicator: {Background: nui.Set(fill)}, nui.Thumb: {Background: nui.Set(thumb)}}}}).Width(300)
+		nui.RangeSlider(c, th, &low, &high, nui.RangeSliderOptions{Label: "Range", UI: nui.Styles{nui.Indicator: {Background: nui.Set(fill)}, nui.Thumb: {Background: nui.Set(thumb)}}}).Width(300)
 	}, 360, 90)
 	r := bounds(t, tt, "Range")
 	if got := tt.Image().RGBAAt(int(r.X+r.W/2), int(r.Y+r.H/2)); got != rgba(fill) {
@@ -129,7 +129,7 @@ func TestSliderTooltipFollowsTrackPadding(t *testing.T) {
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		ui.Column(c).Padding(60).Children(func() {
-			nui.Slider(c, th, &value, nui.SliderOptions{Label: "Amount", Tooltip: true, Decoration: nui.Decoration{UI: nui.Styles{nui.Root: {PaddingX: nui.Set(float32(64))}}}}).Width(300)
+			nui.Slider(c, th, &value, nui.SliderOptions{Label: "Amount", Tooltip: true, UI: nui.Styles{nui.Root: {PaddingX: nui.Set(float32(64))}}}).Width(300)
 		})
 	}, 440, 180)
 	tt.Key(0, ui.KeyTab)

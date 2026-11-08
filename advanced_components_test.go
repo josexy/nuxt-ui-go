@@ -810,8 +810,8 @@ func TestNavigationSplitterAndLayouts(t *testing.T) {
 				}
 				p := ui.NewTester(func(c *ui.Context) {
 					th := nui.App(c, nui.AppConfig{})
-					nui.Splitter(c.Key("outer"), th, &outer, nui.SplitterOptions{Percent: true, Vertical: vert, Decoration: nui.Decoration{Style: style("Outer line")}}, nil, func() {
-						nui.Splitter(c.Key("inner"), th, &inner, nui.SplitterOptions{Percent: true, Vertical: !vert, Decoration: nui.Decoration{Style: style("Inner line")}}, nil, nil).Fill()
+					nui.Splitter(c.Key("outer"), th, &outer, nui.SplitterOptions{Percent: true, Vertical: vert, Style: style("Outer line")}, nil, func() {
+						nui.Splitter(c.Key("inner"), th, &inner, nui.SplitterOptions{Percent: true, Vertical: !vert, Style: style("Inner line")}, nil, nil).Fill()
 					}).Fill()
 				}, 500, 300)
 				if rtl {

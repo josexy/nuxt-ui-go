@@ -101,14 +101,13 @@ func TestEmptyLoadingColorUsesLeadingUI(t *testing.T) {
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
 		th.Motion.Reduce = true
-		nui.Empty(c, th, nui.EmptyOptions{Loading: true, LoadingIcon: lucide.Check(), Decoration: nui.Decoration{
+		nui.Empty(c, th, nui.EmptyOptions{Loading: true, LoadingIcon: lucide.Check(),
 			UI: nui.Styles{nui.Leading: {Foreground: nui.Set(color)}},
 			Style: func(slot nui.Slot, e ui.Element) {
 				if slot == nui.Leading {
 					e.Label("Loading glyph")
 				}
-			},
-		}})
+			}})
 	}, 240, 180)
 	if countColor(tt.Image(), bounds(t, tt, "Loading glyph"), rgba(color)) == 0 {
 		t.Fatal("loading glyph ignored Leading.Foreground")

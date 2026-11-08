@@ -104,7 +104,7 @@ func dataPage(id string) *componentPage {
 				nui.Switch(c.Key("focus"), t, &focus, nui.SwitchOptions{Label: "Focus number after stepping"})
 				nui.Switch(c.Key("icons"), t, &customIcons, nui.SwitchOptions{Label: "Custom number control icons"})
 			})
-			o := nui.InputNumberOptions{InputOptions: nui.InputOptions{Label: "Contract number"}, Min: nui.Set(0.0), Max: nui.Set(100.0), StartingValue: nui.Set(40.0), StepSnapping: nui.Set(snapping), FocusOnChange: nui.Set(focus), Increment: nui.Set(increment), OnValueChange: func(nui.Optional[float64]) { contractChanges++ }}
+			o := nui.InputNumberOptions{Label: "Contract number", Min: nui.Set(0.0), Max: nui.Set(100.0), StartingValue: nui.Set(40.0), StepSnapping: nui.Set(snapping), FocusOnChange: nui.Set(focus), Increment: nui.Set(increment), OnValueChange: func(nui.Optional[float64]) { contractChanges++ }}
 			if customIcons {
 				o.IncrementIcon = lucide.ArrowUp()
 				o.DecrementIcon = lucide.ArrowDown()
@@ -135,13 +135,13 @@ func dataPage(id string) *componentPage {
 				if kind == "bounded" {
 					nui.Select(c, t, &direction, []nui.Option[nui.Orientation]{{Value: nui.Horizontal, Label: "horizontal"}, {Value: nui.Vertical, Label: "vertical"}}, nui.SelectOptions{Label: "Number orientation"})
 				}
-				o := nui.InputNumberOptions{InputOptions: nui.InputOptions{Label: kind + " seats", ReadOnly: kind == "states"}, Orientation: direction, Min: nui.Set(0.0), Max: nui.Set(10.0), Step: .5, OnValueChange: func(nui.Optional[float64]) { changes++ }}
+				o := nui.InputNumberOptions{Label: kind + " seats", ReadOnly: kind == "states", Orientation: direction, Min: nui.Set(0.0), Max: nui.Set(10.0), Step: .5, OnValueChange: func(nui.Optional[float64]) { changes++ }}
 				if kind == "vertical" {
 					o.Orientation = nui.Vertical
 				}
 				nui.InputNumber(c, t, &value, state, o)
 				if kind == "states" {
-					nui.InputNumber(c, t, &disabledValue, disabledState, nui.InputNumberOptions{InputOptions: nui.InputOptions{Label: "Disabled seats", Disabled: true, Invalid: true}})
+					nui.InputNumber(c, t, &disabledValue, disabledState, nui.InputNumberOptions{Label: "Disabled seats", Disabled: true, Invalid: true})
 				}
 				ui.Textf(c, "Value: %v · %d changes", value, changes)
 			})
@@ -155,7 +155,7 @@ func dataPage(id string) *componentPage {
 				nui.Switch(c.Key("display"), t, &uppercase, nui.SwitchOptions{Label: "Uppercase tag labels"})
 				nui.Switch(c.Key("readonly"), t, &readOnly, nui.SwitchOptions{Label: "Read-only contract tags"})
 			})
-			o := nui.InputTagsOptions{InputOptions: nui.InputOptions{Label: "Contract tags", Placeholder: "Add a tag", ReadOnly: readOnly}, DeleteIcon: lucide.Minus(), MaxTags: 4, AddOnPaste: nui.Set(true), AddOnTab: true, AddOnBlur: true, ConvertValue: strings.ToLower, OnTagsChange: func([]string) { changes++ }, OnAddTag: func(string) { added++ }, OnRemoveTag: func(string) { removed++ }, OnInvalid: func(string) { rejected++ }}
+			o := nui.InputTagsOptions{Label: "Contract tags", Placeholder: "Add a tag", ReadOnly: readOnly, DeleteIcon: lucide.Minus(), MaxTags: 4, AddOnPaste: nui.Set(true), AddOnTab: true, AddOnBlur: true, ConvertValue: strings.ToLower, OnTagsChange: func([]string) { changes++ }, OnAddTag: func(string) { added++ }, OnRemoveTag: func(string) { removed++ }, OnInvalid: func(string) { rejected++ }}
 			if uppercase {
 				o.DisplayValue = strings.ToUpper
 			}
@@ -183,9 +183,9 @@ func dataPage(id string) *componentPage {
 				"states":   "The first tag list is read-only; the second is disabled. Existing tags stay visible, and neither list allows adding or removing tags.",
 			}[kind]
 			add(kind, "Tags · "+kind, description, func(c *ui.Context, t nui.Theme) {
-				nui.InputTags(c, t, &tags, state, nui.InputTagsOptions{InputOptions: nui.InputOptions{Label: kind + " project tags", ReadOnly: kind == "states"}, Separators: ",;", MaxTags: 6, MaxLength: 12, AddOnPaste: nui.Set(true), Duplicate: kind == "paste", AddOnTab: kind == "paste", AddOnBlur: kind == "paste", OnTagsChange: func([]string) { changes++ }})
+				nui.InputTags(c, t, &tags, state, nui.InputTagsOptions{Label: kind + " project tags", ReadOnly: kind == "states", Separators: ",;", MaxTags: 6, MaxLength: 12, AddOnPaste: nui.Set(true), Duplicate: kind == "paste", AddOnTab: kind == "paste", AddOnBlur: kind == "paste", OnTagsChange: func([]string) { changes++ }})
 				if kind == "states" {
-					nui.InputTags(c, t, &disabledTags, disabledState, nui.InputTagsOptions{InputOptions: nui.InputOptions{Label: "Disabled tags", Disabled: true}})
+					nui.InputTags(c, t, &disabledTags, disabledState, nui.InputTagsOptions{Label: "Disabled tags", Disabled: true})
 				}
 				ui.Textf(c, "Tags: %v · %d changes", tags, changes)
 			})
@@ -332,9 +332,9 @@ func dataPage(id string) *componentPage {
 				} else {
 					nui.Switch(c, t, &search, nui.SwitchOptions{Label: kind + " search input"})
 					nui.Switch(c, t, &reset, nui.SwitchOptions{Label: kind + " reset search"})
-					nui.SelectMenu(c, t, &chosen, menu, items, nui.SelectMenuOptions{ListboxOptions: nui.ListboxOptions{Label: kind + " members menu", Multiple: kind == "multiple", OnChange: func([]string) { changes++ }}, Placeholder: "Choose members", SearchPlaceholder: "Search people", SearchInput: nui.Set(search), ResetSearchTermOnBlur: nui.Set(reset), ResetSearchTermOnSelect: nui.Set(reset), Clearable: true, Loading: kind == "states"})
+					nui.SelectMenu(c, t, &chosen, menu, items, nui.SelectMenuOptions{Label: kind + " members menu", Multiple: kind == "multiple", OnChange: func([]string) { changes++ }, Placeholder: "Choose members", SearchPlaceholder: "Search people", SearchInput: nui.Set(search), ResetSearchTermOnBlur: nui.Set(reset), ResetSearchTermOnSelect: nui.Set(reset), Clearable: true, Loading: kind == "states"})
 					if kind == "states" {
-						nui.SelectMenu(c, t, &disabled, disabledState, nil, nui.SelectMenuOptions{ListboxOptions: nui.ListboxOptions{Label: "Disabled member menu", Disabled: true}, Placeholder: "No available members"})
+						nui.SelectMenu(c, t, &disabled, disabledState, nil, nui.SelectMenuOptions{Label: "Disabled member menu", Disabled: true, Placeholder: "No available members"})
 					}
 				}
 				ui.Textf(c, "Selected IDs: %v · %d changes", chosen, changes)
@@ -384,7 +384,7 @@ func dataPage(id string) *componentPage {
 				value = disabledValue
 			}
 			add(kind, "Date · "+kind, description, func(c *ui.Context, t nui.Theme) {
-				o := nui.InputDateOptions{InputOptions: nui.InputOptions{Label: kind + " release date", ReadOnly: kind == "states"}, ShowCalendar: kind != "segments"}
+				o := nui.InputDateOptions{Label: kind + " release date", ReadOnly: kind == "states", ShowCalendar: kind != "segments"}
 				if kind == "calendar" {
 					o.Calendar.Min = nui.Set(nui.Date{Year: 2026, Month: 11, Day: 1})
 					o.Calendar.Max = nui.Set(nui.Date{Year: 2026, Month: 11, Day: 30})
@@ -397,7 +397,7 @@ func dataPage(id string) *componentPage {
 					ui.Textf(c, "Date: %v", value)
 				}
 				if kind == "states" {
-					nui.InputDate(c, t, &disabledValue, disabledState, nui.InputDateOptions{InputOptions: nui.InputOptions{Label: "Disabled release date", Disabled: true}})
+					nui.InputDate(c, t, &disabledValue, disabledState, nui.InputDateOptions{Label: "Disabled release date", Disabled: true})
 				}
 			})
 		}
@@ -417,9 +417,9 @@ func dataPage(id string) *componentPage {
 				description = "The first populated time is read-only; the second is disabled. Both retain 09:30 when typing or using arrow keys."
 			}
 			add(kind, "Time · "+kind, description, func(c *ui.Context, t nui.Theme) {
-				nui.InputTime(c, t, &value, state, nui.InputTimeOptions{InputOptions: nui.InputOptions{Label: kind + " reminder", ReadOnly: kind == "states"}, TwelveHour: nui.Set(kind == "12-hour"), Seconds: kind == "12-hour"})
+				nui.InputTime(c, t, &value, state, nui.InputTimeOptions{Label: kind + " reminder", ReadOnly: kind == "states", TwelveHour: nui.Set(kind == "12-hour"), Seconds: kind == "12-hour"})
 				if kind == "states" {
-					nui.InputTime(c, t, &locked, lockedState, nui.InputTimeOptions{InputOptions: nui.InputOptions{Label: "Disabled reminder", Disabled: true}})
+					nui.InputTime(c, t, &locked, lockedState, nui.InputTimeOptions{Label: "Disabled reminder", Disabled: true})
 				}
 				ui.Textf(c, "Time: %v", value)
 			})

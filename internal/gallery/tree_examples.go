@@ -18,7 +18,7 @@ func addTreeContract(p *componentPage) {
 	result := "Ready"
 	nodes := []nui.TreeNode{
 		{ID: "project", Label: "Contract project", DefaultExpanded: true, Children: []nui.TreeNode{
-			{ID: "alpha", Label: "Contract Alpha", Icon: lucide.FileText(), Decoration: nui.Decoration{UI: nui.Styles{nui.Label: {Weight: nui.Set(600)}}}},
+			{ID: "alpha", Label: "Contract Alpha", Icon: lucide.FileText(), UI: nui.Styles{nui.Label: {Weight: nui.Set(600)}}},
 			{ID: "beta", Label: "Contract Beta", TrailingIcon: lucide.Star()},
 			{ID: "locked", Label: "Contract locked", Disabled: true},
 		}},

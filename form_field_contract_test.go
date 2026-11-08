@@ -42,7 +42,7 @@ func TestFormFieldHeaderAndBodyStyles(t *testing.T) {
 	value := "Value"
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.FormField(c, th, nui.FormFieldOptions{Label: "Name", Decoration: nui.Decoration{UI: nui.Styles{nui.Header: {PaddingX: nui.Set(float32(12))}, nui.Body: {PaddingX: nui.Set(float32(16))}}}}, func(ft nui.Theme) {
+		nui.FormField(c, th, nui.FormFieldOptions{Label: "Name", UI: nui.Styles{nui.Header: {PaddingX: nui.Set(float32(12))}, nui.Body: {PaddingX: nui.Set(float32(16))}}}, func(ft nui.Theme) {
 			nui.Input(c, ft, &value, nui.InputOptions{Label: "Editor"}).Width(200).Label("Editor shell")
 		}).Width(300).Label("Field root")
 	}, 360, 120)

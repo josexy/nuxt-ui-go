@@ -263,11 +263,11 @@ func TestSidebarControlledSlotsAndZeroWidth(t *testing.T) {
 		actions := 0
 		p := ui.NewTester(func(c *ui.Context) {
 			th := nui.App(c, nui.AppConfig{})
-			o := nui.SidebarOptions{Toggle: nui.Set(false), Decoration: nui.Decoration{Style: func(slot nui.Slot, e ui.Element) {
+			o := nui.SidebarOptions{Toggle: nui.Set(false), Style: func(slot nui.Slot, e ui.Element) {
 				if slot == nui.Root {
 					e.Label("Sidebar frame")
 				}
-			}}}
+			}}
 			if showHeader {
 				o.Description = "Workspace tools"
 				o.Actions = func(c *ui.Context, t nui.Theme, scope nui.SidebarScope) {

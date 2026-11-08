@@ -30,7 +30,7 @@ func addNavigationContract(p *componentPage) {
 			{ID: "unavailable", Label: "Unavailable destination", Disabled: true},
 		}},
 		{ID: "help-label", Label: "Help section", LabelOnly: true},
-		{ID: "help", Label: "Help center", Icon: lucide.Info(), Tooltip: nui.Set(true), Children: []nui.NavigationItem{{ID: "quickstart", Label: "Quickstart guide"}, {ID: "releases", Label: "Release notes"}}, Decoration: nui.Decoration{UI: nui.Styles{nui.ItemLabelSlot: {Weight: nui.Set(600)}}}},
+		{ID: "help", Label: "Help center", Icon: lucide.Info(), Tooltip: nui.Set(true), Children: []nui.NavigationItem{{ID: "quickstart", Label: "Quickstart guide"}, {ID: "releases", Label: "Release notes"}}, UI: nui.Styles{nui.ItemLabelSlot: {Weight: nui.Set(600)}}},
 	}
 	p.Scenes = append(p.Scenes, scene("contract", "Navigation state and item content", "Compare horizontal, expanded and compact navigation. Protected destination cancels navigation. Single mode limits expanded siblings; collapsible controls whether the last open branch can close. Compact switching preserves expansion and returns focus from hidden children.", func(c *ui.Context, t nui.Theme) {
 		ui.Row(c).Wrap().Gap(10).Children(func() {

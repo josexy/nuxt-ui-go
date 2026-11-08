@@ -21,11 +21,11 @@ func TestSelectNeutralFocusUsesInvertedBackground(t *testing.T) {
 				th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
 				th.InvertedBackground, th.HighContrast = accent, true
 				ui.Column(c).Padding(16).Children(func() {
-					opts := nui.SelectOptions{Label: "Choice", Color: nui.Neutral, Decoration: nui.Decoration{Style: func(part nui.Slot, e ui.Element) {
+					opts := nui.SelectOptions{Label: "Choice", Color: nui.Neutral, Style: func(part nui.Slot, e ui.Element) {
 						if part == nui.Root {
 							e.Label("Select trigger")
 						}
-					}}}
+					}}
 					items := []nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}}
 					if multiple {
 						nui.SelectMultiple(c, th, &values, items, opts).Width(240)
@@ -48,11 +48,11 @@ func TestSelectAccessoriesControlledOpenAndLoading(t *testing.T) {
 		t.Run(fmt.Sprint(multiple), func(t *testing.T) {
 			value, values, changes, open := "a", []string{"a"}, 0, false
 			avatar := nui.AvatarOptions{Alt: "Choice avatar", Text: "AL"}
-			o := nui.SelectOptions{Label: "Choice", Avatar: &avatar, Open: &open, OnChange: func() { changes++ }, Decoration: nui.Decoration{UI: nui.Styles{nui.Trailing: {Foreground: nui.Set(ui.RGB(255, 0, 255))}}, Style: func(part nui.Slot, e ui.Element) {
+			o := nui.SelectOptions{Label: "Choice", Avatar: &avatar, Open: &open, OnChange: func() { changes++ }, UI: nui.Styles{nui.Trailing: {Foreground: nui.Set(ui.RGB(255, 0, 255))}}, Style: func(part nui.Slot, e ui.Element) {
 				if part == nui.Trailing {
 					e.Label("Choice trailing")
 				}
-			}}}
+			}}
 			items := []nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "blocked", Label: "Blocked", Disabled: true}, {Value: "b", Label: "Beta"}}
 			tt := ui.NewTester(func(c *ui.Context) {
 				th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
@@ -132,7 +132,7 @@ func TestSelectHighlightRTLAndSelectedIcon(t *testing.T) {
 					th.Motion.Reduce = true
 					th.InvertedBackground = accent
 					ui.Column(c).Padding(16).Children(func() {
-						o := nui.SelectOptions{Label: "Choice", Color: nui.Neutral, Variant: nui.None, Highlight: true, Open: &open, Leading: lucide.Star(), Trailing: lucide.Plus(), SelectedIcon: marker, Decoration: nui.Decoration{UI: nui.Styles{nui.Item: {Foreground: nui.Set(ui.RGB(255, 0, 255))}}, Style: func(p nui.Slot, e ui.Element) {
+						o := nui.SelectOptions{Label: "Choice", Color: nui.Neutral, Variant: nui.None, Highlight: true, Open: &open, Leading: lucide.Star(), Trailing: lucide.Plus(), SelectedIcon: marker, UI: nui.Styles{nui.Item: {Foreground: nui.Set(ui.RGB(255, 0, 255))}}, Style: func(p nui.Slot, e ui.Element) {
 							if p == nui.Leading {
 								e.Label("Leading icon")
 							}
@@ -142,7 +142,7 @@ func TestSelectHighlightRTLAndSelectedIcon(t *testing.T) {
 							if p == nui.Item {
 								e.Label("Popup row")
 							}
-						}}}
+						}}
 						items := []nui.Option[string]{{Value: "a", Label: "Alpha", Description: "First choice"}}
 						if multiple {
 							nui.SelectMultiple(c, th, &values, items, o).Width(260)
@@ -309,7 +309,7 @@ func TestSelectMultiplePanelBackgroundSurvivesThemeWrapper(t *testing.T) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
 		th.Motion.Reduce = true
 		ui.Column(c).Padding(16).Children(func() {
-			nui.SelectMultiple(c, th, &values, []nui.Option[string]{{Value: "a", Label: "Alpha"}}, nui.SelectOptions{Label: "Choice", Open: &open, Popup: nui.PopoverOptions{Label: "Selection panel"}, Decoration: nui.Decoration{UI: nui.Styles{nui.Panel: {Background: nui.Set(accent)}}}}).Width(240)
+			nui.SelectMultiple(c, th, &values, []nui.Option[string]{{Value: "a", Label: "Alpha"}}, nui.SelectOptions{Label: "Choice", Open: &open, Popup: nui.PopoverOptions{Label: "Selection panel"}, UI: nui.Styles{nui.Panel: {Background: nui.Set(accent)}}}).Width(240)
 		})
 	}, 320, 240)
 	r := bounds(t, tt, "Selection panel")

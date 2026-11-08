@@ -179,12 +179,12 @@ func TestMarqueeDefaults(t *testing.T) {
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
 		builds, parts = 0, 0
-		nui.Marquee(c, th, &s, nui.MarqueeOptions{Label: "News", Repeat: repeat, Decoration: nui.Decoration{Style: func(slot nui.Slot, e ui.Element) {
+		nui.Marquee(c, th, &s, nui.MarqueeOptions{Label: "News", Repeat: repeat, Style: func(slot nui.Slot, e ui.Element) {
 			if slot == nui.Body {
 				parts++
 				e.Background(ui.RGB(230, 240, 250))
 			}
-		}}}, func() {
+		}}, func() {
 			builds++
 			ui.Text(c, "Short").TextColor(ui.RGB(0, 0, 0))
 		}).Width(400)

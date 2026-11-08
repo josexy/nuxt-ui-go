@@ -418,7 +418,7 @@ func treeGuides(c *ui.Context, t Theme, depth int, indent float32, decoration De
 		if width <= 0 {
 			return
 		}
-		for level := 0; level < depth; level++ {
+		for level := range depth {
 			offset := float32(level+1)*indent - inset
 			if offset >= r.W {
 				break
