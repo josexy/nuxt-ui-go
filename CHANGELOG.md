@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.0.1 - 2026-11-07
 
 Visual and interaction parity with Nuxt UI v4.12.0.
 
@@ -33,6 +33,7 @@ Visual and interaction parity with Nuxt UI v4.12.0.
 - `InputTimeOptions.TwelveHour` is now an `Optional[bool]` that defaults to the language and locale format. Wrap existing bool values in `nui.Set(...)`; for a fixed 24-hour clock, set `nui.Set(false)`.
 - FileUpload's file size message now uses `fileSize`, and its `size` parameter is now a formatted string. Apps that overrode the old `fileSummary` key need to migrate.
 - Pagination's English accessible names are now `First page`, `Previous page`, `Next page`, and `Last page`. Update tests or automation scripts that locate controls by name.
+- With MyGo v0.8.3, `ui.Tester`'s `Click`, `ClickWith`, and `RightClick` fail when the named element does not take the press at its center. App tests that click by name a PinInput, a Splitter or Sidebar divider, a date range group, a FormField by its full name, or a control under a modal backdrop should click the control inside instead, such as the `… start day` segment or the visible field label, or use `ClickAt` on the element's bounds.
 
 ### Added and improved
 
@@ -81,6 +82,8 @@ Visual and interaction parity with Nuxt UI v4.12.0.
 - CheckboxGroup is now a single Tab stop where arrow keys only move focus and do not wrap by default; RadioGroup wraps by default. In both group types, arrow keys follow the horizontal or vertical layout, and Loop can change the wrapping explicitly.
 - User no longer generates an initials avatar when no avatar is configured. Carousel's page counter is now an accessible value and is no longer shown on screen.
 - Empty-state messages are unified as `noData` and `noMatch`, and apps that override the old message keys keep working.
+- With MyGo v0.8.3, Link, actionable Breadcrumb items, and FooterColumns items activate with Enter only; as on the web, Space is left to the container around them. Use Button where Space should activate too.
+- With MyGo v0.8.3, Toast timers keep running while the window is in the background or hidden, and focus inside a toast pauses them only while the window has focus. A toast that expires in the background closes before the window shows again.
 
 ### Fixes and style adjustments
 
@@ -111,9 +114,10 @@ Visual and interaction parity with Nuxt UI v4.12.0.
 - Fixes SelectMenu's create row mixing into multiple selection results, duplicate icons in SelectMultiple, and incorrect highlighting of selected items in Select and InputMenu.
 - Fixes part styles, custom opacity, and theme overrides, and improves the direction of icons, rounded corners, and borders in RTL.
 - Unifies sizes, spacing, colors, and corner radii across inputs, menus, forms, overlays, and navigation. Long Tooltip text is now truncated to one line. Overlay and progress animations are improved and respect the reduced motion setting.
+- Fixes a doubled line at a resizable Sidebar's edge when that edge is on the physical right (a left sidebar, or a right sidebar in RTL); the resize line now draws over the edge border.
 
 ### Dependencies
 
-- Upgrades MyGo to the `v0.7.4` release.
+- Upgrades MyGo to the `v0.8.3` release.
 
 See the [README](README.md) for installation and examples, the [component guide](docs/README.md) for APIs and defaults, and [Compatibility and known limitations](docs/compatibility.md) for platform differences.

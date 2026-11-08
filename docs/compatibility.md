@@ -6,7 +6,7 @@ NuxtUI Go uses MyGo for native layout, input, and drawing, and follows the visua
 
 ## Requirements and platforms
 
-You need Go **1.27.3 or later**, and you build with `CGO_ENABLED=0`. This repository pins the MyGo runtime and tools to `v0.7.4`; see [go.mod](../go.mod). Native apps do not need Node.js, Vue, or a WebView at runtime, but they do need a desktop graphics session.
+You need Go **1.27.3 or later**, and you build with `CGO_ENABLED=0`. This repository pins the MyGo runtime and tools to `v0.8.3`; see [go.mod](../go.mod). Native apps do not need Node.js, Vue, or a WebView at runtime, but they do need a desktop graphics session.
 
 The table records what the project has verified. Platforms have not all been tested to the same depth.
 
