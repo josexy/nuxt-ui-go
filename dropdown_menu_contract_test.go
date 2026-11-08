@@ -24,7 +24,7 @@ func TestDropdownMenuSizesAndDescriptionAlignment(t *testing.T) {
 					{ID: "heading", Kind: nui.MenuLabel, Label: "Heading", Description: "Group description", Avatar: &nui.AvatarOptions{Alt: "Group avatar"}},
 					{ID: "rich", Label: "Rich action", Description: "Second line", Icon: lucide.Info(), Shortcut: "Ctrl+K"},
 					{ID: "plain", Label: "Plain action"},
-				}, nui.MenuOptions{Size: size, Decoration: nui.Decoration{Style: func(slot nui.Slot, e ui.Element) {
+				}, nui.MenuOptions{Size: size, Style: func(slot nui.Slot, e ui.Element) {
 					if slot == nui.Leading {
 						e.Label(fmt.Sprintf("Leading %d", leadingIndex))
 						leadingIndex++
@@ -32,7 +32,7 @@ func TestDropdownMenuSizesAndDescriptionAlignment(t *testing.T) {
 					if slot == nui.Trailing {
 						e.Label("Keys")
 					}
-				}}})
+				}})
 			}, 460, 380)
 			click(t, tt, "Actions")
 			row, icon, keys := bounds(t, tt, "Rich action"), bounds(t, tt, "Leading 1"), bounds(t, tt, "Keys")
@@ -265,7 +265,7 @@ func TestDropdownMenuLoadingIconsStylesAndDarkRTL(t *testing.T) {
 				th := nui.App(c, nui.AppConfig{Mode: mode})
 				th.Motion.Reduce = true
 				a := nui.Button(c, th, "Actions", nui.ButtonOptions{}).Absolute().Right(12).Top(12)
-				nui.DropdownMenu(c, th, a, &state, []nui.MenuItem{{ID: "action", Label: "项目操作与很长的中文名称", Description: "描述需要在有限的宽度中省略", Loading: loading, Icon: lucide.Info(), Avatar: &nui.AvatarOptions{Alt: "Hidden avatar"}, Checked: nui.Set(true), Close: nui.Set(false), OnSelect: func() { calls++ }, UI: nui.Styles{nui.Indicator: {Foreground: nui.Set(ui.RGB(255, 0, 255))}}}}, nui.MenuOptions{Size: nui.XL, Width: nui.Set(float32(500)), CheckedIcon: lucide.Heart(), LoadingIcon: lucide.RefreshCw(), Decoration: nui.Decoration{Style: func(slot nui.Slot, e ui.Element) {
+				nui.DropdownMenu(c, th, a, &state, []nui.MenuItem{{ID: "action", Label: "项目操作与很长的中文名称", Description: "描述需要在有限的宽度中省略", Loading: loading, Icon: lucide.Info(), Avatar: &nui.AvatarOptions{Alt: "Hidden avatar"}, Checked: nui.Set(true), Close: nui.Set(false), OnSelect: func() { calls++ }, UI: nui.Styles{nui.Indicator: {Foreground: nui.Set(ui.RGB(255, 0, 255))}}}}, nui.MenuOptions{Size: nui.XL, Width: nui.Set(float32(500)), CheckedIcon: lucide.Heart(), LoadingIcon: lucide.RefreshCw(), Style: func(slot nui.Slot, e ui.Element) {
 					if slot == nui.Panel {
 						e.Label("Panel")
 					}
@@ -275,7 +275,7 @@ func TestDropdownMenuLoadingIconsStylesAndDarkRTL(t *testing.T) {
 					if slot == nui.Leading {
 						e.Label("Leading icon")
 					}
-				}}})
+				}})
 			}, 280, 280)
 			tt.SetDirection(ui.RightToLeft)
 			tt.SetPreferences(ui.Preferences{TextScale: 1.5})

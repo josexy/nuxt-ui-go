@@ -2,6 +2,7 @@ package gallery
 
 import (
 	"fmt"
+	"maps"
 	"time"
 
 	"github.com/egoist/mygo/ui"
@@ -21,12 +22,12 @@ func inputComponentsPage(id string) *componentPage {
 		accessoryText, showAvatar, autoGrow := "First line\nSecond line\nThird line\nFourth line", false, false
 		changes := 0
 		add("edit", "Multiline editing", "Enter inserts a line. Chinese input follows the native platform's input method support.", func(c *ui.Context, t nui.Theme) {
-			nui.Textarea(c, t, &body, nui.TextareaOptions{InputOptions: nui.InputOptions{Label: "Project description"}, Rows: 3}).FillWidth()
+			nui.Textarea(c, t, &body, nui.TextareaOptions{Label: "Project description", Rows: 3}).FillWidth()
 			ui.Textf(c, "Characters: %d", len([]rune(body)))
 		})
 		add("height", "Fixed rows and automatic growth", "The second editor grows from two to six rows.", func(c *ui.Context, t nui.Theme) {
-			nui.Textarea(c.Key("fixed"), t, &fixed, nui.TextareaOptions{InputOptions: nui.InputOptions{Label: "Fixed rows"}, Rows: 3}).FillWidth()
-			nui.Textarea(c.Key("auto"), t, &auto, nui.TextareaOptions{InputOptions: nui.InputOptions{Label: "Auto resize"}, Rows: 2, MaxRows: 6, AutoResize: true}).FillWidth()
+			nui.Textarea(c.Key("fixed"), t, &fixed, nui.TextareaOptions{Label: "Fixed rows", Rows: 3}).FillWidth()
+			nui.Textarea(c.Key("auto"), t, &auto, nui.TextareaOptions{Label: "Auto resize", Rows: 2, MaxRows: 6, AutoResize: true}).FillWidth()
 		})
 		add("accessories", "Avatar, loading and row changes", "Loading remains editable. The avatar and loader align with the first line, and changing row policy preserves selection.", func(c *ui.Context, t nui.Theme) {
 			ui.Row(c).Wrap().Gap(8).Children(func() {
@@ -37,13 +38,13 @@ func inputComponentsPage(id string) *componentPage {
 			if showAvatar {
 				avatar = &nui.AvatarOptions{Alt: "Textarea account avatar", Text: "AL"}
 			}
-			nui.Textarea(c.Key("notes"), t, &accessoryText, nui.TextareaOptions{InputOptions: nui.InputOptions{Label: "Accessory notes", Avatar: avatar, Loading: true, LoadingTrailing: true, Clearable: true, ClearLabel: "Clear accessory notes", OnChange: func(string) { changes++ }, UI: nui.Styles{nui.Trailing: {Foreground: nui.Set(t.Error)}}}, Rows: 2, AutoResize: autoGrow, MaxRows: 4}).FillWidth()
+			nui.Textarea(c.Key("notes"), t, &accessoryText, nui.TextareaOptions{Label: "Accessory notes", Avatar: avatar, Loading: true, LoadingTrailing: true, Clearable: true, ClearLabel: "Clear accessory notes", OnChange: func(string) { changes++ }, UI: nui.Styles{nui.Trailing: {Foreground: nui.Set(t.Error)}}, Rows: 2, AutoResize: autoGrow, MaxRows: 4}).FillWidth()
 			ui.Textf(c, "Notes changes: %d", changes).Role(ui.RoleStatus)
 		})
 		add("states", "Read-only, disabled and error", "Each field has its own value.", func(c *ui.Context, t nui.Theme) {
-			nui.Textarea(c, t, &readonly, nui.TextareaOptions{InputOptions: nui.InputOptions{Label: "Read-only notes", ReadOnly: true}, Rows: 2}).FillWidth()
-			nui.Textarea(c, t, &disabled, nui.TextareaOptions{InputOptions: nui.InputOptions{Label: "Disabled notes", Disabled: true}, Rows: 2}).FillWidth()
-			nui.Textarea(c, t, &invalid, nui.TextareaOptions{InputOptions: nui.InputOptions{Label: "Invalid notes", Invalid: true, ErrorMessage: "Add more detail"}, Rows: 2}).FillWidth()
+			nui.Textarea(c, t, &readonly, nui.TextareaOptions{Label: "Read-only notes", ReadOnly: true, Rows: 2}).FillWidth()
+			nui.Textarea(c, t, &disabled, nui.TextareaOptions{Label: "Disabled notes", Disabled: true, Rows: 2}).FillWidth()
+			nui.Textarea(c, t, &invalid, nui.TextareaOptions{Label: "Invalid notes", Invalid: true, ErrorMessage: "Add more detail", Rows: 2}).FillWidth()
 		})
 	case "form-field":
 		name, email, locked := "Desktop team", "team@", "Locked workspace"
@@ -64,7 +65,7 @@ func inputComponentsPage(id string) *componentPage {
 				nui.Button(c.Key("direction"), t, "Toggle field direction", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() { horizontal = !horizontal })
 				nui.Button(c.Key("error"), t, "Toggle field error", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() { showError = !showError })
 			})
-			opts := nui.FormFieldOptions{Help: "State field help", Required: true, Decoration: nui.Decoration{UI: nui.Styles{nui.Header: {PaddingX: nui.Set(float32(8)), Background: nui.Set(t.MutedBackground)}, nui.Body: {PaddingX: nui.Set(float32(8)), Background: nui.Set(t.MutedBackground)}}}}
+			opts := nui.FormFieldOptions{Help: "State field help", Required: true, UI: nui.Styles{nui.Header: {PaddingX: nui.Set(float32(8)), Background: nui.Set(t.MutedBackground)}, nui.Body: {PaddingX: nui.Set(float32(8)), Background: nui.Set(t.MutedBackground)}}}
 			if showLabel {
 				opts.Label = "State field"
 			}
@@ -279,9 +280,7 @@ func inputComponentsPage(id string) *componentPage {
 			if customParts {
 				parts[nui.Indicator] = nui.PartStyle{Background: nui.Set(t.Info)}
 				parts[nui.Thumb] = nui.PartStyle{Background: nui.Set(t.Elevated)}
-				for part, style := range parts {
-					singleParts[part] = style
-				}
+				maps.Copy(singleParts, parts)
 			}
 			if padded {
 				singleParts[nui.Root] = nui.PartStyle{PaddingX: nui.Set(float32(48))}
@@ -292,11 +291,11 @@ func inputComponentsPage(id string) *componentPage {
 			}
 			ui.Column(c).Disabled(parentDisabled).Gap(10).Children(func() {
 				nui.FormField(c.Key("single"), t, nui.FormFieldOptions{Error: errorText}, func(ft nui.Theme) {
-					nui.Slider(c, ft, &decimal, nui.SliderOptions{Label: "Decimal slider", Max: nui.Set(1.0), Step: .1, Color: nui.Neutral, Tooltip: true, OnChange: func(float64) { changes++ }, OnCommit: func(float64) { commits++ }, Decoration: nui.Decoration{UI: singleParts}})
+					nui.Slider(c, ft, &decimal, nui.SliderOptions{Label: "Decimal slider", Max: nui.Set(1.0), Step: .1, Color: nui.Neutral, Tooltip: true, OnChange: func(float64) { changes++ }, OnCommit: func(float64) { commits++ }, UI: singleParts})
 				})
 				ui.Textf(c, "Decimal: %g · Changes: %d · Commits: %d", decimal, changes, commits).Role(ui.RoleStatus)
 				nui.FormField(c.Key("range"), t, nui.FormFieldOptions{Error: errorText}, func(ft nui.Theme) {
-					nui.RangeSlider(c, ft, &decimalLow, &decimalHigh, nui.RangeSliderOptions{Label: "Decimal range", Max: 1, Step: .1, MinStepsBetweenThumbs: 1, Color: nui.Neutral, Tooltip: true, OnChange: func(float64, float64) { rangeChanges++ }, OnCommit: func(float64, float64) { rangeCommits++ }, Decoration: nui.Decoration{UI: parts}}).FillWidth()
+					nui.RangeSlider(c, ft, &decimalLow, &decimalHigh, nui.RangeSliderOptions{Label: "Decimal range", Max: 1, Step: .1, MinStepsBetweenThumbs: 1, Color: nui.Neutral, Tooltip: true, OnChange: func(float64, float64) { rangeChanges++ }, OnCommit: func(float64, float64) { rangeCommits++ }, UI: parts}).FillWidth()
 				})
 				ui.Textf(c, "Decimal range: %g – %g · Changes: %d · Commits: %d", decimalLow, decimalHigh, rangeChanges, rangeCommits).Role(ui.RoleStatus)
 			})
@@ -360,19 +359,19 @@ func inputComponentsPage(id string) *componentPage {
 		locked.Query, locked.Selected = "Personal", "personal"
 		readonly.Query, readonly.Selected = "Team", "team"
 		add("filter", "Editing and filtering", "Type a name to filter. Escape closes the results without leaving the field.", func(c *ui.Context, t nui.Theme) {
-			nui.InputMenu(c, t, &basic, plans, nui.InputMenuOptions{InputOptions: nui.InputOptions{Label: "Search workspaces", Placeholder: "Type Personal or Team"}}).FillWidth()
+			nui.InputMenu(c, t, &basic, plans, nui.InputMenuOptions{Label: "Search workspaces", Placeholder: "Type Personal or Team"}).FillWidth()
 			ui.Text(c, "Selected ID: "+basic.Selected)
 		})
 		add("multiple", "Multiple values and creation", "External filtering leaves supplied results unchanged; creation is a local callback.", func(c *ui.Context, t nui.Theme) {
 			nui.Switch(c, t, &external, nui.SwitchOptions{Label: "Use external filtering"})
-			nui.InputMenu(c, t, &multiple, propsOptions, nui.InputMenuOptions{InputOptions: nui.InputOptions{Label: "Team search", Placeholder: "Search teams or create one"}, Multiple: true, ExternalFilter: external, OnCreate: func(v string) { result = "Create requested: " + v }}).FillWidth()
+			nui.InputMenu(c, t, &multiple, propsOptions, nui.InputMenuOptions{Label: "Team search", Placeholder: "Search teams or create one", Multiple: true, ExternalFilter: external, OnCreate: func(v string) { result = "Create requested: " + v }}).FillWidth()
 			ui.Text(c, result)
 		})
 		add("states", "Empty, disabled, read-only and loading", "The empty search has no options. Disabled Personal and read-only Team retain their values. Loading shows an indicator without starting a background request; each field owns its search state.", func(c *ui.Context, t nui.Theme) {
-			nui.InputMenu(c, t, &empty, nil, nui.InputMenuOptions{InputOptions: nui.InputOptions{Label: "Empty search"}, EmptyText: "No matching teams"}).FillWidth()
-			nui.InputMenu(c, t, &locked, plans, nui.InputMenuOptions{InputOptions: nui.InputOptions{Label: "Disabled search", Disabled: true}}).FillWidth()
-			nui.InputMenu(c, t, &readonly, plans, nui.InputMenuOptions{InputOptions: nui.InputOptions{Label: "Read-only search", ReadOnly: true}}).FillWidth()
-			nui.InputMenu(c, t, &loading, plans, nui.InputMenuOptions{InputOptions: nui.InputOptions{Label: "Loading search", Loading: true}}).FillWidth()
+			nui.InputMenu(c, t, &empty, nil, nui.InputMenuOptions{Label: "Empty search", EmptyText: "No matching teams"}).FillWidth()
+			nui.InputMenu(c, t, &locked, plans, nui.InputMenuOptions{Label: "Disabled search", Disabled: true}).FillWidth()
+			nui.InputMenu(c, t, &readonly, plans, nui.InputMenuOptions{Label: "Read-only search", ReadOnly: true}).FillWidth()
+			nui.InputMenu(c, t, &loading, plans, nui.InputMenuOptions{Label: "Loading search", Loading: true}).FillWidth()
 		})
 		policy := nui.SearchState{SelectedValues: []string{"alpha", "beta"}}
 		policyOpen, resetModel, policyReadonly, policyLoading, loop, hover, autocomplete := false, true, false, false, false, true, false
@@ -388,7 +387,7 @@ func inputComponentsPage(id string) *componentPage {
 			if autocomplete {
 				mode = nui.InputMenuAutocomplete
 			}
-			nui.InputMenu(c.Key("policy"), t, &policy, []nui.Option[string]{{Value: "alpha", Label: "Alpha", Description: "Design and research", Icon: lucide.Users()}, {Value: "blocked", Label: "Blocked", Disabled: true}, {Value: "beta", Label: "Beta", Description: "Application development", Icon: lucide.Code()}}, nui.InputMenuOptions{InputOptions: nui.InputOptions{Label: "Policy search", Clearable: true, ReadOnly: policyReadonly, Loading: policyLoading, LoadingTrailing: true, Avatar: &nui.AvatarOptions{Text: "AL", Alt: "Search team avatar"}, OnChange: func(string) { queries++ }, OnClear: func() { clears++ }, OnSubmit: func(string) { submits++ }}, Multiple: true, Mode: mode, Open: &policyOpen, Loop: loop, HighlightOnHover: nui.Set(hover), ResetModelValueOnClear: nui.Set(resetModel), ResetSearchTermOnSelect: nui.Set(!autocomplete), SelectedIcon: lucide.Heart(), DeleteIcon: lucide.Minus(), ClearIcon: lucide.Eraser(), OnSelect: func(string) { selections++ }, OnValuesChange: func([]string) { valueChanges++ }}).FillWidth()
+			nui.InputMenu(c.Key("policy"), t, &policy, []nui.Option[string]{{Value: "alpha", Label: "Alpha", Description: "Design and research", Icon: lucide.Users()}, {Value: "blocked", Label: "Blocked", Disabled: true}, {Value: "beta", Label: "Beta", Description: "Application development", Icon: lucide.Code()}}, nui.InputMenuOptions{Label: "Policy search", Clearable: true, ReadOnly: policyReadonly, Loading: policyLoading, LoadingTrailing: true, Avatar: &nui.AvatarOptions{Text: "AL", Alt: "Search team avatar"}, OnChange: func(string) { queries++ }, OnClear: func() { clears++ }, OnSubmit: func(string) { submits++ }, Multiple: true, Mode: mode, Open: &policyOpen, Loop: loop, HighlightOnHover: nui.Set(hover), ResetModelValueOnClear: nui.Set(resetModel), ResetSearchTermOnSelect: nui.Set(!autocomplete), SelectedIcon: lucide.Heart(), DeleteIcon: lucide.Minus(), ClearIcon: lucide.Eraser(), OnSelect: func(string) { selections++ }, OnValuesChange: func([]string) { valueChanges++ }}).FillWidth()
 			ui.Textf(c, "Policy query: %s · ID: %s · IDs: %v", policy.Query, policy.Selected, policy.SelectedValues).Role(ui.RoleStatus)
 			ui.Textf(c, "Policy events: query %d · select %d · values %d · clear %d · submit %d", queries, selections, valueChanges, clears, submits).Role(ui.RoleStatus)
 			nui.Button(c.Key("open"), t, "Toggle policy search", nui.ButtonOptions{Variant: nui.Outline, Disabled: policyReadonly}).OnClick(func() { policyOpen = !policyOpen })
@@ -430,7 +429,7 @@ func inputComponentsPage(id string) *componentPage {
 			if styled {
 				parts[nui.Panel] = nui.PartStyle{Background: nui.Set(t.Elevated), Foreground: nui.Set(t.Info), FontSize: nui.Set(float32(18)), LineHeight: nui.Set(float32(1.5)), Gap: nui.Set(float32(12)), PaddingX: nui.Set(float32(12)), PaddingY: nui.Set(float32(12))}
 			}
-			nui.Popover(c.Key("panel"), t, anchor, &controlledOpen, nui.PopoverOptions{Label: "Controlled popup panel", Width: nui.Set(float32(280)), Decoration: nui.Decoration{UI: parts}}, func(inner nui.Theme) {
+			nui.Popover(c.Key("panel"), t, anchor, &controlledOpen, nui.PopoverOptions{Label: "Controlled popup panel", Width: nui.Set(float32(280)), UI: parts}, func(inner nui.Theme) {
 				ui.Text(c, "Panel heading")
 				nui.Input(c.Key("draft"), inner, &draft, nui.InputOptions{Label: "Controlled popup draft"}).FillWidth()
 				nui.Button(c.Key("move"), inner, "Move popup anchor", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() { alternate = !alternate })
@@ -469,11 +468,11 @@ func inputComponentsPage(id string) *componentPage {
 			if hidden {
 				color = ui.Transparent
 			}
-			nui.ScrollArea(c.Key("area"), t, nui.ScrollAreaOptions{Direction: direction, State: &position, ScrollbarWidth: nui.Set(width), ScrollbarColor: nui.Set(color), Decoration: nui.Decoration{UI: nui.Styles{nui.Root: {Radius: nui.Set(float32(16))}}, Style: func(part nui.Slot, e ui.Element) {
+			nui.ScrollArea(c.Key("area"), t, nui.ScrollAreaOptions{Direction: direction, State: &position, ScrollbarWidth: nui.Set(width), ScrollbarColor: nui.Set(color), UI: nui.Styles{nui.Root: {Radius: nui.Set(float32(16))}}, Style: func(part nui.Slot, e ui.Element) {
 				if part == nui.Body {
 					e.Label("State scroll body")
 				}
-			}}}, func() {
+			}}, func() {
 				for i := range 24 {
 					row := ui.Textf(c.Key(i), "Record %02d · Wide scrollable content", i+1).PaddingX(12).Background(t.Elevated)
 					if direction == nui.ScrollHorizontal {

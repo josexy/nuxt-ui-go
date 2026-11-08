@@ -43,7 +43,7 @@ func addLayoutContract(p *componentPage, id string) {
 				styles[nui.Leading] = nui.PartStyle{Background: nui.Set(t.Accented), PaddingX: nui.Set(float32(8))}
 			}
 			if id == "header" {
-				o := nui.HeaderOptions{Title: label, Description: "Stable action editor", Decoration: nui.Decoration{UI: styles}, Actions: func(c *ui.Context, t nui.Theme) {
+				o := nui.HeaderOptions{Title: label, Description: "Stable action editor", UI: styles, Actions: func(c *ui.Context, t nui.Theme) {
 					nui.Input(c.Key("draft"), t, &draft, nui.InputOptions{Label: "Layout header draft"}).Width(150)
 					nui.Button(c.Key("menu"), t, "", nui.ButtonOptions{Leading: lucide.Menu(), AccessibleLabel: "Open composed header menu", Variant: nui.Ghost, Color: nui.Neutral, Square: true}).Bind(&opener).OnClick(func() { sidebar.Open = true })
 				}}
@@ -60,7 +60,7 @@ func addLayoutContract(p *componentPage, id string) {
 					ui.Text(c, "Header page: "+page).Padding(16)
 				})
 			} else {
-				nui.FooterLayout(c.Key("footer"), t, nui.FooterOptions{Text: label, Decoration: nui.Decoration{UI: styles}, Actions: func(c *ui.Context, t nui.Theme) {
+				nui.FooterLayout(c.Key("footer"), t, nui.FooterOptions{Text: label, UI: styles, Actions: func(c *ui.Context, t nui.Theme) {
 					nui.Button(c, t, "Contract footer action", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { actions++ })
 				}})
 			}
@@ -118,7 +118,7 @@ func addFooterColumnsContract(p *componentPage) {
 			box.MaxWidth(140)
 		}
 		box.Children(func() {
-			nui.FooterColumns(c.Key("columns"), t, columns, nui.FooterColumnsOptions{MinColumnWidth: 160, Decoration: nui.Decoration{UI: styles}, OnNavigate: func(id string) { active = id; navigated++ }})
+			nui.FooterColumns(c.Key("columns"), t, columns, nui.FooterColumnsOptions{MinColumnWidth: 160, UI: styles, OnNavigate: func(id string) { active = id; navigated++ }})
 		})
 		ui.Textf(c, "Footer active: %s · Selects: %d · Navigations: %d", active, selected, navigated)
 	}))

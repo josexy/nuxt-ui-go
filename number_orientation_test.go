@@ -211,7 +211,7 @@ func TestInputNumberStepPrecisionAndPendingPress(t *testing.T) {
 	calls := 0
 	tt := ui.NewTester(func(c *ui.Context) {
 		if mounted {
-			nui.InputNumber(c, nui.App(c, nui.AppConfig{}), &value, state, nui.InputNumberOptions{InputOptions: nui.InputOptions{Label: "Repeat"}, Increment: nui.Set(shown), IncrementDisabled: disabled, OnValueChange: func(nui.Optional[float64]) { calls++ }}).Width(300)
+			nui.InputNumber(c, nui.App(c, nui.AppConfig{}), &value, state, nui.InputNumberOptions{Label: "Repeat", Increment: nui.Set(shown), IncrementDisabled: disabled, OnValueChange: func(nui.Optional[float64]) { calls++ }}).Width(300)
 		}
 	}, 360, 100)
 	r := bounds(t, tt, "Increase Repeat")

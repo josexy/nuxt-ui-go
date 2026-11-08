@@ -100,7 +100,7 @@ func TestToastWidthFitsCustomViewportPadding(t *testing.T) {
 		th := nui.App(c, nui.AppConfig{})
 		th.Motion.Reduce = true
 		nui.Button(c, th, "Notify", nui.ButtonOptions{}).OnClick(func() { nui.Toast(c, th, nui.ToastOptions{Title: "Padded notice", Timeout: -1}) })
-		nui.ToastViewport(c, th, nui.ToastViewportOptions{Decoration: nui.Decoration{UI: nui.Styles{nui.Root: {PaddingX: nui.Set(padding)}}}})
+		nui.ToastViewport(c, th, nui.ToastViewportOptions{UI: nui.Styles{nui.Root: {PaddingX: nui.Set(padding)}}})
 	}, 400, 300)
 	click(t, tt, "Notify")
 	if r := bounds(t, tt, "Padded notice"); r.X < 48 || r.X+r.W > 352 || r.W > 304 {

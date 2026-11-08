@@ -32,11 +32,11 @@ func TestProgressGroupIconAndItemStyles(t *testing.T) {
 		if showIcon {
 			segment.Icon = lucide.Check()
 		}
-		nui.ProgressGroup(c, th, []nui.ProgressSegment{segment}, nui.ProgressGroupOptions{Label: "Group", Size: size, Decoration: nui.Decoration{Style: func(slot nui.Slot, e ui.Element) {
+		nui.ProgressGroup(c, th, []nui.ProgressSegment{segment}, nui.ProgressGroupOptions{Label: "Group", Size: size, Style: func(slot nui.Slot, e ui.Element) {
 			if slot == nui.Leading {
 				e.Label("Legend marker")
 			}
-		}}}).Width(200)
+		}}).Width(200)
 	}, 240, 140)
 	if r := bounds(t, tt, "Legend marker"); r.W != 12 || r.H != 12 {
 		t.Fatalf("icon-only item did not create an XS legend: %+v", r)

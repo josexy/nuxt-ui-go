@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -266,8 +267,8 @@ func TestNestedFieldSources(t *testing.T) {
 					name := strings.Join(path, ".")
 					t.Run(demo.ID+"/"+binding.ID+"/"+name, func(t *testing.T) {
 						patch := editorSample(schemas, typ, path[len(path)-1], nil)
-						for i := len(path) - 1; i >= 0; i-- {
-							patch = map[string]any{path[i]: patch}
+						for _, p := range slices.Backward(path) {
+							patch = map[string]any{p: patch}
 						}
 						_, source, err := demo.Source(showcase.Config{Options: map[string]any{binding.ID: patch}})
 						if err != nil {

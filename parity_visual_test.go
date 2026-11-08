@@ -709,7 +709,7 @@ func TestLayoutChromeRecipes(t *testing.T) {
 				columnStyles = nui.Styles{nui.Body: {PaddingX: nui.Set(float32(12))}}
 			}
 			footerHost.Children(func() {
-				nui.FooterColumns(c.Key("columns"), th, columns, nui.FooterColumnsOptions{Decoration: nui.Decoration{UI: columnStyles}})
+				nui.FooterColumns(c.Key("columns"), th, columns, nui.FooterColumnsOptions{UI: columnStyles})
 			})
 		})
 	}, 600, 400)

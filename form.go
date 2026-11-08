@@ -1,6 +1,10 @@
 package nui
 
-import "github.com/egoist/mygo/ui"
+import (
+	"maps"
+
+	"github.com/egoist/mygo/ui"
+)
 
 // FormValues are explicit serialized values, independent of widget representation.
 type FormValues map[string]string
@@ -81,9 +85,7 @@ func (s *FormState) Touch(name string) { s.Field(name).Touched = true }
 // Errors returns a copy of errors for enabled, visible fields and form-wide errors.
 func (s *FormState) Errors() FormErrors {
 	errors := FormErrors{}
-	for name, message := range s.unboundErrors {
-		errors[name] = message
-	}
+	maps.Copy(errors, s.unboundErrors)
 	for name, f := range s.Fields {
 		if f.Visible && !f.Disabled && f.Error != "" {
 			errors[name] = f.Error

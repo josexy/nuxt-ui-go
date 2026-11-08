@@ -434,7 +434,7 @@ func TestTreeNestedGuidesAndModeSwitch(t *testing.T) {
 					{ID: "tail", Label: "Tail"},
 				})
 				marker := ui.RGB(255, 0, 255)
-				o := nui.TreeOptions{Label: "Files", Decoration: nui.Decoration{UI: nui.Styles{nui.Indicator: {BorderColor: nui.Set(marker)}}}, Build: func(c *ui.Context, _ nui.Theme, item nui.TreeItemState) {
+				o := nui.TreeOptions{Label: "Files", UI: nui.Styles{nui.Indicator: {BorderColor: nui.Set(marker)}}, Build: func(c *ui.Context, _ nui.Theme, item nui.TreeItemState) {
 					ui.Text(c, "Text: "+item.Label).SingleLine().Grow(1).MinWidth(0)
 				}}
 				theme := nui.Light()
@@ -517,7 +517,7 @@ func TestTreeNestedGuidesWithOffscreenAncestors(t *testing.T) {
 	var s nui.TreeState
 	s.SetNodes([]nui.TreeNode{{ID: "root", Label: "Root", DefaultExpanded: true, Children: children}})
 	marker := ui.RGB(255, 0, 255)
-	o := nui.TreeOptions{Label: "Files", Height: 200, Decoration: nui.Decoration{UI: nui.Styles{nui.Indicator: {BorderColor: nui.Set(marker)}}}}
+	o := nui.TreeOptions{Label: "Files", Height: 200, UI: nui.Styles{nui.Indicator: {BorderColor: nui.Set(marker)}}}
 	tt := treeTester(&s, &o)
 	tt.Key(0, ui.KeyTab)
 	tt.Key(0, ui.KeyEnd)
@@ -560,7 +560,7 @@ func TestTreeAdjacentSelectionSurfaceGap(t *testing.T) {
 					changes := 0
 					tt := ui.NewTester(func(c *ui.Context) {
 						th := nui.App(c, nui.AppConfig{Mode: nui.LightMode, Light: theme})
-						nui.Tree(c, th, &s, nui.TreeOptions{Label: "Files", Size: size, Multiple: true, Nested: nui.Set(nested), OnChange: func() { changes++ }, Decoration: nui.Decoration{UI: nui.Styles{nui.Indicator: {BorderColor: nui.Set(marker)}}}}).Width(360)
+						nui.Tree(c, th, &s, nui.TreeOptions{Label: "Files", Size: size, Multiple: true, Nested: nui.Set(nested), OnChange: func() { changes++ }, UI: nui.Styles{nui.Indicator: {BorderColor: nui.Set(marker)}}}).Width(360)
 					}, 400, 400)
 					a, b := bounds(t, tt, "Alpha"), bounds(t, tt, "Beta")
 					wantHeight := []float32{24, 28, 32, 36, 40}[int(size-nui.XS)]

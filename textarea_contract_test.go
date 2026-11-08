@@ -21,7 +21,7 @@ func TestTextareaRowsAndControlledGrowth(t *testing.T) {
 		t.Run(fmt.Sprint(tc), func(t *testing.T) {
 			value := strings.Repeat("Line\n", 9) + "Last"
 			tt := ui.NewTester(func(c *ui.Context) {
-				nui.Textarea(c, nui.App(c, nui.AppConfig{}), &value, nui.TextareaOptions{InputOptions: nui.InputOptions{Label: "Notes"}, Rows: tc.rows, MaxRows: tc.maxRows, AutoResize: tc.auto}).Width(240).Label("Textarea root")
+				nui.Textarea(c, nui.App(c, nui.AppConfig{}), &value, nui.TextareaOptions{Label: "Notes", Rows: tc.rows, MaxRows: tc.maxRows, AutoResize: tc.auto}).Width(240).Label("Textarea root")
 			}, 300, 320)
 			if r := bounds(t, tt, "Textarea root"); r.H != tc.want {
 				t.Fatalf("rows=%d max=%d auto=%v height=%g, want %g", tc.rows, tc.maxRows, tc.auto, r.H, tc.want)
@@ -49,7 +49,7 @@ func TestTextareaSharedAccessoriesAndEditing(t *testing.T) {
 		if avatar {
 			av = &nui.AvatarOptions{Alt: "Notes avatar", Text: "AL"}
 		}
-		nui.Textarea(c, th, &value, nui.TextareaOptions{InputOptions: nui.InputOptions{Label: "Notes", Password: password, Avatar: av, Loading: true, LoadingTrailing: true, Clearable: true, ClearLabel: "Clear notes", MaxLength: 20, UI: nui.Styles{nui.Trailing: {Foreground: nui.Set(ui.RGB(255, 0, 255))}}, OnChange: func(string) { changes++ }, OnSubmit: func(string) { submits++ }, OnClear: func() { clears++ }, Style: func(root, editor, leading, trailing ui.Element) { trailing.Label("Notes loader") }}, Rows: 2, AutoResize: auto, MaxRows: 4}).Width(260)
+		nui.Textarea(c, th, &value, nui.TextareaOptions{Label: "Notes", Password: password, Avatar: av, Loading: true, LoadingTrailing: true, Clearable: true, ClearLabel: "Clear notes", MaxLength: 20, UI: nui.Styles{nui.Trailing: {Foreground: nui.Set(ui.RGB(255, 0, 255))}}, OnChange: func(string) { changes++ }, OnSubmit: func(string) { submits++ }, OnClear: func() { clears++ }, Style: func(root, editor, leading, trailing ui.Element) { trailing.Label("Notes loader") }, Rows: 2, AutoResize: auto, MaxRows: 4}).Width(260)
 	}, 320, 180)
 	click(t, tt, "Notes")
 	tt.Key(ui.Ctrl, ui.KeyA)

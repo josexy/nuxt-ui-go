@@ -12,7 +12,7 @@ func TestScrollAreaRoundedRootClipsContent(t *testing.T) {
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
 		ui.Column(c).Padding(16).Children(func() {
-			nui.ScrollArea(c, th, nui.ScrollAreaOptions{Decoration: nui.Decoration{UI: nui.Styles{nui.Root: {Radius: nui.Set(float32(16))}}}}, func() { ui.Box(c).Width(200).Height(400).Background(ui.RGB(255, 0, 0)) }).Width(200).Height(120).Label("Rounded scroll")
+			nui.ScrollArea(c, th, nui.ScrollAreaOptions{UI: nui.Styles{nui.Root: {Radius: nui.Set(float32(16))}}}, func() { ui.Box(c).Width(200).Height(400).Background(ui.RGB(255, 0, 0)) }).Width(200).Height(120).Label("Rounded scroll")
 		})
 	}, 260, 170)
 	r := bounds(t, tt, "Rounded scroll")

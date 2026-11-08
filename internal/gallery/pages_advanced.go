@@ -65,9 +65,9 @@ func (a *State) advancedPage(id string) *componentPage {
 				if kind == "snap" {
 					points = []float32{.3, .55, .9}
 				}
-				nui.Drawer(c, t, state, nui.DrawerOptions{ModalOptions: nui.ModalOptions{Title: kind + " inspector", ReturnFocus: handle, Dismissible: nui.Set(kind != "policy"), Footer: func(c *ui.Context, t nui.Theme) {
+				nui.Drawer(c, t, state, nui.DrawerOptions{Title: kind + " inspector", ReturnFocus: handle, Dismissible: nui.Set(kind != "policy"), Footer: func(c *ui.Context, t nui.Theme) {
 					nui.Button(c, t, "Done "+kind+" reviewing", nui.ButtonOptions{}).OnClick(func() { state.Open = false })
-				}}, SnapPoints: points, OnSnap: func(int) { snaps++ }}, func(t nui.Theme) {
+				}, SnapPoints: points, OnSnap: func(int) { snaps++ }}, func(t nui.Theme) {
 					nui.Input(c, t, &draft, nui.InputOptions{Label: kind + " review notes"})
 					for i := range 12 {
 						ui.Textf(c, "Run %03d · ready", i+1)

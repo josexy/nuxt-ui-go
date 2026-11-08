@@ -42,8 +42,8 @@ func addCarouselContract(p *componentPage, a *State) {
 			nui.Button(c, t, "Restore contract slides", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { items = slices.Clone(original); state.Index = 0 })
 			nui.Button(c, t, "Empty contract slides", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { items = nil })
 		})
-		o := nui.CarouselOptions{Label: "Contract tour", Height: 220, Wrap: wrap, Arrows: nui.Set(arrows), Dots: dots, WatchDrag: nui.Set(watch), StopOnInteraction: nui.Set(stop), Active: nui.Set(!a.WindowInactive && a.Animations), OnChange: func(int) { changes++ }}
-		o.UI = nui.Styles{}
+		o := nui.CarouselOptions{Label: "Contract tour", Height: 220, Wrap: wrap, Arrows: nui.Set(arrows), Dots: dots, WatchDrag: nui.Set(watch), StopOnInteraction: nui.Set(stop), Active: nui.Set(!a.WindowInactive && a.Animations), OnChange: func(int) { changes++ },
+			UI: nui.Styles{}}
 		if vertical {
 			o.Orientation = nui.Vertical
 			o.Height = 280

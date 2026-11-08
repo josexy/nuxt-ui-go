@@ -21,7 +21,7 @@ func addSelectionContract(p *componentPage, menu bool) {
 		if protect {
 			e.PreventDefault()
 		}
-	}, Decoration: nui.Decoration{UI: nui.Styles{nui.ItemLabelSlot: {Weight: nui.Set(600)}}}}
+	}, UI: nui.Styles{nui.ItemLabelSlot: {Weight: nui.Set(600)}}}
 	p.Deactivate = append(p.Deactivate, func() { popup.Open = false })
 	p.Scenes = append(p.Scenes, scene("contract", "Selection, filtering and item parts", "Search for cafe: the exact accented match comes first. The protected option can cancel activation. Reordering keeps IDs, while labels, avatars, chips and separators have their own parts.", func(c *ui.Context, t nui.Theme) {
 		ui.Row(c).Wrap().Gap(12).Children(func() {

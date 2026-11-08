@@ -52,11 +52,11 @@ func TestTabsPlainTriggerMetrics(t *testing.T) {
 			value := "a"
 			tt := ui.NewTester(func(c *ui.Context) {
 				th := nui.App(c, nui.AppConfig{})
-				nui.Tabs(c, th, &value, []nui.TabItem{{ID: "a", Label: "First"}}, nui.TabsOptions{Size: size, Underline: true, Decoration: nui.Decoration{Style: func(slot nui.Slot, e ui.Element) {
+				nui.Tabs(c, th, &value, []nui.TabItem{{ID: "a", Label: "First"}}, nui.TabsOptions{Size: size, Underline: true, Style: func(slot nui.Slot, e ui.Element) {
 					if slot == nui.Label {
 						e.Label("Tab text")
 					}
-				}}})
+				}})
 			}, 500, 300)
 			row, text := bounds(t, tt, "First"), bounds(t, tt, "Tab text")
 			if row.H != []float32{24, 28, 32, 36, 40}[i] || text.X-row.X != []float32{8, 10, 12, 12, 12}[i] {
@@ -92,11 +92,11 @@ func TestTabsAvatarBadgeItemStylesAndContentSwitch(t *testing.T) {
 		if icon {
 			leading = lucide.Info()
 		}
-		nui.Tabs(c, th, &value, []nui.TabItem{{ID: "a", Label: "First", Icon: leading, Avatar: &nui.AvatarOptions{Alt: "Tab avatar", Text: "TA"}, Badge: "0", BadgeOptions: &nui.BadgeOptions{Color: nui.Success, Variant: nui.Soft}, UI: nui.Styles{nui.Trigger: {Background: nui.Set(ui.RGB(255, 0, 255))}}, Content: func(c *ui.Context, th nui.Theme) { nui.Input(c, th, &draft, nui.InputOptions{Label: "Tab draft"}) }}, {ID: "b", Label: "Second", Content: func(c *ui.Context, th nui.Theme) { ui.Text(c, "Second panel") }}}, nui.TabsOptions{Content: nui.Set(content), KeepMounted: true, OnChange: func(string) { changes++ }, Decoration: nui.Decoration{Style: func(slot nui.Slot, e ui.Element) {
+		nui.Tabs(c, th, &value, []nui.TabItem{{ID: "a", Label: "First", Icon: leading, Avatar: &nui.AvatarOptions{Alt: "Tab avatar", Text: "TA"}, Badge: "0", BadgeOptions: &nui.BadgeOptions{Color: nui.Success, Variant: nui.Soft}, UI: nui.Styles{nui.Trigger: {Background: nui.Set(ui.RGB(255, 0, 255))}}, Content: func(c *ui.Context, th nui.Theme) { nui.Input(c, th, &draft, nui.InputOptions{Label: "Tab draft"}) }}, {ID: "b", Label: "Second", Content: func(c *ui.Context, th nui.Theme) { ui.Text(c, "Second panel") }}}, nui.TabsOptions{Content: nui.Set(content), KeepMounted: true, OnChange: func(string) { changes++ }, Style: func(slot nui.Slot, e ui.Element) {
 			if slot == nui.Trailing {
 				e.Label("Tab badge")
 			}
-		}}}).Width(460)
+		}}).Width(460)
 		nui.Badge(c, th, "0", nui.BadgeOptions{Size: nui.SM, Color: nui.Success, Variant: nui.Soft}).Label("Standalone badge")
 	}, 500, 320)
 	if bounds(t, tt, "Tab avatar").W != 20 || !tt.HasText("0") || bounds(t, tt, "Tab badge").H != bounds(t, tt, "Standalone badge").H {
@@ -188,11 +188,11 @@ func TestTabsNeutralIndicatorAndPartOverride(t *testing.T) {
 				if override {
 					styles[nui.Indicator] = nui.PartStyle{Background: nui.Set(ui.RGB(0, 190, 255))}
 				}
-				nui.Tabs(c, th, &value, []nui.TabItem{{ID: "a", Label: "First"}, {ID: "b", Label: "Second"}}, nui.TabsOptions{Color: nui.Neutral, Underline: underline, Decoration: nui.Decoration{UI: styles, Style: func(slot nui.Slot, e ui.Element) {
+				nui.Tabs(c, th, &value, []nui.TabItem{{ID: "a", Label: "First"}, {ID: "b", Label: "Second"}}, nui.TabsOptions{Color: nui.Neutral, Underline: underline, UI: styles, Style: func(slot nui.Slot, e ui.Element) {
 					if slot == nui.Indicator {
 						e.Label("Indicator")
 					}
-				}}}).Width(300)
+				}}).Width(300)
 			}, 340, 200)
 			r := bounds(t, tt, "Indicator")
 			x, y := int(r.X+r.W/2), int(r.Y+r.H/2)
@@ -239,11 +239,11 @@ func TestTabsVerticalCenterRTLAndRetainedDraftSelection(t *testing.T) {
 		nui.Tabs(c.Key("tabs"), th, &value, []nui.TabItem{{ID: "a", Label: "First", Content: func(c *ui.Context, th nui.Theme) {
 			nui.Input(c.Key("draft"), th, &draft, nui.InputOptions{Label: "Draft"})
 			ui.Box(c).Height(80)
-		}}, {ID: "b", Label: "Second"}}, nui.TabsOptions{Label: "List", Vertical: vertical, Underline: true, KeepMounted: true, Decoration: nui.Decoration{UI: nui.Styles{nui.Indicator: {Background: nui.Set(ui.RGB(255, 0, 255))}}, Style: func(slot nui.Slot, e ui.Element) {
+		}}, {ID: "b", Label: "Second"}}, nui.TabsOptions{Label: "List", Vertical: vertical, Underline: true, KeepMounted: true, UI: nui.Styles{nui.Indicator: {Background: nui.Set(ui.RGB(255, 0, 255))}}, Style: func(slot nui.Slot, e ui.Element) {
 			if slot == nui.Indicator {
 				e.Label("Indicator")
 			}
-		}}}).Width(440)
+		}}).Width(440)
 	}, 500, 360)
 	list, panel := bounds(t, tt, "List"), bounds(t, tt, "First content")
 	if list.Y+list.H/2 != panel.Y+panel.H/2 {

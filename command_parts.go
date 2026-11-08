@@ -230,11 +230,11 @@ func commandItems(t Theme, s *CommandPaletteState, o CommandPaletteOptions) *com
 		if a.Active {
 			nodeUI = mergeStyles(mergeStyles(Styles{Item: {Background: Set(t.Elevated), Foreground: Set(t.Highlighted)}}, styles), a.UI)
 		}
-		item.Options = &ListboxItemOptions{OnSelect: func(*ListboxEvent) { s.previous = slices.Clone(s.selected) }, Decoration: Decoration{UI: commandListUI(nodeUI), Style: func(slot Slot, e ui.Element) {
+		item.Options = &ListboxItemOptions{OnSelect: func(*ListboxEvent) { s.previous = slices.Clone(s.selected) }, UI: commandListUI(nodeUI), Style: func(slot Slot, e ui.Element) {
 			if a.Style != nil {
 				a.Style(commandSlot(slot), e)
 			}
-		}}}
+		}}
 		r.items = append(r.items, item)
 		r.matches[a.ID] = match
 	}
@@ -262,14 +262,14 @@ func commandRows(c *ui.Context, t Theme, s *CommandPaletteState, o CommandPalett
 		if !activate(id) {
 			s.selected = previous
 		}
-	}, OnHighlight: o.OnHighlight, Decoration: Decoration{UI: rows.listUI, Style: func(slot Slot, e ui.Element) {
+	}, OnHighlight: o.OnHighlight, UI: rows.listUI, Style: func(slot Slot, e ui.Element) {
 		if slot == Item {
 			e.AlignItems(ui.Start)
 		}
 		if o.Style != nil {
 			o.Style(commandSlot(slot), e)
 		}
-	}}, Build: func(c *ui.Context, t Theme, item ListboxItem) {
+	}, Build: func(c *ui.Context, t Theme, item ListboxItem) {
 		commandRow(c, t, matches[item.ID], o, size)
 	}})
 }

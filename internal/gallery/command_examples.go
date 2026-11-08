@@ -27,7 +27,7 @@ func addCommandContract(p *componentPage) {
 	index := nui.NewCommandIndex([]nui.CommandAction{
 		{ID: "create", Label: "Create document", Prefix: "File", Suffix: "Local", Description: "Start a blank invoice", Keywords: "new", Group: "Files", Icon: lucide.FilePlus(), Kbds: []string{"Ctrl", "N"}},
 		{ID: "appearance", Label: "Appearance options", Placeholder: "Choose a theme…", Group: "Preferences", Children: []nui.CommandAction{{ID: "light", Label: "Light workspace", Icon: lucide.Sun()}, {ID: "dark", Label: "Dark workspace", Icon: lucide.Moon()}}},
-		{ID: "profile", Label: "Personal workspace", Description: "Your account and documents", Group: "Files", Avatar: &nui.AvatarOptions{Text: "LC", Alt: "Lin Chen"}, Decoration: nui.Decoration{UI: nui.Styles{nui.ItemLabelSlot: {Weight: nui.Set(600)}}}},
+		{ID: "profile", Label: "Personal workspace", Description: "Your account and documents", Group: "Files", Avatar: &nui.AvatarOptions{Text: "LC", Alt: "Lin Chen"}, UI: nui.Styles{nui.ItemLabelSlot: {Weight: nui.Set(600)}}},
 		{ID: "status", Label: "Service status", Group: "Status", Chip: &nui.ChipOptions{Color: nui.Success}},
 		{ID: "sync", Label: "Background sync", Group: "Status", Loading: true, Disabled: true},
 		{ID: "protected", Label: "Protected command", Group: "Actions", OnSelectEvent: func(e *nui.CommandEvent) {

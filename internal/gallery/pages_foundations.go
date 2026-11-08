@@ -190,7 +190,7 @@ func (a *State) foundationPage(id string) *componentPage {
 		add("composition", "Icon and custom label", "Link has no icon option; compose an Icon beside it using native layout.", func(c *ui.Context, t nui.Theme) {
 			comparison(c, func() {
 				nui.Icon(c, t, lucide.ArrowRight(), nui.IconOptions{})
-				nui.Link(c, t, "View details", nui.LinkOptions{Color: nui.Secondary, Decoration: nui.Decoration{UI: nui.Styles{nui.Label: {Weight: nui.Set(700)}}}}).OnClick(func() { customResult = "Details opened" })
+				nui.Link(c, t, "View details", nui.LinkOptions{Color: nui.Secondary, UI: nui.Styles{nui.Label: {Weight: nui.Set(700)}}}).OnClick(func() { customResult = "Details opened" })
 			})
 			ui.Text(c, customResult)
 		})
@@ -527,7 +527,7 @@ func (a *State) foundationPage(id string) *componentPage {
 		add("card", "Avatar and card placeholder", "A rounded avatar and text compose a static loading card.", func(c *ui.Context, t nui.Theme) {
 			nui.Card(c, t, nui.CardOptions{}, func() {
 				comparison(c, func() {
-					nui.Skeleton(c, t, nui.SkeletonOptions{Width: nui.Set(float32(48)), Height: nui.Set(float32(48)), Animate: nui.Set(false), Decoration: nui.Decoration{UI: nui.Styles{nui.Root: {Radius: nui.Set(float32(999))}}}})
+					nui.Skeleton(c, t, nui.SkeletonOptions{Width: nui.Set(float32(48)), Height: nui.Set(float32(48)), Animate: nui.Set(false), UI: nui.Styles{nui.Root: {Radius: nui.Set(float32(999))}}})
 					ui.Column(c).Gap(8).Children(func() {
 						nui.Skeleton(c, t, nui.SkeletonOptions{Width: nui.Set(float32(180)), Animate: nui.Set(false)})
 						nui.Skeleton(c, t, nui.SkeletonOptions{Width: nui.Set(float32(120)), Animate: nui.Set(false)})
@@ -544,11 +544,11 @@ func (a *State) foundationPage(id string) *componentPage {
 			nui.Checkbox(c.Key("square"), t, &square, nui.CheckboxOptions{Label: "Square skeleton corners"})
 			nui.Skeleton(c.Key("sample"), t, nui.SkeletonOptions{
 				Width: nui.Set(float32(160)), Height: nui.Set(float32(48)), Animate: nui.Set(false),
-				Decoration: nui.Decoration{UI: nui.Styles{nui.Root: {Radius: nui.Set(float32(24))}}, Style: func(_ nui.Slot, e ui.Element) {
+				UI: nui.Styles{nui.Root: {Radius: nui.Set(float32(24))}}, Style: func(_ nui.Slot, e ui.Element) {
 					if square {
 						e.Radius(0)
 					}
-				}},
+				},
 			}).Label("Skeleton shape sample")
 		})
 	case "progress":
@@ -670,7 +670,7 @@ func (a *State) foundationPage(id string) *componentPage {
 			opts := nui.EmptyOptions{Icon: lucide.Folder(), Loading: loading, Actions: func() {
 				nui.Input(c.Key("draft"), t, &draft, nui.InputOptions{Label: "Empty action draft"}).Width(180)
 				nui.Button(c.Key("create"), t, "Create from empty action", nui.ButtonOptions{}).OnClick(func() { actions++ })
-			}, Footer: func() { ui.Textf(c, "Empty actions: %d", actions) }, Decoration: nui.Decoration{UI: nui.Styles{nui.Leading: {Foreground: nui.Set(t.Error)}}}}
+			}, Footer: func() { ui.Textf(c, "Empty actions: %d", actions) }, UI: nui.Styles{nui.Leading: {Foreground: nui.Set(t.Error)}}}
 			if showTitle {
 				opts.Title = "这是一段用于检查窄窗口换行和操作区状态保留的空状态说明"
 			}

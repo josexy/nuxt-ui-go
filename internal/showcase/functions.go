@@ -15,11 +15,11 @@ import (
 )
 
 func functionModes(t reflect.Type) []string {
-	for i := 0; i < t.NumIn(); i++ {
-		if t.In(i) == reflect.TypeFor[ui.Element]() {
+	for in := range t.Ins() {
+		if in == reflect.TypeFor[ui.Element]() {
 			return []string{"style"}
 		}
-		if t.In(i) == reflect.TypeFor[*ui.Context]() {
+		if in == reflect.TypeFor[*ui.Context]() {
 			return []string{"content"}
 		}
 	}
@@ -59,8 +59,8 @@ func functionSignature(t reflect.Type) (string, []string) {
 		names = append(names, name)
 		in = append(in, name+" "+goType(t.In(i)))
 	}
-	for i := 0; i < t.NumOut(); i++ {
-		out = append(out, goType(t.Out(i)))
+	for out0 := range t.Outs() {
+		out = append(out, goType(out0))
 	}
 	signature := "func(" + strings.Join(in, ", ") + ")"
 	if len(out) == 1 {

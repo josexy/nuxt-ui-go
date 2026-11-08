@@ -15,7 +15,7 @@ func TestModalBackdropOpacityDoesNotJumpAtAnimationEnd(t *testing.T) {
 	open := true
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
-		nui.ModalWithOptions(c, th, &open, nui.ModalOptions{Title: "Dialog", Decoration: nui.Decoration{UI: nui.Styles{nui.Backdrop: {Background: nui.Set(ui.RGBA(0, 0, 0, .5))}}}}, nil)
+		nui.ModalWithOptions(c, th, &open, nui.ModalOptions{Title: "Dialog", UI: nui.Styles{nui.Backdrop: {Background: nui.Set(ui.RGBA(0, 0, 0, .5))}}}, nil)
 	}, 600, 400)
 	tt.Advance(199 * time.Millisecond)
 	before := tt.Image().RGBAAt(4, 4).R
@@ -31,11 +31,11 @@ func TestModalEmptyHeaderAndInheritedPanelText(t *testing.T) {
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
 		th.Motion.Reduce = true
-		nui.ModalWithOptions(c, th, &open, nui.ModalOptions{CloseButton: nui.Set(false), Decoration: nui.Decoration{UI: nui.Styles{nui.Panel: {Foreground: nui.Set(ui.RGB(255, 0, 255)), FontSize: nui.Set(float32(24)), LineHeight: nui.Set(float32(1.5))}}, Style: func(slot nui.Slot, e ui.Element) {
+		nui.ModalWithOptions(c, th, &open, nui.ModalOptions{CloseButton: nui.Set(false), UI: nui.Styles{nui.Panel: {Foreground: nui.Set(ui.RGB(255, 0, 255)), FontSize: nui.Set(float32(24)), LineHeight: nui.Set(float32(1.5))}}, Style: func(slot nui.Slot, e ui.Element) {
 			if slot == nui.Header {
 				e.Label("Empty header")
 			}
-		}}}, func(nui.Theme) { ui.Text(c, "Plain body text") }).Label("Dialog panel")
+		}}, func(nui.Theme) { ui.Text(c, "Plain body text") }).Label("Dialog panel")
 	}, 600, 400)
 	if _, ok := tt.Find("Empty header"); ok {
 		t.Fatal("empty title/description/close left a header")
@@ -51,7 +51,7 @@ func TestModalClipsContentToPanelCorners(t *testing.T) {
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
 		th.Motion.Reduce = true
-		nui.ModalWithOptions(c, th, &open, nui.ModalOptions{CloseButton: nui.Set(false), Overlay: nui.Set(false), Decoration: nui.Decoration{UI: nui.Styles{nui.Panel: {Background: nui.Set(ui.Transparent), Radius: nui.Set(float32(24)), BorderWidth: nui.Set(float32(0)), Shadow: nui.Set(nui.ShadowTokens{})}, nui.Body: {PaddingX: nui.Set(float32(0)), PaddingY: nui.Set(float32(0)), Background: nui.Set(ui.RGB(255, 0, 0))}}}}, func(nui.Theme) { ui.Box(c).FillWidth().Height(80).Background(ui.RGB(255, 0, 0)) }).Label("Rounded dialog")
+		nui.ModalWithOptions(c, th, &open, nui.ModalOptions{CloseButton: nui.Set(false), Overlay: nui.Set(false), UI: nui.Styles{nui.Panel: {Background: nui.Set(ui.Transparent), Radius: nui.Set(float32(24)), BorderWidth: nui.Set(float32(0)), Shadow: nui.Set(nui.ShadowTokens{})}, nui.Body: {PaddingX: nui.Set(float32(0)), PaddingY: nui.Set(float32(0)), Background: nui.Set(ui.RGB(255, 0, 0))}}}, func(nui.Theme) { ui.Box(c).FillWidth().Height(80).Background(ui.RGB(255, 0, 0)) }).Label("Rounded dialog")
 	}, 600, 400)
 	r := bounds(t, tt, "Rounded dialog")
 	if got := tt.Image().RGBAAt(int(r.X)+1, int(r.Y+r.H)-2); got == rgba(ui.RGB(255, 0, 0)) {

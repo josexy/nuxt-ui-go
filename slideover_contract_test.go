@@ -16,7 +16,7 @@ func TestSlideoverInsetFitsEveryEdge(t *testing.T) {
 				open := true
 				tt := ui.NewTester(func(c *ui.Context) {
 					th := nui.App(c, nui.AppConfig{})
-					nui.Slideover(c, th, &open, nui.SlideoverOptions{ModalOptions: nui.ModalOptions{Title: "Inset panel", Transition: nui.Set(false)}, Side: side, Extent: nui.Set(float32(300)), Inset: true}, func(nui.Theme) { ui.Text(c, "Body") })
+					nui.Slideover(c, th, &open, nui.SlideoverOptions{Title: "Inset panel", Transition: nui.Set(false), Side: side, Extent: nui.Set(float32(300)), Inset: true}, func(nui.Theme) { ui.Text(c, "Body") })
 				}, size[0], size[1])
 				r := bounds(t, tt, "Inset panel")
 				w, h := float32(size[0]), float32(size[1])
@@ -38,7 +38,7 @@ func TestSlideoverCustomBackdropFades(t *testing.T) {
 	open := true
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
-		nui.Slideover(c, th, &open, nui.SlideoverOptions{ModalOptions: nui.ModalOptions{Title: "Panel", Decoration: nui.Decoration{UI: nui.Styles{nui.Backdrop: {Background: nui.Set(ui.RGBA(0, 0, 0, .5))}}}}, Extent: nui.Set(float32(180))}, nil)
+		nui.Slideover(c, th, &open, nui.SlideoverOptions{Title: "Panel", UI: nui.Styles{nui.Backdrop: {Background: nui.Set(ui.RGBA(0, 0, 0, .5))}}, Extent: nui.Set(float32(180))}, nil)
 	}, 600, 400)
 	first := tt.Image().RGBAAt(4, 4).R
 	tt.Advance(250 * time.Millisecond)
@@ -58,7 +58,7 @@ func TestSlideoverEmptyTopKeepsBodyPadding(t *testing.T) {
 	open := true
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.Slideover(c, th, &open, nui.SlideoverOptions{ModalOptions: nui.ModalOptions{Title: "Empty panel", Transition: nui.Set(false)}, Side: nui.SideTop}, nil)
+		nui.Slideover(c, th, &open, nui.SlideoverOptions{Title: "Empty panel", Transition: nui.Set(false), Side: nui.SideTop}, nil)
 	}, 600, 400)
 	if r := bounds(t, tt, "Empty panel"); r.H != 113 {
 		t.Fatalf("empty slideover=%v, want header 64 + divider 1 + body padding 48", r)
@@ -72,7 +72,7 @@ func TestSlideoverTransitionExitReversalAndFocus(t *testing.T) {
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		nui.Button(c.Key("open"), th, "Open panel", nui.ButtonOptions{}).Bind(&opener).OnClick(func() { open = true })
-		nui.Slideover(c.Key("panel"), th, &open, nui.SlideoverOptions{ModalOptions: nui.ModalOptions{Title: "Panel", Transition: nui.Set(transition), Dismissible: nui.Set(!block), ReturnFocus: &opener, OnClose: func() { closed++ }, OnClosePrevent: func() { prevented++ }}, Inset: true, Extent: nui.Set(float32(240))}, func(th nui.Theme) {
+		nui.Slideover(c.Key("panel"), th, &open, nui.SlideoverOptions{Title: "Panel", Transition: nui.Set(transition), Dismissible: nui.Set(!block), ReturnFocus: &opener, OnClose: func() { closed++ }, OnClosePrevent: func() { prevented++ }, Inset: true, Extent: nui.Set(float32(240))}, func(th nui.Theme) {
 			nui.Button(c, th, "Panel action", nui.ButtonOptions{}).OnClick(func() { actions++ })
 		})
 	}, 600, 400)
@@ -128,7 +128,7 @@ func TestSlideoverDirectionInsetAndIgnoredModalFieldsPreserveSelection(t *testin
 	value := "Selected draft"
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		o := nui.SlideoverOptions{ModalOptions: nui.ModalOptions{Title: "Panel", Transition: nui.Set(false)}, Side: side, Inset: inset, Extent: nui.Set(float32(300))}
+		o := nui.SlideoverOptions{Title: "Panel", Transition: nui.Set(false), Side: side, Inset: inset, Extent: nui.Set(float32(300))}
 		if ignored {
 			o.Width = nui.Set(float32(10))
 			o.MaxHeight = nui.Set(float32(20))
@@ -160,11 +160,11 @@ func TestSlideoverDarkInsetAndTextScaling(t *testing.T) {
 	open := true
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.DarkMode})
-		nui.Slideover(c, th, &open, nui.SlideoverOptions{Inset: true, Extent: nui.Set(float32(300)), ModalOptions: nui.ModalOptions{Title: "Dark panel", Transition: nui.Set(false), Style: func(slot nui.Slot, e ui.Element) {
+		nui.Slideover(c, th, &open, nui.SlideoverOptions{Inset: true, Extent: nui.Set(float32(300)), Title: "Dark panel", Transition: nui.Set(false), Style: func(slot nui.Slot, e ui.Element) {
 			if slot == nui.Label {
 				e.Label("Scaled heading")
 			}
-		}}}, nil)
+		}}, nil)
 	}, 600, 400)
 	tt.SetPreferences(ui.Preferences{TextScale: 1.5})
 	r := bounds(t, tt, "Dark panel")

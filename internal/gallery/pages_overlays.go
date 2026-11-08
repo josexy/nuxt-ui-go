@@ -116,7 +116,7 @@ func (a *State) overlayPage(id string) *componentPage {
 					nui.Input(c, inner, &name, nui.InputOptions{Label: "Dialog workspace name"}).FillWidth()
 					if sample.id == "nested" {
 						nui.Select(c, inner, &plan, plans, nui.SelectOptions{Label: "Dialog plan"}).FillWidth()
-						nui.InputMenu(c, inner, &reviewer, propsOptions, nui.InputMenuOptions{InputOptions: nui.InputOptions{Label: "Reviewer"}}).FillWidth()
+						nui.InputMenu(c, inner, &reviewer, propsOptions, nui.InputMenuOptions{Label: "Reviewer"}).FillWidth()
 					} else {
 						ui.Text(c, "A native modal focus scope.")
 					}
@@ -163,9 +163,9 @@ func (a *State) overlayPage(id string) *componentPage {
 			var trigger ui.Handle
 			add(sample.id, sample.id+" panel", "Open a side panel and edit its draft. The bottom panel requires its Done action; other panels allow Escape.", func(c *ui.Context, t nui.Theme) {
 				nui.Button(c, t, "Open "+sample.id+" panel", nui.ButtonOptions{Variant: nui.Outline}).Bind(&trigger).OnClick(func() { open = true })
-				nui.Slideover(c, t, &open, nui.SlideoverOptions{Side: sample.side, Extent: nui.Set(float32(380)), ModalOptions: nui.ModalOptions{Title: "Workspace preferences", Description: sample.id + " side", Dismissible: nui.Set(sample.dismissible), ReturnFocus: &trigger, Footer: func(c *ui.Context, inner nui.Theme) {
+				nui.Slideover(c, t, &open, nui.SlideoverOptions{Side: sample.side, Extent: nui.Set(float32(380)), Title: "Workspace preferences", Description: sample.id + " side", Dismissible: nui.Set(sample.dismissible), ReturnFocus: &trigger, Footer: func(c *ui.Context, inner nui.Theme) {
 					nui.Button(c, inner, "Done with preferences", nui.ButtonOptions{}).OnClick(func() { open = false })
-				}}}, func(inner nui.Theme) {
+				}}, func(inner nui.Theme) {
 					nui.Input(c, inner, &name, nui.InputOptions{Label: sample.id + " panel name"}).FillWidth()
 				})
 			})
@@ -186,11 +186,11 @@ func (a *State) overlayPage(id string) *componentPage {
 			if customBackdrop {
 				styles[nui.Backdrop] = nui.PartStyle{Background: nui.Set(t.Info.Alpha(.35))}
 			}
-			nui.Slideover(c.Key("review"), t, &open, nui.SlideoverOptions{Side: side, Inset: inset, Extent: nui.Set(float32(340)), ModalOptions: nui.ModalOptions{Title: "Reviewed panel", Description: "Edit the draft, then change the placement.", Transition: nui.Set(!noMotion), Dismissible: nui.Set(!blocked), ReturnFocus: &trigger, Decoration: nui.Decoration{UI: styles}, OnClose: func() { closed++ }, OnClosePrevent: func() { prevented++ }, Footer: func(c *ui.Context, inner nui.Theme) {
+			nui.Slideover(c.Key("review"), t, &open, nui.SlideoverOptions{Side: side, Inset: inset, Extent: nui.Set(float32(340)), Title: "Reviewed panel", Description: "Edit the draft, then change the placement.", Transition: nui.Set(!noMotion), Dismissible: nui.Set(!blocked), ReturnFocus: &trigger, UI: styles, OnClose: func() { closed++ }, OnClosePrevent: func() { prevented++ }, Footer: func(c *ui.Context, inner nui.Theme) {
 				nui.Button(c.Key("side"), inner, "Move panel side", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() { side = nui.Side((int(side) + 1) % 4) })
 				nui.Button(c.Key("inset"), inner, "Toggle panel inset", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() { inset = !inset })
 				nui.Button(c.Key("done"), inner, "Finish panel review", nui.ButtonOptions{}).OnClick(func() { open = false })
-			}}}, func(inner nui.Theme) {
+			}}, func(inner nui.Theme) {
 				nui.Input(c.Key("draft"), inner, &draft, nui.InputOptions{Label: "Reviewed panel draft"})
 				for i := range 12 {
 					ui.Text(c.Key(i), fmt.Sprintf("Panel detail %02d", i+1)).Height(30)
@@ -238,7 +238,7 @@ func (a *State) overlayPage(id string) *componentPage {
 			if customClose {
 				closeOptions = &nui.ButtonOptions{AccessibleLabel: "Close policy toast", Size: nui.XL, Color: nui.Info, Variant: nui.Soft}
 			}
-			actions := []nui.ToastActionOptions{{ID: "keep", Label: "Keep", ButtonOptions: nui.ButtonOptions{AccessibleLabel: "Keep policy toast"}, Close: nui.Set(false), OnAction: func() { policyActions++ }}, {ID: "done", Label: "Done", ButtonOptions: nui.ButtonOptions{AccessibleLabel: "Done policy toast"}, OnAction: func() { policyActions++ }}}
+			actions := []nui.ToastActionOptions{{ID: "keep", Label: "Keep", AccessibleLabel: "Keep policy toast", Close: nui.Set(false), OnAction: func() { policyActions++ }}, {ID: "done", Label: "Done", AccessibleLabel: "Done policy toast", OnAction: func() { policyActions++ }}}
 			if reverse {
 				actions[0], actions[1] = actions[1], actions[0]
 			}
@@ -380,7 +380,7 @@ func (a *State) overlayPage(id string) *componentPage {
 			if customIndicator {
 				parts = nui.Styles{nui.Indicator: {Background: nui.Set(ui.RGB(255, 0, 255))}}
 			}
-			nui.Tabs(c.Key("tabs"), t, &value, items, nui.TabsOptions{Label: "Contract tabs", Size: size, Vertical: vertical, Underline: underline, Content: nui.Set(content), KeepMounted: keep, ActivationMode: mode, OnChange: func(string) { changes++ }, Decoration: nui.Decoration{UI: parts}})
+			nui.Tabs(c.Key("tabs"), t, &value, items, nui.TabsOptions{Label: "Contract tabs", Size: size, Vertical: vertical, Underline: underline, Content: nui.Set(content), KeepMounted: keep, ActivationMode: mode, OnChange: func(string) { changes++ }, UI: parts})
 			nui.Button(c.Key("reverse"), t, "Reverse contract tabs", nui.ButtonOptions{Variant: nui.Outline}).AlignSelf(ui.Start).KeepFocus().OnClick(func() { reverse = !reverse })
 			nui.Button(c.Key("direction"), t, "Toggle contract direction", nui.ButtonOptions{Variant: nui.Outline}).AlignSelf(ui.Start).KeepFocus().OnClick(func() { vertical = !vertical })
 			label := "Remove account tab"
@@ -499,7 +499,7 @@ func (a *State) overlayPage(id string) *componentPage {
 				last = lucide.ChevronsDown()
 				ellipsis = lucide.EllipsisVertical()
 			}
-			nui.Pagination(c, t, &contractPage, nui.PaginationOptions{Label: "Contract pages", Total: total, PageSize: 10, SiblingCount: nui.Set(0), ShowEdges: nui.Set(edges), ActiveColor: nui.Info, ActiveVariant: nui.Outline, FirstIcon: first, PrevIcon: previous, NextIcon: next, LastIcon: last, EllipsisIcon: ellipsis, OnChange: func(int) { changes++ }, Decoration: nui.Decoration{UI: nui.Styles{nui.Ellipsis: {Foreground: nui.Set(t.Info)}}, Style: func(slot nui.Slot, e ui.Element) {
+			nui.Pagination(c, t, &contractPage, nui.PaginationOptions{Label: "Contract pages", Total: total, PageSize: 10, SiblingCount: nui.Set(0), ShowEdges: nui.Set(edges), ActiveColor: nui.Info, ActiveVariant: nui.Outline, FirstIcon: first, PrevIcon: previous, NextIcon: next, LastIcon: last, EllipsisIcon: ellipsis, OnChange: func(int) { changes++ }, UI: nui.Styles{nui.Ellipsis: {Foreground: nui.Set(t.Info)}}, Style: func(slot nui.Slot, e ui.Element) {
 				switch slot {
 				case nui.First:
 					e.Label("Contract first page")
@@ -510,7 +510,7 @@ func (a *State) overlayPage(id string) *componentPage {
 				case nui.Last:
 					e.Label("Contract last page")
 				}
-			}}})
+			}})
 			nui.Button(c, t, "Shrink contract total", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() { total = 10 })
 			ui.Textf(c, "Contract page: %d · Changes: %d", contractPage, changes)
 		})
@@ -616,11 +616,11 @@ func (a *State) overlayPage(id string) *componentPage {
 			}
 			nui.Banner(c.Key("contract-banner"), t, &contractOpen, nui.BannerOptions{Title: "Contract announcement", Icon: icon, Color: nui.Neutral, CloseLabel: "Close contract banner", Close: close, OnSelect: func() { selected++ }, OnClose: func() { contractClosed++ }, Actions: func(c *ui.Context, inner nui.Theme) {
 				nui.Button(c, inner, "Contract banner action", nui.ButtonOptions{}).OnClick(func() { contractActions++ })
-			}, Decoration: nui.Decoration{Style: func(slot nui.Slot, e ui.Element) {
+			}, Style: func(slot nui.Slot, e ui.Element) {
 				if slot == nui.Root {
 					e.Label("Contract banner")
 				}
-			}}})
+			}})
 			nui.Button(c, t, "Toggle contract banner icon", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() { showIcon = !showIcon })
 			nui.Button(c, t, "Show contract banner", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { contractOpen = true })
 			ui.Textf(c, "Banner selections: %d · Actions: %d · Closed: %d", selected, contractActions, contractClosed)
@@ -661,21 +661,21 @@ func (a *State) overlayPage(id string) *componentPage {
 					nui.Button(c, inner, "Contract recover", nui.ButtonOptions{}).OnClick(func() { recoveries++ })
 				}
 			}
-			nui.ErrorView(c, t, nui.ErrorOptions{Status: "503", Title: "Missing project", Description: "Retry uses local state.", Icon: lucide.CircleAlert(), RetryLabel: "Contract retry", Clear: nui.Set(clear), Retry: retry, Actions: actions, OnRetry: func() { contractRetries++ }, Decoration: nui.Decoration{UI: nui.Styles{nui.StatusSlot: {Foreground: nui.Set(t.Info)}}}})
+			nui.ErrorView(c, t, nui.ErrorOptions{Status: "503", Title: "Missing project", Description: "Retry uses local state.", Icon: lucide.CircleAlert(), RetryLabel: "Contract retry", Clear: nui.Set(clear), Retry: retry, Actions: actions, OnRetry: func() { contractRetries++ }, UI: nui.Styles{nui.StatusSlot: {Foreground: nui.Set(t.Info)}}})
 			ui.Textf(c, "Error retries: %d · Recoveries: %d", contractRetries, recoveries)
 		})
 		retries := 0
 		recovered := false
 		add("status", "Status code", "An embedded error keeps its message within the preview.", func(c *ui.Context, t nui.Theme) {
-			nui.ErrorView(c, t, nui.ErrorOptions{Status: "404", Title: "Project not found", Description: "The local fixture has no record with this ID.", Decoration: nui.Decoration{UI: nui.Styles{nui.Label: {FontSize: nui.Set(float32(24))}}}})
+			nui.ErrorView(c, t, nui.ErrorOptions{Status: "404", Title: "Project not found", Description: "The local fixture has no record with this ID.", UI: nui.Styles{nui.Label: {FontSize: nui.Set(float32(24))}}})
 		})
 		add("retry", "Retry counter", "Retry is simulated and performs no network request.", func(c *ui.Context, t nui.Theme) {
-			nui.ErrorView(c, t, nui.ErrorOptions{Status: "503", Title: "Activity unavailable", OnRetry: func() { retries++ }, Decoration: nui.Decoration{UI: nui.Styles{nui.Label: {FontSize: nui.Set(float32(24))}}}})
+			nui.ErrorView(c, t, nui.ErrorOptions{Status: "503", Title: "Activity unavailable", OnRetry: func() { retries++ }, UI: nui.Styles{nui.Label: {FontSize: nui.Set(float32(24))}}})
 			ui.Textf(c, "Retried %d times", retries)
 		})
 		add("recovery", "Recover to content", "The retry action replaces the error with a success alert.", func(c *ui.Context, t nui.Theme) {
 			if !recovered {
-				nui.ErrorView(c, t, nui.ErrorOptions{Title: "Activity details could not load", Description: "Try loading the local preview again.", RetryLabel: "Restore activity", OnRetry: func() { recovered = true }, Decoration: nui.Decoration{UI: nui.Styles{nui.Label: {FontSize: nui.Set(float32(24))}}}})
+				nui.ErrorView(c, t, nui.ErrorOptions{Title: "Activity details could not load", Description: "Try loading the local preview again.", RetryLabel: "Restore activity", OnRetry: func() { recovered = true }, UI: nui.Styles{nui.Label: {FontSize: nui.Set(float32(24))}}})
 			} else {
 				nui.Alert(c, t, nui.AlertOptions{Title: "Activity restored", Color: nui.Success})
 				nui.Button(c, t, "Reset recovery", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { recovered = false })

@@ -102,11 +102,11 @@ func TestPopoverPanelTypographyReachesPlainContent(t *testing.T) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
 		th.Motion.Reduce = true
 		a := nui.Button(c, th, "Anchor", nui.ButtonOptions{})
-		nui.Popover(c, th, a, &open, nui.PopoverOptions{Decoration: nui.Decoration{UI: nui.Styles{nui.Panel: {Foreground: nui.Set(ui.RGB(255, 0, 255)), FontSize: nui.Set(float32(24)), LineHeight: nui.Set(float32(1.5))}}, Style: func(_ nui.Slot, e ui.Element) {
+		nui.Popover(c, th, a, &open, nui.PopoverOptions{UI: nui.Styles{nui.Panel: {Foreground: nui.Set(ui.RGB(255, 0, 255)), FontSize: nui.Set(float32(24)), LineHeight: nui.Set(float32(1.5))}}, Style: func(_ nui.Slot, e ui.Element) {
 			if callback {
 				e.TextColor(ui.RGB(0, 180, 0)).FontSize(28).LineHeight(2).Gap(24)
 			}
-		}}}, func(nui.Theme) { ui.Text(c, "Popup text"); ui.Text(c, "Second line") })
+		}}, func(nui.Theme) { ui.Text(c, "Popup text"); ui.Text(c, "Second line") })
 	}, 400, 260)
 	r := bounds(t, tt, "Popup text")
 	if r.H != 36 || countColor(tt.Image(), r, rgba(ui.RGB(255, 0, 255))) == 0 {

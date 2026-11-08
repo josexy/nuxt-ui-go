@@ -85,11 +85,11 @@ func goType(t reflect.Type) string {
 		return "map[" + goType(t.Key()) + "]" + goType(t.Elem())
 	case reflect.Func:
 		var in, out []string
-		for i := 0; i < t.NumIn(); i++ {
-			in = append(in, goType(t.In(i)))
+		for in0 := range t.Ins() {
+			in = append(in, goType(in0))
 		}
-		for i := 0; i < t.NumOut(); i++ {
-			out = append(out, goType(t.Out(i)))
+		for out0 := range t.Outs() {
+			out = append(out, goType(out0))
 		}
 		result := "func(" + strings.Join(in, ", ") + ")"
 		if len(out) == 1 {
@@ -620,13 +620,13 @@ func Schemas() map[string]ValueSchema {
 				s.Kind = "function"
 				s.Choices = functionModes(t)
 				s.Sample = map[string]any{"mode": s.Choices[0], "text": "Example"}
-				for i := 0; i < t.NumIn(); i++ {
-					s.Arguments = append(s.Arguments, goType(t.In(i)))
+				for in := range t.Ins() {
+					s.Arguments = append(s.Arguments, goType(in))
 				}
-				for i := 0; i < t.NumOut(); i++ {
-					if t.Out(i) != reflect.TypeFor[ui.Element]() {
-						visit(t.Out(i))
-						s.Returns = append(s.Returns, goType(t.Out(i)))
+				for out := range t.Outs() {
+					if out != reflect.TypeFor[ui.Element]() {
+						visit(out)
+						s.Returns = append(s.Returns, goType(out))
 					}
 				}
 			case reflect.Interface:

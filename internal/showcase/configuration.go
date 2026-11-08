@@ -2,6 +2,7 @@ package showcase
 
 import (
 	"fmt"
+	"maps"
 	"reflect"
 	"slices"
 	"strconv"
@@ -160,9 +161,7 @@ func mergePatch(base, patch any) any {
 	}
 	result := map[string]any{}
 	if defaults, ok := base.(map[string]any); ok {
-		for k, v := range defaults {
-			result[k] = v
-		}
+		maps.Copy(result, defaults)
 	}
 	for k, v := range m {
 		result[k] = mergePatch(result[k], v)

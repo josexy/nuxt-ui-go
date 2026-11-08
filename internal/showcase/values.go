@@ -38,7 +38,7 @@ func iconNames() []string {
 }
 func iconFunction(name string) string {
 	var parts []string
-	for _, p := range strings.Split(name, "-") {
+	for p := range strings.SplitSeq(name, "-") {
 		parts = append(parts, strings.ToUpper(p[:1])+p[1:])
 	}
 	return "lucide." + strings.Join(parts, "") + "()"
