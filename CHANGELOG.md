@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.0.2 - 2026-11-07
 
 Components that animate, wait, or are hidden no longer keep the window building the view.
 
