@@ -1,37 +1,37 @@
-# 表单、日期与数据组件
+# Forms, dates, and data components
 
-本页介绍带校验的表单、专用输入框、日期时间，以及列表、表格和树。普通文字输入、字段标签和下拉选择见[输入、选择与字段](inputs.md)。
+This page covers forms with validation, specialized inputs, dates and times, and lists, tables, and trees. For ordinary text input, field labels, and dropdown selects, see [Inputs, selection, and fields](inputs.md).
 
-| 当前任务 | 建议组件 |
+| Task | Component |
 | --- | --- |
-| 校验多个字段并提交 | [Form](#form) |
-| 输入数字、标签、验证码或评分 | [专用输入组件](#数值标签pin评分) |
-| 搜索并选择列表项，接入远程搜索 | [Listbox、SelectMenu、QueryState](#listboxselectmenu-与异步搜索) |
-| 输入日期、时间或颜色 | [日期时间组件](#calendarinputdateinputtime)、[ColorPicker](#colorpicker) |
-| 展示可排序表格或层级数据 | [Table](#table)、[Tree](#tree) |
+| Validate several fields and submit them | [Form](#form) |
+| Enter numbers, tags, verification codes, or ratings | [Specialized inputs](#numbers-tags-pins-and-ratings) |
+| Search and select list items, including remote search | [Listbox, SelectMenu, QueryState](#listbox-selectmenu-and-async-search) |
+| Enter a date, time, or color | [Date and time components](#calendar-inputdate-and-inputtime), [ColorPicker](#colorpicker) |
+| Display a sortable table or hierarchical data | [Table](#table), [Tree](#tree) |
 
-## 生命周期与主题
+## Lifecycle and themes
 
-业务值和组件状态按窗口保存，不要在每次构建中重新初始化，也不要复制已使用的状态。返回的 `ui.Element` 仅在当前构建有效，Element 和 Context 不放入应用模型或后台任务。
+Keep business values and component state per window. Do not reinitialize them on every build, and do not copy state that a component has already used. A returned `ui.Element` is valid only during the current build; do not put Elements or Contexts in your app model or background tasks.
 
-FormTicket、QueryTicket、TreeTicket 是异步操作的标识，包含实例身份和版本。结果必须交回发起请求的状态对象；数据已变化或请求已取消时，旧结果会被拒绝。后台只处理数据快照，通过 `Window.Update` 返回 UI 线程，关窗时取消业务任务。
+FormTicket, QueryTicket, and TreeTicket identify async operations and carry the instance identity and a version. Return each result to the state object that started the request; old results are rejected if the data has changed or the request was canceled. Background work should operate only on data snapshots and return to the UI thread through `Window.Update`. Cancel business tasks when the window closes.
 
-InputNumber、InputDate、InputTime 沿用 Input 的尺寸、五种字段变体、颜色、只读、禁用、图标和错误设置。其他组件按各自 Options 配置；本页末尾有[样式部件索引](#样式部件索引)。
+InputNumber, InputDate, and InputTime share Input's sizes, five field variants, colors, read-only and disabled states, icons, and error settings. Other components are configured through their own Options; see the [style part index](#style-part-index) at the end of this page.
 
 ## Form
 
-### 注册字段并提交
+### Register fields and submit
 
-Form 管理字段校验、错误显示和首个错误字段的焦点。FormState 保存字段初值、是否修改（Dirty）、是否已交互（Touched）、可见性、错误和 Handle。
+Form manages field validation, error display, and focusing the first field with an error. FormState stores each field's initial value, whether it has changed (Dirty), whether the user has interacted with it (Touched), its visibility, its error, and its Handle.
 
-字段通过 FormField 的 Name / Value 注册。Name 在一次表单构建中必须非空且唯一，Value 是应用明确转换后的字符串。一个字段对应一个编辑值。
+Register a field through FormField's Name and Value. Within one form build, Name must be non-empty and unique, and Value is a string your app converts explicitly. Each field corresponds to one edited value.
 
 ```go
-// form nui.FormState 和 name string 保存在窗口模型中。
+// form nui.FormState and name string are stored in the window model.
 nui.Form(c, theme, &form, nui.FormOptions{
     Validate: func(values nui.FormValues) nui.FormErrors {
         if values["name"] == "" {
-            return nui.FormErrors{"name": "请输入名称"}
+            return nui.FormErrors{"name": "Enter a name"}
         }
         return nil
     },
@@ -40,66 +40,66 @@ nui.Form(c, theme, &form, nui.FormOptions{
     nui.FormField(c, inner, nui.FormFieldOptions{
         Name: "name",
         Value: name,
-        Label: "名称",
+        Label: "Name",
         Required: true,
     }, func(field nui.Theme) {
         nui.Input(c, field, &name, nui.InputOptions{})
     })
-    nui.Button(c, inner, "保存", nui.ButtonOptions{}).OnClick(form.Submit)
+    nui.Button(c, inner, "Save", nui.ButtonOptions{}).OnClick(form.Submit)
 })
 ```
 
-FormValues 和 FormErrors 都是 `map[string]string` 的命名类型。表单不通过反射推导结构；跨字段校验直接读取完整 Values。上例的 save 由应用提供，耗时保存应放到后台。
+FormValues and FormErrors are both named `map[string]string` types. The form does not use reflection to derive a structure; cross-field validation reads the complete Values directly. In this example, your app provides `save`; run slow saves in the background.
 
-空名称或尚未注册名称的错误同样会阻止提交，可通过 `form.Errors()` 获取并显示全局错误。无效提交调用一次 `OnError`，有效提交调用一次 `OnSubmit`；回调收到独立快照。显式 Validate、SetErrors 和 CompleteAsync 不自动触发这两个事件。
+Errors for empty names or names that have not been registered also block submission. Read them with `form.Errors()` to display global errors. An invalid submission calls `OnError` once and a valid one calls `OnSubmit` once; each callback receives its own snapshot. Explicit Validate, SetErrors, and CompleteAsync calls do not trigger either callback.
 
-### 校验、隐藏和重置
+### Validating, hiding, and resetting
 
-| 操作或状态 | 行为 |
+| Action or state | Behavior |
 | --- | --- |
-| 首次注册字段 | 当前值作为 Dirty 比较的初值 |
-| 失焦或 `Touch(name)` | 将字段标记为 Touched |
-| `Submit()` / `Validate(...)` | 执行校验，标记当前字段为 Touched，并聚焦构建顺序中的首个错误字段 |
-| 隐藏或禁用字段 | 保留模型、Dirty、Touched 和错误，但不进入 Values、提交校验或错误焦点选择 |
-| `Reset()` | 取消旧请求、清理错误和交互状态，并以下次构建的当前值作为新初值；不改写应用绑定的数据 |
-| `Errors()` / `SetErrors(errors)` | 获取独立错误快照 / 替换校验错误；非法编辑草稿仍优先且会阻止提交 |
-| `ClearErrors(names...)` | 清除指定名称的校验错误；不传名称时清除全部，不会把非法草稿改成有效值 |
+| First registration of a field | The current value becomes the initial value for Dirty comparisons |
+| Blur or `Touch(name)` | Marks the field as Touched |
+| `Submit()` / `Validate(...)` | Runs validation, marks the current fields as Touched, and focuses the first field with an error in build order |
+| Hidden or disabled field | Keeps its model, Dirty, Touched, and error, but is excluded from Values, submit validation, and error focus |
+| `Reset()` | Cancels pending requests, clears errors and interaction state, and uses the values from the next build as the new initial values. Does not change the data bound by your app |
+| `Errors()` / `SetErrors(errors)` | Gets a separate snapshot of the errors / replaces the validation errors. Invalid edit drafts still take precedence and block submission |
+| `ClearErrors(names...)` | Clears validation errors for the given names, or all errors if no names are passed. Does not make an invalid draft valid |
 
-非法的数字、日期或其他编辑草稿也会阻止提交，避免提交上一次有效值。业务校验由 Submit 或显式 Validate 触发，不会在每次输入时自动运行。
+Invalid number, date, or other edit drafts also block submission, so the last valid value is never submitted by mistake. Business validation runs on Submit or an explicit Validate, not automatically on every keystroke.
 
-隐藏字段再次出现时继续检查已有错误。需要恢复业务初值时，应用先恢复绑定数据，再按需要重置表单状态；单独调用 Reset 不会恢复输入内容。
+When a hidden field reappears, its existing error is checked again. To restore the business's initial values, your app first restores the bound data and then resets the form state as needed; calling Reset alone does not restore the input contents.
 
-同步 OnSubmit 返回且未启动异步工作，或 CompleteAsync 成功时，当前可提交字段的 Dirty 清零。Touched 表示曾经失焦或参与校验；它与 Nuxt 的事件集合并非完全相同。嵌套 Form 各自管理字段，不自动连接父表单的值和校验；跨表单提交由应用协调。
+Dirty is cleared for the fields that can currently be submitted when a synchronous OnSubmit returns without starting async work, or when CompleteAsync succeeds. Touched means the field has lost focus or taken part in validation; this is not exactly the same set of events as in Nuxt UI. Nested Forms manage their own fields and are not automatically linked to the parent form's values and validation; your app coordinates submissions across forms.
 
-### 异步校验
+### Async validation
 
-1. 在 UI 线程调用 `ticket := form.BeginAsync()`，获得当前字段快照。
-2. 后台任务只读取 `ticket.Values` 并执行校验。
-3. 在 `Window.Update` 回调中调用 `form.CompleteAsync(ticket, errors)`。
-4. 返回 true 表示结果仍有效且无错误，再由应用执行保存。
+1. On the UI thread, call `ticket := form.BeginAsync()` to get a snapshot of the current fields.
+2. The background task reads only `ticket.Values` and performs validation.
+3. In a `Window.Update` callback, call `form.CompleteAsync(ticket, errors)`.
+4. A return value of true means the result is still current and has no errors; your app then saves.
 
-CompleteAsync 不会再次调用 OnSubmit。字段值、原始编辑文字、可见性变化，或 Cancel、新请求，都会使旧票据失效。`Cancel()` 只让表单拒绝旧结果，实际 I/O 的 context 仍由应用取消。
+CompleteAsync does not call OnSubmit again. A change to a field value, the raw edit text, or visibility invalidates the old ticket, as do Cancel and a new request. `Cancel()` only makes the form reject old results; your app must still cancel the context of any actual I/O.
 
-LoadingAuto 默认 true：BeginAsync 后，表单内的输入和按钮禁用，字段快照仍保留。需要在等待期间继续编辑时设置 `LoadingAuto: nui.Set(false)`，编辑会使旧票据失效。两种模式都忽略重复 Submit；禁用期间的提交也不会在重新启用后执行。取消和完成按钮应放在 Form 外部。
+LoadingAuto defaults to true: after BeginAsync, inputs and buttons inside the form are disabled, and the field snapshot is kept. To allow editing while waiting, set `LoadingAuto: nui.Set(false)`; editing then invalidates the old ticket. Both modes ignore repeated Submit calls, and a submission made while disabled does not run after the form is re-enabled. Put cancel and finish buttons outside the Form.
 
-Validate、SetErrors、ClearErrors 和 Reset 会取消旧票据，避免较旧结果覆盖最新校验或手工错误。卸载组件或关闭窗口前调用 Cancel；状态对象本身无法自动获知所有卸载路径。后台只能处理 ticket.Values，在 Window.Update 中接收结果。
+Validate, SetErrors, ClearErrors, and Reset cancel the old ticket so an older result cannot overwrite newer validation or manually set errors. Call Cancel before unmounting the component or closing the window; the state object cannot detect every unmount path on its own. Background work may only use ticket.Values, and results must be received in Window.Update.
 
-Root 是唯一样式部件，默认纵向间距 16 DIP；字体和文字颜色在正文构建前设置。这里没有 HTML form 提交、schema 转换、自动输入防抖校验或 Nuxt 嵌套路径处理。
+Root is the only style part, with a default vertical gap of 16 DIP; its font and text color are set before the body is built. There is no HTML form submission, schema conversion, automatic debounced validation, or Nuxt nested path handling.
 
-内置输入、选择和单值开关会自动关联字段 Handle；组合组只关联第一个控件。自定义控件需把 `form.Field(name).Handle` 绑定到真实可聚焦控件。
+Built-in inputs, selects, and single-value toggles are automatically associated with the field Handle; in a composite group, only the first control is associated. For a custom control, bind `form.Field(name).Handle` to the actual focusable control.
 
-设置页的 **Project setup** 演示分步注册、条件隐藏、跨字段日期和预算校验、错误焦点及可取消提交。其中 Confirm project 只模拟本地确认，不发送网络请求。
+The settings example's **Project setup** demonstrates step-by-step registration, conditionally hidden fields, cross-field date and budget validation, error focus, and a cancelable submission. Its Confirm project button only simulates local confirmation and sends no network request.
 
-## 数值、标签、PIN、评分
+## Numbers, tags, PINs, and ratings
 
 ### InputNumber
 
-InputNumber 绑定 `*Optional[float64]`，另用 NumberState 保存输入草稿。这样可以区分空值、未完成输入（例如单独的负号）和有效数值。
+InputNumber binds an `*Optional[float64]` and keeps the input draft in a separate NumberState. This distinguishes an empty value, an incomplete input (such as a lone minus sign), and a valid number.
 
 ```go
-// value nui.Optional[float64]、numberState nui.NumberState 按窗口保存。
+// value nui.Optional[float64] and numberState nui.NumberState are stored per window.
 nui.InputNumber(c, theme, &value, &numberState, nui.InputNumberOptions{
-    InputOptions: nui.InputOptions{Label: "数量"},
+    InputOptions: nui.InputOptions{Label: "Quantity"},
     Orientation: nui.Vertical,
     Min: nui.Set(0.0),
     Max: nui.Set(100.0),
@@ -107,151 +107,151 @@ nui.InputNumber(c, theme, &value, &numberState, nui.InputNumberOptions{
 })
 ```
 
-Step 默认 1，必须为有限正数，0 使用默认值。StepSnapping 默认 true：例如 Step=1 时从 18.98 向上到 19，向下到 18；关闭后直接加减步长。Min 是步长网格的起点，未设置时使用 0。空值或不能解析的草稿首次增减得到 StartingValue，未指定时使用 Min 或 0；显式起始值只限制到上下界，下一次操作才按步长对齐。
+Step defaults to 1 and must be a finite positive number; 0 uses the default. StepSnapping defaults to true: for example, with Step=1, stepping up from 18.98 gives 19 and stepping down gives 18. With snapping off, the step is added or subtracted directly. Min is the origin of the step grid, or 0 when unset. The first increment or decrement from an empty or unparseable draft gives StartingValue, which defaults to Min or 0. An explicit starting value is only clamped to the bounds; it is snapped to the step grid on the next operation.
 
-上下方向键增减一步，PageUp / PageDown 增减十步；提供 Min / Max 时，Home / End 到达对应可用边界。鼠标按下立即改变一次，持续按住 400 ms 后每 60 ms 重复；松开不会额外改变一次，禁用或卸载后停止。输入框聚焦且纵向滚动量较大时，滚轮默认改变数值，向下增加；DisableWheelChange 禁用，InvertWheelChange 反转方向。
+Up and Down change the value by one step and PageUp and PageDown by ten steps. When Min or Max is set, Home and End go to that bound. Pressing a button changes the value once immediately; holding it for 400 ms then repeats every 60 ms. Releasing it does not add another change, and repetition stops when the control is disabled or unmounted. When the input is focused and the vertical scroll amount is large enough, the mouse wheel changes the value by default, with scrolling down increasing it. DisableWheelChange turns this off and InvertWheelChange reverses the direction.
 
-有效编辑实时更新模型，Enter 对齐有效值或用绑定数值恢复非法草稿；失焦保留草稿。AllowInvalid 允许有限数值超出上下界，并保留手工输入，不自动标为范围错误；业务校验由应用处理。数字使用 ASCII 十进制和科学记数法，不接受 Go 的十六进制或下划线写法，不启用 IME；NaN / Inf 模型、起始值和非法边界会被拒绝。组件不提供地区、货币或 Intl 格式，float64 也不适合作为精确货币类型。
+Valid edits update the model as you type. Enter snaps a valid value to the grid, or restores an invalid draft from the bound value; blur keeps the draft. AllowInvalid lets finite values go outside the bounds and keeps manual input without marking it as a range error; your app handles business validation. Numbers use ASCII decimal and scientific notation. Go's hexadecimal and underscore forms are not accepted, and IME is not enabled. NaN/Inf models, starting values, and invalid bounds are rejected. The component provides no locale, currency, or Intl formatting, and float64 is not suitable as an exact currency type.
 
-| Orientation | 布局 |
+| Orientation | Layout |
 | --- | --- |
-| Horizontal（默认） | 左侧减号、居中数值、右侧加号 |
-| Vertical | 数值靠左，右侧上下排列增减箭头 |
+| Horizontal (default) | Minus on the left, value in the center, plus on the right |
+| Vertical | Value on the left, with up and down arrows stacked on the right |
 
-两种布局字段高度相同，按钮默认继承字段颜色和尺寸，使用链接样式，RTL 下按起始侧和结束侧调整。Increment / Decrement 默认显示按钮，可通过 Optional 显式关闭；IncrementOptions / DecrementOptions 配置按钮，IncrementIcon / DecrementIcon 覆盖图标。显式图标不会因为换成纵向而旋转。单侧 Disabled 只禁用该按钮，键盘和滚轮仍按字段规则工作。
+Both layouts have the same field height. The buttons inherit the field's color and size by default, use the link style, and swap start and end sides in RTL. Increment and Decrement show their buttons by default and can be turned off explicitly through Optional. IncrementOptions and DecrementOptions configure the buttons, and IncrementIcon and DecrementIcon override the icons. Explicit icons are not rotated in vertical layout. Disabling one side disables only that button; the keyboard and wheel still follow the field's rules.
 
-FocusOnChange 默认 true，增减后回到输入框；false 允许按钮保留焦点。方向和显示切换保留编辑器身份、草稿及选区；外部赋值或点击其他控件不会主动聚焦输入框。Style 接收整个字段、编辑器和前后配件；UI.IncrementSlot / DecrementSlot 配置增减按钮，自定义按钮 Style 最后执行。按钮保留原生 Tab 停靠点，没有 Web spinbutton 的完整角色映射。
+FocusOnChange defaults to true, which returns focus to the input after incrementing or decrementing; false lets the button keep focus. Changing the orientation or display keeps the editor's identity, draft, and selection. Assigning a value from outside or clicking another control does not focus the input. Style receives the whole field, the editor, and the leading and trailing accessories. UI.IncrementSlot and UI.DecrementSlot style the buttons, and a custom button Style runs last. The buttons keep their native Tab stops; there is no complete mapping to the web spinbutton role.
 
 ### InputTags
 
-InputTags 绑定 `*[]string`，TagsState.Query 保存尚未添加的草稿。Enter 添加标签，标签和编辑器在同一行内自动换行。光标在草稿开头时，Backspace 先选中末项，再次 Backspace / Delete 删除；左右方向键移动选中项，已选中时 Home / End 到首尾。删除按钮使用 DeleteIcon，默认 ×，删除后输入框恢复焦点。
+InputTags binds a `*[]string`, and TagsState.Query stores the draft that has not been added yet. Enter adds a tag, and tags and the editor wrap together on the same lines. With the cursor at the start of the draft, Backspace first selects the last tag, and a second Backspace or Delete removes it. Left and Right move the tag selection, and Home and End go to the first and last tags while a tag is selected. The delete button uses DeleteIcon, × by default; after a deletion, focus returns to the input.
 
-组件去除候选的首尾空白，再调用 ConvertValue 转换字符串，最后按大小写区分去重并检查 MaxTags。DisplayValue 只改变标签及删除按钮文字，值和稳定身份不变。OnTagsChange 返回切片副本；OnAddTag、OnRemoveTag、OnInvalid 分别报告每个新增、删除或拒绝的候选。一次成功批量粘贴最多通知一次 OnTagsChange，单项事件仍分别报告。
+The component trims leading and trailing whitespace from a candidate, converts the string with ConvertValue, then removes case-sensitive duplicates and checks MaxTags. DisplayValue changes only the text of the tag and its delete button; the value and stable identity are unchanged. OnTagsChange returns a copy of the slice. OnAddTag, OnRemoveTag, and OnInvalid report each added, removed, or rejected candidate. A successful batch paste fires OnTagsChange at most once, while the per-item events are still reported separately.
 
-默认不批量处理粘贴。设置 `AddOnPaste: nui.Set(true)` 后，按 Separators 分割，默认分隔符只有逗号；需要分号或换行时设置 `Separators: ",;\n"`。批量粘贴保留已有草稿。更多添加和重复策略见[参数说明](options.md#开关标签和评分)。
+Pasting is not split into tags by default. With `AddOnPaste: nui.Set(true)`, pasted text is split on Separators, which by default contains only a comma. To also split on semicolons or newlines, set `Separators: ",;\n"`. A batch paste keeps the existing draft. For more about when tags are added and how duplicates are handled, see [Switches, tags, and ratings](options.md#switches-tags-and-ratings).
 
-标签使用 Elevated 背景和 Accented 内边框，选中标签使用 Accented 背景；字号随字段尺寸，长标签可以换行。编辑器或标签按钮聚焦时，外框显示强调色与外圈；错误时使用错误色，None 不显示焦点外圈。Root 是整个字段，Body 是换行区域，Item / Label / Close / Indicator 对应标签容器、文字、删除按钮与图标。Style 的 root 现在也指整个字段。当前不支持对象模型、正则分隔符、拖拽排序或远程实体匹配。
+Tags use the Elevated background with an Accented inner border, and a selected tag uses the Accented background. The font size follows the field size, and long tags can wrap. When the editor or a tag button has focus, the frame shows the accent color and a focus ring; in the error state it uses the error color, and None shows no focus ring. Root is the whole field and Body is the wrapping area. Item, Label, Close, and Indicator are the tag container, its text, the delete button, and its icon. Style's root also refers to the whole field. Object models, regular expression separators, drag-and-drop reordering, and remote entity matching are not supported.
 
 ### PinInput
 
-PinInput 绑定 `*string`，另保存 PinState。默认是 5 格文本；六位数字验证码可使用 `PinInputOptions{Numeric: true, Length: 6}`。Length 范围为 1–32，按 rune 限长，Numeric 只接受 ASCII 数字。
+PinInput binds a `*string` and keeps a separate PinState. It defaults to 5 text cells; for a six-digit verification code, use `PinInputOptions{Numeric: true, Length: 6}`. Length ranges from 1 to 32 and is counted in runes. Numeric accepts only ASCII digits.
 
-Highlight 默认为 false，开启后全部格子显示当前颜色边框，字段错误优先。UI / Style 支持 Root、Item、Label 和 SeparatorSlot；Root.Gap / Padding 与分隔符字体、字号、内边距参与整体尺寸计算，显式 0 有效。原始 Style 回调直接改变宽高时，由应用协调父级尺寸。
+Highlight defaults to false; when enabled, all cells show a border in the current color, and a field error takes precedence. UI and Style support Root, Item, Label, and SeparatorSlot. Root.Gap/Padding and the separator's font, font size, and padding are included in the overall size calculation, and an explicit 0 is honored. If a raw Style callback changes the width or height directly, your app coordinates the parent's size.
 
-它使用一个真实编辑器和多个可视格子，Tab 只进入一次。编辑、粘贴、选区、复制和撤销/重做都由该编辑器处理。Numeric 模式不启用 IME，文本模式启用。长度达到要求且值变化时才触发 OnComplete，组件不会读取短信或自动提交。
+PinInput uses one real editor behind several visual cells, so Tab enters it only once. That editor handles editing, pasting, selection, copying, and undo/redo. Numeric mode does not enable IME; text mode does. OnComplete fires only when the required length is reached and the value has changed. The component does not read SMS messages or submit automatically.
 
-| 操作或选项 | 行为 |
+| Action or option | Behavior |
 | --- | --- |
-| 点击已有字符 | 选中该位，随后输入替换并移至下一位；末位继续输入会替换末位 |
-| 粘贴多个字符 | 覆盖对应位置，不把后面的内容向后挤 |
-| Backspace | 删除选中的字符；点击空格子或格子间隙时，光标移到现有内容末尾 |
-| SeparatorEvery / Separator | 按固定间隔或指定位置分组；例如 `SeparatorEvery: 2` 或 `Separator: []int{3}` |
-| ReadOnly / Placeholder / 遮罩 | 分别控制只读、空格子文字和内容显示 |
+| Click an existing character | Selects that position; typing replaces it and moves to the next. Typing at the last position replaces the last character |
+| Paste several characters | Overwrites the corresponding positions without pushing later characters back |
+| Backspace | Deletes the selected character. Clicking an empty cell or the gap between cells moves the cursor to the end of the existing content |
+| SeparatorEvery / Separator | Groups cells at a fixed interval or at given positions, for example `SeparatorEvery: 2` or `Separator: []int{3}` |
+| ReadOnly / Placeholder / masking | Control read-only state, text in empty cells, and whether the content is shown |
 
-格子间距为 6 DIP，随 Density 缩放。分隔符是居中的 Dimmed 色圆点，两侧间距相同。当前格子显示 3 DIP、25% 不透明度的主题色焦点外圈；错误时改为 Error，高对比模式使用不透明外圈，None 不显示外圈。
+Cells are 6 DIP apart, scaled by Density. The separator is a centered dot in the Dimmed color with equal space on both sides. The current cell shows a 3 DIP focus ring in the theme color at 25% opacity. In the error state it uses Error, in high contrast mode the ring is opaque, and None shows no ring.
 
-聚焦的空格子隐藏 Placeholder 并显示闪烁光标；减少动态效果时光标常亮，只读、禁用或失焦时隐藏。FormField 有 Error 时，各格子都显示错误边框。文字缩放和遮罩不会改变点击位置的判断。
+A focused empty cell hides its Placeholder and shows a blinking cursor. With reduced motion, the cursor stays solid; it is hidden when read-only, disabled, or unfocused. When FormField has an Error, every cell shows the error border. Text scaling and masking do not affect hit testing.
 
 ### InputRating
 
-InputRating 绑定 `*int`，默认 Max=5，0 表示未评分。只支持整数评分，不含半星、任意精度或拖拽评分。
+InputRating binds an `*int`. Max defaults to 5, and 0 means not rated. Only whole-number ratings are supported; there are no half stars, arbitrary precision, or drag-to-rate.
 
-| 操作 | 行为 |
+| Action | Behavior |
 | --- | --- |
-| 横向 ←→ / 纵向 ↑↓ | 按一个等级移动，到首尾停止；横向随 RTL 调整，另一轴无效 |
-| Home / PageUp | 设为 1 |
-| End / PageDown | 设为 Max |
-| Space | 空评分设为 1；启用 Clearable 后可清零当前评分 |
-| Enter | 不处理 |
+| ←→ (horizontal) / ↑↓ (vertical) | Move one level and stop at the ends. Horizontal keys follow RTL, and keys for the other axis do nothing |
+| Home / PageUp | Set to 1 |
+| End / PageDown | Set to Max |
+| Space | Sets an empty rating to 1. With Clearable, resets the current rating to 0 |
+| Enter | Not handled |
 
-方向键不会把评分从 1 降为 0；清零需启用 Clearable。键盘焦点外圈位于当前星上，空评分时位于第一颗星。只读评分仍可 Tab 聚焦，但不响应修改按键。
+Arrow keys never lower the rating from 1 to 0; clearing requires Clearable. The keyboard focus ring is on the current star, or on the first star when there is no rating. A read-only rating can still receive focus with Tab, but ignores keys that would change it.
 
-星标大小按 XS 到 XL 为 12/16/20/24/28 DIP，间距 2 DIP，组件按内容宽度排列。可交互时悬停星标放大到 1.1 倍。Hoverable 开启后，悬停只预览，经过星间空隙保留预览，离开或清零后取消。FormField 出错时，实心星和焦点外圈使用 Error 色。
+Stars are 12/16/20/24/28 DIP for sizes XS to XL, 2 DIP apart, and the component is as wide as its content. When interactive, the hovered star scales to 1.1×. With Hoverable on, hovering only previews the rating; the preview stays while the pointer crosses gaps between stars and is canceled when the pointer leaves or the rating is cleared. When FormField has an error, filled stars and the focus ring use the Error color.
 
-UI / Style 支持 Root、Item、Indicator、IconSlot 和 EmptyIconSlot。未评分图标作为底层，评分或悬停范围内叠加 Indicator 和 IconSlot；两种图标不同时，底层仍可能出现在叠加图标周围。Indicator 的前景色由 IconSlot 继承，后者可以单独覆盖。Root 的 Gap / Padding 参与整体尺寸计算；Item 的 Shadow 可覆盖默认焦点外圈。Neutral 的已评分图标使用 Highlighted，焦点外圈使用 InvertedBackground。只读保持正常颜色和默认光标。
+UI and Style support Root, Item, Indicator, IconSlot, and EmptyIconSlot. The empty icon is drawn as the base layer, and Indicator and IconSlot are layered on top within the rated or hovered range. If the two icons differ, the base layer may still show around the overlay. IconSlot inherits Indicator's foreground color and can override it. Root's Gap/Padding are included in the overall size calculation, and Item's Shadow can override the default focus ring. With Neutral, rated icons use Highlighted and the focus ring uses InvertedBackground. A read-only rating keeps its normal colors and the default cursor.
 
-Max 接受 1–20，0 使用默认 5；外部评分或 Max 变化会静默限制到 0–Max，OnChange 只报告实际用户修改。Hoverable、Clearable 默认 false。Nuxt UI 的 step 可表示半星等小数评分，本库的整数绑定没有对应字段；也不提供任意 item 内容构建器、HTML 表单字段和网页 radio 节点。
+Max accepts 1–20, and 0 uses the default of 5. When the rating or Max changes from outside, the rating is silently clamped to 0–Max; OnChange reports only actual user changes. Hoverable and Clearable default to false. Nuxt UI's step can represent fractional ratings such as half stars, but this library's integer binding has no corresponding field. There is also no arbitrary item content builder, HTML form field, or web radio node.
 
 ### CheckboxTri
 
-CheckboxTri 使用 CheckState：Unchecked、Checked、Indeterminate。混合态向辅助技术提供 Mixed 状态，首次激活后变为 Checked，之后在 Checked / Unchecked 间切换。
+CheckboxTri uses a CheckState: Unchecked, Checked, or Indeterminate. The indeterminate state is reported to assistive technology as Mixed. The first activation changes it to Checked, and later activations toggle between Checked and Unchecked.
 
-`IndeterminateIcon` 设置部分选中时的图标，未设置时使用减号；`CheckedIcon` 设置普通选中图标。隐藏指示器时，只把显式 `CheckedIcon` 显示在标签上方，不使用部分选中图标，也不补入默认图标。`OnChange` 报告是否选中，`OnStateChange` 报告完整 CheckState；一次有效操作分别通知一次，修改图标本身不触发这些回调。
+`IndeterminateIcon` sets the icon for the indeterminate state and defaults to a minus sign; `CheckedIcon` sets the ordinary checked icon. With the indicator hidden, only an explicit `CheckedIcon` is shown above the label; the indeterminate icon is not used and no default icon is added. `OnChange` reports whether the box is checked, and `OnStateChange` reports the full CheckState. Each effective action fires each callback once; changing an icon fires neither.
 
-父子选中关系由业务计算。只需要开关状态时，使用绑定 `*bool` 的 Checkbox。
+Your business logic computes parent-child check relationships. If you only need on/off, use a Checkbox bound to a `*bool`.
 
 ### RangeSlider
 
-RangeSlider 接收两个 `*float64`，默认范围 0–100、Step=1。两个滑块交叉后会排序并转移活动焦点，保持 low≤high；不满足最小间距的移动会被拒绝。应用传入的越界值会在构建时限制到合法范围。
+RangeSlider takes two `*float64` values. By default, the range is 0–100 and Step=1. If the two thumbs cross, they are reordered and active focus moves with them so that low ≤ high always holds. Moves that would violate the minimum distance are rejected. Out-of-range values passed by your app are clamped during the build.
 
-常用选项包括 Orientation、Inverted、Tooltip、MinStepsBetweenThumbs、Color、Size、OnChange 和 OnCommit。两个滑块有独立焦点，并向辅助技术提供各自的实际值和最小值/最大值名称。
+Common options include Orientation, Inverted, Tooltip, MinStepsBetweenThumbs, Color, Size, OnChange, and OnCommit. Each thumb has its own focus and reports its own value and minimum/maximum names to assistive technology.
 
-Indicator.Background 和 Thumb.Background 与单滑块一致生效。小数步长去掉运算尾数，最小间隔比较使用随间隔大小变化的容差；极小步长也不能让两端重合后再推移另一端。禁用父容器会取消当前拖拽，不触发提交。
+Indicator.Background and Thumb.Background work the same way as on a single Slider. Floating-point noise is removed from fractional steps, and the minimum-distance comparison uses a tolerance that scales with the distance; even a very small step cannot make the thumbs overlap and then push the other thumb along. Disabling a parent container cancels the current drag without a commit.
 
-放在 FormField 中时，点击标签聚焦第一个滑块，字段描述和错误也关联到它。方向和键盘说明见[参数文档](options.md#滑块和内容切换)，纵向辅助技术限制见[兼容性说明](compatibility.md#无障碍与动态效果)。
+Inside a FormField, clicking the label focuses the first thumb, and the field's description and error are associated with it. For orientation and keyboard behavior, see [Sliders, tabs, and accordions](options.md#sliders-tabs-and-accordions). For vertical assistive technology limits, see [Accessibility and motion](compatibility.md#accessibility-and-motion).
 
-## Listbox、SelectMenu 与异步搜索
+## Listbox, SelectMenu, and async search
 
-### Listbox：直接展示可选择列表
+### Listbox: a selectable list shown inline
 
-ListboxItem 的 ID 必须非空且唯一。Label、Description 提供文字，Group 为相邻项目添加组标题；Kind 可以是 ListboxOption、ListboxLabel 或 ListboxSeparator，结构行也需要 ID。选择值为 `*[]string`，空切片表示未选择；ListboxState 保存查询、活动项、滚动和持久 QueryHandle。
+Each ListboxItem's ID must be non-empty and unique. Label and Description provide the text, and Group adds a group heading to adjacent items. Kind can be ListboxOption, ListboxLabel, or ListboxSeparator; structural rows also need IDs. The selected value is a `*[]string`, where an empty slice means nothing is selected. ListboxState stores the query, the active item, scroll state, and a persistent QueryHandle.
 
-默认 SelectionToggle，单选和多选均可再次激活以取消。SelectionReplace 在激活时替换选择；多选时还支持 Shift 连续范围选择。暂时不在数据源中的选中 ID 会保留，便于异步搜索；永久失效的 ID 由应用清理。
+The default is SelectionToggle: in both single and multiple selection, activating a selected item again deselects it. SelectionReplace replaces the selection on activation, and in multiple selection it also supports Shift range selection. Selected IDs that are temporarily missing from the data source are kept, which helps with async search; your app cleans up IDs that are gone for good.
 
-Icon、Avatar、Chip 按此顺序选择前导内容，与文字首行对齐。SelectedIcon 覆盖默认勾选图标。单项 Options 提供 UI、Style 和 OnSelect；回调接收改值前的 ID 与选中状态，可调用 PreventDefault 阻止本次选择及组件 OnSelect。选项行外观见[输入组件](inputs.md#选项行的外观)。MD 行高约 32 DIP，有描述时增加一行。
+Icon, Avatar, and Chip are checked in that order for the leading content, which aligns with the first line of text. SelectedIcon overrides the default check icon. Per-item options provide UI, Style, and OnSelect. The callback receives the ID and the selected state before the change, and can call PreventDefault to cancel this selection and the component's OnSelect. For the row appearance, see [Option row appearance](inputs.md#option-row-appearance). An MD row is about 32 DIP tall, plus one line when it has a description.
 
-Size / Color 默认 MD / Primary，实例选项优先于组件主题，尺寸还可继承 FormField。Highlight 持续显示颜色边框；键盘聚焦时显示外圈，Neutral 使用 InvertedBackground。嵌入 SelectMenu 时，列表跟随菜单的尺寸和颜色。
+Size and Color default to MD and Primary. Instance options take precedence over the component theme, and the size can also be inherited from FormField. Highlight keeps a colored border visible. Keyboard focus shows a focus ring, which uses InvertedBackground with Neutral. When embedded in SelectMenu, the list follows the menu's size and color.
 
-Filter 默认 false，开启后可通过 FilterInput 配置搜索输入框。SearchTerm 接受持久字符串指针，未设置时使用 State.Query。FilterFields 默认仅匹配 label，也支持 description、value/id、group；显式空列表不匹配非空查询。筛选忽略大小写和组合附加符号，在各组及结构行之间的选项段内，按完全匹配、前缀、包含排序。它不实现完整的地区排序规则。
+Filter defaults to false. When enabled, configure the search input through FilterInput. SearchTerm takes a persistent string pointer; when unset, State.Query is used. FilterFields defaults to matching label only and also supports description, value/id, and group; an explicit empty list matches nothing for a non-empty query. Filtering ignores case and combining diacritical marks. Within each run of options between groups and structural rows, results are ordered by exact match, then prefix match, then substring match. Full locale collation rules are not implemented.
 
-隐藏筛选框后仍使用保留的查询词；IgnoreFilter 跳过本地筛选。Loading 用图标替换选项并暂停列表操作，筛选框仍可编辑。LoadingIcon 可覆盖图标；减少动态效果时停止旋转。
+With the filter field hidden, a retained query still applies; IgnoreFilter skips local filtering. Loading replaces the options with an icon and pauses list interaction, while the filter field stays editable. LoadingIcon overrides the icon, and the spinner stops with reduced motion.
 
-| 方向或按键 | 行为 |
+| Orientation or key | Behavior |
 | --- | --- |
-| 纵向 | 原生虚拟列表，↑↓ 移动 |
-| 横向 | 按固定 ItemWidth 显示和裁剪项目，←→ 移动；组标题也占一项宽度 |
-| Home/End、Enter/Space | 到首尾、激活项目 |
-| 输入字符 | 按前缀检索项目 |
-| 筛选框中的 Enter | 保持输入焦点并激活高亮项；组合输入期间由输入法处理 |
-| 数据重排 / 外部选中值 | 重排保留稳定 ID；初始化或外部选中值变化时优先高亮可用的已选项，否则使用第一个可用项 |
+| Vertical | A native virtual list; ↑↓ move |
+| Horizontal | Items are shown and clipped at a fixed ItemWidth; ←→ move. Group headings also take one item width |
+| Home/End, Enter/Space | Go to the first or last item; activate the item |
+| Typing characters | Finds items by prefix |
+| Enter in the filter field | Keeps focus in the input and activates the highlighted item; during IME composition, the IME handles it |
+| Reordered data / outside selection changes | Reordering keeps stable IDs. On initialization or when the selection changes from outside, the first available selected item is highlighted, or else the first available item |
 
-两种方向都只构建可见及少量预留项目。Height 是包含筛选框的总高度，未设置时纵向 224 DIP、横向 64 DIP；横向 ItemWidth 默认 160 DIP。同步 Build 可自定义非交互行内容，Loop 默认 false，HighlightOnHover 默认 true。OnHighlight 只通知用户操作造成的高亮变化，初始化和外部值更新不通知。
+In both orientations, only the visible items plus a few extra are built. Height is the total height including the filter field; when unset, it is 224 DIP vertically and 64 DIP horizontally. ItemWidth defaults to 160 DIP in horizontal layout. A synchronous Build can customize non-interactive row content. Loop defaults to false and HighlightOnHover to true. OnHighlight reports only highlight changes caused by the user, not initialization or outside value updates.
 
-### SelectMenu：搜索弹层
+### SelectMenu: searchable popup
 
-SelectMenu 将触发器与弹层内的搜索框、Listbox 组合起来。SelectMenuState 保存 Open、Query、Listbox 及触发器 Handle、搜索框 QueryHandle，Size / Color 同时作用于三个区域。SearchTerm 可绑定外部查询指针；外部赋值不通知 OnQuery 或 OnSearchTermChange。
+SelectMenu combines a trigger with a search field and a Listbox inside a popup. SelectMenuState stores Open, Query, the Listbox state, the trigger Handle, and the search field's QueryHandle. Size and Color apply to all three areas. SearchTerm can bind an external query pointer; assigning it from outside does not fire OnQuery or OnSearchTermChange.
 
-默认 ↑、↓ 都能从触发器打开，打开后聚焦搜索框；FocusSearch=false、SearchInput=false 或搜索框禁用时聚焦列表。搜索框中按 Enter 直接激活高亮项，↑↓ 进入列表，Escape 关闭并返回触发器。单选后关闭，多选继续打开；应用的选择回调主动移动焦点时保留该目标。
+By default, both ↑ and ↓ open the menu from the trigger and focus the search field. With FocusSearch=false, SearchInput=false, or a disabled search field, the list receives focus instead. In the search field, Enter activates the highlighted item directly, ↑↓ move into the list, and Escape closes the menu and returns to the trigger. Single selection closes the menu; multiple selection keeps it open. If your selection callback moves focus deliberately, that target is kept.
 
-默认筛选与 Listbox 相同；SearchInput 只控制搜索框显示，隐藏后仍使用已有查询。ExternalFilter 或 IgnoreFilter 为 true 时直接使用应用提供的结果。FilterInput 配置搜索框；SearchPlaceholder 保留为简便入口，FilterInput.Placeholder 优先。继承的 Filter 字段不参与 SelectMenu 行为。
+The default filtering is the same as Listbox. SearchInput only controls whether the search field is shown; when hidden, the existing query still applies. When ExternalFilter or IgnoreFilter is true, the results your app provides are used as is. FilterInput configures the search field. SearchPlaceholder remains as a shortcut, but FilterInput.Placeholder takes precedence. The inherited Filter field has no effect on SelectMenu.
 
-Leading、Avatar 配置触发器前导，Trailing 配置尾部箭头，Highlight 强调边框。Loading 使用 LoadingIcon 显示旋转图标，LoadingTrailing 控制位置；同时保留原生加载状态行，已有结果仍可选择。Error 和 EmptyText 分别配置状态文字与空结果提示。ShowTrailing=false 隐藏整个尾部区域。
+Leading and Avatar configure the trigger's leading content, Trailing sets the trailing arrow, and Highlight emphasizes the border. Loading shows a spinner using LoadingIcon, and LoadingTrailing controls its position. The native loading status row is also kept, and existing results can still be selected. Error and EmptyText set the status text and the no-results message. ShowTrailing=false hides the whole trailing area.
 
-| 选项 | 行为 |
+| Option | Behavior |
 | --- | --- |
-| ResetSearchTermOnSelect / ResetSearchTermOnBlur | 默认均启用，分别控制选择后和关闭后清空搜索词 |
-| Clearable / ClearOptions / ClearIcon | 有选择时，用可配置的清空按钮替换尾部箭头；ShowTrailing=false 时隐藏 |
-| ResetModelValueOnClear | 默认 true；控制清空按钮是否重置选中值。按钮始终清除查询，删除搜索文字本身不会重置选中值 |
-| OnClear / OnOpenChange | 一次用户清空或实际开关变化通知一次；直接修改 State.Open 不发出开关通知 |
-| OnCreate | 显示可点击或键盘激活的创建行，只发出创建请求，不自动新增或选中 |
-| CreateWhenAlways / CreateAtTop | 默认仅无匹配时显示创建行；可改为没有相同 ID 时显示，并调整位置 |
+| ResetSearchTermOnSelect / ResetSearchTermOnBlur | Both on by default. Clear the search term after a selection and after closing, respectively |
+| Clearable / ClearOptions / ClearIcon | When something is selected, replaces the trailing arrow with a configurable clear button. Hidden when ShowTrailing=false |
+| ResetModelValueOnClear | Default true. Controls whether the clear button resets the selected value. The button always clears the query, and deleting search text by itself never resets the selection |
+| OnClear / OnOpenChange | Fire once per user clear or actual open/close change. Changing State.Open directly does not report an open/close change |
+| OnCreate | Shows a create row that can be clicked or activated from the keyboard. Only sends a create request; it does not add or select anything automatically |
+| CreateWhenAlways / CreateAtTop | By default, the create row appears only when nothing matches. These options show it whenever no item has the same ID, and change its position |
 
-创建请求保留查询和打开状态，OnCreate 收到去除首尾空白的查询，不自动修改选项或选中值。OnHighlight 在创建行返回查询文本，不暴露内部行 ID。OnChange 只在值变化时通知；OnSelect 包含重新激活已选值。清空与重置查询只有在查询实际变化时才通知 OnQuery / OnSearchTermChange。
+A create request keeps the query and the open state. OnCreate receives the query with leading and trailing whitespace trimmed and does not change the options or the selection. On the create row, OnHighlight returns the query text instead of exposing an internal row ID. OnChange fires only when the value changes; OnSelect also fires when the selected value is activated again. Clearing or resetting the query fires OnQuery and OnSearchTermChange only if the query actually changed.
 
-未选择时使用 Dimmed 占位文字；Subtle 触发器悬停时背景加深。弹层搜索框默认 None 外观、无前导图标，下方有分隔线；列表无边框、行内缩 4 DIP，默认最大高度 240 DIP，内容少时自动缩短。自定义 Build 或部件高度时可显式设置 Height，自动估算不读取任意自定义布局。Root、Trigger、Leading、Label、Trailing 只配置触发器；列表使用 List、Header、ItemLeadingSlot、ItemLabelSlot、ItemTrailingSlot 等独立部件，面板使用 Popup.UI。
+With nothing selected, the trigger shows placeholder text in Dimmed. A Subtle trigger's background darkens on hover. The search field in the popup uses the None variant with no leading icon by default and has a separator below it. The list has no border, rows are inset by 4 DIP, and the default maximum height is 240 DIP, shrinking when there is little content. If you customize Build or part heights, set Height explicitly; the automatic estimate does not inspect arbitrary custom layouts. Root, Trigger, Leading, Label, and Trailing style only the trigger. The list uses separate parts such as List, Header, ItemLeadingSlot, ItemLabelSlot, and ItemTrailingSlot, and the panel uses Popup.UI.
 
-### 缓存与大量数据
+### Caching and large data sets
 
-Listbox 缓存数据快照、ID 索引、分组和选择集合。输入未变时不重建这些结构，应用原地修改切片也会被识别。但每次构建仍要线性比较快照，字符前缀检索也可能遍历全部项目。
+Listbox caches a snapshot of the data, an ID index, the groups, and the selection set. These structures are not rebuilt when the input has not changed, and in-place changes to the slice are also detected. However, each build still compares the snapshot linearly, and prefix search may scan every item.
 
-SelectMenu 缓存过滤结果和已选标签，临时缺失的选项保留上一次标签。首次处理大量选中项仍需要线性工作。虚拟列表减少的是 UI 构建量，数据处理成本仍取决于数据规模。
+SelectMenu caches filter results and selected labels; options that are temporarily missing keep their last label. Processing a large number of selected items for the first time still takes linear work. Virtual lists reduce the amount of UI built, but the cost of processing data still depends on its size.
 
-### QueryState：拒绝过期搜索结果
+### QueryState: reject stale search results
 
-QueryState[T] 可用于 SelectMenu 或 InputMenu 的应用数据源。应用负责发请求，QueryState 负责取消标识、加载状态和结果是否有效的检查。
+QueryState[T] can serve as the app data source for SelectMenu or InputMenu. Your app sends requests; QueryState handles cancellation tokens, the loading state, and checking whether a result is still valid.
 
 ```go
-// 在 UI 线程启动；queryState 按窗口保存。
+// Start on the UI thread; queryState is stored per window.
 ctx, ticket := queryState.Start(parentContext, query)
 go func() {
     items, err := fetchItems(ctx, ticket.Query)
@@ -261,139 +261,139 @@ go func() {
 }()
 ```
 
-`fetchItems` 是应用提供的请求函数。下一次构建将 queryState 的 Items、Loading、Error 传给菜单；远程搜索通常配合 ExternalFilter 使用。
+`fetchItems` is your app's request function. In the next build, pass queryState's Items, Loading, and Error to the menu. Remote search is usually combined with ExternalFilter.
 
-Start 会取消前一个 context；Complete 克隆结果切片并拒绝过期或来自其他实例的票据。离开视图或关窗时调用 `queryState.Cancel()`。库不创建网络任务，也不规定防抖时间、模糊匹配或远程分页方式。
+Start cancels the previous context. Complete clones the result slice and rejects tickets that are stale or come from another instance. Call `queryState.Cancel()` when leaving the view or closing the window. The library creates no network tasks and does not prescribe debounce timing, fuzzy matching, or remote paging.
 
-多选列表提供选择角色和选中行语义，但 MyGo 尚未开放独立的 multiselectable 标志，完整读屏体验仍需验证。
+Multi-select lists provide a selection role and selected-row semantics, but MyGo does not yet expose a separate multiselectable flag, so the full screen reader experience still needs verification.
 
-## Calendar、InputDate、InputTime
+## Calendar, InputDate, and InputTime
 
-### 先选择值类型
+### Choose a value type
 
-| 类型 | 表示什么 |
+| Type | Represents |
 | --- | --- |
-| `Date{Year, Month, Day}` | 1–9999 年的公历日期，不含时区和时刻 |
-| `Optional[Date]` | 单个日期，允许为空 |
-| `DateSelection{Start, End}` | 单日或日期范围，两端均为 Optional[Date] |
-| `ClockTime{Hour, Minute, Second}` | 不含日期和时区的时间，小时为 0–23 |
+| `Date{Year, Month, Day}` | A Gregorian date in the years 1–9999, without a time zone or time of day |
+| `Optional[Date]` | A single date that can be empty |
+| `DateSelection{Start, End}` | A single date or a date range; both ends are Optional[Date] |
+| `ClockTime{Hour, Minute, Second}` | A time without a date or time zone; Hour is 0–23 |
 
-Date 提供 Valid、Compare、AddDays、AddMonths、String、ParseDate。AddMonths 遇到目标月没有对应日期时，取该月最后一天。DateFromTime 读取传入 time.Time 所在 Location 的年月日，不做 UTC 转换；需要表示具体时刻时，由应用选择时区并处理夏令时。
+Date provides Valid, Compare, AddDays, AddMonths, String, and ParseDate. When AddMonths lands on a day that does not exist in the target month, it uses the last day of that month. DateFromTime reads the year, month, and day in the Location of the given time.Time without converting to UTC. To represent a specific instant, your app chooses the time zone and handles daylight saving time.
 
-### Calendar：点击选择日期
+### Calendar: pick a date by clicking
 
-Calendar 绑定 `*DateSelection`，CalendarState 保存首个显示月份 Month、键盘活动日期 Active、导航视图 View 和持久 Handle。Range=false 只使用 Start；Range=true 先选起点，再选终点，反向选择会规范化顺序。默认重复选择单日或未完成范围的起点会取消，PreventDeselect=true 保留原值；需要选择同日起止范围时也应开启此项。
+Calendar binds a `*DateSelection`. CalendarState stores the first displayed month (Month), the keyboard's active date (Active), the navigation view (View), and a persistent Handle. With Range=false, only Start is used. With Range=true, the user picks the start and then the end, and a reversed selection is put in order. By default, selecting the same single date, or the start of an incomplete range, again deselects it; PreventDeselect=true keeps the value instead. Enable it too if users need to pick a range that starts and ends on the same day.
 
-ReadOnly 允许聚焦、浏览和翻页，阻止用户改值。OnChange 只在实际改值时通知；外部赋值和配置重建不通知。OnMonthChange、OnViewChange 分别通知用户操作造成的首月与导航视图变化，外部直接修改状态保持静默。
+ReadOnly allows focusing, browsing, and paging but prevents the user from changing the value. OnChange fires only when the value actually changes, not for outside assignments or rebuilds caused by option changes. OnMonthChange and OnViewChange report changes to the first month and the navigation view caused by the user; changing the state directly from outside is silent.
 
-| 选项 | 行为 |
+| Option | Behavior |
 | --- | --- |
-| Min / Max / IsDateDisabled | 限制日期；方向键跳过禁用日期，端点必须可选 |
-| IsDateUnavailable | 显示删除线，键盘可以浏览，但不能选作端点 |
-| AllowNonContiguousRanges | 默认 false；true 允许范围经过不可用日期 |
-| IsDateHighlightable | 显式允许范围经过指定的内部日期；不解除端点限制 |
-| MaximumDays | 包含两端的范围天数上限，0 不限制；超出上限的候选禁用 |
-| FixedDate | 完整范围可固定起点或终点；越过固定端时更新该端，保持日期顺序 |
-| Color / Variant / Size | 默认 Primary / Solid / MD；支持 Solid、Outline、Soft、Subtle，尺寸继承字段或组件主题 |
-| WeekStart / WeekdayFormat | WeekStart 保留原生默认周日；星期默认窄名称，也可选缩写或完整名称 |
-| FixedWeeks | 默认 true，显示六周；false 按当月显示四至六周 |
-| NumberOfMonths / PagedNavigation | 默认一个月，最多 12 个；空间不足时换行。PagedNavigation 让月份按钮按显示月数翻页 |
-| MonthControls / YearControls | 默认 true，显示日视图的月份和年份按钮；按钮与图标均可单独配置 |
-| ViewControl / ViewControlOptions | 默认启用标题按钮，在日、月、年导航视图间切换；月、年单元格只导航，不提交日期 |
-| YearsPerPage | 年导航默认每页 12 年，支持 1–120；IsMonthDisabled / Unavailable、IsYearDisabled / Unavailable 配置对应导航视图 |
-| PreviousPage / NextPage | 自定义前后页的目标日期；用于月份按钮及月、年视图的翻页按钮，不改变独立的前后年按钮与键盘规则 |
-| Today | 固定今天的位置，便于示例或测试；未设置时使用当前本地日期 |
+| Min / Max / IsDateDisabled | Restrict dates. Arrow keys skip disabled dates, and range ends must be selectable |
+| IsDateUnavailable | Shows a strikethrough. The keyboard can move onto it, but it cannot be chosen as a range end |
+| AllowNonContiguousRanges | Default false; true allows a range to span unavailable dates |
+| IsDateHighlightable | Explicitly allows a range to span the given inner dates. Does not lift the restriction on range ends |
+| MaximumDays | Maximum range length in days, counting both ends; 0 means no limit. Candidates beyond the limit are disabled |
+| FixedDate | Fixes the start or end of a complete range. Moving past the fixed end updates that end and keeps the dates in order |
+| Color / Variant / Size | Default Primary / Solid / MD. Supports Solid, Outline, Soft, and Subtle. The size is inherited from the field or the component theme |
+| WeekStart / WeekdayFormat | WeekStart keeps the native default of Sunday. Weekdays use narrow names by default, and abbreviated or full names are also available |
+| FixedWeeks | Default true, which always shows six weeks; false shows four to six weeks depending on the month |
+| NumberOfMonths / PagedNavigation | One month by default, up to 12, wrapping when space runs out. PagedNavigation makes the month buttons page by the number of months shown |
+| MonthControls / YearControls | Default true, which shows the month and year buttons in the day view. Buttons and icons can be configured individually |
+| ViewControl / ViewControlOptions | The heading button is on by default and switches between the day, month, and year views. Month and year cells only navigate; they do not commit a date |
+| YearsPerPage | The year view shows 12 years per page by default, from 1 to 120. IsMonthDisabled/Unavailable and IsYearDisabled/Unavailable configure the matching views |
+| PreviousPage / NextPage | Custom target dates for paging back and forward. Used by the month buttons and the paging buttons of the month and year views; does not change the separate previous/next year buttons or the keyboard rules |
+| Today | Pins today's date, which is useful for examples and tests. When unset, the current local date is used |
 
-| 按键 | 日视图行为 |
+| Key | Behavior in the day view |
 | --- | --- |
-| ←→ / ↑↓ | 按天 / 按周移动，左右随 RTL 调整，跳过禁用日期并遵守边界 |
-| PageUp / PageDown | 上个月 / 下个月，尽量保留日号 |
-| Shift+PageUp / PageDown | 前一年 / 后一年 |
-| Home / End | 当前周的首个 / 最后一个可用日期 |
-| Enter / Space | 选择或取消当前日期；只读、禁用或不可用日期不会改值 |
+| ←→ / ↑↓ | Move by day / by week. Left and Right follow RTL; disabled dates are skipped and bounds are respected |
+| PageUp / PageDown | Previous / next month, keeping the day of the month where possible |
+| Shift+PageUp / PageDown | Previous / next year |
+| Home / End | First / last available date of the current week |
+| Enter / Space | Select or deselect the current date. Read-only, disabled, or unavailable dates do not change the value |
 
-月、年视图使用四列网格，方向键按列或行移动，PageUp / PageDown 按年或年份页移动。选择后返回下一层视图，日期值保持不变。只读模式也允许这种导航。
+The month and year views use a four-column grid. Arrow keys move by column or row, and PageUp/PageDown move by year or by page of years. Choosing a cell returns to the next view down without changing the date value. This navigation also works in read-only mode.
 
-WeekNumbers 按显式 WeekStart 计算：周日采用包含 1 月 1 日的第一周，其他起点采用包含 1 月 4 日的第一周，周一对应 ISO 周序号。这个规则不等同于 Nuxt 按 locale 推导周起始日和周序号。语言变化会更新标题、星期和按钮名称，不会改变显式周设置。
+WeekNumbers are computed from the explicit WeekStart. With Sunday, week 1 is the week containing January 1; with any other start day, it is the week containing January 4, so Monday gives ISO week numbers. This differs from Nuxt UI, which derives the week start and week numbers from the locale. Changing the language updates the heading, weekdays, and button names but does not change an explicit week setting.
 
-Month 会规范化为月首。外部修改选中起点或终点时跟随有效日期；清空选择保留浏览位置。改变显示月数时保持活动日期可见，9999 年末只显示剩余月份。多月共用一个原生键盘焦点，窄容器按可用空间换行。
+Month is normalized to the first of the month. When the selected start or end changes from outside, the view follows the valid date; clearing the selection keeps the current view. Changing the number of months keeps the active date visible, and at the end of the year 9999 only the remaining months are shown. Multiple months share one native keyboard focus and wrap to fit narrow containers.
 
-BuildDay、BuildMonth、BuildYear 可同步构建单元格内容，BuildWeekday 配置星期内容；默认名称、选择、禁用和焦点仍由容器提供。单元格内容应保持非交互，尺寸由日历决定。BuildHeading 替换默认标题，接收当前月份和视图；自定义控件通过持久 CalendarState 管理状态。构建器和日期谓词可能多次调用，不能在其中直接执行 I/O 或提交操作。
+BuildDay, BuildMonth, and BuildYear build cell content synchronously, and BuildWeekday configures the weekday content. The container still provides the default names, selection, disabled state, and focus. Keep cell content non-interactive; the calendar determines its size. BuildHeading replaces the default heading and receives the current month and view; custom controls manage their state through the persistent CalendarState. Builders and date predicates may be called many times, so never perform I/O or submit anything from them.
 
-日期和范围仍是公历的完整日期，不提供离散多日期模型或独立的整月、整年值模型。月、年导航视图不代表实现了 Nuxt 的 `type="month" / "year"`；这些值可由应用的 Select / InputNumber 等控件管理。其他历法、时区以及浏览器 DOM 插槽不在此原生模型中。
+Dates and ranges are always complete Gregorian dates. There is no discrete multi-date model and no separate whole-month or whole-year value model. The month and year navigation views do not implement Nuxt UI's `type="month"` or `type="year"`; manage those values with app controls such as Select or InputNumber. Other calendars, time zones, and browser DOM slots are outside this native model.
 
-### InputDate：输入日期
+### InputDate: type a date
 
-InputDate 绑定 `*Optional[Date]`，DateInputState 保存分段、草稿和可选日历状态。日期采用公历，显示顺序和分隔符随窗口区域设置变化。可用 PlaceholderValue 为首次调整空分段提供参考日期；它不会直接设置业务值，也不替代字符串占位文字。
+InputDate binds an `*Optional[Date]`, and DateInputState stores the segments, the draft, and the optional calendar state. Dates are Gregorian, and the segment order and separators follow the window's locale. PlaceholderValue provides a reference date for the first adjustment of an empty segment; it does not set the business value and does not replace the placeholder text.
 
-| 操作 | 行为 |
+| Action | Behavior |
 | --- | --- |
-| ←→、Tab / Shift+Tab | 在分段间移动；方向键遵循 RTL，Tab 进入或离开字段 |
-| 输入数字 | 达到位数或数值上限后自动进入下一段；年份按四位输入 |
-| ↑↓、Home / End | 按 DateStep 循环，或到当前段最小 / 最大值；步长 0 使用 1，不向相邻段进位 |
-| Backspace / Delete | 清空当前段；Ctrl/Cmd+A 后删除清空当前日期端点 |
-| Ctrl/Cmd+C/X/V | 复制、剪切、粘贴当前端点，也支持系统编辑命令 |
+| ←→, Tab / Shift+Tab | Move between segments. Arrow keys follow RTL; Tab enters or leaves the field |
+| Typing digits | Advances to the next segment once the digit count or the maximum value is reached. Years take four digits |
+| ↑↓, Home / End | Cycle by DateStep, or go to the segment's minimum or maximum. A step of 0 uses 1, and changes do not carry into neighboring segments |
+| Backspace / Delete | Clear the current segment. After Ctrl/Cmd+A, deleting clears the current date endpoint |
+| Ctrl/Cmd+C/X/V | Copy, cut, or paste the current endpoint; system edit commands also work |
 
-修改年月会将超出月底的日期限制到目标月末。粘贴接受 ISO 日期或当前区域顺序的数字日期。Calendar.Min / Max、IsDateDisabled / IsDateUnavailable 同时限制输入与日历；边界包含两端。外部赋值或配置变化不改写模型，现有值不符合约束时显示错误。
+Changing the year or month clamps a day past the end of the month to the last day of the target month. Pasting accepts ISO dates or numeric dates in the current locale's order. Calendar.Min/Max and IsDateDisabled/IsDateUnavailable restrict both typing and the calendar, and the bounds are inclusive. Outside assignments and option changes do not rewrite the model; if the current value violates a constraint, an error is shown.
 
-DateInputState.Text 保存 ISO 草稿，未填完的段用 `-` 表示。非法粘贴保留原文和 Error，屏幕上的上一组分段值及最后有效业务值不变；全部日期段清空时才清空业务值。OnChange 报告草稿，OnValueChange 仅在有效单日或空值实际变化时通知一次；外部赋值静默。切换语言保留草稿和焦点。只读允许导航与复制，禁止编辑。
+DateInputState.Text stores an ISO draft, with `-` for unfilled segments. An invalid paste keeps the pasted text and the Error, while the segments on screen and the last valid business value stay unchanged. The business value is cleared only when every date segment is empty. OnChange reports the draft; OnValueChange fires once only when the valid single date, or the empty value, actually changes. Outside assignments are silent. Changing the language keeps the draft and focus. Read-only mode allows navigation and copying but not editing.
 
-ShowCalendar 默认 false，开启后提供日历按钮和 Popover，选值后关闭。HideCalendar 优先于 ShowCalendar。Calendar 的外观、导航和部件配置用于弹层，Range 由输入函数决定；自定义 Label 保留。单日的 Calendar.OnChange 只报告日历操作，分段编辑使用 OnValueChange。自身、字段或祖先禁用时关闭已打开的弹层。
+ShowCalendar defaults to false. When enabled, it adds a calendar button and a Popover that closes after a date is chosen. HideCalendar takes precedence over ShowCalendar. The Calendar's appearance, navigation, and part options apply to the popup, while Range is determined by which input function you call; a custom Label is kept. For a single date, Calendar.OnChange reports only calendar actions; segment editing is reported through OnValueChange. The popup closes if the input, its field, or an ancestor becomes disabled.
 
-### InputDateRange：输入起止日期
+### InputDateRange: type a start and end date
 
-InputDateRange 绑定 `*DateSelection` 并保存 DateRangeInputState。两端共用外框，可跨端点导航，空间不足时换行。SeparatorIcon 默认为减号，BuildSeparator 可同步替换为非交互内容，SeparatorSlot 控制其样式。
+InputDateRange binds a `*DateSelection` and keeps a DateRangeInputState. Both ends share one frame, navigation can cross between them, and they wrap when space runs out. SeparatorIcon defaults to a minus sign. BuildSeparator can replace it synchronously with non-interactive content, and SeparatorSlot styles it.
 
-起点改到终点之后会清空终点；终点不能早于起点。MaximumDays、不可用日期及 AllowNonContiguousRanges 等范围规则也用于分段输入。外部起点超出日历上限时显示错误，不再生成相互冲突的日历边界。
+Moving the start after the end clears the end, and the end cannot be earlier than the start. Range rules such as MaximumDays, unavailable dates, and AllowNonContiguousRanges also apply to segment input. If the start value set from outside is past the calendar's upper bound, an error is shown instead of producing conflicting calendar bounds.
 
-OnRangeChange 报告分段或日历引起的实际范围变化。Clearable 一次清空两端，只通知一次；Calendar.OnChange 保留为兼容的范围通知，每次同样只调用一次。范围不调用单日的 OnValueChange。OnChange 仍报告各端点草稿，清空或日历改变两端时可各通知一次；OnClear 是整次清空动作的通知。第二个日历端点选完后关闭弹层。
+OnRangeChange reports actual range changes caused by segment editing or the calendar. Clearable clears both ends at once with a single notification. Calendar.OnChange remains as a compatible range notification and is also called only once per change. Ranges do not call the single-date OnValueChange. OnChange still reports each endpoint's draft, so clearing or a calendar change to both ends can fire it once per end; OnClear reports the clear action as a whole. The popup closes after the second calendar endpoint is chosen.
 
-放在同一个 FormField 中时，错误聚焦到起点首段。需要两端分别注册错误和焦点时，可组合两个 InputDate。
+Inside a single FormField, an error focuses the first segment of the start date. To register errors and focus for each end separately, combine two InputDates.
 
-### InputTime：输入时间
+### InputTime: type a time
 
-InputTime 绑定 `*Optional[ClockTime]`，TimeInputState 保存草稿。TwelveHour 未设置时使用窗口区域小时制，`nui.Set(true)` / `nui.Set(false)` 固定 12 / 24 小时。上下键在当前段循环，小时跨过中午或午夜会更新 AM/PM，A / P 可直接选择上下午。
+InputTime binds an `*Optional[ClockTime]`, and TimeInputState stores the draft. When TwelveHour is unset, the window locale's clock is used; `nui.Set(true)` and `nui.Set(false)` fix it to 12-hour and 24-hour respectively. Up and Down cycle within the current segment. When the hour crosses noon or midnight, AM/PM updates, and A or P selects the period directly.
 
-Granularity 可选 TimeHour、TimeMinute、TimeSecond。未设置时默认显示分钟，Seconds=true 增加秒；显式 Granularity 优先。改变小时制或精度不改写业务值、不通知，隐藏单位仍保留。隐藏正在聚焦的分钟或秒时回到可见段，隐藏上下午时回到小时。
+Granularity can be TimeHour, TimeMinute, or TimeSecond. When unset, minutes are shown by default, and Seconds=true adds seconds; an explicit Granularity takes precedence. Changing the clock or granularity does not rewrite the business value or fire notifications, and hidden units are kept. If the focused minute or second segment is hidden, focus moves to a visible segment; if the AM/PM segment is hidden, focus moves to the hour.
 
-TimeStep 分别设置小时、分钟、秒步长，0 使用 1，负数无效，不向其他段进位。StepSnapping 默认 false，开启后离开非空分段时按 0 起点取最近的有效步长，正好居中时向上取值；12 小时制按完整 24 小时时间计算。只读、禁用、被拒绝的草稿以及仅改变显示配置时不自动对齐。
+TimeStep sets the step for hours, minutes, and seconds separately. 0 uses 1, negative values are invalid, and changes do not carry into other segments. StepSnapping defaults to false. When enabled, leaving a non-empty segment rounds it to the nearest valid step counted from 0, rounding up when exactly halfway; in 12-hour mode, the rounding uses the full 24-hour time. No snapping happens when read-only or disabled, for rejected drafts, or when only display options change.
 
-Min / Max 为包含两端的完整时间边界，比较隐藏的分钟与秒；不支持上下界倒置的跨午夜区间。IsTimeUnavailable 可拒绝指定时间。无效输入保留草稿与最后有效值，外部赋值静默，越界的外部值显示错误。PlaceholderValue 为未填写分段提供首次调整的参考值，小时精度下新值的隐藏单位也可取自它。
+Min and Max are inclusive bounds on the complete time and include the hidden minutes and seconds in the comparison. Reversed bounds for a range that crosses midnight are not supported. IsTimeUnavailable can reject specific times. Invalid input keeps the draft and the last valid value; outside assignments are silent, and an out-of-range outside value shows an error. PlaceholderValue provides a reference value for the first adjustment of an empty segment, and at hour granularity, a new value's hidden units can also come from it.
 
-Text 与粘贴格式为 `HH`、`HH:MM[:SS]`，12 小时制追加 ` AM` / ` PM`。显示文字和分隔顺序使用区域格式；当前只接受 ASCII 数字和上述规范时间文本，不解析本地化上下午词语。
+The Text and paste formats are `HH` and `HH:MM[:SS]`, with ` AM` or ` PM` appended in 12-hour mode. The displayed text and segment order use the locale format. Currently, only ASCII digits and the canonical time text above are accepted; localized AM/PM words are not parsed.
 
-### 日期时间的样式与限制
+### Date and time styles and limits
 
-日期时间输入共用 Input 的五种尺寸、五种变体、颜色、头像、图标、加载、禁用、只读和 Clearable。前缀图标或前缀加载优先于 Avatar；LoadingTrailing 控制加载位置，显式 Leading 保留前缀加载。Neutral 焦点和 Highlight 使用反转背景色；Highlight 可用于 None。Root 的主题和实例阴影覆盖保留，Style 最后执行。
+The date and time inputs share Input's five sizes, five variants, colors, avatar, icons, loading state, disabled and read-only states, and Clearable. A leading icon or leading spinner takes precedence over Avatar. LoadingTrailing controls the spinner position, and an explicit Leading keeps a leading spinner. With Neutral, focus and Highlight use the inverted background color, and Highlight also works with None. Shadow overrides on Root from the theme or the instance are kept, and Style runs last.
 
-Root 控制外框，Editor 控制分段文字基础样式，Segment 控制占位、焦点背景和圆角，Leading / Trailing 控制配件。Style 的 editor 是当前排列的首个可聚焦分段，可绑定 Handle；它不是 TextInputBase，不能使用文本选区 API。Placeholder、Password、MaxLength 不适用于分段输入，占位文字由语言目录配置。
+Root styles the frame, Editor sets the base style of the segment text, Segment styles placeholders, the focus background, and corner radius, and Leading and Trailing style the accessories. Style's editor is the first focusable segment in the current order and can bind a Handle. It is not a TextInputBase, so text selection APIs do not apply. Placeholder, Password, and MaxLength do not apply to segmented input; placeholder text comes from the language catalog.
 
-Date 表示完整公历日期，ClockTime 表示单个秒精度时刻，不携带其他历法、毫秒或时区。日期与时刻可分别编辑，时间范围可组合两个 InputTime 并由应用校验。分段输入没有撤销/重做；完整读屏体验尚未验证。Calendar 的月年视图用于导航，不改变日期值类型。
+Date represents a complete Gregorian date and ClockTime a single time of day with second precision; neither carries another calendar, milliseconds, or a time zone. Dates and times are edited separately. For a time range, combine two InputTimes and validate them in your app. Segmented input has no undo/redo, and the full screen reader experience has not been verified. Calendar's month and year views are for navigation and do not change the date value type.
 
 ## ColorPicker
 
-ColorPicker 绑定 `*ui.Color`，并保存 ColorPickerState。饱和度/亮度平面、横向色相与透明度滑条、HEX / HEXA、色板以及 0–255 的 R/G/B/A 输入共用这个颜色。应用负责初始化；没有像 Vue defaultValue 那样把零值自动替换为白色。
+ColorPicker binds a `*ui.Color` and keeps a ColorPickerState. The saturation/value area, the horizontal hue and alpha sliders, HEX/HEXA, the swatches, and the R/G/B/A inputs (0–255) all edit this color. Your app initializes it; unlike Vue's defaultValue, the zero value is not replaced with white automatically.
 
-Size 默认 MD。XS / SM / MD / LG / XL 的默认选择区边长分别为 152 / 160 / 168 / 176 / 184 DIP，同时调整原生面板间距与数值字段尺寸，并随密度和文字缩放变化。根部最大宽度受容器约束；显式宽度、内边距或特别窄的容器可能改变选择区比例。尺寸变化不重置值、草稿和焦点。
+Size defaults to MD. For XS/SM/MD/LG/XL, the default selection area is 152/160/168/176/184 DIP square. Size also adjusts the native panel spacing and the numeric field sizes, and everything scales with density and text size. The root's maximum width is constrained by its container; an explicit width, padding, or a very narrow container can change the selection area's proportions. Changing the size does not reset the value, drafts, or focus.
 
-Throttle 未设置时使用 50 毫秒，`nui.Set(time.Duration(0))` 表示不节流，负值无效。绑定颜色总是即时更新，OnChange 按间隔合并并保留末次颜色。外部赋值静默，重新填入原通道值不重复通知；禁用、卸载、移除回调或外部替换颜色会取消待发通知。调度由窗口构建与持久服务完成，没有保存 Element、Context 或后台回调。
+When Throttle is unset, 50 ms is used; `nui.Set(time.Duration(0))` disables throttling, and negative values are invalid. The bound color always updates immediately, while OnChange calls are merged per interval and the last color is kept. Outside assignments are silent, and re-entering the same channel value does not notify again. Disabling, unmounting, removing the callback, or replacing the color from outside cancels a pending notification. Scheduling is handled by the window build and persistent services; no Element, Context, or background callback is stored.
 
-未完成的 RGBA 草稿保留最后有效颜色。数字按 InputNumber 的整数步长处理；修改实际通道时从 sRGB 字节重建颜色，避免保留失效的广色域数据。表单将这些草稿作为一个颜色字段跟踪，初次显示和未编辑的重建不会因四个子输入反复写入而被误标为已修改。
+An incomplete RGBA draft keeps the last valid color. The numbers use InputNumber's integer stepping. Editing an actual channel rebuilds the color from sRGB bytes, so stale wide-gamut data is not kept. A form tracks these drafts as a single color field, so the initial display and rebuilds without edits are not mistakenly marked as changed by writes from the four sub-inputs.
 
-Label 为空时继承 FormField。SV 区域支持方向键调整饱和度与亮度，滑条保留原生键盘操作，内部名称随窗口语言变化。RGBA 的整数上限为 255，HEX 接受 3 / 4 / 6 / 8 位格式；非法 HEX 保留最后有效颜色，失焦后按底层原生规则恢复规范文本。表单标签和错误焦点使用首个 RGBA 数字输入，未公开内部 SV / HEX 的持久 Handle。
+When Label is empty, it is inherited from FormField. Arrow keys adjust saturation and value in the SV area, the sliders keep their native keyboard behavior, and the internal names follow the window language. Each RGBA channel is an integer up to 255. HEX accepts 3-, 4-, 6-, or 8-digit forms. An invalid HEX value keeps the last valid color, and the canonical text is restored on blur following the underlying native rules. Form labels and error focus use the first RGBA number input; there is no public persistent Handle for the internal SV area or HEX field.
 
-UI / Style 支持 Root、Panel（原生面板容器）、Body（RGBA 容器）、Item（通道行）和 Label（通道字母）。内部 SV、色相/透明度轨道、HEX 和色板没有公开独立部件，仍使用局部 Native 主题；不能通过任意部件名修改它们。原生布局保留横向轨道、透明度和色板，与 Nuxt 的纵向色相轨道不同。RTL 表单中的原生颜色面板固定为 LTR，使点击位置、方向键、渐变和滑块一致；RGBA 行继续继承表单方向。
+UI and Style support Root, Panel (the native panel container), Body (the RGBA container), Item (a channel row), and Label (a channel letter). The internal SV area, hue/alpha tracks, HEX field, and swatches have no public parts and use a local Native theme; you cannot style them with arbitrary part names. The native layout keeps horizontal tracks, alpha, and swatches, which differs from Nuxt UI's vertical hue track. In an RTL form, the native color panel is fixed to LTR so that click positions, arrow keys, gradients, and thumbs agree; the RGBA rows still follow the form's direction.
 
-颜色值采用 ui.Color，HEX、RGB 或其他字符串格式的序列化由应用负责。本组件不提供 HSL / CMYK / Lab 文本编辑、广色域编辑、屏幕取色或色彩管理。HEX 编辑仍受[输入法取消问题](compatibility.md#输入法取消)影响，完整读屏体验尚未验证。
+The color value is a ui.Color; your app handles serialization to HEX, RGB, or any other string format. This component provides no HSL/CMYK/Lab text editing, wide-gamut editing, screen color picking, or color management. HEX editing is affected by the [IME cancel issue](compatibility.md#canceling-ime-composition), and the full screen reader experience has not been verified.
 
 ## Table
 
-### 准备行和列
+### Prepare rows and columns
 
-TableState[T] 保存当前行数据、排序、选择和列布局。数据变更时调用 SetRows，不要在每次视图构建中重复设置。
+TableState[T] stores the current row data, sorting, selection, and column layout. Call SetRows when the data changes; do not set the rows again on every view build.
 
 ```go
-// 在应用模型中声明类型和状态。
+// Declare the type and state in your app model.
 type TaskRow struct {
     ID string
     Title string
@@ -401,134 +401,134 @@ type TaskRow struct {
 
 var tasks nui.TableState[TaskRow]
 
-// 初始化或数据变化时执行。
+// Run on initialization or when the data changes.
 tasks.SetRows([]TaskRow{
-    {ID: "task-1", Title: "整理需求"},
-    {ID: "task-2", Title: "检查文档"},
+    {ID: "task-1", Title: "Collect requirements"},
+    {ID: "task-2", Title: "Review the docs"},
 }, func(row TaskRow) string { return row.ID })
 ```
 
-在视图中定义显示列并创建表格：
+Define the displayed columns and create the table in the view:
 
 ```go
 nui.Table(c, theme, &tasks, []nui.TableColumn[TaskRow]{
     {
         ID: "title",
-        Title: "任务",
+        Title: "Task",
         Width: 240,
         Value: func(row TaskRow) string { return row.Title },
     },
-}, nui.TableOptions{Label: "任务列表", Height: 320})
+}, nui.TableOptions{Label: "Task list", Height: 320})
 ```
 
-SetRows 复制行值并检查 ID 非空且唯一；T 中如果有指针或切片，内部数据的所有权仍由应用负责。替换数据会移除已不存在的选中 ID。
+SetRows copies the row values and checks that each ID is non-empty and unique. If T contains pointers or slices, your app still owns the data they point to. Replacing the data removes selected IDs that no longer exist.
 
-### 排序、选择和自定义单元格
+### Sorting, selection, and custom cells
 
-| 字段或方法 | 用途 |
+| Field or method | Purpose |
 | --- | --- |
-| `TableColumn.Compare` | 本地稳定排序，返回两行的比较结果 |
-| `TableColumn.Sortable` | 未设置时由 Compare 决定；显式 false 禁止该列排序，true 且无 Compare 时需要 ManualSorting |
-| `TableColumn.Cell` | 自定义单元格，接收 Context、Theme、行值和是否选中 |
-| `Selection` / `Sort` | 分别为 `ui.Selection[string]`、`ui.SortOrder` |
-| `state.List.SortBy` | 指向持久的 `[]ui.SortOrder` 启用多列排序；Sort 同步第一项 |
-| `ManualSorting` | 保留 SetRows 的输入顺序，应用根据排序状态加载或计算数据 |
-| `InvalidateSort` | 比较器捕获的数据改变时请求重新排序；SetRows 已自动执行失效处理 |
-| `state.List.Columns` | 保存列宽和顺序，可由应用持久化 |
-| `Row` / `RowID` / `Len` | 读取当前视图中的行、行 ID 和数量 |
+| `TableColumn.Compare` | Stable local sorting; returns the comparison of two rows |
+| `TableColumn.Sortable` | When unset, determined by Compare. An explicit false prevents sorting the column; true without Compare requires ManualSorting |
+| `TableColumn.Cell` | A custom cell that receives the Context, the Theme, the row value, and whether it is selected |
+| `Selection` / `Sort` | A `ui.Selection[string]` and a `ui.SortOrder`, respectively |
+| `state.List.SortBy` | Point it at a persistent `[]ui.SortOrder` to enable multi-column sorting; Sort mirrors the first entry |
+| `ManualSorting` | Keeps the input order from SetRows; your app loads or computes the data based on the sort state |
+| `InvalidateSort` | Requests a re-sort when data captured by a comparator changes. SetRows invalidates the sort automatically |
+| `state.List.Columns` | Stores column widths and order; your app can persist it |
+| `Row` / `RowID` / `Len` | Read a row, a row ID, and the row count in the current view |
 
-列还可设置 Width、MinWidth、MaxWidth 和 Align。排序后的行位置会变化，编辑数据时应通过 RowID 或 Selection 中的 ID 回查业务模型。CellBuilds 可用于统计当前构建中的单元格调用次数。
+Columns can also set Width, MinWidth, MaxWidth, and Align. Sorting changes row positions, so when editing data, look up the business model by RowID or by the IDs in Selection. CellBuilds counts the cell builder calls in the current build.
 
-清除排序恢复最近一次 SetRows 的输入顺序；比较值相等时也保持这个顺序。多列排序下 Shift / Ctrl（macOS 为 Cmd）点击表头可添加排序列，再依次切换降序和移除。普通点击切换该列升降序。删除或禁用排序列会移除无效排序项。
+Clearing the sort restores the input order from the latest SetRows, which is also kept for rows that compare as equal. With multi-column sorting, Shift-click or Ctrl-click (Cmd-click on macOS) on a header adds a sort column; further clicks switch it to descending and then remove it. An ordinary click toggles that column between ascending and descending. Removing a column or disabling its sorting removes the invalid sort entries.
 
-OnSortChange 和 OnSelectionChange 分别通知用户引起的排序、选择变化；外部模型赋值和 SetRows 清理不触发它们。选择通知返回按字符串排序的稳定 ID。OnActivate 在 Enter 或双击时返回行 ID，OnChange 保留原生综合通知。它们与 Nuxt 的行点击 select 事件语义不同。List.Selected 为可选的活动行索引，未绑定时 OnActivate 使用内部索引；操作业务数据仍应使用 ID。
+OnSortChange and OnSelectionChange report sort and selection changes caused by the user; outside model assignments and cleanup by SetRows do not trigger them. Selection notifications return stable IDs sorted as strings. OnActivate returns a row ID on Enter or double-click, and OnChange keeps the native combined notification. These semantics differ from Nuxt UI's select event on row click. List.Selected is an optional active-row index; when it is not bound, OnActivate uses an internal index. Still use IDs when acting on business data.
 
-Table 会设置 List.Key、Selection、Sort、Label，应用不要覆盖这些绑定。List.SortBy、Columns、Selected、KeepOffset、FollowEnd、HeaderMenu、CellMenu 等保留 MyGo 规则。List.CellSelect 是原生扩展，本包装器没有 RowHeader 列；完整单元格选择语义与行选择通知不同。
+Table sets List.Key, Selection, Sort, and Label; do not override these bindings in your app. List.SortBy, Columns, Selected, KeepOffset, FollowEnd, HeaderMenu, CellMenu, and similar fields follow MyGo's rules. List.CellSelect is a native extension, and this wrapper has no RowHeader column. Full cell selection semantics differ from row selection notifications.
 
-### 筛选与功能范围
+### Filtering and scope
 
-搜索、筛选和分页由应用先计算当前 rows，再调用 SetRows。数据浏览器示例展示搜索、团队/状态筛选和每页 100 条数据；服务端请求、总量和缓存由应用管理。
+For search, filtering, and pagination, your app computes the current rows first and then calls SetRows. The data browser example shows search, team and status filters, and pages of 100 rows; your app manages server requests, totals, and caching.
 
-EmptyText / BuildEmpty 设置表头下方的空内容。Loading 显示加载线并保留已有数据；无数据且提供 BuildLoading 时显示加载内容，否则仍显示空内容。LoadingColor 默认 Primary，LoadingAnimation 提供 Carousel、CarouselInverse、Swing、Elastic，减少动态效果时使用静态线。Caption 为表格的辅助技术描述，BuildCaption 可显示可见标题。默认 Height 为 320 DIP，包含标题；表头固定，正文在内部滚动。
+EmptyText and BuildEmpty set the empty content below the header. Loading shows a loading bar and keeps the existing data. With no data, BuildLoading's content is shown if provided; otherwise the empty content is still shown. LoadingColor defaults to Primary. LoadingAnimation can be Carousel, CarouselInverse, Swing, or Elastic, and a static bar is used with reduced motion. Caption is the table's description for assistive technology, and BuildCaption can show a visible title. Height defaults to 320 DIP, including the title; the header stays fixed and the body scrolls inside.
 
-虚拟化始终开启，只减少可见单元格的构建量，数据生成、ID 校验、排序和筛选仍取决于数据量。整行布局由 MyGo 负责，单元格可通过列的 UI / Style 覆盖 Item、Label；列覆盖在表格级覆盖之后应用。
+Virtualization is always on. It reduces only the number of cells built; generating data, validating IDs, sorting, and filtering still scale with the data size. MyGo handles row layout. Cells can override Item and Label through a column's UI and Style, and column overrides are applied after table-level overrides.
 
-`Fixed` **只禁止移动列和调整列宽**，没有冻结滚动的效果。当前还不支持冻结列、多层表头、整行或表头的任意构建回调、行展开、分组聚合及完整 TanStack 语义。原生表头没有独立键盘焦点，需要键盘排序时提供按钮修改 Sort / SortBy。底层 List 会测量行高，自定义单元格可以增高；复杂动态内容仍需应用验证。
+`Fixed` **only prevents moving and resizing the column**; it does not freeze the column during scrolling. Frozen columns, multi-level headers, arbitrary row or header builders, expandable rows, grouping and aggregation, and full TanStack semantics are not yet supported. Native headers have no keyboard focus of their own; to support keyboard sorting, provide buttons that change Sort or SortBy. The underlying List measures row heights, so custom cells can be taller; your app should still verify complex dynamic content.
 
 ## Tree
 
-### 保存节点、选择和展开状态
+### Store nodes, selection, and expansion
 
-TreeState.SetNodes 接收 TreeNode 列表，检查全树 ID 非空且唯一。各状态用途如下：
+TreeState.SetNodes takes a list of TreeNodes and checks that every ID in the tree is non-empty and unique. The state fields are:
 
-| 状态 | 用途 |
+| State | Purpose |
 | --- | --- |
-| `state.Outline.Open` | 已展开的节点 ID |
-| `state.Selection` | 已选节点 ID |
-| `state.Active` | 键盘当前高亮的节点 ID |
+| `state.Outline.Open` | IDs of expanded nodes |
+| `state.Selection` | IDs of selected nodes |
+| `state.Active` | ID of the node highlighted by the keyboard |
 
-默认单选，点击行同时选择并切换展开。方向键只导航，Enter / Space 选择。Multiple 开启多选，SelectionBehavior 决定切换或替换选择；PropagateSelect、BubbleSelect 控制父子联动，Loop 控制循环导航。
+The default is single selection, and clicking a row both selects it and toggles its expansion. Arrow keys only navigate; Enter and Space select. Multiple enables multiple selection, and SelectionBehavior chooses between toggling and replacing the selection. PropagateSelect and BubbleSelect control parent-child linking, and Loop controls whether navigation wraps around.
 
-节点可设 Disabled，OnSelect / OnToggle 可取消本次操作。父子联动只作用于已加载节点，禁用节点会阻断联动；后续加载的子节点不会自动继承选择。
+Nodes can be Disabled, and OnSelect and OnToggle can cancel the current action. Parent-child linking applies only to loaded nodes, and disabled nodes block it. Children loaded later do not inherit the selection automatically.
 
-### 缩进与虚拟化
+### Indentation and virtualization
 
-Nested 默认 true，显示祖先竖线，并让子项背景和点击区域随层级缩进。设为 `nui.Set(false)` 后，背景和点击区域占整行，内容仍缩进。切换保留选择、展开、焦点和滚动位置。
+Nested defaults to true, which shows ancestor guide lines and indents each child's background and click area by level. With `nui.Set(false)`, the background and click area span the full row while the content stays indented. Switching keeps the selection, expansion, focus, and scroll position.
 
-两种模式都使用原生虚拟列表，只构建视口附近的行。可见节点索引在数据或展开状态变化时重建；为兼容应用直接编辑公开集合，每次构建仍会检查展开 ID，需要半选状态时也会检查所选 ID。行内容可通过 Build 自定义。
+Both modes use a native virtual list that builds only the rows near the viewport. The index of visible nodes is rebuilt when the data or the expansion state changes. Because apps may edit the public collections directly, every build still checks the expanded IDs, and also the selected IDs when indeterminate states are needed. Customize row content with Build.
 
-### 懒加载
+### Lazy loading
 
-Lazy=true 且 Children=nil 的节点在可见并展开时调用一次 `OnLoad(id, ticket)`。应用启动后台加载，在 `Window.Update` 中通过 `CompleteLoad(ticket, children, err)` 返回结果。
+A node with Lazy=true and Children=nil calls `OnLoad(id, ticket)` once when it is visible and expanded. Your app starts loading in the background and returns the result in `Window.Update` with `CompleteLoad(ticket, children, err)`.
 
-加载失败会显示 Retry。SetExpanded 折叠该节点或祖先、替换数据、重试或 Close，都会使旧票据失效。CompleteLoad 返回 true 只表示结果已接受，结果仍可能包含错误。
+A failed load shows Retry. Collapsing the node or an ancestor with SetExpanded, replacing the data, retrying, or calling Close all invalidate the old ticket. A true result from CompleteLoad only means the result was accepted; it may still contain an error.
 
-SetNodes 替换数据时会清理不存在的选择和展开 ID；空根列表显示 EmptyText。
+When SetNodes replaces the data, it removes selected and expanded IDs that no longer exist. An empty root list shows EmptyText.
 
-### 从旧 Outline 封装迁移
+### Migrating from the old Outline wrapper
 
-| 需要的行为 | 当前写法 |
+| Behavior you need | Current code |
 | --- | --- |
-| 多选 | 显式设置 `Multiple: true` |
-| 替换式多选 | `SelectionBehavior: nui.SelectionReplace` |
-| 点击只选择，不展开 | `ExpandOnClick: nui.Set(false)` |
-| 监听选择 / 展开 | 分别用 OnChange / OnToggle |
-| 查询可见行 | 用 `state.Rows()`、`Item()`、`Depth()`，不再用 `state.Outline` 上的同名方法 |
+| Multiple selection | Set `Multiple: true` explicitly |
+| Multiple selection that replaces | `SelectionBehavior: nui.SelectionReplace` |
+| Click selects without expanding | `ExpandOnClick: nui.Set(false)` |
+| Listen for selection / expansion | Use OnChange / OnToggle |
+| Query visible rows | Use `state.Rows()`, `Item()`, and `Depth()` instead of the methods of the same names on `state.Outline` |
 
-Outline.List 保留滚动状态和 Handle，Selected、Selection、Label 由 Tree 管理。当前不提供拖拽搬移或完整业务权限模型；辅助技术展开动作的限制见[兼容性说明](compatibility.md#无障碍与动态效果)。
+Outline.List keeps the scroll state and Handle, while Tree manages Selected, Selection, and Label. Drag-and-drop moving and a full business permission model are not provided. For the limit on assistive technology expand actions, see [Accessibility and motion](compatibility.md#accessibility-and-motion).
 
-OnExpandedChange 在用户操作实际改变展开状态后通知，参数为按字符串排序的展开 ID；取消、初始化和外部 SetExpanded 不触发。OnChange 仍只通知选择变化。选择处理器替换节点后，旧点击不再对新建的同 ID 节点执行展开。
+OnExpandedChange fires after a user action actually changes the expansion state, with the expanded IDs sorted as strings. Cancellation, initialization, and outside SetExpanded calls do not trigger it. OnChange still reports only selection changes. If a selection handler replaces the nodes, the earlier click no longer expands a newly created node with the same ID.
 
-TreeNode 的 UI / Style 可覆盖 Item、Leading、Label、Trailing，节点覆盖在树实例覆盖之后应用。BuildLeading / BuildTrailing 替换首尾图标，Build 替换正文；这些回调应只构建展示内容。TreeItemState.Indeterminate 仅用于多选联动：BubbleSelect 按可用后代是否混合选中判断，只有 PropagateSelect 时还要求父项已选中。单选或关闭两项联动时为 false。
+A TreeNode's UI and Style can override Item, Leading, Label, and Trailing; node overrides are applied after the tree instance's overrides. BuildLeading and BuildTrailing replace the leading and trailing icons, and Build replaces the main content; these callbacks should build display content only. TreeItemState.Indeterminate is used only for multiple-selection linking. With BubbleSelect, a node is indeterminate when its available descendants are a mix of selected and unselected; with only PropagateSelect, the parent must also be selected. In single selection, or with both linking options off, it is false.
 
-已加载的空分支保留展开状态，但不补默认文件夹和箭头；需要文件夹外观时显式提供 Icon。字符查找支持重复字符循环，以及继续输入前缀时保留当前匹配。
+A loaded empty branch keeps its expansion state but does not get the default folder icon and arrow; set Icon explicitly if you want a folder look. Type-ahead search cycles through matches when the same character is repeated, and keeps the current match while the user continues typing a prefix.
 
-## 样式部件索引
+## Style part index
 
-| 组件 | 可用部件 |
+| Component | Parts |
 | --- | --- |
 | Form | Root |
-| Listbox | Root、Editor、LoadingSlot、LoadingIconSlot、List、Label（组标题）、SeparatorSlot、Item、Leading、Body、ItemLabelSlot、Description、Trailing、Indicator、EmptySlot |
-| SelectMenu | Root、Trigger、Leading、Label、Trailing、Close、Editor、List、Header（组标题）、SeparatorSlot、Item、ItemLeadingSlot、Body、ItemLabelSlot、Description、ItemTrailingSlot、Indicator、EmptySlot；面板使用 Popup.UI |
-| InputDate / InputDateRange / InputTime | Root、Editor、Segment、Leading、Trailing；日期范围另有 SeparatorSlot |
-| InputNumber | Root、Editor、Leading、Trailing、IncrementSlot、DecrementSlot |
-| InputTags | Root、Editor、Leading、Trailing、Body、Item、Label、Close、Indicator |
-| PinInput | Root、Item、Label、SeparatorSlot |
-| InputRating | Root、Item、Indicator、IconSlot、EmptyIconSlot |
-| Calendar | Root、Header、HeadingSlot、Body、GridSlot、GridRowSlot、WeekDaySlot、WeekNumberSlot、Item |
-| Table | Root、CaptionSlot、Body、Panel、Item、Label、EmptySlot、LoadingSlot、Indicator |
-| Tree | Root、List、Item、Leading、Label、Trailing、Indicator、EmptySlot |
-| ColorPicker | Root、Panel、Body、Item、Label |
-| RangeSlider | Root |
+| Listbox | Root, Editor, LoadingSlot, LoadingIconSlot, List, Label (group heading), SeparatorSlot, Item, Leading, Body, ItemLabelSlot, Description, Trailing, Indicator, EmptySlot |
+| SelectMenu | Root, Trigger, Leading, Label, Trailing, Close, Editor, List, Header (group heading), SeparatorSlot, Item, ItemLeadingSlot, Body, ItemLabelSlot, Description, ItemTrailingSlot, Indicator, EmptySlot. The panel uses Popup.UI |
+| InputDate / InputDateRange / InputTime | Root, Editor, Segment, Leading, Trailing. The date range also has SeparatorSlot |
+| InputNumber | Root, Editor, Leading, Trailing, IncrementSlot, DecrementSlot |
+| InputTags | Root, Editor, Leading, Trailing, Body, Item, Label, Close, Indicator |
+| PinInput | Root, Item, Label, SeparatorSlot |
+| InputRating | Root, Item, Indicator, IconSlot, EmptyIconSlot |
+| Calendar | Root, Header, HeadingSlot, Body, GridSlot, GridRowSlot, WeekDaySlot, WeekNumberSlot, Item |
+| Table | Root, CaptionSlot, Body, Panel, Item, Label, EmptySlot, LoadingSlot, Indicator |
+| Tree | Root, List, Item, Leading, Label, Trailing, Indicator, EmptySlot |
+| ColorPicker | Root, Panel, Body, Item, Label |
+| RangeSlider | Root, plus Indicator.Background and Thumb.Background |
 
-InputNumber 和 InputTags 的 `UI` 支持表中全部部件，嵌入的 `InputOptions.Style` 仍接收 Root、Editor、Leading、Trailing 四个节点。InputNumber 的按钮回调通过 IncrementOptions / DecrementOptions 配置。Table 的内部原生区域与 ColorPicker 未公开的内部部件使用 Native 主题；RangeSlider 的轨道和滑块按 Theme 及 Color 绘制，不支持单独覆盖 Indicator / Thumb 部件。未公开的部件无法通过自行填写部件名来修改。全局 WithComponent 和实例 UI / Style 的优先级见[主题文档](foundations.md#样式覆盖)。
+InputNumber's and InputTags' `UI` support every part in the table, while the embedded `InputOptions.Style` still receives only the Root, Editor, Leading, and Trailing nodes. Configure InputNumber's button callbacks through IncrementOptions and DecrementOptions. Table's internal native regions and ColorPicker's unexposed internal parts use the Native theme. RangeSlider draws its track and thumbs from the Theme and Color; apart from Indicator.Background and Thumb.Background, other Indicator and Thumb fields have no effect. Parts that are not exposed cannot be changed by writing their names yourself. For the precedence of global WithComponent settings and instance UI/Style, see [Style overrides](foundations.md#style-overrides).
 
-## 示例
+## Examples
 
-| 命令或页面 | 内容 |
+| Command or page | Content |
 | --- | --- |
-| Gallery 的 Advanced forms、Dates & color、Task browser | 专用输入、日期、颜色和数据交互 |
-| `go run ./examples/settings` | Project setup 表单和可取消提交 |
-| `go run ./examples/data-browser` | 搜索、筛选、Table / Tree、按 ID 编辑和 Toast |
+| The Gallery's Advanced forms, Dates & color, and Task browser pages | Specialized inputs, dates, colors, and data interaction |
+| `go run ./examples/settings` | The Project setup form and a cancelable submission |
+| `go run ./examples/data-browser` | Search, filtering, Table/Tree, editing by ID, and Toast |
 
-InputTags、PinInput 文本模式、Listbox 筛选框、SelectMenu 和 ColorPicker 的文本输入受已知 IME 取消问题影响，详见[兼容性说明](compatibility.md#输入法取消)。
+Text input in InputTags, PinInput in text mode, the Listbox filter field, SelectMenu, and ColorPicker is affected by the known IME cancel issue; see [Canceling IME composition](compatibility.md#canceling-ime-composition).

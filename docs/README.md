@@ -1,62 +1,62 @@
-# 组件指南
+# Component guide
 
-第一次使用 NuxtUI Go，先按[安装与最小应用](../README.md#安装与最小应用)运行一个窗口。之后按要完成的任务查阅本文，无需依次读完所有组件。
+If you are new to NuxtUI Go, first follow [Getting started](../README.md#getting-started) to open a window. After that, use this guide to find what your current task needs; you do not have to read every component in order.
 
-## 从当前任务开始
+## Start from your task
 
-| 你要做什么 | 建议阅读 |
+| What you want to do | Read |
 | --- | --- |
-| 设置窗口主题，添加按钮、卡片或状态提示 | [主题与基础组件](foundations.md) |
-| 输入文字，添加标签、复选框或下拉选择 | [输入、选择与字段](inputs.md) |
-| 打开对话框、菜单，切换页面或显示通知 | [弹层、菜单与导航](overlays-navigation.md) |
-| 校验表单，处理日期，展示表格或树 | [表单、日期与数据组件](forms-data.md) |
-| 添加侧栏、命令面板、文件选择或图表 | [高级交互、图表与布局](advanced.md) |
+| Set the window theme, or add buttons, cards, or status messages | [Themes and basic components](foundations.md) |
+| Accept text, or add labels, checkboxes, or dropdown selects | [Inputs, selection, and fields](inputs.md) |
+| Open dialogs or menus, switch views, or show notifications | [Overlays, menus, and navigation](overlays-navigation.md) |
+| Validate forms, handle dates, or display tables and trees | [Forms, dates, and data components](forms-data.md) |
+| Add a sidebar, command palette, file picker, or chart | [Advanced interaction, charts, and layout](advanced.md) |
 
-已经找到组件时，可用[参数与默认值](options.md)查询常用选项。[双语组件网站](../website/README.md)还提供逐组件参数编辑、Go/WASM 预览和可复制的完整程序。
+Once you know which component you need, look up its common options in [Options and defaults](options.md). The [bilingual component website](../website/README.md) also offers per-component option editors, Go/WASM previews, and complete programs you can copy.
 
-## 理解组件的基本写法
+## How component calls work
 
-多数组件的调用形式相似：传入当前界面上下文、主题、需要编辑的数据和选项。下面的代码放在视图函数中，`app.Name` 是应用长期保存的字符串字段：
+Most components take the same kinds of arguments: the current UI context, the theme, the data to edit, and an options struct. The code below runs inside a view function; `app.Name` is a string field that the app keeps between builds:
 
 ```go
 nui.Input(c.Key("name"), theme, &app.Name, nui.InputOptions{
-    Label: "姓名",
-    Placeholder: "输入姓名",
+    Label: "Name",
+    Placeholder: "Enter your name",
     Clearable: true,
 }).FillWidth()
 ```
 
-| 代码 | 含义 |
+| Code | Meaning |
 | --- | --- |
-| `c *ui.Context` | 当前窗口正在构建界面时使用的上下文；由 MyGo 传入 |
-| `theme nui.Theme` | 当前主题，通常由 `nui.App(c, config)` 返回 |
-| `c.Key("name")` | 给控件一个稳定标识，帮助 MyGo 在重新构建时找到同一个控件 |
-| `&app.Name` | 绑定应用保存的数据；用户输入后，组件会更新这个字段 |
-| `nui.InputOptions{...}` | 组件配置；返回值上的 `FillWidth()` 让控件填满可用宽度 |
+| `c *ui.Context` | The context for the window's current build; MyGo passes it in |
+| `theme nui.Theme` | The current theme, usually returned by `nui.App(c, config)` |
+| `c.Key("name")` | A stable identity that lets MyGo find the same control across rebuilds |
+| `&app.Name` | A pointer to app-owned data; the component updates it when the user types |
+| `nui.InputOptions{...}` | The component's options; `FillWidth()` on the result makes the control fill the available width |
 
-文档中的 `c`、`theme` 或 `t` 都沿用这些含义。`app`、`state` 是示意性的应用模型名，需要替换为你自己的变量。未写出 `package main` 的代码块是局部片段；完整导入和启动代码见[最小示例](../examples/minimal/main.go)。图标示例使用 `lucide`，导入方式见[图标文档](../icons/lucide/README.md)。
+Throughout the docs, `c`, `theme`, and `t` have these meanings. `app` and `state` stand in for your own app model, so replace them with your variables. Code blocks without `package main` are fragments; see the [minimal example](../examples/minimal/main.go) for the full imports and startup code. Icon examples use the `lucide` package; see the [icon docs](../icons/lucide/README.md) for the import.
 
-### 状态放在哪里
+### Where to keep state
 
-MyGo 会在输入、数据变化和动画期间反复调用视图函数。**输入值和组件状态要放在视图函数外保存**，否则每次构建都会重置。
+MyGo calls the view function repeatedly: during input, after data changes, and while animating. **Keep input values and component state outside the view function**, or every build resets them.
 
-应用可以保存业务数据、`AppConfig`、`SearchState`、`FormState` 等状态对象，以及用于焦点和位置查询的 `ui.Handle`。各窗口应分别保存自己的编辑和交互状态；已使用的组件状态不要随意复制。
+Your app can keep business data, state objects such as `AppConfig`, `SearchState`, and `FormState`, and `ui.Handle` values used for focus and geometry queries. Each window should keep its own editing and interaction state. Do not copy a component state value after a component has used it.
 
-组件返回的 `ui.Element` 和部件只在本次构建中有效。可以立即调用 `FillWidth()` 等方法，也可以传给本次构建的 Tooltip 或 Popover，但不能存入模型供下次使用。`*ui.Context` 的父级作用域会在构建中变化，也不要保存到模型或后台任务；需要长期使用的窗口服务，通过 `c.Services()` 获取。
+The `ui.Element` values and parts returned by components are valid only during the current build. You can call methods such as `FillWidth()` on them right away or pass them to a Tooltip or Popover in the same build, but do not store them in your model for later builds. The parent scope of `*ui.Context` changes during a build, so do not store the context in your model or background tasks either. To get window services you need to keep, call `c.Services()`.
 
-动态列表应在创建控件前使用 `c.Key(业务ID)`。ID 要稳定、唯一，避免使用会随排序变化的下标或可修改的显示名称。
+In dynamic lists, call `c.Key(businessID)` before creating each control. The ID must be stable and unique; do not use indexes that change with sorting or display names that users can edit.
 
-### 修改数据和执行任务
+### Changing data and running work
 
-按钮点击、输入变化和表单提交分别通过 `OnClick`、`OnChange`、`OnSubmit` 等回调处理。它们适合修改数据和启动业务操作。
+Handle clicks, input changes, and form submission in callbacks such as `OnClick`, `OnChange`, and `OnSubmit`. These callbacks are the right place to change data and start business operations.
 
-`Build`、`Content`、`Style` 等构建回调可能反复执行，只用于创建或配置当前界面。不要在其中无条件提交表单、修改正在遍历的集合或发起请求。
+Build callbacks such as `Build`, `Content`, and `Style` may run many times. Use them only to create or configure the current UI. Never submit a form, change a collection you are iterating over, or send a request from them unconditionally.
 
-耗时计算和 I/O 放到后台任务中，结果通过 `Window.Update` 回到 UI 线程后再写入模型。离开页面或关闭窗口时取消任务；使用异步票据的组件还会检查结果是否已经过期，具体见 [Form 和 QueryState](forms-data.md)。
+Run slow computation and I/O in a background task. Return the result to the UI thread with `Window.Update` before writing it to the model. Cancel the task when the user leaves the view or closes the window. Components that use async tickets also discard stale results; see [Form and QueryState](forms-data.md).
 
-### 未设置与显式设置
+### Unset versus explicit values
 
-有些选项的类型是 `Optional[T]`，用于区分默认行为和显式值。例如关闭默认启用的弹层关闭行为：
+Some options have the type `Optional[T]` so the component can tell the default behavior apart from an explicit value. For example, to turn off close behavior that is on by default:
 
 ```go
 options := nui.ModalOptions{
@@ -65,50 +65,50 @@ options := nui.ModalOptions{
 }
 ```
 
-`Optional[T]{}` 表示未设置，`nui.Set(false)` 和 `nui.Set(0)` 表示明确使用 `false` 或 `0`。普通 `bool`、数值和枚举字段直接赋值，不需要包一层 `Set`。详见[参数与默认值](options.md#未设置零值和默认值)。
+`Optional[T]{}` means unset. `nui.Set(false)` and `nui.Set(0)` mean "use `false`" and "use `0`". Plain `bool`, numeric, and enum fields are assigned directly without `Set`. See [Unset, zero, and default values](options.md#unset-zero-and-default-values).
 
-## 文档中常见的术语
+## Terminology
 
-| 术语 | 在本库中的含义 |
+| Term | Meaning in this library |
 | --- | --- |
-| 部件（slot） | 组件中可单独设置样式的区域，如 `Root` 外层、`Label` 文字、`Panel` 弹出面板；可用部件因组件而异 |
-| 受控状态 | 应用持有并可直接修改的值，如 `open *bool`、当前页码或选中 ID |
-| 构建回调（builder） | 在构建界面时调用的函数，用于填入正文、单元格或其他自定义内容 |
-| DIP | 逻辑尺寸单位，由系统映射到屏幕像素；通常不需要手动乘屏幕缩放比例 |
-| LTR / RTL | 从左到右 / 从右到左的书写方向；支持方向适配的组件会调整排列或按键行为 |
+| Part (slot) | A region of a component that can be styled on its own, such as the outer `Root`, the `Label` text, or a popup `Panel`. Available parts vary by component |
+| Controlled state | A value the app owns and can change directly, such as `open *bool`, the current page, or a selected ID |
+| Builder | A function called during a build to supply content such as a body, a table cell, or other custom UI |
+| DIP | Device-independent pixel, a logical size unit the system maps to screen pixels. You normally do not multiply by the display scale yourself |
+| LTR / RTL | Left-to-right and right-to-left writing direction. Components that support direction adjust their layout or key handling |
 
-## 组件目录
+## Component catalog
 
-下面列出 73 项组件与布局概念。名称用于查找；完整函数签名可在仓库中通过 `go doc` 查询，例如 `go doc . Input`。
+The catalog lists 73 components and layout concepts by name. To see a full function signature, run `go doc` in the repository, for example `go doc . Input`.
 
-### 主题与基础组件
+### Themes and basic components
 
-[主题与基础组件](foundations.md)：App、Theme、Container、Main、Icon、Button、Link、Badge、Card、Alert、Avatar、AvatarGroup、Chip、Separator、Kbd、Skeleton、Progress、ProgressGroup、Empty、User。
+[Themes and basic components](foundations.md): App, Theme, Container, Main, Icon, Button, Link, Badge, Card, Alert, Avatar, AvatarGroup, Chip, Separator, Kbd, Skeleton, Progress, ProgressGroup, Empty, User.
 
-### 输入与选择
+### Inputs and selection
 
-[输入、选择与字段](inputs.md)：Input、Textarea、FormField、FieldGroup、Checkbox、CheckboxGroup、RadioGroup、Switch、Slider、Select、InputMenu、Popover、ScrollArea。
+[Inputs, selection, and fields](inputs.md): Input, Textarea, FormField, FieldGroup, Checkbox, CheckboxGroup, RadioGroup, Switch, Slider, Select, InputMenu, Popover, ScrollArea.
 
-### 弹层与导航
+### Overlays and navigation
 
-[弹层、菜单与导航](overlays-navigation.md)：Tooltip、Modal、Slideover、Toast、DropdownMenu、ContextMenu、Tabs、Collapsible、Accordion、Breadcrumb、Pagination、Stepper、Timeline、Banner、ErrorView。
+[Overlays, menus, and navigation](overlays-navigation.md): Tooltip, Modal, Slideover, Toast, DropdownMenu, ContextMenu, Tabs, Collapsible, Accordion, Breadcrumb, Pagination, Stepper, Timeline, Banner, ErrorView.
 
-### 表单与数据
+### Forms and data
 
-[表单、日期与数据组件](forms-data.md)：Form、InputNumber、InputTags、PinInput、InputRating、Listbox、SelectMenu、Calendar、InputDate、InputTime、ColorPicker、Table、Tree。
+[Forms, dates, and data components](forms-data.md): Form, InputNumber, InputTags, PinInput, InputRating, Listbox, SelectMenu, Calendar, InputDate, InputTime, ColorPicker, Table, Tree.
 
-### 高级交互与布局
+### Advanced interaction and layout
 
-[高级交互、图表与布局](advanced.md)：CommandPalette、NavigationMenu、Drawer、FileUpload、Chart、Carousel、Marquee、Splitter、Sidebar、HeaderLayout、FooterLayout、FooterColumns。
+[Advanced interaction, charts, and layout](advanced.md): CommandPalette, NavigationMenu, Drawer, FileUpload, Chart, Carousel, Marquee, Splitter, Sidebar, HeaderLayout, FooterLayout, FooterColumns.
 
-Go 中的 `Error` 已用于语义颜色，因此错误展示组件命名为 `ErrorView`；`Header`、`Footer` 是部件名，对应布局函数命名为 `HeaderLayout`、`FooterLayout`。此外还有 `CheckboxTri`、`RangeSlider`、`SelectMultiple`、`InputDateRange` 等相关函数，用法在对应组件章节中说明。
+In Go, `Error` is already the name of a semantic color, so the error display component is called `ErrorView`. `Header` and `Footer` are part names, so the layout functions are called `HeaderLayout` and `FooterLayout`. Related functions such as `CheckboxTri`, `RangeSlider`, `SelectMultiple`, and `InputDateRange` are covered in the sections for their base components.
 
-## 其他资料
+## Other references
 
-| 需要查什么 | 文档 |
+| What you need | Document |
 | --- | --- |
-| 中英文切换和文案覆盖 | [国际化](i18n.md) |
-| Lucide 图标名称和用法 | [图标文档](../icons/lucide/README.md) |
-| 平台支持、组件差异、输入法和无障碍限制 | [兼容性与已知限制](compatibility.md) |
-| 可运行示例和开发检查 | [运行示例](../README.md#运行示例)、[Taskfile.yml](../Taskfile.yml) |
-| 版本变化 | [更新日志](../CHANGELOG.md) |
+| Switching between English and Chinese, and overriding messages | [Internationalization](i18n.md) |
+| Lucide icon names and usage | [Icon docs](../icons/lucide/README.md) |
+| Platform support, differences from Nuxt UI, IME, and accessibility limits | [Compatibility and known limitations](compatibility.md) |
+| Runnable examples and development checks | [Run the examples](../README.md#run-the-examples), [Taskfile.yml](../Taskfile.yml) |
+| Version changes | [Changelog](../CHANGELOG.md) |

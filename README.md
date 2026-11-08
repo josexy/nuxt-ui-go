@@ -1,18 +1,18 @@
 # NuxtUI Go
 
-用 Go 编写桌面界面的组件库。NuxtUI Go 基于 [MyGo](https://github.com/egoist/mygo)，提供按钮、输入框、表单、表格、树、图表和应用布局，外观采用 Nuxt UI v4 的设计风格。
+A Go component library for desktop user interfaces. NuxtUI Go is built on [MyGo](https://github.com/egoist/mygo) and provides buttons, inputs, forms, tables, trees, charts, and application layouts styled after Nuxt UI v4.
 
-原生应用不依赖 Vue、Node.js 或 WebView。组件支持浅色、深色和系统外观，内置英文、简体中文、26 套色板，以及 2,015 个按需使用的 Lucide 图标。
+Native apps do not depend on Vue, Node.js, or a WebView. Components support light, dark, and system appearance, and ship with English and Simplified Chinese messages, 26 color palettes, and 2,015 Lucide icons that are compiled in only when used.
 
-**第一次使用，从下面的最小应用开始。** 想先查看组件效果，可以[运行 Gallery](#运行示例)；已有应用需要接入组件，直接查看[组件指南](docs/README.md)。
+**New to the library? Start with the minimal app below.** To see the components first, [run the Gallery](#run-the-examples). To add components to an existing app, go to the [component guide](docs/README.md).
 
-![Gallery 组件展示：组件目录与按钮示例](docs/images/gallery.png)
+![Gallery showing the component list and button examples](docs/images/gallery.png)
 
-## 安装与最小应用
+## Getting started
 
-需要 **Go 1.27.3 或更高版本**，以及桌面图形会话。构建时设置 `CGO_ENABLED=0`。Windows、Linux、macOS 的验证程度不同，具体见[兼容性说明](docs/compatibility.md#环境与平台)。
+You need **Go 1.27.3 or later** and a desktop graphics session. Build with `CGO_ENABLED=0`. Windows, Linux, and macOS have different levels of verification; see [Requirements and platforms](docs/compatibility.md#requirements-and-platforms).
 
-### 1. 创建项目
+### 1. Create a project
 
 ```sh
 mkdir nuxt-ui-demo
@@ -21,11 +21,11 @@ go mod init example.com/nuxt-ui-demo
 go get github.com/josexy/nuxt-ui-go@latest
 ```
 
-模块路径是 `github.com/josexy/nuxt-ui-go`，代码中使用包名 `nui`。本仓库使用的 Go 和 MyGo 版本见 [go.mod](go.mod)。
+The module path is `github.com/josexy/nuxt-ui-go` and the package name is `nui`. The Go and MyGo versions this repository uses are listed in [go.mod](go.mod).
 
-### 2. 创建 main.go
+### 2. Create main.go
 
-这个程序会打开一个窗口，点击 Save 后更新计数。代码与仓库中的[最小示例](examples/minimal/main.go)一致。
+This program opens a window and increments a counter each time you click Save. It matches the repository's [minimal example](examples/minimal/main.go).
 
 ```go
 package main
@@ -61,15 +61,15 @@ func main() {
 }
 ```
 
-这里有三处需要了解：
+Three things to note:
 
-- `count` 和 `config` 放在视图函数外，界面重新构建时仍保留原值。
-- `nui.App(c, config)` 为当前窗口准备主题，后面的组件使用返回的 `theme`。
-- `OnClick` 在点击后修改数据；MyGo 根据新数据重新构建界面。
+- `count` and `config` live outside the view function, so they keep their values when the UI rebuilds.
+- `nui.App(c, config)` prepares the theme for the current window. Pass the returned `theme` to every component.
+- `OnClick` changes the data after a click, and MyGo rebuilds the UI from the new data.
 
-### 3. 运行应用
+### 3. Run the app
 
-Windows PowerShell：
+Windows PowerShell:
 
 ```powershell
 go mod tidy
@@ -77,44 +77,44 @@ $env:CGO_ENABLED = '0'
 go run .
 ```
 
-Linux / macOS shell：
+Linux or macOS shell:
 
 ```sh
 go mod tidy
 CGO_ENABLED=0 go run .
 ```
 
-应用成功打开后，可以继续阅读[组件指南中的基本写法](docs/README.md#理解组件的基本写法)，为窗口添加输入框和其他控件。
+Once the window opens, read [How component calls work](docs/README.md#how-component-calls-work) to add inputs and other controls.
 
-## 运行示例
+## Run the examples
 
-以下命令在**本仓库根目录**执行。先将 `CGO_ENABLED` 设为 `0`：PowerShell 使用 `$env:CGO_ENABLED = '0'`，Linux / macOS shell 使用 `export CGO_ENABLED=0`。
+Run these commands from the **repository root**. First set `CGO_ENABLED` to `0`: use `$env:CGO_ENABLED = '0'` in PowerShell or `export CGO_ENABLED=0` in a Linux or macOS shell.
 
-| 想查看什么 | 命令 | 示例源码 |
+| What you want to see | Command | Source |
 | --- | --- | --- |
-| 全部组件、主题和交互效果 | `go run ./examples/gallery` | [Gallery](examples/gallery/) |
-| 窗口、主题和按钮的最小用法 | `go run ./examples/minimal` | [最小应用](examples/minimal/main.go) |
-| 表单校验、编辑对话框、菜单和通知 | `go run ./examples/settings` | [设置页](examples/settings/) |
-| 搜索、筛选、分页、表格和树 | `go run ./examples/data-browser` | [数据浏览器](examples/data-browser/) |
+| Every component, theme, and interaction | `go run ./examples/gallery` | [Gallery](examples/gallery/) |
+| The smallest window, theme, and button setup | `go run ./examples/minimal` | [Minimal app](examples/minimal/main.go) |
+| Form validation, edit dialogs, menus, and notifications | `go run ./examples/settings` | [Settings](examples/settings/) |
+| Search, filters, pagination, tables, and trees | `go run ./examples/data-browser` | [Data browser](examples/data-browser/) |
 
-## 按任务查文档
+## Documentation by task
 
-| 任务 | 文档 |
+| Task | Document |
 | --- | --- |
-| 查找组件，了解状态和回调的基本写法 | [组件指南](docs/README.md) |
-| 修改颜色、字号、间距或某个组件的样式 | [主题与基础组件](docs/foundations.md) |
-| 查询默认值，配置多选、方向、加载状态或弹层 | [参数与默认值](docs/options.md) |
-| 切换语言、修改内置文案或使用图标 | [国际化](docs/i18n.md)、[Lucide 图标](icons/lucide/README.md) |
-| 确认平台支持、已知问题和版本变化 | [兼容性与已知限制](docs/compatibility.md)、[更新日志](CHANGELOG.md) |
+| Find a component and learn the basic state and callback patterns | [Component guide](docs/README.md) |
+| Change colors, font sizes, spacing, or a component's style | [Themes and basic components](docs/foundations.md) |
+| Look up defaults, or configure multi-select, orientation, loading states, or overlays | [Options and defaults](docs/options.md) |
+| Switch languages, override built-in messages, or use icons | [Internationalization](docs/i18n.md), [Lucide icons](icons/lucide/README.md) |
+| Check platform support, known issues, and version changes | [Compatibility and known limitations](docs/compatibility.md), [Changelog](CHANGELOG.md) |
 
-组件网站提供 73 项组件与布局的中英文说明、Go/WASM 实时预览、参数编辑和可复制的完整 Go 示例。按[网站开发说明](website/README.md#本地开发)安装依赖后，运行 `task website:dev` 即可本地查看。静态构建和 GitHub Pages 发布方式也在该文档中。
+The component website covers 73 components and layouts in English and Chinese, with live Go/WASM previews, option editors, and complete Go programs you can copy. To run it locally, install the dependencies as described in [Local development](website/README.md#local-development) and run `task website:dev`. The same document explains static builds and GitHub Pages publishing.
 
-## 参与开发
+## Contributing
 
-安装 [Task](https://taskfile.dev/docs/installation) 后，在仓库根目录运行 `task` 查看可用命令。`task verify` 会选择 Windows 或 Linux 验证脚本，检查格式、测试、生命周期规则和跨平台构建。
+Install [Task](https://taskfile.dev/docs/installation), then run `task` in the repository root to list the available commands. `task verify` runs the Windows or Linux verification script, which checks formatting, tests, lifecycle rules, and cross-platform builds.
 
-完整命令见 [Taskfile.yml](Taskfile.yml)，持续集成配置见 [check.yml](.github/workflows/check.yml)。开发网站还需要 Node.js 和 pnpm，普通 Go 应用不需要安装它们。
+All commands are defined in [Taskfile.yml](Taskfile.yml), and the CI configuration is in [check.yml](.github/workflows/check.yml). Working on the website also requires Node.js and pnpm; ordinary Go apps do not need them.
 
-## 许可证
+## License
 
-本项目采用 [MIT License](LICENSE)。Nuxt UI、Lucide/Feather、Tailwind CSS 和 MyGo 的来源及许可见[第三方声明](THIRD_PARTY_NOTICES.md)。
+This project is released under the [MIT License](LICENSE). Sources and licenses for Nuxt UI, Lucide/Feather, Tailwind CSS, and MyGo are listed in the [third-party notices](THIRD_PARTY_NOTICES.md).
