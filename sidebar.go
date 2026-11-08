@@ -372,7 +372,16 @@ func sidebarResize(c *ui.Context, t Theme, m *sidebarMemory, s *SidebarState, co
 	if handle.Hovered() || handle.FocusVisible() || m.dragging {
 		color = t.Primary
 	}
-	handle.Children(func() { ui.Box(c).Absolute().Left(3).Top(0).Bottom(0).Width(1).Background(color).IgnoreInput(true) })
+	handle.Children(func() {
+		// The handle is placed from inside the root's one-DIP edge border, so
+		// mirror the line with it to draw over that border, not beside it.
+		line := ui.Box(c).Absolute().Top(0).Bottom(0).Width(1).Background(color).IgnoreInput(true)
+		if right {
+			line.Left(3)
+		} else {
+			line.Right(3)
+		}
+	})
 	finish(t, ComponentSidebar, SeparatorSlot, handle, PartStyle{}, o.Decoration)
 }
 

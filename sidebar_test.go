@@ -406,6 +406,56 @@ func TestSidebarExternalOpenerAndAnimatedClose(t *testing.T) {
 	}
 }
 
+// The resize handle's line draws over the sidebar's edge border, so the edge
+// shows one separator rather than the border with a second line beside it.
+func TestSidebarResizeLineCoversEdgeBorder(t *testing.T) {
+	for _, side := range []struct {
+		name string
+		side nui.Side
+	}{{"left", nui.SideLeft}, {"right", nui.SideRight}} {
+		for _, dir := range []struct {
+			name string
+			dir  ui.Direction
+		}{{"ltr", ui.LeftToRight}, {"rtl", ui.RightToLeft}} {
+			for _, scale := range []float32{1, 2} {
+				t.Run(fmt.Sprintf("%s/%s/x%v", side.name, dir.name, scale), func(t *testing.T) {
+					collapsed := false
+					tt := ui.NewTester(func(c *ui.Context) {
+						th := nui.App(c, nui.AppConfig{})
+						ui.Row(c).Fill().Children(func() {
+							body := func() { ui.Column(c.Key("body")).Grow(1) }
+							if side.side == nui.SideRight {
+								body()
+							}
+							nui.Sidebar(c.Key("sidebar"), th, &collapsed, nui.SidebarOptions{Title: "Files", Side: nui.Set(side.side), Width: nui.Set(float32(200)), Resizable: true}, nil)
+							if side.side == nui.SideLeft {
+								body()
+							}
+						})
+					}, 500, 200)
+					tt.SetDirection(dir.dir)
+					tt.SetScale(scale)
+					r := bounds(t, tt, "Resize sidebar")
+					img := tt.Image()
+					// Below the header, the handle crosses only the edge.
+					y := int(150 * scale)
+					x0, x1 := int(r.X*scale), int((r.X+r.W)*scale)
+					background := img.RGBAAt(x0, y)
+					drawn := 0
+					for x := x0; x < x1; x++ {
+						if img.RGBAAt(x, y) != background {
+							drawn++
+						}
+					}
+					if drawn != int(scale) {
+						t.Fatalf("edge draws %d device pixels across the handle, want one DIP line (%d)", drawn, int(scale))
+					}
+				})
+			}
+		}
+	}
+}
+
 func TestSidebarVisualArtifacts(t *testing.T) {
 	dir := os.Getenv("NUI_ARTIFACTS")
 	if dir == "" {
