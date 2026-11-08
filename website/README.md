@@ -34,7 +34,7 @@ pnpm --dir website generate
 pnpm --dir website preview
 ```
 
-- `check`: checks source formatting, generated data, and WASM; type-checks TypeScript; and compiles the 73 default examples and the standalone Go examples generated from every field configuration.
+- `check`: checks source formatting, generated data, and WASM; type-checks TypeScript; compiles the 73 default examples; and type-checks the 3,000+ standalone Go examples generated from every field configuration with `go vet`, which is much faster than compiling each one.
 - `generate`: writes `website/.output/public/`, which you can deploy to any static host.
 - `preview`: serves the static output at `http://127.0.0.1:4173/`.
 
@@ -42,7 +42,7 @@ To run the Go example regression tests: `CGO_ENABLED=0 go test ./internal/showca
 
 The example regression tests render every enum, toggle, numeric bound, and empty text the editors offer, and check that input is preserved, actions are counted correctly, and dialogs rebuild correctly. Keep option ranges in line with what each component actually supports. For example, input components support `outline / soft / subtle / ghost / none`, but not Button's `solid / link`.
 
-The Go interaction tests also cover every menu action, form validation and submission, selection and expansion state, closing and reopening dialogs, disabled and read-only date ranges, and content bounds in narrow layouts. `test:snippets` runs the Go tests and compiles the standalone examples, while the frontend keeps its format, type, and static build checks.
+The Go interaction tests also cover every menu action, form validation and submission, selection and expansion state, closing and reopening dialogs, disabled and read-only date ranges, and content bounds in narrow layouts. `test:snippets` runs the Go tests, compiles the default examples, and type-checks the configured ones, while the frontend keeps its format, type, and static build checks.
 
 ## Where examples and docs come from
 
