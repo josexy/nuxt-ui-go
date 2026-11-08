@@ -86,7 +86,7 @@ Visual and interaction parity with Nuxt UI v4.12.0.
 
 - Fixes Slider and RangeSlider colors for Neutral and field errors, dual-thumb part colors, floating-point noise with fractional steps, and drag commits after a parent is disabled. Fixes the check for very small minimum distances.
 - Slider adds a localized default name and keeps the precedence of explicit names. With custom track padding, the value tooltip follows the actual thumb position.
-- Fixes extra spacing and a standalone asterisk in FormField without a label, and baseline alignment of horizontal text; adds Header and Body region styles. Changing the label, orientation, or error message keeps editing state.
+- Fixes extra spacing and a standalone asterisk in FormField without a label, and baseline alignment of horizontal text; adds Header and Body region styles. FormField text now uses Nuxt's line heights (16/16/20/20/24 DIP for XS–XL), so its layout no longer depends on the platform font's metrics. Changing the label, orientation, or error message keeps editing state.
 - Input and Textarea add a leading avatar and a trailing loading indicator, and fix the loading icon color, the Neutral focus color, and Highlight with the None variant. The Gallery, website options, and bilingual descriptions are updated.
 - Fixes OnChange firing after MaxLength rejects an input entirely. Clarifies where Password, OnSubmit, and MaxRows apply in Textarea.
 - Fixes choice cards showing both an outer frame focus ring and an inner indicator focus ring. Corrects the option descriptions and examples for fields shared by Checkbox and Switch, and by radio and checkbox groups.

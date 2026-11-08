@@ -68,8 +68,12 @@ func FormField(c *ui.Context, t Theme, opts FormFieldOptions, content func(Theme
 	e.Label(label)
 	inner.field.Label = label
 	inner.field.Description = strings.TrimSpace(strings.Join([]string{opts.Description, opts.Hint, opts.Help}, "\n"))
-	fontSize := t.text([5]float32{12, 12, 14, 14, 16}[sizeIndex(config.Size)])
-	copyStyle := PartStyle{Foreground: Set(t.Muted), FontSize: Set(fontSize)}
+	// Nuxt's text-xs/sm/base: an explicit line height keeps the horizontal
+	// layout's baseline alignment independent of the platform font's metrics.
+	size := sizeIndex(config.Size)
+	fontSize := t.text([5]float32{12, 12, 14, 14, 16}[size])
+	lineHeight := Set([5]float32{16, 16, 20, 20, 24}[size] / [5]float32{12, 12, 14, 14, 16}[size])
+	copyStyle := PartStyle{Foreground: Set(t.Muted), FontSize: Set(fontSize), LineHeight: lineHeight}
 	activate := func() { inner.field.Focus.Focus(c) }
 	inner.field.Activate = &activate
 	if !vertical(valueOr(opts.Orientation, Vertical)) {
@@ -97,7 +101,7 @@ func FormField(c *ui.Context, t Theme, opts FormFieldOptions, content func(Theme
 									ui.Text(c, "*").TextColor(t.Error).MarginStart(t.spacing(2)).Role(ui.RoleNone)
 								}
 							})
-							finish(t, ComponentFormField, Label, labelPart, PartStyle{Foreground: Set(t.Text), FontSize: Set(fontSize)}, opts.Decoration)
+							finish(t, ComponentFormField, Label, labelPart, PartStyle{Foreground: Set(t.Text), FontSize: Set(fontSize), LineHeight: lineHeight}, opts.Decoration)
 						}
 						if opts.Hint != "" {
 							finish(t, ComponentFormField, Hint, ui.Text(c, opts.Hint), copyStyle, opts.Decoration)
@@ -116,7 +120,7 @@ func FormField(c *ui.Context, t Theme, opts FormFieldOptions, content func(Theme
 				content(inner)
 			}
 			if opts.Error != "" {
-				finish(t, ComponentFormField, ErrorSlot, ui.Text(c, opts.Error), PartStyle{Foreground: Set(t.Error), FontSize: Set(fontSize)}, opts.Decoration)
+				finish(t, ComponentFormField, ErrorSlot, ui.Text(c, opts.Error), PartStyle{Foreground: Set(t.Error), FontSize: Set(fontSize), LineHeight: lineHeight}, opts.Decoration)
 			} else if opts.Help != "" {
 				finish(t, ComponentFormField, Help, ui.Text(c, opts.Help), copyStyle, opts.Decoration)
 			}

@@ -133,7 +133,7 @@ FormField associates its label, description, error, and Handle with the first co
 | Default layout | The label area above the content area |
 | Horizontal | The label area and the content area side by side, aligned on the baseline of the first line of text |
 
-The description sits directly below the label. In vertical layout, the content area is 4 DIP below the label area. Help and Error are 8 DIP below the input, and in horizontal layout the two columns are also 8 DIP apart. Without a Label, Hint, or Description, no label area is created and no top gap is left. The asterisk is 2 DIP from the label, and the accessible name includes both the label and `*`. Without a label, no standalone asterisk is shown, but the required description is still passed to the control.
+For sizes XS–XL, the label, hint, description, help, and error text use font sizes of 12/12/14/14/16 DIP with line heights of 16/16/20/20/24 DIP. The description sits directly below the label. In vertical layout, the content area is 4 DIP below the label area. Help and Error are 8 DIP below the input, and in horizontal layout the two columns are also 8 DIP apart. Without a Label, Hint, or Description, no label area is created and no top gap is left. The asterisk is 2 DIP from the label, and the accessible name includes both the label and `*`. Without a label, no standalone asterisk is shown, but the required description is still passed to the control.
 
 Clicking the label activates the first associated control. Checkbox, Switch, and CheckboxGroup keep their toggle and notification behavior, and a tri-state Checkbox goes from indeterminate to checked. Use a separate FormField for each independent input. Your app must associate labels with custom MyGo controls itself.
 
