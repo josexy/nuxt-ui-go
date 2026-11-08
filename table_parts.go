@@ -17,17 +17,34 @@ const (
 )
 
 type tableEvents struct {
-	sort        []ui.SortOrder
-	selection   map[string]struct{}
+	sort []ui.SortOrder
+	// selection holds the IDs chosen as of the last build without an input
+	// notice, in no order: the notice compares the new choice against it.
+	selection   []string
 	initialized bool
 }
 
-func tableSelection(selection *ui.Selection[string]) map[string]struct{} {
-	result := make(map[string]struct{}, selection.Len())
-	for id := range selection.All() {
-		result[id] = struct{}{}
+// tableSelectionDiffers reports whether selection holds other IDs than keys,
+// which hold no duplicates: it reads the selection without copying it.
+func tableSelectionDiffers(keys []string, selection *ui.Selection[string]) bool {
+	if len(keys) != selection.Len() {
+		return true
 	}
-	return result
+	for _, id := range keys {
+		if !selection.Has(id) {
+			return true
+		}
+	}
+	return false
+}
+
+// snapshotTableSelection refills keys, reusing its room, with the IDs of selection.
+func snapshotTableSelection(keys []string, selection *ui.Selection[string]) []string {
+	keys = keys[:0]
+	for id := range selection.All() {
+		keys = append(keys, id)
+	}
+	return keys
 }
 
 func finishTableCell(t Theme, slot Slot, e ui.Element, base PartStyle, table, column Decoration) {

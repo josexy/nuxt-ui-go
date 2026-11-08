@@ -220,7 +220,8 @@ type CommandPaletteState struct {
 	mailbox                                chan commandResult
 	list                                   ListboxState
 	editor                                 ui.Handle
-	selected                               []string
+	selected, previous                     []string
+	rows                                   commandRowsCache
 }
 
 func (s *CommandPaletteState) SetIndex(index *CommandIndex) {
@@ -399,12 +400,15 @@ func CommandPalette(c *ui.Context, t Theme, s *CommandPaletteState, o CommandPal
 			index, query, parent, limit, ignore := s.index, s.Query, s.parent(), limit, o.IgnoreFilter
 			mailbox := make(chan commandResult, 1)
 			s.mailbox = mailbox
+			services := c.Services()
 			go func() {
 				items := index.search(ctx, query, parent, limit, fields, ignore)
 				select {
 				case <-ctx.Done():
 					return
 				case mailbox <- commandResult{ticket, items}:
+					// The next build takes the result; nothing polls for it.
+					services.Invalidate()
 				}
 			}()
 		}
@@ -419,9 +423,6 @@ func CommandPalette(c *ui.Context, t Theme, s *CommandPaletteState, o CommandPal
 			s.mailbox = nil
 		default:
 		}
-	}
-	if s.mailbox != nil {
-		c.After(16 * time.Millisecond)
 	}
 	title := o.Title
 	if title == "" {

@@ -353,10 +353,14 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 		if vert {
 			list = ui.List(c.Key("list"), &s.List, count).ItemKey(func(i int) any { return rows[i].key })
 		} else {
+			// Before its first layout, or while an ancestor is Hidden, the
+			// viewport is unknown: build the window's width of rows, and let
+			// the first paint with a real box ask for one more build. A hidden
+			// list paints nothing, so it never asks.
 			viewport := s.horizontal.Bounds(c).W
-			if viewport <= 0 {
+			guessed := viewport <= 0
+			if guessed {
 				viewport, _ = c.Size()
-				c.After(time.Nanosecond)
 			}
 			if i := s.data.enabledIndex(s.scrollTo); s.scrollTo != "" && i >= 0 {
 				x := float32(positions[i]) * itemWidth
@@ -367,11 +371,26 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 				}
 			}
 			s.scrollTo = ""
-			s.horizontal.X = max(0, min(s.horizontal.X, float32(len(rows))*itemWidth-viewport))
-			first = max(0, int(s.horizontal.X/itemWidth)-2)
-			last = min(count, int(math.Ceil(float64((s.horizontal.X+viewport)/itemWidth)))+2)
+			// The window's width is at least the real viewport's, so rows for a
+			// guess still cover what shows; only a measured one may clamp the
+			// offset kept while hidden.
+			x := max(0, min(s.horizontal.X, float32(len(rows))*itemWidth-viewport))
+			if !guessed {
+				s.horizontal.X = x
+			}
+			first = max(0, int(x/itemWidth)-2)
+			last = min(count, int(math.Ceil(float64((x+viewport)/itemWidth)))+2)
 			first = min(first, last)
 			list = ui.ScrollHorizontal(c.Key("list")).TrackScroll(&s.horizontal).Bind(&s.List.Handle).Role(ui.RoleList)
+			if guessed {
+				services := c.Services()
+				list.Draw(func(_ *ui.Painter, r ui.Rect) {
+					if guessed && r.W > 0 && r.H > 0 {
+						guessed = false // once per build: Draw may run more than once
+						services.Invalidate()
+					}
+				})
+			}
 		}
 		list.Fill().MinHeight(0).Focusable().FocusRing(false).Label(o.Label).InputMethod(false)
 		if vert {

@@ -11253,8 +11253,8 @@
       "en": "### Basic usage\n\nRepeat defaults to four copies; explicit zero builds no content and a single copy may leave an empty interval. Speed defaults to 32 DIP/s and Gap to 64 DIP. Keep the callback presentation-only; Body styles each content copy.\n\n### Try the preview\n\n1. Compare zero, one and four copies, then change orientation, RTL, reverse and edge fading.\n2. Use Pause / resume or focus the region and press Space. Enable pause on hover and move the pointer away to continue.\n3. Replace content to reset the phase. Disabling the parent stops motion."
     },
     "note": {
-      "zh": "Repeat 是内容回调的构建次数，不要在其中放输入框、按钮或业务副作用。焦点、暂停状态、Active=false、父级禁用、不可见和减少动态效果都会停止运动。原生使用 DIP/s；上游 CSS 默认每周期 20 秒，两者单位不同。网站最多允许 100 份内容；重复内容的读屏表现仍需在目标辅助工具验证。",
-      "en": "Repeat is the callback count: avoid inputs, buttons and business side effects. Focus, pause, Active=false, disabled ancestors, invisibility and reduced motion stop animation. Native speed uses DIP/s, while upstream CSS defaults to 20 seconds per cycle. The website permits up to 100 copies. Repeated content still requires target screen-reader validation."
+      "zh": "Repeat 是内容回调的构建次数，不要在其中放输入框、按钮或业务副作用。焦点、暂停状态、Active=false、父级禁用、不可见（包括滚出或被裁剪出可见区域，以及保持挂载的隐藏面板）和减少动态效果都会停止运动。内容在只重绘的帧中移动，视图约每秒构建一次；MarqueeState.Offset 是最近一次构建时的位置。原生使用 DIP/s；上游 CSS 默认每周期 20 秒，两者单位不同。网站最多允许 100 份内容；重复内容的读屏表现仍需在目标辅助工具验证。",
+      "en": "Repeat is the callback count: avoid inputs, buttons and business side effects. Focus, pause, Active=false, disabled ancestors, invisibility (including being scrolled or clipped out of view, or a hidden kept-mounted panel) and reduced motion stop animation. The content moves in frames that only repaint, so the view builds about once a second, and MarqueeState.Offset is the phase as of the last build. Native speed uses DIP/s, while upstream CSS defaults to 20 seconds per cycle. The website permits up to 100 copies. Repeated content still requires target screen-reader validation."
     },
     "symbols": ["Marquee"],
     "types": ["MarqueeOptions"],

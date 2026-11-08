@@ -68,13 +68,17 @@ func Chart(c *ui.Context, t Theme, s *ChartState, o ChartOptions) ui.Element {
 			o.Label = message(c, "chart")
 		}
 	}
+	// Committed bounds are unknown before the first layout, and stay empty while
+	// an ancestor is Hidden (a KeepMounted tab or collapsible). Build with a
+	// guess, and let the first paint with a real box ask for one more build:
+	// a hidden chart paints nothing, so it never asks.
 	frameWidth := s.frame.Bounds(c).W
+	guessed := frameWidth <= 0
 	if o.Width > 0 {
 		frameWidth = o.Width
 	}
 	if frameWidth <= 0 {
 		frameWidth = 640
-		c.After(0)
 	}
 	h := o.Height
 	if h <= 0 {
@@ -86,7 +90,9 @@ func Chart(c *ui.Context, t Theme, s *ChartState, o ChartOptions) ui.Element {
 	width := int(s.handle.Bounds(c).W)
 	if width <= 0 {
 		width = int(frameWidth)
+		guessed = true
 	}
+	services := c.Services()
 	config := chartConfig{width: width, kind: o.Kind, curve: o.Curve, stack: o.Stack, padding: valueOr(o.BarPadding, .25), pad: valueOr(o.SlicePadding, .02)}
 	config.rtl = c.Direction() == ui.RightToLeft
 	if o.Kind == ChartDonut {
@@ -148,7 +154,13 @@ func Chart(c *ui.Context, t Theme, s *ChartState, o ChartOptions) ui.Element {
 			selected := s.SelectedSlice
 			ticks := p.y.Ticks(4)
 			lineWidth, pointSize := valueOr(o.LineWidth, float32(2)), valueOr(o.PointSize, float32(7))
+			measure := guessed
 			area.Draw(func(painter *ui.Painter, r ui.Rect) {
+				if measure && r.W > 0 && r.H > 0 {
+					// Once per build: Draw may run again in frames that only paint.
+					measure = false
+					services.Invalidate()
+				}
 				if !chartRadial(o.Kind) && !p.scene.empty && valueOr(o.Grid, true) {
 					for _, tick := range ticks {
 						painter.Line(r.X, plot.Y(r, tick.At), r.X+r.W, plot.Y(r, tick.At), 1, t.BorderMuted)

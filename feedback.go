@@ -329,7 +329,9 @@ func Skeleton(c *ui.Context, t Theme, opts SkeletonOptions) ui.Element {
 		ui.Box(c.Key(skeletonPaintKey{})).Absolute().Left(0).Top(0).Right(0).Bottom(0).IgnoreInput(true).Role(ui.RoleNone).Draw(func(p *ui.Painter, r ui.Rect) {
 			alpha := float32(1)
 			if animated {
-				p.AnimationFrame()
+				// A pulse this slow looks as smooth at 30 frames a second, which
+				// spares displays refreshing at 120 Hz three of every four.
+				p.AnimationFrameRate(30)
 				alpha = .5 + .5*float32((1+math.Cos(2*math.Pi*phase(p.Now(), t.Motion.Pulse)))/2)
 			}
 			p.Fill(r, color.Alpha(alpha), 0)
@@ -376,6 +378,36 @@ type ProgressOptions struct {
 	Inverted                bool
 	Animate                 Optional[bool]
 	Decoration
+	countdown *progressCountdown // A toast's bar, drawn from the clock.
+}
+
+// progressCountdown is a determinate bar that empties with the clock: left of
+// total remained at the build's time at, and runs down while running. Its
+// frames only paint, so a toast counting down does not build the view again.
+type progressCountdown struct {
+	left, total time.Duration
+	at          time.Time
+	running     bool
+	// fps paints it that many times a second; zero, at the display's rate.
+	fps float32
+}
+
+func (cd *progressCountdown) fraction(p *ui.Painter) float32 {
+	left := cd.left
+	if cd.running {
+		left -= p.Now().Sub(cd.at)
+		if left > 0 {
+			if cd.fps > 0 {
+				p.AnimationFrameRate(cd.fps)
+			} else {
+				p.AnimationFrame()
+			}
+		}
+	}
+	if cd.total <= 0 {
+		return 0
+	}
+	return max(0, min(1, float32(left)/float32(cd.total)))
 }
 
 func Progress(c *ui.Context, t Theme, value float64, opts ProgressOptions) ui.Element {
@@ -416,7 +448,8 @@ func Progress(c *ui.Context, t Theme, value float64, opts ProgressOptions) ui.El
 	if !opts.Vertical && c.Direction() == ui.RightToLeft {
 		reverse = !reverse
 	}
-	if !opts.Indeterminate {
+	countdown := opts.countdown
+	if !opts.Indeterminate && countdown == nil {
 		if animated {
 			ratio = e.AnimateWith("nui-progress", ratio, 200*time.Millisecond, ui.EaseOut)
 		} else {
@@ -425,6 +458,9 @@ func Progress(c *ui.Context, t Theme, value float64, opts ProgressOptions) ui.El
 	}
 	e.Draw(func(p *ui.Painter, r ui.Rect) {
 		fraction, start := ratio, float32(0)
+		if countdown != nil && !opts.Indeterminate {
+			fraction = countdown.fraction(p)
+		}
 		if opts.Indeterminate {
 			fraction = .5
 			start = .25
