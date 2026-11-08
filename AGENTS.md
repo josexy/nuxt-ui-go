@@ -30,7 +30,7 @@ See the [README](README.md) for installation and complete examples, and [docs/co
 - Follow the existing package layout, Options types, state types, and naming conventions.
 - Change public APIs, defaults, or dependencies only when the task requires it, and update the affected examples and documentation in the same change.
 - Manage dependencies with Go modules. Never commit configuration that points to a personal directory, such as a local `replace` directive or a `go.work` file; users must be able to install with plain `go get`.
-- To check whether a MyGo API exists, find the pinned module with `go list -m -f '{{.Dir}}' github.com/egoist/mygo`, then read its `ui/doc.go` and the relevant source. Do not assume other MyGo versions have the same interfaces.
+- To check whether a MyGo API exists, find the pinned module's directory in the `Dir` field of `go mod download -json github.com/egoist/mygo` (unlike `go list -m`, it downloads the module if it is not cached yet), then read its `ui/doc.go` and the relevant source. Do not assume other MyGo versions have the same interfaces.
 - When upgrading a dependency, review its migration notes, lifecycle assumptions, and platform behavior. Keep third-party copyright and license notices intact.
 - Before deleting a file, check for references in code, scripts, and documentation, and back it up outside the repository.
 - Commits, pushes, tags, and releases require the user's explicit permission. Permission to edit and verify locally does not include publishing.
