@@ -4,3 +4,6 @@
 /go.work.sum
 *.exe
 .DS_Store
+/openspec
+/.agents/openspec*
+/.agents/.openspec-target
