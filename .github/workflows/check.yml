@@ -1,5 +1,10 @@
 name: Validate library
-on: [push, pull_request]
+# Pull requests are checked by pull_request; push covers main after merge.
+# Running push on every branch would check each PR commit twice.
+on:
+  push:
+    branches: [main]
+  pull_request:
 permissions:
   contents: read
 jobs:
