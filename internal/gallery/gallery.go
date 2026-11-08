@@ -2,10 +2,10 @@
 package gallery
 
 import (
+	"cmp"
 	"fmt"
 	"image"
 	"image/color"
-	"slices"
 	"strings"
 
 	"github.com/egoist/mygo"
@@ -25,6 +25,7 @@ type State struct {
 	directoryToggle, directorySearch      ui.Handle
 	closeToasts, disposed, WindowInactive bool
 	pendingToasts                         []nui.ToastOptions
+	toastViewport                         nui.ToastViewportOptions
 	FileDialog                            mygo.OpenDialogOptions
 	Sidebar                               nui.SidebarState
 	SidebarCollapsed                      bool
@@ -40,12 +41,11 @@ type State struct {
 	AvatarImage                           *ui.Bitmap
 	Advanced                              advancedState
 	Rows                                  []Record
-	List                                  ui.ListState
-	Selection                             ui.Selection[string]
-	Sort, appliedSort                     ui.SortOrder
-	CellCalls                             int
-	MenuResult                            string
-	RichOpen, RichSubOpen                 bool
+	nui.TableState[Record]
+	TableConfig           nui.TableOptions
+	CellCalls             int
+	MenuResult            string
+	RichOpen, RichSubOpen bool
 }
 
 func New() *State {
@@ -74,9 +74,7 @@ func (s *State) SetRows(n int) {
 		}
 		s.Rows[i] = Record{ID: fmt.Sprintf("workspace-%d", i), Name: fmt.Sprintf("Workspace %05d", i+1), Status: status, Members: i%87 + 1}
 	}
-	s.List.Key = func(i int) any { return s.Rows[i].ID }
-	s.List.Label = func(i int) string { return s.Rows[i].Name }
-	s.List.Selection, s.List.Sort = &s.Selection, &s.Sort
+	s.TableState.SetRows(s.Rows, func(v Record) string { return v.ID })
 }
 
 var plans = []nui.Option[string]{
@@ -94,21 +92,9 @@ func heading(c *ui.Context, s nui.Theme, title, description string) {
 }
 
 func (a *State) Table(c *ui.Context, s nui.Theme) ui.Element {
-	t := s
-	a.CellCalls = 0
-	columns := []ui.TableColumn{
-		{ID: "name", Title: "Workspace", Width: 300, MinWidth: 160, MaxWidth: 600, Sortable: true},
-		{ID: "status", Title: "Status", Width: 150},
-		{ID: "members", Title: "Members", Width: 110, Sortable: true},
-	}
-	return ui.Table(c.Key("workspaces-table"), &a.List, columns, len(a.Rows), func(row, col int) {
-		a.CellCalls++
-		record := a.Rows[row]
-		chosen := a.Selection.Has(record.ID)
-		switch col {
-		case 0:
-			ui.Text(c, record.Name).SingleLine()
-		case 1:
+	columns := []nui.TableColumn[Record]{
+		{ID: "name", Title: "Workspace", Width: 300, MinWidth: 160, MaxWidth: 600, Value: func(v Record) string { return v.Name }, Compare: func(a, b Record) int { return strings.Compare(a.Name, b.Name) }},
+		{ID: "status", Title: "Status", Width: 150, Value: func(v Record) string { return v.Status }, Cell: func(c *ui.Context, t nui.Theme, record Record, chosen bool) {
 			color := t.Primary
 			if record.Status == "Draft" {
 				color = t.Muted
@@ -117,28 +103,25 @@ func (a *State) Table(c *ui.Context, s nui.Theme) ui.Element {
 				color = t.Inverted
 			}
 			ui.Text(c, record.Status).FontSize(12).TextColor(color).Background(color.Alpha(0.10)).Padding(2, 6).Radius(4)
-		case 2:
+		}},
+		{ID: "members", Title: "Members", Width: 110, Value: func(v Record) string { return fmt.Sprint(v.Members) }, Compare: func(a, b Record) int { return cmp.Compare(a.Members, b.Members) }, Cell: func(c *ui.Context, _ nui.Theme, record Record, _ bool) {
 			ui.Row(c).Gap(6).Children(func() {
 				ui.Icon(c, lucide.Check()).Size(14, 14)
 				ui.Textf(c, "%d", record.Members).SingleLine()
 			})
-		}
-	}).Label("Workspace table").Height(370).FillWidth().Border(1, t.Border).Radius(t.Radius).OnChange(func() {
-		if a.Sort == a.appliedSort {
-			return
-		}
-		a.appliedSort = a.Sort
-		slices.SortStableFunc(a.Rows, func(left, right Record) int {
-			order := strings.Compare(left.Name, right.Name)
-			if a.Sort.Column == "members" {
-				order = left.Members - right.Members
-			}
-			if a.Sort.Descending {
-				order = -order
-			}
-			return order
-		})
-	})
+		}},
+	}
+	o := a.TableConfig
+	o.Label = "Workspace table"
+	if o.Height <= 0 {
+		o.Height = 370
+	}
+	if o.EmptyText == "" {
+		o.EmptyText = "No workspace records"
+	}
+	table := nui.Table(c.Key("workspaces-table"), s, &a.TableState, columns, o).FillWidth()
+	a.CellCalls = a.CellBuilds
+	return table
 }
 
 // richActions is an experiment in composition, not a released DropdownMenu.

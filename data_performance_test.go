@@ -11,7 +11,7 @@ import (
 
 func TestListboxCacheTracksInPlaceEdits(t *testing.T) {
 	items := []nui.ListboxItem{{ID: "a", Label: "Alpha", Group: "First"}, {ID: "b", Label: "Beta", Group: "Second"}}
-	selected := []string{"a"}
+	selected := []string{"b"}
 	var state nui.ListboxState
 	shown := true
 	tt := ui.NewTester(func(c *ui.Context) {
@@ -20,6 +20,9 @@ func TestListboxCacheTracksInPlaceEdits(t *testing.T) {
 			nui.Listbox(c.Key("choices"), th, &selected, &state, items, nui.ListboxOptions{Label: "Choices"}).Width(320)
 		}
 	}, 400, 300)
+	if state.Active != "b" {
+		t.Fatal("initial highlight did not follow the selected item")
+	}
 	click(t, tt, "Alpha")
 	items[0].Label, items[0].Group, items[0].Disabled = "Renamed", "New group", true
 	selected = []string{"b"}

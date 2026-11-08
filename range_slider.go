@@ -3,6 +3,8 @@ package nui
 import (
 	"fmt"
 	"math"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/egoist/mygo/ui"
@@ -16,6 +18,46 @@ type sliderInputMemory struct {
 }
 
 var sliderKeys = []ui.Key{ui.KeyLeft, ui.KeyRight, ui.KeyUp, ui.KeyDown, ui.KeyPageUp, ui.KeyPageDown, ui.KeyHome, ui.KeyEnd}
+
+func sliderPrecision(minimum, step float64) int {
+	precision := 0
+	for _, value := range []float64{minimum, step} {
+		text := strconv.FormatFloat(value, 'f', -1, 64)
+		if dot := strings.IndexByte(text, '.'); dot >= 0 {
+			precision = max(precision, len(text)-dot-1)
+		}
+	}
+	return precision
+}
+
+func snapSliderValue(value, minimum, maximum, step float64, precision int) float64 {
+	value = minimum + math.Round((value-minimum)/step)*step
+	if precision > 0 {
+		// Restore the decimal step after binary floating-point arithmetic. Using
+		// fixed decimal formatting also handles small steps written as exponents.
+		if rounded, err := strconv.ParseFloat(strconv.FormatFloat(value, 'f', precision, 64), 64); err == nil {
+			value = rounded
+		}
+	}
+	return max(minimum, min(maximum, value))
+}
+
+func sliderColors(t Theme, color, explicit Color, parts Styles) (fill, thumb, focus ui.Color) {
+	fill = t.color(color)
+	if color == Neutral {
+		fill = t.InvertedBackground
+	}
+	focus = fill
+	if !t.HighContrast {
+		focus = focus.Alpha(.25)
+	}
+	if global := t.components[ComponentSlider].UI[Indicator].Background; global.Set && explicit == ColorDefault {
+		fill = global.Value
+	}
+	fill = mergeValue(Set(fill), parts[Indicator].Background).Value
+	thumb = mergeValue(mergeValue(Set(t.Background), t.components[ComponentSlider].UI[Thumb].Background), parts[Thumb].Background).Value
+	return fill, thumb, focus
+}
 
 func sliderKeyValue(key ui.Key, shift bool, value, lo, hi, step float64, vert, inverted, rtl bool) float64 {
 	if key == ui.KeyHome {
@@ -64,21 +106,27 @@ func RangeSlider(c *ui.Context, t Theme, low, high *float64, o RangeSliderOption
 		o.Max = 100
 	}
 	lo, hi, step := numberBounds(InputNumberOptions{Min: Set(o.Min), Max: Set(o.Max), Step: o.Step})
+	precision := sliderPrecision(lo, step)
 	gap := float64(max(0, o.MinStepsBetweenThumbs)) * step
 	if hi <= lo || gap > hi-lo || math.IsInf(gap, 0) {
 		panic("nui: invalid range slider bounds")
 	}
 	*low = max(lo, min(hi-gap, finite(*low)))
 	*high = max(*low+gap, min(hi, finite(*high)))
-	config := selected(defaults(t, ComponentSlider, ComponentTheme{Color: Primary, Size: MD}), ComponentTheme{Color: o.Color, Size: inheritedSize(t, o.Size)})
+	explicitColor := o.Color
+	if t.field.Error != "" {
+		explicitColor = Error
+	}
+	config := selected(defaults(t, ComponentSlider, ComponentTheme{Color: Primary, Size: MD}), ComponentTheme{Color: explicitColor, Size: inheritedSize(t, o.Size)})
 	thumb := t.text([5]float32{12, 14, 16, 18, 20}[sizeIndex(config.Size)])
 	thickness := t.spacing([5]float32{6, 7, 8, 9, 10}[sizeIndex(config.Size)])
 	root := ui.Box(c).MinWidth(100).Height(max(24, thumb)).Role(ui.RoleGroup).Label(o.Label).Disabled(o.Disabled || t.field.Disabled)
+	disabled := root.IsDisabled()
 	if vert {
 		root.MinWidth(0).Width(max(24, thumb)).Height(160)
 	}
 	s := ui.Local(root, "range", func() rangeSliderMemory { return rangeSliderMemory{dragging: -1} })
-	if o.Disabled || t.field.Disabled {
+	if disabled {
 		s.dragging = -1
 	}
 	root.Bind(&s.root)
@@ -97,7 +145,7 @@ func RangeSlider(c *ui.Context, t Theme, low, high *float64, o RangeSliderOption
 		}
 	}
 	set := func(k int, v float64) bool {
-		v = max(lo, min(hi, lo+math.Round((v-lo)/step)*step))
+		v = snapSliderValue(v, lo, hi, step, precision)
 		a, b := v, *high
 		if k == 1 {
 			a, b = *low, v
@@ -105,7 +153,7 @@ func RangeSlider(c *ui.Context, t Theme, low, high *float64, o RangeSliderOption
 		if a > b {
 			a, b = b, a
 		}
-		if b-a+1e-10 < gap || (a == *low && b == *high) {
+		if b-a+gap*1e-10 < gap || (a == *low && b == *high) {
 			return false
 		}
 		*low, *high = a, b
@@ -130,7 +178,7 @@ func RangeSlider(c *ui.Context, t Theme, low, high *float64, o RangeSliderOption
 		}
 	}
 	pointerInput := func(ev ui.InputEvent) bool {
-		if o.Disabled || t.field.Disabled {
+		if disabled {
 			return false
 		}
 		if ev.Kind == ui.InputPointerUp {
@@ -214,6 +262,7 @@ func RangeSlider(c *ui.Context, t Theme, low, high *float64, o RangeSliderOption
 	if reverse {
 		f0, f1 = 1-f0, 1-f1
 	}
+	fillColor, thumbColor, focusColor := sliderColors(t, config.Color, explicitColor, o.UI)
 	root.Draw(func(p *ui.Painter, r ui.Rect) {
 		track := ui.Rect{X: r.X + thumb/2, Y: r.Y + (r.H-thickness)/2, W: max(0, r.W-thumb), H: thickness}
 		if vert {
@@ -228,14 +277,14 @@ func RangeSlider(c *ui.Context, t Theme, low, high *float64, o RangeSliderOption
 			fill.X += track.W * min(f0, f1)
 			fill.W *= float32(math.Abs(float64(f1 - f0)))
 		}
-		p.Fill(fill, t.color(config.Color), 999)
+		p.Fill(fill, fillColor, 999)
 		for k, f := range []float32{f0, f1} {
 			dot := ui.Rect{X: track.X + track.W*f - thumb/2, Y: r.Y + (r.H-thumb)/2, W: thumb, H: thumb}
 			if vert {
 				dot.X = r.X + (r.W-thumb)/2
 				dot.Y = track.Y + track.H*f - thumb/2
 			}
-			sliderThumb(p, dot, t.color(config.Color), t.Background, t.focusColor(config.Color), focused[k])
+			sliderThumb(p, dot, fillColor, thumbColor, focusColor, focused[k])
 		}
 	})
 	if o.Tooltip {
@@ -243,7 +292,7 @@ func RangeSlider(c *ui.Context, t Theme, low, high *float64, o RangeSliderOption
 			for k, v := range []float64{*low, *high} {
 				f := []float32{f0, f1}[k]
 				c.Key(struct{ Tip int }{k})
-				sliderValueTooltip(c, t, s.thumbs[k].Focused(c), fmt.Sprint(v), f, vert, thumb)
+				sliderValueTooltip(c, t, s.thumbs[k].Focused(c), fmt.Sprint(v), f, vert, thumb, thumb/2)
 			}
 		})
 	}
@@ -265,12 +314,13 @@ func sliderThumb(p *ui.Painter, dot ui.Rect, color, thumb, focusColor ui.Color, 
 	p.Fill(dot, thumb, 999)
 }
 
-func sliderValueTooltip(c *ui.Context, t Theme, focused bool, text string, f float32, vert bool, thumb float32) {
+func sliderValueTooltip(c *ui.Context, t Theme, focused bool, text string, f float32, vert bool, thumb, padding float32) {
 	anchor := ui.Box(c).Absolute().Size(thumb, thumb).PassThrough()
+	offset := padding*(1-2*f) - thumb/2
 	if vert {
-		anchor.LeftPercent(50).TopPercent(f*100).Translate(-thumb/2, -thumb*f)
+		anchor.LeftPercent(50).TopPercent(f*100).Translate(-thumb/2, offset)
 	} else {
-		anchor.LeftPercent(f*100).TopPercent(50).Translate(-thumb*f, -thumb/2)
+		anchor.LeftPercent(f*100).TopPercent(50).Translate(offset, -thumb/2)
 	}
 	_, _, over := anchor.PointerPosition()
 	state := ui.Local(anchor, "tip", func() tooltipMemory { return tooltipMemory{} })

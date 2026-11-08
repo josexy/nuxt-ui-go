@@ -674,12 +674,43 @@ func TestSkeletonEmptyAndKbdRecipes(t *testing.T) {
 }
 
 func TestLayoutChromeRecipes(t *testing.T) {
+	editor, leading, activeLink, narrowColumns := false, false, false, false
+	draft, footerLabel := "", "Intro"
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
 		ui.Column(c).Children(func() {
-			nui.HeaderLayout(c, th, nui.HeaderOptions{Title: "Workspace"})
-			nui.FooterLayout(c, th, nui.FooterOptions{Text: "Ready"})
-			nui.FooterColumns(c, th, []nui.FooterColumn{{ID: "docs", Title: "Docs", Items: []nui.NavigationItem{{ID: "a", Label: "Intro"}, {ID: "b", Label: "Guide"}}}}, nui.FooterColumnsOptions{})
+			header := nui.HeaderOptions{Title: "Workspace"}
+			footer := nui.FooterOptions{Text: "Ready"}
+			if editor {
+				header.Actions = func(c *ui.Context, t nui.Theme) {
+					nui.Input(c.Key("draft"), t, &draft, nui.InputOptions{Label: "Header draft"}).Width(180)
+				}
+				footer.Actions = func(c *ui.Context, t nui.Theme) { nui.Button(c, t, "Footer sample action", nui.ButtonOptions{}) }
+				footer.UI = nui.Styles{nui.Actions: {PaddingX: nui.Set(float32(10))}}
+				footer.Style = func(slot nui.Slot, e ui.Element) {
+					if slot == nui.Actions {
+						e.Label("Footer actions")
+					}
+				}
+			}
+			if leading {
+				header.Leading = func(c *ui.Context, t nui.Theme) { ui.Text(c, "Mark") }
+			}
+			nui.HeaderLayout(c.Key("header"), th, header)
+			nui.FooterLayout(c.Key("footer"), th, footer)
+			columns := []nui.FooterColumn{{ID: "docs", Title: "Docs", Items: []nui.NavigationItem{{ID: "a", Label: footerLabel, Active: activeLink}, {ID: "b", Label: "Guide"}}}}
+			if narrowColumns {
+				columns = append(columns, nui.FooterColumn{ID: "more", Title: "More", Items: []nui.NavigationItem{{ID: "extra", Label: "Extra"}}})
+			}
+			footerHost := ui.Column(c.Key("footer-host")).FillWidth().MinWidth(0)
+			var columnStyles nui.Styles
+			if narrowColumns {
+				footerHost.Width(120)
+				columnStyles = nui.Styles{nui.Body: {PaddingX: nui.Set(float32(12))}}
+			}
+			footerHost.Children(func() {
+				nui.FooterColumns(c.Key("columns"), th, columns, nui.FooterColumnsOptions{Decoration: nui.Decoration{UI: columnStyles}})
+			})
 		})
 	}, 600, 400)
 	title, ready := bounds(t, tt, "Workspace"), bounds(t, tt, "Ready")
@@ -697,6 +728,32 @@ func TestLayoutChromeRecipes(t *testing.T) {
 	if intro.Y-(docs.Y+docs.H) != 24 || guide.Y-(intro.Y+intro.H) != 16 || intro.X != docs.X {
 		t.Fatalf("footer columns: title %v, links %v %v; want gaps 24 and 16, aligned", docs, intro, guide)
 	}
+	editor = true
+	tt.Frame()
+	click(t, tt, "Header draft")
+	tt.Type("persistent")
+	leading = true
+	tt.Frame()
+	if !tt.Focused("Header draft") || draft != "persistent" {
+		t.Fatal("header leading content changed the action editor identity")
+	}
+	actions, action := bounds(t, tt, "Footer actions"), bounds(t, tt, "Footer sample action")
+	if action.X-actions.X != 10 || actions.W-action.W != 20 {
+		t.Fatalf("footer Actions padding did not reach its container: %v / %v", actions, action)
+	}
+	editor, leading, activeLink, narrowColumns = false, false, true, true
+	footerLabel = "较长的组件使用说明与完整导航链接"
+	tt.SetSize(120, 400)
+	link := bounds(t, tt, footerLabel)
+	if link.X < 0 || link.X+link.W > 120.1 {
+		t.Fatalf("footer column overflowed a narrow view: %v", link)
+	}
+	if bounds(t, tt, "More").Y <= bounds(t, tt, "Docs").Y {
+		t.Fatal("footer columns ignored their minimum width when wrapping")
+	}
+	if countColor(tt.Image(), link, rgba(nui.Light().Primary)) == 0 {
+		t.Fatal("active footer link did not use the primary color")
+	}
 }
 
 func TestBannerCentersOneLine(t *testing.T) {
@@ -710,13 +767,13 @@ func TestBannerCentersOneLine(t *testing.T) {
 				}
 			}}).FillWidth()
 		})
-	}, 800, 200)
+	}, 1200, 200)
 	banner, title := bounds(t, tt, "Banner region"), bounds(t, tt, "Maintenance tonight")
 	if banner.H != 48 || title.H != 20 {
 		t.Fatalf("banner %v with title %v; want a 48 DIP row with one 14/20 line", banner, title)
 	}
-	if center := title.X + title.W/2; center < 390 || center > 410 {
-		t.Fatalf("banner title %v is not centered in 800 DIPs", title)
+	if center := title.X + title.W/2; center < 590 || center > 610 {
+		t.Fatalf("banner title %v is not centered above the 1024 DIP breakpoint", title)
 	}
 }
 

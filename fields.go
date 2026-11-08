@@ -61,53 +61,66 @@ func FormField(c *ui.Context, t Theme, opts FormFieldOptions, content func(Theme
 		registered.Disabled = inner.field.Disabled
 	}
 	label := opts.Label
-	if opts.Required {
+	if opts.Required && label != "" {
 		label += " *"
 	}
+	hasHeader := label != "" || opts.Description != "" || opts.Hint != ""
 	e.Label(label)
 	inner.field.Label = label
 	inner.field.Description = strings.TrimSpace(strings.Join([]string{opts.Description, opts.Hint, opts.Help}, "\n"))
-	fontSize := t.text([5]float32{12, 12, 14, 14, 16}[sizeIndex(config.Size)])
-	copyStyle := PartStyle{Foreground: Set(t.Muted), FontSize: Set(fontSize)}
+	// Nuxt's text-xs/sm/base: an explicit line height keeps the horizontal
+	// layout's baseline alignment independent of the platform font's metrics.
+	size := sizeIndex(config.Size)
+	fontSize := t.text([5]float32{12, 12, 14, 14, 16}[size])
+	lineHeight := Set([5]float32{16, 16, 20, 20, 24}[size] / [5]float32{12, 12, 14, 14, 16}[size])
+	copyStyle := PartStyle{Foreground: Set(t.Muted), FontSize: Set(fontSize), LineHeight: lineHeight}
 	activate := func() { inner.field.Focus.Focus(c) }
 	inner.field.Activate = &activate
 	if !vertical(valueOr(opts.Orientation, Vertical)) {
-		e.Row().Justify(ui.SpaceBetween).AlignItems(ui.Start)
+		e.Row().Justify(ui.SpaceBetween).AlignItems(ui.Baseline)
 	}
 	e.Children(func() {
-		ui.Column(c.Key("label")).MinWidth(0).Children(func() {
-			ui.Row(c.Key("heading")).Justify(ui.SpaceBetween).AlignItems(ui.Center).Gap(t.spacing(4)).Children(func() {
-				if label != "" {
-					// The accessible name keeps " *"; the visible asterisk is a
-					// separate red mark 2 DIPs after the label, as Nuxt's.
-					labelPart := ui.Row(c.Key("label-text")).MinWidth(0).AlignItems(ui.Center).FontWeight(500).OnClick(func() {
-						if !inner.field.Disabled {
-							activate()
+		if hasHeader {
+			header := ui.Column(c.Key("label")).MinWidth(0)
+			finish(t, ComponentFormField, Header, header, PartStyle{}, opts.Decoration)
+			header.Children(func() {
+				if label != "" || opts.Hint != "" {
+					ui.Row(c.Key("heading")).Justify(ui.SpaceBetween).AlignItems(ui.Center).Gap(t.spacing(4)).Children(func() {
+						if label != "" {
+							// The accessible name keeps " *"; the visible asterisk is a
+							// separate red mark 2 DIPs after the label, as Nuxt's.
+							labelPart := ui.Row(c.Key("label-text")).MinWidth(0).AlignItems(ui.Center).FontWeight(500).OnClick(func() {
+								if !inner.field.Disabled {
+									activate()
+								}
+							}).Children(func() {
+								if opts.Label != "" {
+									ui.Text(c, opts.Label).MinWidth(0)
+								}
+								if opts.Required {
+									ui.Text(c, "*").TextColor(t.Error).MarginStart(t.spacing(2)).Role(ui.RoleNone)
+								}
+							})
+							finish(t, ComponentFormField, Label, labelPart, PartStyle{Foreground: Set(t.Text), FontSize: Set(fontSize), LineHeight: lineHeight}, opts.Decoration)
 						}
-					}).Children(func() {
-						if opts.Label != "" {
-							ui.Text(c, opts.Label).MinWidth(0)
-						}
-						if opts.Required {
-							ui.Text(c, "*").TextColor(t.Error).MarginStart(t.spacing(2)).Role(ui.RoleNone)
+						if opts.Hint != "" {
+							finish(t, ComponentFormField, Hint, ui.Text(c, opts.Hint), copyStyle, opts.Decoration)
 						}
 					})
-					finish(t, ComponentFormField, Label, labelPart, PartStyle{Foreground: Set(t.Text), FontSize: Set(fontSize)}, opts.Decoration)
 				}
-				if opts.Hint != "" {
-					finish(t, ComponentFormField, Hint, ui.Text(c, opts.Hint), copyStyle, opts.Decoration)
+				if opts.Description != "" {
+					finish(t, ComponentFormField, Description, ui.Text(c, opts.Description), copyStyle, opts.Decoration)
 				}
 			})
-			if opts.Description != "" {
-				finish(t, ComponentFormField, Description, ui.Text(c, opts.Description), copyStyle, opts.Decoration)
-			}
-		})
-		ui.Column(c.Key("content")).MinWidth(0).Gap(t.spacing(8)).Children(func() {
+		}
+		body := ui.Column(c.Key("content")).MinWidth(0)
+		finish(t, ComponentFormField, Body, body, PartStyle{Gap: Set(t.spacing(8))}, opts.Decoration)
+		body.Children(func() {
 			if content != nil {
 				content(inner)
 			}
 			if opts.Error != "" {
-				finish(t, ComponentFormField, ErrorSlot, ui.Text(c, opts.Error), PartStyle{Foreground: Set(t.Error), FontSize: Set(fontSize)}, opts.Decoration)
+				finish(t, ComponentFormField, ErrorSlot, ui.Text(c, opts.Error), PartStyle{Foreground: Set(t.Error), FontSize: Set(fontSize), LineHeight: lineHeight}, opts.Decoration)
 			} else if opts.Help != "" {
 				finish(t, ComponentFormField, Help, ui.Text(c, opts.Help), copyStyle, opts.Decoration)
 			}
@@ -124,9 +137,12 @@ func FormField(c *ui.Context, t Theme, opts FormFieldOptions, content func(Theme
 	}
 	c.Resolve(*inner.field.Focus).Error(opts.Error)
 	// Content is 4 DIPs under the label; side by side, the columns are 8 apart.
-	gap := t.spacing(4)
-	if !vertical(valueOr(opts.Orientation, Vertical)) {
-		gap = t.spacing(8)
+	gap := float32(0)
+	if hasHeader {
+		gap = t.spacing(4)
+		if !vertical(valueOr(opts.Orientation, Vertical)) {
+			gap = t.spacing(8)
+		}
 	}
 	finish(t, ComponentFormField, Root, e, PartStyle{Gap: Set(gap)}, opts.Decoration)
 	return e
@@ -232,7 +248,7 @@ func ScrollArea(c *ui.Context, t Theme, opts ScrollAreaOptions, content func()) 
 	if opts.ScrollbarWidth.Set {
 		native.ScrollbarWidth = opts.ScrollbarWidth.Value
 	}
-	root := ui.Themed(c, native).MinWidth(0).MinHeight(0)
+	root := ui.Themed(c, native).MinWidth(0).MinHeight(0).Clip()
 	finish(t, ComponentScrollArea, Root, root, PartStyle{}, opts.Decoration)
 	root.Children(func() {
 		var scroll ui.Element

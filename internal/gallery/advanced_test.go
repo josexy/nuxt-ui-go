@@ -126,10 +126,10 @@ func TestGalleryNestedSplitters(t *testing.T) {
 	requireText(t, tt, "Left width 40% · Right top height 55% · 0 changes")
 	press(t, tt, "disabled pane draft")
 	tt.Key(ui.Ctrl, ui.KeyA)
-	tt.Type("Blocked edit")
-	requireText(t, tt, "Persistent pane draft")
-	if tt.Focused("disabled pane draft") {
-		t.Fatal("disabled pane accepted focus")
+	tt.Type("Editing with locked dividers")
+	requireText(t, tt, "Editing with locked dividers")
+	if !tt.Focused("disabled pane draft") {
+		t.Fatal("locking the divider disabled the pane editor")
 	}
 }
 

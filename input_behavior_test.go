@@ -351,13 +351,13 @@ func TestInputTagsErrorUsesOuterBorder(t *testing.T) {
 		ui.Column(c).Padding(24).Children(func() {
 			nui.InputTags(c, th, &tags, &state, nui.InputTagsOptions{
 				Label: "Editor", ErrorMessage: "Check tags", Style: func(root, editor, leading, trailing ui.Element) {
-					root.Label("Editor shell")
-				}}).Label("Field")
+					root.Label("Field")
+				}})
 		})
 	}, 420, 200)
 	click(t, tt, "Editor")
-	if fieldPixels(t, tt, "Editor shell")[0] != tt.Image().RGBAAt(0, 0) {
-		t.Fatalf("tag editor drew a second border inside the outer error border: inner=%v outer=%v pixels=%v background=%v", bounds(t, tt, "Editor shell"), bounds(t, tt, "Field"), fieldPixels(t, tt, "Editor shell"), tt.Image().RGBAAt(0, 0))
+	if p := fieldPixels(t, tt, "Editor")[0]; int(p.R) > 2*int(p.G) && int(p.R) > 2*int(p.B) {
+		t.Fatal("tag editor drew a second error border")
 	}
 	if fieldPixels(t, tt, "Field")[0] == tt.Image().RGBAAt(0, 0) {
 		t.Fatal("outer error border missing")

@@ -9,16 +9,21 @@ import (
 )
 
 type TabItem struct {
-	ID, Label string
-	Icon      *ui.SVG
-	Disabled  bool
-	Content   func(*ui.Context, Theme)
+	ID, Label    string
+	Icon         *ui.SVG
+	Avatar       *AvatarOptions
+	Badge        string
+	BadgeOptions *BadgeOptions
+	Disabled     bool
+	Content      func(*ui.Context, Theme)
+	UI           Styles
 }
 type TabsOptions struct {
 	Label                            string
 	Color                            Color
 	Size                             Size
 	Underline, Vertical, KeepMounted bool
+	Content                          Optional[bool] // Defaults to true.
 	ActivationMode                   ActivationMode
 	OnChange                         func(string)
 	Decoration
@@ -30,6 +35,12 @@ const (
 	ActivationAutomatic ActivationMode = iota
 	ActivationManual
 )
+
+type tabsMemory struct {
+	triggers, bodies map[string]*ui.Handle
+	active           string
+	changed          bool
+}
 
 func Tabs(c *ui.Context, t Theme, value *string, items []TabItem, o TabsOptions) ui.Element {
 	if o.ActivationMode > ActivationManual {
@@ -53,15 +64,57 @@ func Tabs(c *ui.Context, t Theme, value *string, items []TabItem, o TabsOptions)
 	}
 	config := selected(defaults(t, ComponentTabs, ComponentTheme{Color: Primary, Size: MD}), ComponentTheme{Color: o.Color, Size: o.Size})
 	root := ui.Column(c).MinWidth(0)
-	if o.Vertical {
-		root.Row().AlignItems(ui.Start)
+	memory := ui.Local(root, "nui-tabs", func() tabsMemory {
+		return tabsMemory{triggers: map[string]*ui.Handle{}, bodies: map[string]*ui.Handle{}}
+	})
+	if memory.changed {
+		root.SetChanged()
+		memory.changed = false
 	}
-	finish(t, ComponentTabs, Root, root, PartStyle{Gap: Set(t.spacing(8))}, o.Decoration)
+	focused := ""
+	for id, handle := range memory.triggers {
+		if handle.Focused(c) {
+			focused = id
+		}
+	}
+	restore := focused != "" && !slices.Contains(enabled, focused)
+	if previous := memory.bodies[memory.active]; previous != nil && previous.FocusWithin(c) {
+		hasContent := false
+		for _, it := range items {
+			if it.ID == *value {
+				hasContent = it.Content != nil
+				break
+			}
+		}
+		if memory.active != *value || !valueOr(o.Content, true) || !hasContent {
+			restore = true
+		}
+	}
+	for id := range memory.triggers {
+		if !seen[id] {
+			memory.triggers[id].CancelFocus(c)
+			memory.bodies[id].CancelFocus(c)
+			delete(memory.triggers, id)
+			delete(memory.bodies, id)
+		}
+	}
+	for _, it := range items {
+		if memory.triggers[it.ID] == nil {
+			memory.triggers[it.ID] = &ui.Handle{}
+			memory.bodies[it.ID] = &ui.Handle{}
+		}
+	}
+	memory.active = *value
+	index = slices.Index(enabled, *value)
+	if o.Vertical {
+		root.Row().AlignItems(ui.Center)
+	}
+	finish(t, ComponentTabs, Root, root, PartStyle{Gap: Set(t.spacing(8)), Font: Set(t.Font), FontSize: Set(t.text(t.FontSize)), Foreground: Set(t.Text)}, o.Decoration)
 	root.Children(func() {
 		parts := ui.TabsBase(c, &index, len(enabled))
 		list := parts.List.MinWidth(0).Label(o.Label)
 		if o.Vertical {
-			list.Column().FocusGroup(ui.Vertical)
+			list.Column().AlignItems(ui.Stretch).FocusGroup(ui.Vertical)
 		} else {
 			list.FillWidth()
 		}
@@ -81,31 +134,56 @@ func Tabs(c *ui.Context, t Theme, value *string, items []TabItem, o TabsOptions)
 		listStyle = mergeStyle(mergeStyle(listStyle, t.components[ComponentTabs].UI[List]), o.UI[List])
 		list.Children(func() {
 			for _, it := range items {
+				decoration := o.Decoration
+				decoration.UI = mergeStyles(o.UI, it.UI)
 				var trigger ui.Element
+				choose := func(id string) {
+					if *value != id {
+						*value = id
+						memory.changed = true
+						if o.OnChange != nil {
+							o.OnChange(id)
+						}
+					}
+				}
 				if it.Disabled {
 					trigger = ui.Row(c.Key(it.ID)).Role(ui.RoleTab).Disabled(true)
-				} else if o.ActivationMode == ActivationManual {
-					trigger = ui.ButtonBase(c.Key(it.ID)).Role(ui.RoleTab).Selected(it.ID == *value).OnClick(func() {
-						if *value != it.ID {
-							*value = it.ID
-							root.SetChanged()
-							if o.OnChange != nil {
-								o.OnChange(it.ID)
-							}
-						}
-					})
 				} else {
-					c.Key(it.ID)
-					trigger = parts.Tab(slices.Index(enabled, it.ID))
+					trigger = ui.ButtonBase(c.Key(it.ID)).Role(ui.RoleTab).Selected(it.ID == *value).OnClick(func() {
+						choose(it.ID)
+					})
+					move := func(delta int, edge bool) {
+						next := delta
+						if !edge {
+							next = (slices.Index(enabled, it.ID) + delta + len(enabled)) % len(enabled)
+						}
+						id := enabled[next]
+						if o.ActivationMode == ActivationAutomatic {
+							choose(id)
+						}
+						memory.triggers[id].Focus()
+					}
+					back, forward := ui.KeyLeft, ui.KeyRight
+					if c.Direction() == ui.RightToLeft {
+						back, forward = forward, back
+					}
+					if o.Vertical {
+						back, forward = ui.KeyUp, ui.KeyDown
+					}
+					trigger.OnShortcut(0, back, func() { move(-1, false) }).OnShortcut(0, forward, func() { move(1, false) }).
+						OnShortcut(0, ui.KeyHome, func() { move(0, true) }).OnShortcut(0, ui.KeyEnd, func() { move(len(enabled)-1, true) })
 				}
 				active := index == slices.Index(enabled, it.ID) && !it.Disabled
-				trigger.Label(it.Label).MinWidth(0).AlignItems(ui.Center).FocusRing(true)
+				trigger.Label(it.Label).MinWidth(0).AlignItems(ui.Center).FocusRing(true).Bind(memory.triggers[it.ID])
 				background := ui.Transparent
 				foreground := t.Muted
+				indicatorColor := t.color(config.Color)
+				if config.Color == Neutral {
+					indicatorColor = t.InvertedBackground
+				}
 				if active {
 					foreground = t.color(config.Color)
 					if !o.Underline {
-						background = t.color(config.Color)
 						foreground = t.Inverted
 					}
 				}
@@ -120,43 +198,81 @@ func Tabs(c *ui.Context, t Theme, value *string, items []TabItem, o TabsOptions)
 					trigger.Grow(1).Justify(ui.Center)
 				}
 				gap := t.spacing([5]float32{4, 6, 6, 8, 8}[sizeIndex(config.Size)])
-				finish(t, ComponentTabs, Trigger, trigger, PartStyle{Background: Set(background), Foreground: Set(foreground), Radius: Set(t.radius(6)), PaddingX: Set(metrics.X), PaddingY: Set(metrics.Y), Gap: Set(gap), FontSize: Set(metrics.Font), Weight: Set(500)}, o.Decoration)
+				finish(t, ComponentTabs, Trigger, trigger, PartStyle{Background: Set(background), Foreground: Set(foreground), Radius: Set(t.radius(6)), PaddingX: Set(metrics.X), PaddingY: Set(metrics.Y), Gap: Set(gap), Font: Set(t.Font), FontSize: Set(metrics.Font), LineHeight: Set(metrics.Line / metrics.Font), Weight: Set(500)}, decoration)
 				trigger.Children(func() {
-					if it.Icon != nil {
-						finish(t, ComponentTabs, Leading, ui.Icon(c, it.Icon).Size(metrics.Icon, metrics.Icon), PartStyle{}, o.Decoration)
-					}
-					finish(t, ComponentTabs, Label, ui.Text(c, it.Label).SingleLine().MinWidth(0), PartStyle{}, o.Decoration)
-					if o.Underline && active {
-						// Past the list's padding, on its border line.
-						line := ui.Box(c.Key("indicator")).Absolute().IgnoreInput(true).Background(t.color(config.Color))
-						if o.Vertical {
-							line.Top(0).Bottom(0).Width(1).Start(-listStyle.PaddingX.Value - 1)
+					if active {
+						// Absolute children paint after normal children in MyGo. The
+						// pill surface must style the trigger itself to stay behind text.
+						indicator := trigger
+						style := PartStyle{Background: Set(indicatorColor), Radius: Set(t.radius(999))}
+						if o.Underline {
+							indicator = ui.Box(c.Key("indicator")).Absolute().IgnoreInput(true)
+							if o.Vertical {
+								indicator.Top(0).Bottom(0).Width(1).Start(-listStyle.PaddingX.Value - 1)
+							} else {
+								indicator.Left(0).Right(0).Height(1).Bottom(-listStyle.PaddingY.Value - 1)
+							}
 						} else {
-							line.Left(0).Right(0).Height(1).Bottom(-listStyle.PaddingY.Value - 1)
+							style.Radius = Set(t.radius(6))
+							style.Shadow = Set(ShadowTokens{Color: ui.RGBA(0, 0, 0, .05), Blur: t.spacing(2), OffsetY: t.spacing(1)})
+							// Keep existing Trigger background overrides useful; Indicator
+							// remains the more specific selection-surface override.
+							if t.components[ComponentTabs].UI[Trigger].Background.Set || decoration.UI[Trigger].Background.Set {
+								style.Background = Optional[ui.Color]{}
+							}
 						}
+						finish(t, ComponentTabs, Indicator, indicator, style, decoration)
+					}
+					if it.Icon != nil {
+						finish(t, ComponentTabs, Leading, ui.Icon(c.Key("leading"), it.Icon).Size(metrics.Icon, metrics.Icon).Shrink(0), PartStyle{}, decoration)
+					} else if it.Avatar != nil {
+						diameter := Optional[float32]{}
+						if it.Avatar.Size == SizeDefault {
+							diameter = Set(t.text([5]float32{16, 16, 20, 20, 24}[sizeIndex(config.Size)]))
+						}
+						finish(t, ComponentTabs, Leading, avatar(c.Key("leading"), t, *it.Avatar, diameter).Shrink(0), PartStyle{}, decoration)
+					}
+					if it.Label != "" {
+						finish(t, ComponentTabs, Label, ui.Text(c.Key("label"), it.Label).SingleLine().MinWidth(0), PartStyle{}, decoration)
+					}
+					if it.Badge != "" || it.BadgeOptions != nil {
+						badge := BadgeOptions{}
+						if it.BadgeOptions != nil {
+							badge = *it.BadgeOptions
+						}
+						if badge.Size == SizeDefault {
+							badge.Size = SM
+						}
+						if badge.Color == ColorDefault {
+							badge.Color = Neutral
+						}
+						if badge.Variant == VariantDefault {
+							badge.Variant = Outline
+						}
+						finish(t, ComponentTabs, Trailing, Badge(c.Key("badge"), t, it.Badge, badge).Shrink(0), PartStyle{}, decoration)
 					}
 				})
 			}
 		})
-		if list.Changed() && index >= 0 && index < len(enabled) {
-			*value = enabled[index]
-			root.SetChanged()
-		}
 		for _, it := range items {
 			active := it.ID == *value && !it.Disabled
-			if it.Content == nil || (!active && !o.KeepMounted) {
+			if !valueOr(o.Content, true) || it.Content == nil || (!active && !o.KeepMounted) {
 				continue
 			}
-			body := ui.Column(c.Key("content:" + it.ID)).MinWidth(0).Role(ui.RoleGroup).Label(namedMessage(c, "contentNamed", it.Label)).Hidden(!active)
+			body := ui.Column(c.Key("content:" + it.ID)).MinWidth(0).Role(ui.RoleGroup).Label(namedMessage(c, "contentNamed", it.Label)).Focusable().FocusRing(true).Hidden(!active).Bind(memory.bodies[it.ID])
 			if o.Vertical {
 				body.Grow(1)
+			} else {
+				body.FillWidth()
 			}
-			finish(t, ComponentTabs, Body, body, PartStyle{Gap: Set(t.spacing(12))}, o.Decoration)
+			decoration := o.Decoration
+			decoration.UI = mergeStyles(o.UI, it.UI)
+			finish(t, ComponentTabs, Body, body, PartStyle{Gap: Set(t.spacing(12)), Radius: Set(t.radius(6))}, decoration)
 			body.Children(func() { it.Content(c, t) })
 		}
 	})
-	if o.OnChange != nil && o.ActivationMode != ActivationManual {
-		root.OnChange(func() { o.OnChange(*value) })
+	if restore && len(enabled) > 0 {
+		memory.triggers[*value].Focus()
 	}
 	return root
 }
@@ -164,12 +280,17 @@ func Tabs(c *ui.Context, t Theme, value *string, items []TabItem, o TabsOptions)
 type BreadcrumbItem struct {
 	ID, Label string
 	Icon      *ui.SVG
+	Avatar    *AvatarOptions
+	Active    Optional[bool]
 	Disabled  bool
 	OnSelect  func()
+	UI        Styles
 }
 type BreadcrumbOptions struct {
-	Label    string
-	MaxItems int
+	Label         string
+	MaxItems      int
+	Color         Color
+	SeparatorIcon *ui.SVG
 	Decoration
 }
 
@@ -178,38 +299,95 @@ func Breadcrumb(c *ui.Context, t Theme, items []BreadcrumbItem, o BreadcrumbOpti
 	for _, it := range items {
 		checkID(seen, it.ID, "Breadcrumb")
 	}
-	root := ui.Row(c).Wrap().MinWidth(0).AlignItems(ui.Center).Role(ui.RoleGroup).Label(o.Label)
-	finish(t, ComponentBreadcrumb, Root, root, PartStyle{Gap: Set(t.spacing(6))}, o.Decoration)
-	m := buttonMetrics(t, MD)
-	current := t.color(defaults(t, ComponentBreadcrumb, ComponentTheme{Color: Primary}).Color)
+	label := o.Label
+	if label == "" {
+		label = message(c, "breadcrumbLabel")
+	}
+	root := ui.Row(c).MinWidth(0).AlignItems(ui.Center).Role(ui.RoleGroup).Label(label)
+	finish(t, ComponentBreadcrumb, Root, root, PartStyle{Gap: Set(t.spacing(6)), Font: Set(t.Font), FontSize: Set(t.text(14)), LineHeight: Set(float32(20.0 / 14))}, o.Decoration)
+	finish(t, ComponentBreadcrumb, List, root, PartStyle{}, o.Decoration)
+	color := selected(defaults(t, ComponentBreadcrumb, ComponentTheme{Color: Primary}), ComponentTheme{Color: o.Color}).Color
+	current := t.color(color)
+	separator := o.SeparatorIcon
+	if separator == nil {
+		separator = lucide.ChevronRight()
+		if c.Direction() == ui.RightToLeft {
+			separator = lucide.ChevronLeft()
+		}
+	}
+	visible := make([]int, 0, len(items))
+	for i := range items {
+		if o.MaxItems >= 2 && len(items) > o.MaxItems && i > 0 && i < len(items)-o.MaxItems+1 {
+			if i == 1 {
+				visible = append(visible, -1)
+			}
+			continue
+		}
+		visible = append(visible, i)
+	}
 	root.Children(func() {
-		for i, it := range items {
-			if o.MaxItems >= 2 && len(items) > o.MaxItems && i > 0 && i < len(items)-o.MaxItems+1 {
-				if i == 1 {
-					ui.Icon(c, lucide.Ellipsis()).Size(m.Icon, m.Icon).TextColor(t.Muted)
+		for position, index := range visible {
+			if position > 0 {
+				d := o.Decoration
+				if previous := visible[position-1]; previous >= 0 {
+					d.UI = mergeStyles(o.UI, items[previous].UI)
 				}
+				finish(t, ComponentBreadcrumb, SeparatorSlot, ui.Icon(c.Key(fmt.Sprintf("separator:%d", index)), separator).Size(t.text(20), t.text(20)).Shrink(0), PartStyle{Foreground: Set(t.Muted)}, d)
+			}
+			if index < 0 {
+				finish(t, ComponentBreadcrumb, Ellipsis, ui.Icon(c.Key("ellipsis"), lucide.Ellipsis()).Size(t.text(20), t.text(20)).Shrink(0), PartStyle{Foreground: Set(t.Muted)}, o.Decoration)
 				continue
 			}
-			if i > 0 {
-				separator := lucide.ChevronRight()
-				if c.Direction() == ui.RightToLeft {
-					separator = lucide.ChevronLeft()
-				}
-				ui.Icon(c, separator).Size(m.Icon, m.Icon).Shrink(0).TextColor(t.Muted)
-			}
-			if i == len(items)-1 {
-				item := ui.Row(c.Key(it.ID)).MinWidth(0).AlignItems(ui.Center).Gap(m.Gap)
-				item.Children(func() {
-					if it.Icon != nil {
-						ui.Icon(c, it.Icon).Size(m.Icon, m.Icon).Shrink(0)
-					}
-					ui.Text(c, it.Label).SingleLine().MinWidth(0).Description(message(c, "currentPage"))
-				})
-				finish(t, ComponentBreadcrumb, Item, item, PartStyle{Foreground: Set(current), Weight: Set(600), FontSize: Set(m.Font), LineHeight: Set(m.Line / m.Font)}, o.Decoration)
+			it := items[index]
+			d := o.Decoration
+			d.UI = mergeStyles(o.UI, it.UI)
+			var item ui.Element
+			if it.OnSelect != nil {
+				item = ui.ButtonBase(c.Key("item:" + it.ID)).Role(ui.RoleLink).OnClick(it.OnSelect).FocusRing(false)
 			} else {
-				e := Button(c.Key(it.ID), t, it.Label, ButtonOptions{Variant: LinkVariant, Color: Neutral, Leading: it.Icon, Disabled: it.Disabled, Size: MD, UI: Styles{Root: {PaddingX: Set(float32(0)), PaddingY: Set(float32(0))}}}).Role(ui.RoleLink).OnClick(it.OnSelect)
-				finish(t, ComponentBreadcrumb, Item, e, PartStyle{}, o.Decoration)
+				item = ui.Row(c.Key("item:" + it.ID))
 			}
+			if it.OnSelect != nil {
+				item.Label(it.Label)
+			}
+			item.Disabled(it.Disabled).MinWidth(0).Shrink(1).AlignItems(ui.Center)
+			active := valueOr(it.Active, index == len(items)-1)
+			fg, weight := t.Muted, 500
+			if active {
+				fg, weight = current, 600
+			} else if it.OnSelect != nil && item.Hovered() && !item.IsDisabled() {
+				fg = t.Text
+			}
+			base := PartStyle{Foreground: Set(fg), Weight: Set(weight), FontSize: Set(t.text(14)), LineHeight: Set(float32(20.0 / 14)), Gap: Set(t.spacing(6)), Radius: Set(t.radius(6))}
+			if item.IsDisabled() {
+				base.Opacity = Set(float32(.75))
+			}
+			if item.FocusVisible() {
+				item.Shadow(0, 0, 0, 3, t.focusColor(color))
+			}
+			finish(t, ComponentBreadcrumb, Item, item, base, d)
+			finish(t, ComponentBreadcrumb, Trigger, item, PartStyle{}, d)
+			if active && index == len(items)-1 && it.OnSelect != nil {
+				item.Description(message(c, "currentPage"))
+			}
+			item.Children(func() {
+				if it.Icon != nil {
+					finish(t, ComponentBreadcrumb, Leading, ui.Icon(c.Key("leading"), it.Icon).Size(t.text(20), t.text(20)).Shrink(0), PartStyle{}, d)
+				} else if it.Avatar != nil {
+					diameter := Optional[float32]{}
+					if it.Avatar.Size == SizeDefault {
+						diameter = Set(t.text(20))
+					}
+					finish(t, ComponentBreadcrumb, Leading, avatar(c.Key("leading"), t, *it.Avatar, diameter).Shrink(0), PartStyle{}, d)
+				}
+				if it.Label != "" {
+					text := ui.Text(c.Key("label"), it.Label).SingleLine().MinWidth(0)
+					if active && index == len(items)-1 && it.OnSelect == nil {
+						text.Description(message(c, "currentPage"))
+					}
+					finish(t, ComponentBreadcrumb, Label, text, PartStyle{}, d)
+				}
+			})
 		}
 	})
 	return root
@@ -219,13 +397,14 @@ type PaginationOptions struct {
 	Label                     string
 	Total, PageSize, Siblings int
 	// SiblingCount overrides legacy Siblings and can explicitly request zero.
-	SiblingCount            Optional[int]
-	ShowControls, ShowEdges Optional[bool]
-	Color, ActiveColor      Color
-	Variant, ActiveVariant  Variant
-	Size                    Size
-	Disabled                bool
-	OnChange                func(int)
+	SiblingCount                                          Optional[int]
+	ShowControls, ShowEdges                               Optional[bool]
+	Color, ActiveColor                                    Color
+	Variant, ActiveVariant                                Variant
+	Size                                                  Size
+	Disabled                                              bool
+	FirstIcon, PrevIcon, NextIcon, LastIcon, EllipsisIcon *ui.SVG
+	OnChange                                              func(int)
 	Decoration
 }
 
@@ -253,7 +432,8 @@ func Pagination(c *ui.Context, t Theme, page *int, o PaginationOptions) ui.Eleme
 	config := selected(defaults(t, ComponentPagination, ComponentTheme{Color: Neutral, Variant: Outline, Size: MD}), ComponentTheme{Color: o.Color, Variant: o.Variant, Size: o.Size})
 	activeConfig := selected(ComponentTheme{Color: Primary, Variant: Solid}, ComponentTheme{Color: o.ActiveColor, Variant: o.ActiveVariant})
 	root := ui.Row(c).Wrap().MinWidth(0).AlignItems(ui.Center).Role(ui.RoleGroup).Label(o.Label).Disabled(o.Disabled)
-	finish(t, ComponentPagination, Root, root, PartStyle{Gap: Set(t.spacing(4))}, o.Decoration)
+	finish(t, ComponentPagination, Root, root, PartStyle{Gap: Set(t.spacing(4)), Font: Set(t.Font)}, o.Decoration)
+	finish(t, ComponentPagination, List, root, PartStyle{}, o.Decoration)
 	choose := func(next int) {
 		if next == *page {
 			return
@@ -267,7 +447,20 @@ func Pagination(c *ui.Context, t Theme, page *int, o PaginationOptions) ui.Eleme
 	if c.Direction() == ui.RightToLeft {
 		first, previous, next, last = last, next, previous, first
 	}
+	if o.FirstIcon != nil {
+		first = o.FirstIcon
+	}
+	if o.PrevIcon != nil {
+		previous = o.PrevIcon
+	}
+	if o.NextIcon != nil {
+		next = o.NextIcon
+	}
+	if o.LastIcon != nil {
+		last = o.LastIcon
+	}
 	icons := map[string]*ui.SVG{"first": first, "previous": previous, "next": next, "last": last}
+	controlSlots := map[string]Slot{"first": First, "previous": Previous, "next": Next, "last": Last}
 	root.Children(func() {
 		pageButton := func(key, label string, next int, disabled, active bool) {
 			variant := config.Variant
@@ -277,11 +470,16 @@ func Pagination(c *ui.Context, t Theme, page *int, o PaginationOptions) ui.Eleme
 				color = activeConfig.Color
 			}
 			opts := ButtonOptions{Variant: variant, Color: color, Size: config.Size, Disabled: disabled || o.Disabled, Square: true, Leading: icons[key]}
-			if opts.Leading == nil {
-				// Page numbers are square buttons with a centered label at least 20 wide.
-				opts.Style = func(root, label, leading, trailing ui.Element) { label.MinWidth(t.text(20)).TextAlign(ui.Center) }
-			} else {
+			if opts.Leading != nil {
 				label = ""
+			}
+			opts.Style = func(root, label, leading, trailing ui.Element) {
+				if icons[key] == nil {
+					label.MinWidth(t.text(20)).TextAlign(ui.Center)
+					finish(t, ComponentPagination, Label, label, PartStyle{}, o.Decoration)
+				} else {
+					finish(t, ComponentPagination, Leading, leading, PartStyle{}, o.Decoration)
+				}
 			}
 			accessible := formatMessage(c, "pageNumber", map[string]any{"number": next})
 			switch key {
@@ -297,6 +495,9 @@ func Pagination(c *ui.Context, t Theme, page *int, o PaginationOptions) ui.Eleme
 			opts.AccessibleLabel = accessible
 			e := button(c.Key(key), t, label, opts, Set(active)).OnClick(func() { choose(next) })
 			finish(t, ComponentPagination, Item, e, PartStyle{}, o.Decoration)
+			if slot, ok := controlSlots[key]; ok {
+				finish(t, ComponentPagination, slot, e, PartStyle{}, o.Decoration)
+			}
 		}
 		if valueOr(o.ShowControls, true) {
 			pageButton("first", "", 1, *page == 1, false)
@@ -311,8 +512,14 @@ func Pagination(c *ui.Context, t Theme, page *int, o PaginationOptions) ui.Eleme
 				gap := ui.Row(c.Key(fmt.Sprintf("gap-%d", n))).Shrink(0).AlignItems(ui.Center).IgnoreInput(true)
 				style := mergeStyle(controlStyle(t, m), appearance(t, config.Color, config.Variant, false, false))
 				style.PaddingX = style.PaddingY
-				style.apply(gap)
-				gap.Children(func() { ui.Icon(c, lucide.Ellipsis()).Size(m.Icon, m.Icon) })
+				finish(t, ComponentPagination, Ellipsis, gap, style, o.Decoration)
+				icon := o.EllipsisIcon
+				if icon == nil {
+					icon = lucide.Ellipsis()
+				}
+				gap.Children(func() {
+					finish(t, ComponentPagination, Leading, ui.Icon(c, icon).Size(m.Icon, m.Icon), PartStyle{}, o.Decoration)
+				})
 			}
 			pageButton(fmt.Sprint(n), fmt.Sprint(n), n, false, n == *page)
 			before = n
@@ -362,6 +569,8 @@ type StepItem struct {
 	ID, Title, Description string
 	Icon                   *ui.SVG
 	Disabled               bool
+	UI                     Styles
+	Content                func(*ui.Context, Theme)
 }
 type StepperOptions struct {
 	Label              string
@@ -376,6 +585,12 @@ type StepperOptions struct {
 	Decoration
 }
 
+type stepperMemory struct {
+	triggers map[string]*ui.Handle
+	body     ui.Handle
+	active   string
+}
+
 func Stepper(c *ui.Context, t Theme, value *string, items []StepItem, o StepperOptions) ui.Element {
 	if value == nil {
 		panic("nui: Stepper requires a selected ID")
@@ -388,9 +603,27 @@ func Stepper(c *ui.Context, t Theme, value *string, items []StepItem, o StepperO
 			current = i
 		}
 	}
-	root := ui.Row(c).MinWidth(0).AlignItems(ui.Start).Role(ui.RoleGroup).Label(o.Label).FocusGroup(ui.Horizontal).Disabled(o.Disabled)
+	label := o.Label
+	if label == "" {
+		label = message(c, "stepperLabel")
+	}
+	root := ui.Column(c).MinWidth(0).Role(ui.RoleGroup).Label(label)
 	if o.Vertical {
-		root.Column().AlignItems(ui.Stretch).FocusGroup(ui.Vertical)
+		root.Row().AlignItems(ui.Start)
+	}
+	memory := ui.Local(root, "stepper", func() stepperMemory { return stepperMemory{triggers: map[string]*ui.Handle{}} })
+	restore := memory.body.FocusWithin(c) && (memory.active != *value || current < 0 || items[current].Content == nil)
+	for id, handle := range memory.triggers {
+		if !seen[id] {
+			restore = restore || handle.Focused(c)
+			handle.CancelFocus(c)
+			delete(memory.triggers, id)
+		}
+	}
+	for id := range seen {
+		if memory.triggers[id] == nil {
+			memory.triggers[id] = &ui.Handle{}
+		}
 	}
 	config := selected(defaults(t, ComponentStepper, ComponentTheme{Color: Primary, Size: MD}), ComponentTheme{Color: o.Color, Size: o.Size})
 	size := sizeIndex(config.Size)
@@ -401,98 +634,144 @@ func Stepper(c *ui.Context, t Theme, value *string, items []StepItem, o StepperO
 	lineHeight := []float32{16.0 / 12, 16.0 / 12, 20.0 / 14, 24.0 / 16, 28.0 / 18}[size]
 	wrapperGap := t.spacing([]float32{6, 8, 10, 12, 14}[size])
 	connectorInset := t.spacing([]float32{16, 20, 28, 32, 36}[size])
-	gap := float32(0)
-	if o.Vertical {
-		gap = t.spacing(16)
+	finish(t, ComponentStepper, Root, root, PartStyle{Gap: Set(t.spacing(16)), Font: Set(t.Font), Foreground: Set(t.Text)}, o.Decoration)
+	accent := t.color(config.Color)
+	if config.Color == Neutral {
+		accent = t.InvertedBackground
 	}
-	finish(t, ComponentStepper, Root, root, PartStyle{Gap: Set(gap)}, o.Decoration)
 	root.Children(func() {
-		for i, it := range items {
-			blocked := it.Disabled || o.Disabled || (valueOr(o.Linear, true) && i > current+1)
-			item := ui.Column(c.Key(it.ID)).MinWidth(0)
-			itemGap := float32(0)
-			if o.Vertical {
-				item.Row().AlignItems(ui.Stretch)
-				itemGap = wrapperGap
-			} else {
-				item.Grow(1).Basis(0).TextAlign(ui.Center)
-			}
-			finish(t, ComponentStepper, Item, item, PartStyle{Gap: Set(itemGap)}, o.Decoration)
-			item.Children(func() {
-				bg, fg := t.Elevated, t.Muted
-				if i <= current {
-					bg = t.color(config.Color)
-					fg = t.Inverted
-				}
-				header := ui.Column(c.Key("header")).MinWidth(0).AlignItems(ui.Center)
+		list := ui.Row(c.Key("steps")).MinWidth(0).AlignItems(ui.Start).FocusGroup(ui.Horizontal).Disabled(o.Disabled)
+		gap := float32(0)
+		if o.Vertical {
+			list.Column().AlignItems(ui.Stretch).FocusGroup(ui.Vertical).Shrink(0)
+			gap = t.spacing(16)
+		} else {
+			list.FillWidth()
+		}
+		finish(t, ComponentStepper, List, list, PartStyle{Gap: Set(gap)}, o.Decoration)
+		list.Children(func() {
+			for i, it := range items {
+				d := o.Decoration
+				d.UI = mergeStyles(o.UI, it.UI)
+				blocked := it.Disabled || o.Disabled || (valueOr(o.Linear, true) && i > current+1)
+				item := ui.Column(c.Key(it.ID)).MinWidth(0)
+				itemGap := float32(0)
 				if o.Vertical {
-					header.Width(diameter).Shrink(0)
+					item.Row().AlignItems(ui.Stretch)
+					itemGap = wrapperGap
+				} else {
+					item.Grow(1).Basis(0).TextAlign(ui.Center)
 				}
-				finish(t, ComponentStepper, Header, header, PartStyle{}, o.Decoration)
-				header.Children(func() {
-					trigger := ui.ButtonBase(c.Key("trigger")).Size(diameter, diameter).Disabled(blocked).Role(ui.RoleButton).Label(it.Title).Description(it.Description).Selected(i == current).FocusRing(true)
-					finish(t, ComponentStepper, Trigger, trigger, PartStyle{Background: Set(bg), Foreground: Set(fg), Radius: Set(float32(999)), FontSize: Set(fontSize), Weight: Set(600)}, o.Decoration)
-					trigger.OnClick(func() {
-						if o.CanSelect != nil && !o.CanSelect(it.ID) {
-							return
+				finish(t, ComponentStepper, Item, item, PartStyle{Gap: Set(itemGap)}, d)
+				item.Children(func() {
+					bg, fg := t.Elevated, t.Muted
+					if i <= current {
+						bg = accent
+						fg = t.Inverted
+					}
+					header := ui.Column(c.Key("header")).MinWidth(0).AlignItems(ui.Center)
+					if o.Vertical {
+						header.Width(diameter).Shrink(0)
+					}
+					finish(t, ComponentStepper, Header, header, PartStyle{}, d)
+					header.Children(func() {
+						trigger := ui.ButtonBase(c.Key("trigger")).Size(diameter, diameter).Disabled(blocked).Role(ui.RoleButton).Label(it.Title).Description(it.Description).Selected(i == current).FocusRing(false).Bind(memory.triggers[it.ID])
+						if blocked && memory.triggers[it.ID].Focused(c) {
+							restore = true
 						}
-						if *value != it.ID {
-							*value = it.ID
-							if o.OnChange != nil {
-								o.OnChange(it.ID)
+						if trigger.FocusVisible() {
+							trigger.Shadow(0, 0, 0, 3, t.focusColor(config.Color))
+						}
+						finish(t, ComponentStepper, Trigger, trigger, PartStyle{Background: Set(bg), Foreground: Set(fg), Radius: Set(float32(999)), FontSize: Set(fontSize), Weight: Set(600)}, d)
+						trigger.OnClick(func() {
+							if o.CanSelect != nil && !o.CanSelect(it.ID) {
+								return
 							}
-						}
-					})
-					trigger.Children(func() {
-						marker := ui.Box(c).Fill().Center().Radius(999)
-						finish(t, ComponentStepper, Indicator, marker, PartStyle{}, o.Decoration)
-						marker.Children(func() {
-							if it.Icon != nil {
-								finish(t, ComponentStepper, Leading, ui.Icon(c, it.Icon).Size(iconSize, iconSize), PartStyle{}, o.Decoration)
+							if *value != it.ID {
+								*value = it.ID
+								if o.OnChange != nil {
+									o.OnChange(it.ID)
+								}
+							}
+						})
+						trigger.Children(func() {
+							marker := ui.Box(c).Fill().Center().Radius(999)
+							finish(t, ComponentStepper, Indicator, marker, PartStyle{}, d)
+							marker.Children(func() {
+								if it.Icon != nil {
+									finish(t, ComponentStepper, Leading, ui.Icon(c, it.Icon).Size(iconSize, iconSize), PartStyle{}, d)
+								} else {
+									ui.Textf(c, "%d", i+1)
+								}
+							})
+						})
+						if i < len(items)-1 {
+							color := t.Accented
+							if i < current {
+								color = accent
+							}
+							connector := ui.Box(c.Key("connector")).Absolute()
+							if o.Vertical {
+								connector.Top(diameter + t.spacing(6)).Bottom(-t.spacing(10)).Start(diameter/2 - 1).Width(2)
 							} else {
-								ui.Textf(c, "%d", i+1)
+								// The absolute track spans adjacent equal-width items. Padding
+								// leaves the same clearance around both circles as Nuxt UI.
+								connector.StartPercent(50).EndPercent(-50).Top(diameter/2 - 2).Height(2).PaddingX(connectorInset)
 							}
-						})
+							connector.Children(func() {
+								separator := ui.Box(c).Fill()
+								opacity := float32(1)
+								if it.Disabled || o.Disabled {
+									opacity = .75
+								}
+								finish(t, ComponentStepper, SeparatorSlot, separator, PartStyle{Background: Set(color), Radius: Set(float32(999)), Opacity: Set(opacity)}, d)
+							})
+						}
 					})
-					if i < len(items)-1 {
-						color := t.Accented
-						if i < current {
-							color = t.color(config.Color)
+					wrapper := ui.Column(c.Key("wrapper")).MinWidth(0).Margin(wrapperGap, 0, 0, 0)
+					if o.Vertical {
+						wrapper.Grow(1)
+					}
+					finish(t, ComponentStepper, Body, wrapper, PartStyle{FontSize: Set(textSize), LineHeight: Set(lineHeight)}, d)
+					wrapper.Children(func() {
+						if it.Title != "" {
+							finish(t, ComponentStepper, Label, ui.Text(c.Key("title"), it.Title), PartStyle{Foreground: Set(t.Text), Weight: Set(500)}, d)
 						}
-						connector := ui.Box(c.Key("connector")).Absolute()
-						if o.Vertical {
-							connector.Top(diameter + t.spacing(6)).Bottom(-t.spacing(10)).Start(diameter/2 - 1).Width(2)
-						} else {
-							// The absolute track spans adjacent equal-width items. Padding
-							// leaves the same clearance around both circles as Nuxt UI.
-							connector.StartPercent(50).EndPercent(-50).Top(diameter/2 - 2).Height(2).PaddingX(connectorInset)
+						if it.Description != "" {
+							finish(t, ComponentStepper, Description, ui.Text(c.Key("description"), it.Description), PartStyle{Foreground: Set(t.Muted)}, d)
 						}
-						connector.Children(func() {
-							separator := ui.Box(c).Fill()
-							opacity := float32(1)
-							if it.Disabled || o.Disabled {
-								opacity = .75
-							}
-							finish(t, ComponentStepper, SeparatorSlot, separator, PartStyle{Background: Set(color), Radius: Set(float32(999)), Opacity: Set(opacity)}, o.Decoration)
-						})
-					}
+					})
 				})
-				wrapper := ui.Column(c.Key("wrapper")).MinWidth(0).Margin(wrapperGap, 0, 0, 0)
-				if o.Vertical {
-					wrapper.Grow(1)
-				}
-				finish(t, ComponentStepper, Body, wrapper, PartStyle{FontSize: Set(textSize), LineHeight: Set(lineHeight)}, o.Decoration)
-				wrapper.Children(func() {
-					if it.Title != "" {
-						finish(t, ComponentStepper, Label, ui.Text(c, it.Title), PartStyle{Foreground: Set(t.Text), Weight: Set(500)}, o.Decoration)
-					}
-					if it.Description != "" {
-						finish(t, ComponentStepper, Description, ui.Text(c, it.Description), PartStyle{Foreground: Set(t.Muted)}, o.Decoration)
-					}
-				})
-			})
+			}
+		})
+		if current >= 0 && items[current].Content != nil {
+			it := items[current]
+			panel := ui.Column(c.Key("content:" + it.ID)).MinWidth(0).Bind(&memory.body)
+			if o.Vertical {
+				panel.Grow(1)
+			} else {
+				panel.FillWidth()
+			}
+			finish(t, ComponentStepper, Panel, panel, PartStyle{Gap: Set(t.spacing(12))}, o.Decoration)
+			panel.Children(func() { it.Content(c, t) })
 		}
 	})
+	if restore && !o.Disabled {
+		index := current
+		if index < 0 || items[index].Disabled {
+			index = -1
+			for i, it := range items {
+				if !it.Disabled && (!valueOr(o.Linear, true) || i <= current+1) {
+					index = i
+					break
+				}
+			}
+		}
+		if index >= 0 {
+			memory.triggers[items[index].ID].Focus()
+		}
+	}
+	memory.active = *value
 	return root
 }
 
@@ -545,36 +824,35 @@ func Timeline(c *ui.Context, t Theme, items []TimelineItem, o TimelineOptions) u
 	if o.Horizontal {
 		root.Row().AlignItems(ui.Stretch)
 	}
-	finish(t, ComponentTimeline, Root, root, PartStyle{Gap: Set(t.spacing(6))}, o.Decoration)
+	finish(t, ComponentTimeline, Root, root, PartStyle{Gap: Set(t.spacing(6)), Font: Set(t.Font), FontSize: Set(t.text(14)), LineHeight: Set(float32(20.0 / 14)), Foreground: Set(t.Text)}, o.Decoration)
 	root.Children(func() {
 		for i, it := range items {
 			d := o.Decoration
-			d.UI = cloneStyles(o.UI)
-			if d.UI == nil {
-				d.UI = Styles{}
-			}
-			for slot, style := range it.UI {
-				d.UI[slot] = mergeStyle(d.UI[slot], style)
-			}
+			d.UI = mergeStyles(o.UI, it.UI)
 			color := it.Color
 			if color == ColorDefault {
 				color = config.Color
+			}
+			accent := t.color(color)
+			if color == Neutral {
+				accent = t.InvertedBackground
 			}
 			active := current == i
 			completed := current >= 0 && ((!o.Reverse && i < current) || (o.Reverse && i > current))
 			row := ui.Row(c.Key(it.ID)).MinWidth(0).AlignItems(ui.Stretch).Role(ui.RoleListItem).Label(it.Title)
 			if o.OnSelect != nil {
-				row.Focusable().OnClick(func() { o.OnSelect(it.ID) })
+				row.Focusable().FocusRing(true).OnClick(func() { o.OnSelect(it.ID) })
 			}
 			if o.Horizontal {
-				row.Column().Grow(1)
+				row.Column().Grow(1).Basis(0)
 			}
 			finish(t, ComponentTimeline, Item, row, PartStyle{Gap: Set(t.spacing(12))}, d)
 			row.Children(func() {
-				container := ui.Column(c).AlignItems(ui.Center).Gap(t.spacing(6)).Shrink(0)
+				container := ui.Column(c.Key("container")).AlignItems(ui.Center).Shrink(0)
 				if o.Horizontal {
 					container.Row().FillWidth()
 				}
+				finish(t, ComponentTimeline, Header, container, PartStyle{Gap: Set(t.spacing(6))}, d)
 				container.Children(func() {
 					avatar := AvatarOptions{Size: config.Size, Icon: it.Icon}
 					if it.Avatar != nil {
@@ -586,41 +864,43 @@ func Timeline(c *ui.Context, t Theme, items []TimelineItem, o TimelineOptions) u
 							avatar.Icon = it.Icon
 						}
 					}
-					marker := Avatar(c, t, avatar)
+					marker := Avatar(c.Key("indicator"), t, avatar)
 					bg, fg := t.Elevated, t.Muted
 					if active || completed {
-						bg, fg = t.color(color), t.Inverted
+						bg, fg = accent, t.Inverted
 					}
 					finish(t, ComponentTimeline, Indicator, marker, PartStyle{Background: Set(bg), Foreground: Set(fg)}, d)
 					if i < len(items)-1 {
-						separator := ui.Box(c).Grow(1).Radius(999)
+						separator := ui.Box(c.Key("separator")).Grow(1).Radius(999)
 						if o.Horizontal {
 							separator.Height(2)
 						} else {
-							separator.Width(2).MinHeight(t.spacing(12))
+							separator.Width(2)
 						}
 						bg := t.Elevated
 						if completed || (o.Reverse && active) {
-							bg = t.color(color)
+							bg = accent
 						}
 						finish(t, ComponentTimeline, SeparatorSlot, separator, PartStyle{Background: Set(bg)}, d)
 					}
 				})
-				body := ui.Column(c).Grow(1).MinWidth(0)
+				body := ui.Column(c.Key("body")).Grow(1).MinWidth(0)
 				pad := t.spacing([5]float32{22, 24, 26, 28, 30}[sizeIndex(config.Size)])
 				if o.Horizontal {
 					body.PaddingEnd(pad)
 				} else {
-					body.Padding(t.spacing([5]float32{2, 4, 6, 8, 10}[sizeIndex(config.Size)]), 0, pad, 0)
+					body.Margin(t.spacing([5]float32{2, 4, 6, 8, 10}[sizeIndex(config.Size)]), 0, 0, 0).Padding(0, 0, pad, 0)
 				}
-				finish(t, ComponentTimeline, Body, body, PartStyle{Gap: Set(t.spacing(4))}, d)
+				finish(t, ComponentTimeline, Body, body, PartStyle{}, d)
 				body.Children(func() {
 					if it.Time != "" {
-						ui.Text(c, it.Time).TextColor(t.Dimmed).FontSize(t.text(12))
+						finish(t, ComponentTimeline, DateSlot, ui.Text(c.Key("date"), it.Time), PartStyle{Foreground: Set(t.Dimmed), FontSize: Set(t.text(12)), LineHeight: Set(float32(20.0 / 12))}, d)
 					}
-					finish(t, ComponentTimeline, Label, ui.Text(c, it.Title), PartStyle{Foreground: Set(t.Highlighted), Weight: Set(500), FontSize: Set(t.text(14))}, d)
+					if it.Title != "" {
+						finish(t, ComponentTimeline, Label, ui.Text(c.Key("title"), it.Title), PartStyle{Foreground: Set(t.Highlighted), Weight: Set(500), FontSize: Set(t.text(14)), LineHeight: Set(float32(20.0 / 14))}, d)
+					}
 					if it.Description != "" {
-						finish(t, ComponentTimeline, Description, ui.Text(c, it.Description), PartStyle{Foreground: Set(t.Muted), FontSize: Set(t.text(14))}, d)
+						finish(t, ComponentTimeline, Description, ui.Text(c.Key("description"), it.Description), PartStyle{Foreground: Set(t.Muted), FontSize: Set(t.text(14)), LineHeight: Set(float32(20.0 / 14))}, d)
 					}
 					if it.Content != nil {
 						it.Content(c, t)

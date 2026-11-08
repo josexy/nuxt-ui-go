@@ -13,16 +13,21 @@ type InputOptions struct {
 	Variant                                          Variant
 	Size                                             Size
 	Leading, Trailing                                *ui.SVG
+	Avatar                                           *AvatarOptions // Used when there is no leading icon or leading loader.
 	Loading                                          bool
 	LoadingIcon                                      *ui.SVG
+	LoadingTrailing                                  bool
 	Highlight                                        bool
 	MaxLength                                        int // UTF-16 units; 0 is unlimited.
 	OnChange, OnSubmit                               func(string)
 	OnClear                                          func()
 	UI                                               Styles
 	// Style receives current-build parts; editor is where handles and editing actions bind.
-	Style    func(root, editor, leading, trailing ui.Element)
-	errorKey string // Identifies an internal validation message, independent of locale.
+	Style          func(root, editor, leading, trailing ui.Element)
+	errorKey       string // Identifies an internal validation message, independent of locale.
+	clearWhenEmpty bool   // Selection adapters can clear a model even when the draft is empty.
+	clearIcon      *ui.SVG
+	focusWithin    bool // Composite fields also show focus while a child action is focused.
 }
 
 type TextareaOptions struct {
@@ -63,9 +68,22 @@ func inputRecipe(t Theme, v ComponentTheme, focused, hover, invalid bool) Styles
 		root.BorderWidth = Set(float32(1))
 		root.BorderColor = Set(t.Error)
 	} else if focused && root.BorderWidth.Value > 0 {
-		root.BorderColor = Set(t.color(v.Color))
+		root.BorderColor = Set(inputColor(t, v.Color))
 	}
 	return Styles{Root: root, Editor: {Foreground: Set(t.Highlighted), Font: Set(t.Font), FontSize: Set(m.Font), LineHeight: Set(m.Line / m.Font)}, Leading: {Foreground: Set(t.Dimmed)}, Trailing: {Foreground: Set(t.Dimmed)}}
+}
+func inputColor(t Theme, color Color) ui.Color {
+	if color == Neutral {
+		return t.InvertedBackground
+	}
+	return t.color(color)
+}
+func inputFocusColor(t Theme, color Color) ui.Color {
+	result := inputColor(t, color)
+	if !t.HighContrast {
+		result = result.Alpha(.25)
+	}
+	return result
 }
 func inputDefaults(t Theme, id Component, o InputOptions) ComponentTheme {
 	return selected(defaults(t, id, ComponentTheme{Color: Primary, Size: MD, Variant: Outline}), ComponentTheme{Color: o.Color, Size: inheritedSize(t, o.Size), Variant: o.Variant})
@@ -120,17 +138,21 @@ func inputShell(c *ui.Context, t Theme, value *string, o InputOptions, id Compon
 	if minRows > 0 {
 		root.AlignItems(ui.Start)
 	}
-	var editor, leading, trailing, clear ui.Element
+	loadingLeading := o.Loading && (!o.LoadingTrailing || o.Leading != nil)
+	var editor, leading, trailing, clear, loader ui.Element
 	root.Children(func() {
 		previous := *value // Capture before TextInputBase applies this frame's bound edit.
-		if o.Loading {
-			icon := o.LoadingIcon
-			if icon == nil {
-				icon = lucide.LoaderCircle()
-			}
-			leading = loadingSVG(c, icon, m.Icon, t.Dimmed, t.motion(c), t.Motion.Spin)
+		if loadingLeading {
+			leading = ui.Box(c.Key("leading")).Size(m.Icon, m.Icon).Shrink(0)
+			loader = leading
 		} else if o.Leading != nil {
-			leading = ui.Icon(c, o.Leading).Size(m.Icon, m.Icon).Shrink(0)
+			leading = ui.Icon(c.Key("leading"), o.Leading).Size(m.Icon, m.Icon).Shrink(0)
+		} else if o.Avatar != nil {
+			diameter := Optional[float32]{}
+			if o.Avatar.Size == SizeDefault {
+				diameter = Set(m.Icon)
+			}
+			leading = avatar(c.Key("leading"), t, *o.Avatar, diameter)
 		}
 		// Nuxt's placeholder:text-dimmed; MyGo would otherwise use the theme's TextMuted.
 		editor = makeEditor().Grow(1).MinWidth(0).Font(t.Font).FontSize(m.Font).LineHeight(m.Line / m.Font).Placeholder(o.Placeholder).PlaceholderColor(t.Dimmed).ReadOnly(o.ReadOnly).FocusRing(false)
@@ -144,10 +166,13 @@ func inputShell(c *ui.Context, t Theme, value *string, o InputOptions, id Compon
 
 		if o.OnChange != nil || o.MaxLength > 0 {
 			editor.OnChange(func() {
+				rejected := false
 				if o.MaxLength > 0 {
-					*value = limitTextEdit(previous, *value, o.MaxLength)
+					limited := limitTextEdit(previous, *value, o.MaxLength)
+					rejected = limited == previous && limited != *value
+					*value = limited
 				}
-				if o.OnChange != nil {
+				if !rejected && o.OnChange != nil {
 					o.OnChange(*value)
 				}
 			})
@@ -155,7 +180,7 @@ func inputShell(c *ui.Context, t Theme, value *string, o InputOptions, id Compon
 		if o.OnSubmit != nil {
 			editor.OnSubmit(func() { o.OnSubmit(*value) })
 		}
-		if o.Clearable && *value != "" && !o.ReadOnly {
+		if o.Clearable && (*value != "" || o.clearWhenEmpty) && !o.ReadOnly {
 			name := o.ClearLabel
 			if name == "" {
 				name = message(c, "clear")
@@ -163,10 +188,17 @@ func inputShell(c *ui.Context, t Theme, value *string, o InputOptions, id Compon
 					name = namedMessage(c, "clearNamed", o.Label)
 				}
 			}
-			clear = ui.ButtonBase(c.Key("clear")).Label(name).Size(m.Icon, m.Icon).FocusRing(true).Children(func() { ui.Icon(c, lucide.X()).Size(m.Icon, m.Icon).TextColor(t.Muted) })
+			icon := o.clearIcon
+			if icon == nil {
+				icon = lucide.X()
+			}
+			clear = ui.ButtonBase(c.Key("clear")).Label(name).Size(m.Icon, m.Icon).FocusRing(true).Children(func() { ui.Icon(c, icon).Size(m.Icon, m.Icon).TextColor(t.Muted) })
 		}
-		if o.Trailing != nil {
-			trailing = ui.Icon(c, o.Trailing).Size(m.Icon, m.Icon).Shrink(0)
+		if o.Loading && !loadingLeading {
+			trailing = ui.Box(c.Key("trailing")).Size(m.Icon, m.Icon).Shrink(0)
+			loader = trailing
+		} else if o.Trailing != nil {
+			trailing = ui.Icon(c.Key("trailing"), o.Trailing).Size(m.Icon, m.Icon).Shrink(0)
 		}
 		if afterEditor != nil {
 			afterEditor(root)
@@ -174,12 +206,12 @@ func inputShell(c *ui.Context, t Theme, value *string, o InputOptions, id Compon
 	})
 	// Browsers indicate focus for text editors even after a pointer click.
 	// MyGo's FocusVisible only tracks keyboard navigation, so use actual focus.
-	focused := editor.Focused()
+	focused := editor.Focused() || o.focusWithin && root.FocusWithin()
 	config, styles := resolve(t, id, ComponentTheme{Color: Primary, Size: MD, Variant: Outline}, ComponentTheme{Color: o.Color, Size: inheritedSize(t, o.Size), Variant: o.Variant, UI: o.UI}, func(v ComponentTheme) Styles {
 		styles := inputRecipe(t, v, focused, root.Hovered() && !root.IsDisabled(), fieldInvalid(t, o))
-		if o.Highlight && !fieldInvalid(t, o) && v.Variant != None {
+		if o.Highlight && !fieldInvalid(t, o) {
 			s := styles[Root]
-			s.BorderWidth, s.BorderColor = Set(float32(1)), Set(t.color(v.Color))
+			s.BorderWidth, s.BorderColor = Set(float32(1)), Set(inputColor(t, v.Color))
 			styles[Root] = s
 		}
 		return styles
@@ -188,16 +220,30 @@ func inputShell(c *ui.Context, t Theme, value *string, o InputOptions, id Compon
 	styles[Editor].apply(editor)
 	styles[Leading].apply(leading)
 	styles[Trailing].apply(trailing)
+	if o.Loading {
+		icon := o.LoadingIcon
+		if icon == nil {
+			icon = lucide.LoaderCircle()
+		}
+		part := Trailing
+		if loadingLeading {
+			part = Leading
+		}
+		drawLoadingSVG(loader, icon, mergeValue(styles[Root].Foreground, styles[part].Foreground).Value, t.motion(c), t.Motion.Spin)
+	}
 	if focused && config.Variant != None {
 		color := config.Color
 		if fieldInvalid(t, o) {
 			color = Error
 		}
-		root.Shadow(0, 0, 0, 3, t.focusColor(color))
+		root.Shadow(0, 0, 0, 3, inputFocusColor(t, color))
 	}
 	if clear.Valid() && clear.Clicked() {
-		*value = ""
-		editor.SetChanged().Focus()
+		if *value != "" {
+			*value = ""
+			editor.SetChanged()
+		}
+		editor.Focus()
 	}
 	if clear.Valid() && o.OnClear != nil {
 		clear.OnClick(o.OnClear)
@@ -221,7 +267,7 @@ func inputShell(c *ui.Context, t Theme, value *string, o InputOptions, id Compon
 
 func trackFieldEdit(t Theme, text, message, messageKey string) {
 	if f := t.field.State; f != nil {
-		if !f.hasEditor {
+		if !f.hasEditor || f.resetPending {
 			f.initialEditing = text
 			f.editing = text
 			f.hasEditor = true

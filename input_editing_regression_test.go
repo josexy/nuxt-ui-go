@@ -111,9 +111,11 @@ func TestCalendarExternalSelectionAndBrowsing(t *testing.T) {
 	value := nui.DateSelection{Start: nui.Set(date(2026, 11, 15))}
 	var state nui.CalendarState
 	changes := 0
+	monthChanges := 0
+	options := nui.CalendarOptions{Label: "Date", Range: true, OnChange: func(nui.DateSelection) { changes++ }, OnMonthChange: func(nui.Date) { monthChanges++ }}
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.Calendar(c, th, &value, &state, nui.CalendarOptions{Label: "Date", Range: true, OnChange: func(nui.DateSelection) { changes++ }})
+		nui.Calendar(c, th, &value, &state, options)
 	}, 400, 400)
 	value.Start = nui.Set(date(2027, 2, 10))
 	tt.Frame()
@@ -150,6 +152,93 @@ func TestCalendarExternalSelectionAndBrowsing(t *testing.T) {
 	tt.Frame()
 	if !tt.HasText("February 2027") || state.Active != date(2027, 2, 12) || value.Start.Value != state.Active {
 		t.Fatal("reverse range selection moved the cursor away from the clicked date")
+	}
+	options.Range, options.WeekStart = false, time.Monday
+	options.Min, options.Max = nui.Set(date(2027, 2, 10)), nui.Set(date(2027, 2, 28))
+	options.IsDateDisabled = func(d nui.Date) bool { return d.Day == 22 }
+	value = nui.DateSelection{Start: nui.Set(date(2027, 2, 15))}
+	tt.Frame()
+	before := changes
+	click(t, tt, "Date 2027-02-15")
+	if value.Start.Set || changes != before+1 {
+		t.Fatal("same date did not deselect once")
+	}
+	click(t, tt, "Date 2027-02-15")
+	options.PreventDeselect = true
+	tt.Frame()
+	click(t, tt, "Date 2027-02-15")
+	if !value.Start.Set || changes != before+2 {
+		t.Fatal("prevented deselection notified a model change")
+	}
+	tt.Key(0, ui.KeyEnd)
+	if state.Active != date(2027, 2, 21) {
+		t.Fatalf("End did not reach the end of the week: %v", state.Active)
+	}
+	tt.Key(0, ui.KeyRight)
+	if state.Active != date(2027, 2, 23) {
+		t.Fatalf("arrow did not skip disabled date: %v", state.Active)
+	}
+	tt.Key(0, ui.KeyEnd)
+	tt.Key(0, ui.KeyRight)
+	if state.Active != date(2027, 2, 28) {
+		t.Fatal("arrow crossed maximum date")
+	}
+	options.Min, options.Max = nui.Set(date(2026, 1, 1)), nui.Set(date(2028, 12, 31))
+	tt.Frame()
+	tt.Key(ui.Shift, ui.KeyPageUp)
+	if state.Active != date(2026, 2, 28) {
+		t.Fatalf("Shift+PageUp did not page by year: %v", state.Active)
+	}
+	beforeMonths := monthChanges
+	state.Month = date(2028, 6, 15)
+	options.ReadOnly = true
+	tt.Frame()
+	if state.Month != date(2028, 6, 1) || state.Active != state.Month || monthChanges != beforeMonths {
+		t.Fatal("controlled month was not normalized silently")
+	}
+	before = changes
+	click(t, tt, "Date 2028-06-15")
+	tt.Key(0, ui.KeyEnter)
+	tt.Key(0, ui.KeyRight)
+	if changes != before || state.Active != date(2028, 6, 16) {
+		t.Fatal("read-only must navigate without selecting")
+	}
+	click(t, tt, "Next month")
+	if state.Month != date(2028, 7, 1) || monthChanges != beforeMonths+1 {
+		t.Fatal("read-only month navigation failed")
+	}
+	options.NumberOfMonths, options.PagedNavigation = 2, true
+	tt.Frame()
+	if !tt.HasText("Date 2028-08-15") {
+		t.Fatal("second calendar month is missing")
+	}
+	click(t, tt, "Next month")
+	if state.Month != date(2028, 9, 1) {
+		t.Fatalf("paged month navigation: %v", state.Month)
+	}
+	options.NumberOfMonths, options.ReadOnly = 1, false
+	options.Min = nui.Set(date(2023, 1, 1))
+	state.Month = date(2024, 2, 1)
+	tt.Frame()
+	before = changes
+	previousValue := value
+	click(t, tt, "February 2024")
+	if state.View != nui.CalendarMonthView {
+		t.Fatal("heading did not open month view")
+	}
+	click(t, tt, "Date Mar 2024")
+	if state.View != nui.CalendarDayView || state.Month != date(2024, 3, 1) {
+		t.Fatal("month view did not navigate back to days")
+	}
+	click(t, tt, "March 2024")
+	click(t, tt, "2024")
+	if state.View != nui.CalendarYearView {
+		t.Fatal("heading did not open year view")
+	}
+	click(t, tt, "Date 2025")
+	click(t, tt, "Date Feb 2025")
+	if state.View != nui.CalendarDayView || state.Month != date(2025, 2, 1) || value != previousValue || changes != before {
+		t.Fatal("view navigation committed a date")
 	}
 }
 

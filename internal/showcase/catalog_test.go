@@ -86,7 +86,7 @@ func TestConfigurationBoundaryAndOptionalValues(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(code, "Dismissible: nui.Set(false)") || !strings.Contains(code, "CloseButton: nui.Optional[bool]{}") {
+	if !strings.Contains(code, "Dismissible: nui.Set(false)") || !strings.Contains(code, "closeButton := nui.Optional[bool]{}") || !strings.Contains(code, "CloseButton: closeButton") {
 		t.Fatal("copied code lost optional state")
 	}
 	for _, input := range []Config{{Values: map[string]any{"dismissible": "false"}}, {Values: map[string]any{"unknown": true}}, {Primary: "unknown"}, {Neutral: "black"}, {Mode: "unknown"}} {

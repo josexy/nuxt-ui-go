@@ -11,7 +11,7 @@ type FormFieldState struct {
 	Value, Initial, Error                 string
 	controlError, editing, initialEditing string
 	controlErrorKey                       string
-	hasEditor, editorDirty                bool
+	hasEditor, editorDirty, resetPending  bool
 	Dirty, Touched, Visible               bool
 	Handle                                ui.Handle
 	focused, initialized                  bool
@@ -27,6 +27,8 @@ type FormState struct {
 	order                 []string
 	version               uint64
 	requested, focusError bool
+	dispatching           bool
+	unboundErrors         FormErrors
 	Submitting            bool
 }
 
@@ -47,7 +49,11 @@ func (s *FormState) Register(name, value string) *FormFieldState {
 	if f.Visible {
 		panic("nui: duplicate form field: " + name)
 	}
-	if !f.initialized {
+	if message, ok := s.unboundErrors[name]; ok {
+		f.Error, f.Touched = message, true
+		delete(s.unboundErrors, name)
+	}
+	if !f.initialized || f.resetPending {
 		f.Initial = value
 		f.initialized = true
 	}
@@ -71,6 +77,49 @@ func (s *FormState) Values() FormValues {
 	return out
 }
 func (s *FormState) Touch(name string) { s.Field(name).Touched = true }
+
+// Errors returns a copy of errors for enabled, visible fields and form-wide errors.
+func (s *FormState) Errors() FormErrors {
+	errors := FormErrors{}
+	for name, message := range s.unboundErrors {
+		errors[name] = message
+	}
+	for name, f := range s.Fields {
+		if f.Visible && !f.Disabled && f.Error != "" {
+			errors[name] = f.Error
+		}
+	}
+	return errors
+}
+
+// SetErrors replaces validation errors; invalid editor drafts still take precedence.
+func (s *FormState) SetErrors(errors FormErrors) {
+	s.Cancel()
+	s.apply(errors)
+}
+
+// ClearErrors clears all validation errors, or just the named fields.
+// It does not make an invalid editor draft valid.
+func (s *FormState) ClearErrors(names ...string) {
+	s.Cancel()
+	clearName := func(name string) {
+		delete(s.unboundErrors, name)
+		if f := s.Fields[name]; f != nil {
+			f.Error = f.controlError
+		}
+	}
+	if len(names) == 0 {
+		clear(s.unboundErrors)
+		for name := range s.Fields {
+			clearName(name)
+		}
+		return
+	}
+	for _, name := range names {
+		clearName(name)
+	}
+}
+
 func (s *FormState) Reset() {
 	for _, f := range s.Fields {
 		f.Initial = f.Value
@@ -79,13 +128,31 @@ func (s *FormState) Reset() {
 		f.editorDirty = false
 		f.Touched = false
 		f.Error = ""
+		f.resetPending = true
 	}
+	clear(s.unboundErrors)
 	s.Cancel()
 }
-func (s *FormState) Submit() { s.requested = true }
-func (s *FormState) Cancel() { s.version++; s.Submitting = false; s.requested = false }
+func (s *FormState) Submit() {
+	if !s.Submitting && !s.dispatching {
+		s.requested = true
+	}
+}
+func (s *FormState) Cancel() {
+	s.version++
+	s.Submitting = false
+	s.requested = false
+	s.focusError = false
+}
 func (s *FormState) apply(errors FormErrors) bool {
 	valid := true
+	s.unboundErrors = FormErrors{}
+	for name, message := range errors {
+		if f := s.Fields[name]; (f == nil || !f.initialized) && message != "" {
+			s.unboundErrors[name] = message
+			valid = false
+		}
+	}
 	for name, f := range s.Fields {
 		f.Error = errors[name]
 		if f.controlError != "" {
@@ -102,6 +169,7 @@ func (s *FormState) apply(errors FormErrors) bool {
 	return valid
 }
 func (s *FormState) Validate(validate FormValidator) bool {
+	s.Cancel()
 	if validate == nil {
 		return s.apply(nil)
 	}
@@ -122,14 +190,30 @@ func (s *FormState) CompleteAsync(ticket FormTicket, errors FormErrors) bool {
 		return false
 	}
 	s.Submitting = false
-	return s.apply(errors)
+	valid := s.apply(errors)
+	if valid {
+		s.markClean()
+	}
+	return valid
+}
+
+func (s *FormState) markClean() {
+	for _, f := range s.Fields {
+		if f.Visible && !f.Disabled {
+			f.Initial, f.initialEditing = f.Value, f.editing
+			f.Dirty, f.editorDirty = false, false
+		}
+	}
 }
 
 type FormOptions struct {
 	Label    string
 	Disabled bool
-	Validate FormValidator
-	OnSubmit func(FormValues)
+	// LoadingAuto defaults to true; pending async work disables the form's controls.
+	LoadingAuto Optional[bool]
+	Validate    FormValidator
+	OnSubmit    func(FormValues)
+	OnError     func(FormErrors)
 	Decoration
 }
 
@@ -143,14 +227,24 @@ func Form(c *ui.Context, t Theme, s *FormState, o FormOptions, content func(Them
 		f.Visible = false
 	}
 	s.order = s.order[:0]
+	root := ui.Column(c).MinWidth(0).Role(ui.RoleGroup).Label(o.Label).Disabled(o.Disabled || t.field.Disabled)
+	disabled := root.IsDisabled()
+	root.Disabled(disabled || s.Submitting && valueOr(o.LoadingAuto, true))
+	finish(t, ComponentForm, Root, root, PartStyle{Gap: Set(t.spacing(16)), Font: Set(t.Font), Foreground: Set(t.Text)}, o.Decoration)
 	inner := t
 	inner.form = s
-	inner.field.Disabled = inner.field.Disabled || o.Disabled
-	root := ui.Column(c).MinWidth(0).Role(ui.RoleGroup).Label(o.Label).Disabled(o.Disabled).Children(func() {
+	inner.field.Disabled = disabled
+	root.Children(func() {
 		if content != nil {
 			content(inner)
 		}
 	})
+	for _, f := range s.Fields {
+		f.resetPending = false
+		if !f.Visible || f.Disabled {
+			f.Handle.CancelFocus(c)
+		}
+	}
 	current := s.Values()
 	changedVisibility := len(previous) != len(current)
 	for k := range previous {
@@ -162,12 +256,16 @@ func Form(c *ui.Context, t Theme, s *FormState, o FormOptions, content func(Them
 		s.version++
 		s.Submitting = false
 	}
-	if s.requested && !o.Disabled {
+	if s.requested {
 		s.requested = false
-		if s.Validate(o.Validate) && o.OnSubmit != nil {
-			o.OnSubmit(s.Values())
+		if !disabled && !s.Submitting && !s.dispatching {
+			s.submit(o)
+			// Validation runs after the fields were built. Rebuild their error
+			// text and loading styles even when focus stays on the same button.
+			c.Services().Invalidate()
 		}
 	}
+	root.Disabled(disabled || s.Submitting && valueOr(o.LoadingAuto, true))
 	if s.focusError {
 		for _, name := range s.order {
 			f := s.Fields[name]
@@ -178,6 +276,22 @@ func Form(c *ui.Context, t Theme, s *FormState, o FormOptions, content func(Them
 		}
 		s.focusError = false
 	}
-	finish(t, ComponentForm, Root, root, PartStyle{Gap: Set(t.spacing(16))}, o.Decoration)
 	return root
+}
+
+func (s *FormState) submit(o FormOptions) {
+	s.dispatching = true
+	defer func() { s.dispatching = false }()
+	if !s.Validate(o.Validate) {
+		if o.OnError != nil {
+			o.OnError(s.Errors())
+		}
+		return
+	}
+	if o.OnSubmit != nil {
+		o.OnSubmit(s.Values())
+		if !s.Submitting {
+			s.markClean()
+		}
+	}
 }

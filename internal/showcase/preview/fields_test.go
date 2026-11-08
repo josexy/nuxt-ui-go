@@ -156,6 +156,9 @@ func TestAllFieldEditorsUpdateRealViews(t *testing.T) {
 					name := binding.ID + "." + field.Name
 					t.Run(name, func(t *testing.T) {
 						raw := editorSample(schemas, field.Type, field.Name, field.Choices)
+						if binding.ID == "SplitterOptions" && field.Name == "Max" {
+							raw = float64(90) // Keep the sample above this demo's 30% minimum.
+						}
 						if binding.ID == "SidebarOptions" {
 							switch field.Name {
 							case "MinWidth":

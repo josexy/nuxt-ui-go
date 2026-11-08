@@ -41,8 +41,9 @@ const (
 )
 
 type popoverMemory struct {
-	since              time.Time
-	intent, suppressed bool
+	since                time.Time
+	intent, suppressed   bool
+	wasOpen, focusWithin bool
 }
 
 // popupStyle is Nuxt's popup surface for Popover, Select, InputMenu, SelectMenu
@@ -74,10 +75,15 @@ type popInKey struct{}
 // immediate: a popup's overlay leaves with it, so no exit can be drawn.
 // It returns the progress for finishPanel's fade, 1 once settled or while motion is reduced.
 func popIn(c *ui.Context, t Theme, panel ui.Element, d time.Duration, originX, originY float32) float32 {
-	if !panel.Valid() || !t.motion(c) {
+	if !panel.Valid() {
 		return 1
 	}
 	started := ui.Local(panel, "nui-pop-in", func() bool { return false })
+	if !t.motion(c) {
+		*started = true
+		panel.Jump(popInKey{}, 1)
+		return 1
+	}
 	if !*started {
 		*started = true
 		panel.Jump(popInKey{}, 0)
@@ -96,6 +102,17 @@ func finishPanel(t Theme, id Component, panel ui.Element, base PartStyle, d Deco
 	base.apply(panel)
 	if d.Style != nil {
 		d.Style(Panel, panel)
+	}
+}
+
+func finishBackdrop(t Theme, id Component, back ui.Element, background ui.Color, d Decoration, shown float32) {
+	style := mergeStyle(mergeStyle(PartStyle{Background: Set(background)}, t.components[id].UI[Backdrop]), d.UI[Backdrop])
+	if style.Background.Set && shown < 1 {
+		style.Background = Set(style.Background.Value.Alpha(shown))
+	}
+	style.apply(back)
+	if d.Style != nil {
+		d.Style(Backdrop, back)
 	}
 }
 
@@ -205,7 +222,10 @@ func Popover(c *ui.Context, t Theme, anchor ui.Element, open *bool, opts Popover
 
 // popover is Popover on a base recipe of the caller's, before theme and instance parts.
 func popover(c *ui.Context, t Theme, anchor ui.Element, open *bool, opts PopoverOptions, recipe PartStyle, content func(Theme)) ui.Element {
-	host := ui.Box(c).Absolute().Size(0, 0).IgnoreInput(true)
+	// Scope the native theme around the overlay, so the panel's final text and
+	// layout styles inherit directly into its content instead of being reset by
+	// a themed container inside the panel.
+	host := ui.Themed(c, t.Native()).Background(ui.Transparent).Absolute().Size(0, 0).IgnoreInput(true)
 	identity := ui.Local(host, "popover", func() popoverMemory { return popoverMemory{} })
 	if opts.Mode > PopoverHover {
 		panic("nui: invalid popover mode")
@@ -249,14 +269,19 @@ func popover(c *ui.Context, t Theme, anchor ui.Element, open *bool, opts Popover
 		updateHover(anchorIntent)
 	}
 	if !*open {
+		if identity.wasOpen && identity.focusWithin {
+			anchor.Focus()
+		}
+		identity.wasOpen, identity.focusWithin = false, false
 		return ui.Element{}
 	}
 	// Popup content is not part of the anchor's FieldGroup; its controls keep full corners.
 	inner := t
 	inner.group = groupPart{}
-	panel := ui.PopoverBase(c.Key(identity), anchor, open, func(panel ui.Element) {
-		stylePanel(c, panel, anchor, t, opts, recipe)
-		ui.Themed(c, t.Native()).MinWidth(0).Children(func() {
+	var panel ui.Element
+	host.Children(func() {
+		panel = ui.PopoverBase(c.Key(identity), anchor, open, func(panel ui.Element) {
+			stylePanel(c, panel, anchor, t, opts, recipe)
 			if content != nil {
 				content(inner)
 			}
@@ -280,6 +305,10 @@ func popover(c *ui.Context, t Theme, anchor ui.Element, open *bool, opts Popover
 		intent = intent || (x >= bridge.X && x <= bridge.X+bridge.W && y >= bridge.Y && y <= bridge.Y+bridge.H)
 		updateHover(intent)
 	}
+	if !*open && panel.FocusWithin() {
+		anchor.Focus()
+	}
+	identity.wasOpen, identity.focusWithin = *open, panel.FocusWithin()
 	return panel
 }
 

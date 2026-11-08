@@ -106,7 +106,8 @@ func SelectMultiple[T comparable](c *ui.Context, t Theme, value *[]T, options []
 	}
 	root.Children(func() {
 		SelectMenu(c, menuTheme, &selected, &s.menu, items, SelectMenuOptions{
-			Label: o.Label, Multiple: true, Disabled: o.Disabled, Decoration: decoration, Build: func(c *ui.Context, t Theme, item ListboxItem) {
+			selectOptions: &o,
+			Label:         o.Label, Multiple: true, Disabled: o.Disabled, Decoration: decoration, Build: func(c *ui.Context, t Theme, item ListboxItem) {
 				// Listbox draws the icon and the check; only the content differs.
 				if custom := byOption[item.ID].Build; custom != nil {
 					custom(c, t)

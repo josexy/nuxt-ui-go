@@ -4,3 +4,4 @@
 /go.work.sum
 *.exe
 .DS_Store
+/openspec

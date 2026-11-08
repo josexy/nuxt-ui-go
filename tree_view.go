@@ -1,6 +1,7 @@
 package nui
 
 import (
+	"slices"
 	"strings"
 	"time"
 
@@ -22,10 +23,12 @@ type TreeOptions struct {
 	ExpandOnClick                             Optional[bool] // Default true; Enter/Space only select.
 	ExpandedIcon, CollapsedIcon, TrailingIcon *ui.SVG
 	// Build replaces non-interactive row content, after the leading icon.
-	Build              func(*ui.Context, Theme, TreeItemState)
-	OnSelect, OnToggle func(*TreeEvent)
-	OnChange           func() // Once when an interaction changes selection.
-	OnLoad             func(string, TreeTicket)
+	Build                       func(*ui.Context, Theme, TreeItemState)
+	BuildLeading, BuildTrailing func(*ui.Context, Theme, TreeItemState)
+	OnSelect, OnToggle          func(*TreeEvent)
+	OnChange                    func()         // Once when an interaction changes selection.
+	OnExpandedChange            func([]string) // User expansion changes, as sorted stable IDs.
+	OnLoad                      func(string, TreeTicket)
 	Decoration
 }
 
@@ -35,6 +38,9 @@ func Tree(c *ui.Context, t Theme, s *TreeState, o TreeOptions) ui.Element {
 	}
 	if o.SelectionBehavior > SelectionReplace {
 		panic("nui: invalid selection behavior")
+	}
+	if o.Label == "" {
+		o.Label = t.field.Label
 	}
 	s.cancelHiddenLoads()
 	disabled := o.Disabled || t.field.Disabled
@@ -59,8 +65,8 @@ func Tree(c *ui.Context, t Theme, s *TreeState, o TreeOptions) ui.Element {
 		}
 	}
 	s.visibleRows()
-	if o.Build != nil || (o.Multiple && (o.BubbleSelect || o.PropagateSelect)) {
-		s.selectionSummary()
+	if o.Build != nil || o.BuildLeading != nil || o.BuildTrailing != nil || (o.Multiple && (o.BubbleSelect || o.PropagateSelect)) {
+		s.selectionSummary(o)
 	}
 	_, ok := s.positions[s.Active]
 	if !ok || s.nodes[s.Active].node.Disabled {
@@ -154,6 +160,9 @@ func Tree(c *ui.Context, t Theme, s *TreeState, o TreeOptions) ui.Element {
 		}
 		if !event.prevented && s.nodes[id] == n {
 			s.SetExpanded(id, !event.Expanded)
+			if o.OnExpandedChange != nil && s.Outline.Open.Has(id) != event.Expanded {
+				o.OnExpandedChange(slices.Sorted(s.Outline.Open.All()))
+			}
 		}
 	}
 	config := selected(defaults(t, ComponentTree, ComponentTheme{Color: Primary, Size: MD}), ComponentTheme{Color: o.Color, Size: o.Size})
@@ -178,6 +187,7 @@ func Tree(c *ui.Context, t Theme, s *TreeState, o TreeOptions) ui.Element {
 		// stable row identities, scroll anchoring and persistent focus only.
 		s.Outline.List.Selection, s.Outline.List.Selected, s.Outline.List.Label = nil, nil, nil
 		list := ui.List(c.Key("tree"), &s.Outline.List, len(s.rows)).ItemKey(func(i int) any { return s.rows[i].id }).Fill().Focusable().FocusRing(false).Role(ui.RoleTree).Label(o.Label).InputMethod(false)
+		finish(t, ComponentTree, List, list, PartStyle{}, o.Decoration)
 		move := func(i int, mods ui.Modifiers) {
 			if i < 0 || i >= len(s.rows) || s.nodes[s.rows[i].id].node.Disabled {
 				return
@@ -210,13 +220,11 @@ func Tree(c *ui.Context, t Theme, s *TreeState, o TreeOptions) ui.Element {
 				}
 				s.typed = ev.Time
 				s.prefix += strings.ToLower(ev.Text)
-				for step := 1; step <= len(s.rows); step++ {
-					i := (max(at, 0) + step) % len(s.rows)
+				if i := typeaheadIndex(s.prefix, at, len(s.rows), func(i int) (string, bool) {
 					n := s.nodes[s.rows[i].id]
-					if !n.node.Disabled && strings.HasPrefix(n.search, s.prefix) {
-						move(i, 0)
-						break
-					}
+					return n.search, !n.node.Disabled
+				}); i >= 0 {
+					move(i, 0)
 				}
 				return true
 			}
@@ -307,7 +315,7 @@ func Tree(c *ui.Context, t Theme, s *TreeState, o TreeOptions) ui.Element {
 				s.Active = id
 				s.Outline.List.Focus(c)
 				selectItem(id, mods)
-				if valueOr(o.ExpandOnClick, true) {
+				if s.nodes[id] == n && valueOr(o.ExpandOnClick, true) {
 					toggleItem(id)
 				}
 			})
@@ -317,7 +325,7 @@ func Tree(c *ui.Context, t Theme, s *TreeState, o TreeOptions) ui.Element {
 				style.Background, style.Foreground = Set(t.Elevated), Set(t.color(config.Color))
 			}
 			if id == s.Active && !disabled && (list.FocusVisible() || s.keyboard && list.FocusWithin()) {
-				style.BorderWidth, style.BorderColor = Set(float32(2)), Set(t.focusColor(config.Color))
+				style.BorderWidth, style.BorderColor = Set(float32(2)), Set(inputFocusColor(t, config.Color))
 			}
 			row.Children(func() {
 				// Nuxt's before:inset-y-px leaves a 2 DIP visual gap between
@@ -325,14 +333,18 @@ func Tree(c *ui.Context, t Theme, s *TreeState, o TreeOptions) ui.Element {
 				// height, and inset only its styled surface. Guides stay continuous.
 				style.PaddingY = Set(max(0, m.Pad-1))
 				surface := ui.Row(r.Context.Key("surface")).MinWidth(0).AlignItems(ui.Center).Margin(1, 0).Role(ui.RoleNone)
-				finish(t, ComponentTree, Item, surface, style, o.Decoration)
+				finishTreeItem(t, Item, surface, style, o.Decoration, n.node.Decoration)
 				surface.Children(func() {
 					if !nested && entry.depth > 0 {
 						// The row's gap after this spacer is part of the indentation.
 						ui.Box(r.Context.Key("indent")).Width(max(0, float32(entry.depth)*indent-m.Gap)).Shrink(0)
 					}
+					itemState := TreeItemState{ID: id, Label: n.node.Label, Level: entry.depth + 1, Selected: chosen, Expanded: expanded, Indeterminate: s.partial[id], Loading: n.loading}
 					icon := n.node.Icon
-					if icon == nil && n.children != nil {
+					// Empty loaded branches retain expansion state, as Reka does,
+					// but only nonempty or unresolved branches get fallback icons.
+					hasContent := len(n.children) > 0 || !n.loaded
+					if icon == nil && hasContent {
 						icon = o.CollapsedIcon
 						if expanded {
 							icon = o.ExpandedIcon
@@ -345,13 +357,17 @@ func Tree(c *ui.Context, t Theme, s *TreeState, o TreeOptions) ui.Element {
 							}
 						}
 					}
-					if icon != nil {
-						finish(t, ComponentTree, Leading, ui.Icon(r.Context.Key("leading"), icon).Size(m.Icon, m.Icon).Shrink(0), PartStyle{}, o.Decoration)
+					if o.BuildLeading != nil {
+						leading := ui.Row(r.Context.Key("leading")).Shrink(0).AlignItems(ui.Center)
+						finishTreeItem(t, Leading, leading, PartStyle{}, o.Decoration, n.node.Decoration)
+						leading.Children(func() { o.BuildLeading(r.Context, t, itemState) })
+					} else if icon != nil {
+						finishTreeItem(t, Leading, ui.Icon(r.Context.Key("leading"), icon).Size(m.Icon, m.Icon).Shrink(0), PartStyle{}, o.Decoration, n.node.Decoration)
 					}
 					if o.Build != nil {
-						o.Build(r.Context, t, TreeItemState{ID: id, Label: n.node.Label, Level: entry.depth + 1, Selected: chosen, Expanded: expanded, Indeterminate: s.partial[id], Loading: n.loading})
+						o.Build(r.Context, t, itemState)
 					} else {
-						finish(t, ComponentTree, Label, ui.Text(r.Context.Key("label"), n.node.Label).SingleLine().Grow(1).MinWidth(0), PartStyle{}, o.Decoration)
+						finishTreeItem(t, Label, ui.Text(r.Context.Key("label"), n.node.Label).SingleLine().Grow(1).MinWidth(0), PartStyle{}, o.Decoration, n.node.Decoration)
 					}
 					if n.loading {
 						ui.Text(r.Context, message(c, "loading")).FontSize(t.text(12)).Role(ui.RoleStatus)
@@ -360,13 +376,17 @@ func Tree(c *ui.Context, t Theme, s *TreeState, o TreeOptions) ui.Element {
 						Button(r.Context.Key("retry"), t, message(c, "retry"), ButtonOptions{AccessibleLabel: namedMessage(c, "retryNamed", n.node.Label), Variant: Ghost, Size: XS}).Description(n.err).OnClick(func() { s.Retry(id) })
 					}
 					trailing := n.node.TrailingIcon
-					if trailing == nil && n.children != nil {
+					if trailing == nil && hasContent {
 						trailing = o.TrailingIcon
 						if trailing == nil {
 							trailing = lucide.ChevronDown()
 						}
 					}
-					if trailing != nil {
+					if o.BuildTrailing != nil {
+						trailing := ui.Row(r.Context.Key("trailing")).Shrink(0).AlignItems(ui.Center)
+						finishTreeItem(t, Trailing, trailing, PartStyle{}, o.Decoration, n.node.Decoration)
+						trailing.Children(func() { o.BuildTrailing(r.Context, t, itemState) })
+					} else if trailing != nil {
 						arrow := ui.Icon(r.Context.Key("trailing"), trailing).Size(m.Icon, m.Icon).Shrink(0)
 						if n.children != nil {
 							if expanded {
@@ -374,7 +394,7 @@ func Tree(c *ui.Context, t Theme, s *TreeState, o TreeOptions) ui.Element {
 							}
 							arrow.KeepFocus().OnClick(func() { s.keyboard = false; s.Active = id; s.Outline.List.Focus(c); toggleItem(id) })
 						}
-						finish(t, ComponentTree, Trailing, arrow, PartStyle{}, o.Decoration)
+						finishTreeItem(t, Trailing, arrow, PartStyle{}, o.Decoration, n.node.Decoration)
 					}
 				})
 			})

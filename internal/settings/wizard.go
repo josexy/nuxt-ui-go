@@ -95,19 +95,21 @@ func (a *State) wizard(c *ui.Context, t nui.Theme) {
 				label = "Create project"
 			}
 			nui.Button(c, inner, label, nui.ButtonOptions{Loading: s.Form.Submitting}).OnClick(s.Form.Submit)
-			if s.Pending && s.Form.Submitting {
-				nui.Button(c, inner, "Confirm project", nui.ButtonOptions{Variant: nui.Soft}).OnClick(func() {
-					if s.Form.CompleteAsync(s.Ticket, nil) {
-						s.Pending = false
-						s.Status = "Project created"
-						nui.Toast(c, t, nui.ToastOptions{Title: "Project created", Description: s.Name, Color: nui.Success})
-					}
-				})
-				nui.Button(c, inner, "Cancel creation", nui.ButtonOptions{Variant: nui.Ghost}).OnClick(func() { s.Form.Cancel(); s.Pending = false; s.Status = "Creation cancelled" })
-			}
 		})
-		if s.Status != "" {
-			ui.Text(c, s.Status).Role(ui.RoleStatus).TextColor(t.Muted)
-		}
 	})
+	if s.Pending && s.Form.Submitting {
+		ui.Row(c.Key("completion")).Gap(8).Children(func() {
+			nui.Button(c, t, "Confirm project", nui.ButtonOptions{Variant: nui.Soft}).OnClick(func() {
+				if s.Form.CompleteAsync(s.Ticket, nil) {
+					s.Pending = false
+					s.Status = "Project created"
+					nui.Toast(c, t, nui.ToastOptions{Title: "Project created", Description: s.Name, Color: nui.Success})
+				}
+			})
+			nui.Button(c, t, "Cancel creation", nui.ButtonOptions{Variant: nui.Ghost}).OnClick(func() { s.Form.Cancel(); s.Pending = false; s.Status = "Creation cancelled" })
+		})
+	}
+	if s.Status != "" {
+		ui.Text(c.Key("status"), s.Status).Role(ui.RoleStatus).TextColor(t.Muted)
+	}
 }

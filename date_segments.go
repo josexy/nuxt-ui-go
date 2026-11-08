@@ -51,14 +51,26 @@ type segmentField struct {
 	clock  bool
 	change func(datePart)
 	paste  func(string)
+	steps  [partCount]int
+	seed   [partCount]Optional[int]
+	blur   func(datePart)
 }
 
-func segmentPattern(locale string, clock, twelve, seconds bool) []dateSegment {
+type segmentExtras struct {
+	separator      *ui.SVG
+	buildSeparator func(*ui.Context, Theme)
+	clear          func()
+}
+
+func segmentPattern(locale string, clock, twelve, seconds, hourOnly bool) []dateSegment {
 	skeleton := "yMd"
 	if clock {
 		skeleton = "Hm"
 		if twelve {
 			skeleton = "hm"
+		}
+		if hourOnly {
+			skeleton = strings.TrimSuffix(skeleton, "m")
 		}
 		if seconds {
 			skeleton += "s"
@@ -187,17 +199,26 @@ func (f segmentField) step(p datePart, delta int) {
 	lo, hi := f.limits(p)
 	v := f.state.values[p]
 	if !v.Set {
-		v = Set(lo)
-		if p == partYear {
-			v.Value = time.Now().Year()
+		v = f.seed[p]
+		if !v.Set {
+			v = Set(lo)
+			if delta < 0 {
+				v.Value = hi
+			}
 		}
+		v.Value = max(lo, min(hi, v.Value))
 	} else {
-		v.Value += delta
-		if v.Value > hi {
-			v.Value = lo
-		}
-		if v.Value < lo {
-			v.Value = hi
+		if p == partHour && f.twelve {
+			hour := v.Value%12 + 12*f.state.values[partPeriod].Value
+			hour = ((hour+delta*(max(1, f.steps[p])%24))%24 + 24) % 24
+			f.state.values[partPeriod] = Set(hour / 12)
+			v.Value = hour % 12
+			if v.Value == 0 {
+				v.Value = 12
+			}
+		} else {
+			span := hi - lo + 1
+			v.Value = lo + ((v.Value-lo+delta*(max(1, f.steps[p])%span))%span+span)%span
 		}
 	}
 	f.state.values[p], f.state.typed[p] = v, ""
@@ -400,11 +421,12 @@ func segmentInput(c *ui.Context, targets []segmentTarget, index int, o InputOpti
 
 // segmentedInput shares the ordinary field recipe, while each segment owns its
 // focus and stepper semantics. Style's editor argument is the first segment.
-func segmentedInput(c *ui.Context, t Theme, fields []segmentField, o InputOptions, id Component, after func()) ui.Element {
+func segmentedInput(c *ui.Context, t Theme, fields []segmentField, o InputOptions, id Component, after func(), extras segmentExtras) ui.Element {
 	config := inputDefaults(t, id, o)
 	m := buttonMetrics(t, config.Size)
-	root := ui.Row(c).MinWidth(0).AlignItems(ui.Center).Disabled(o.Disabled || t.field.Disabled).Role(ui.RoleGroup).Label(o.Label).Font(t.Font).FontSize(m.Font).LineHeight(m.Line / m.Font)
-	var first, leading, trailing ui.Element
+	root := ui.Row(c).MinWidth(0).Wrap().AlignItems(ui.Center).Disabled(o.Disabled || t.field.Disabled).Role(ui.RoleGroup).Label(o.Label).Font(t.Font).FontSize(m.Font).LineHeight(m.Line / m.Font)
+	var first, leading, trailing, loader ui.Element
+	loadingLeading := o.Loading && (!o.LoadingTrailing || o.Leading != nil)
 	var segments []ui.Element
 	var segmentStyles []PartStyle
 	targets := segmentTargets(fields)
@@ -420,26 +442,54 @@ func segmentedInput(c *ui.Context, t Theme, fields []segmentField, o InputOption
 		gap, width = 3, 40
 	}
 	root.Children(func() {
-		if o.Loading {
-			icon := o.LoadingIcon
-			if icon == nil {
-				icon = lucide.LoaderCircle()
-			}
-			leading = loadingSVG(c.Key("loading"), icon, m.Icon, t.Dimmed, t.motion(c), t.Motion.Spin)
+		if loadingLeading {
+			leading = ui.Box(c.Key("leading")).Size(m.Icon, m.Icon).Shrink(0)
+			loader = leading
 		} else if o.Leading != nil {
 			leading = ui.Icon(c.Key("leading"), o.Leading).Size(m.Icon, m.Icon).Shrink(0)
+		} else if o.Avatar != nil {
+			diameter := Optional[float32]{}
+			if o.Avatar.Size == SizeDefault {
+				diameter = Set(m.Icon)
+			}
+			leading = avatar(c.Key("leading"), t, *o.Avatar, diameter)
 		}
 		index := 0
 		for n, f := range fields {
+			// Track a focus transition within this mounted field, without keeping
+			// any build-local elements. Hiding a field discards this local history.
+			last := ui.Local(root, fmt.Sprintf("focus-%d", n), func() datePart { return partLiteral })
+			current := partLiteral
 			fieldFocused := false
 			for _, part := range f.parts {
-				fieldFocused = fieldFocused || f.state.handles[part.part].Focused(c)
+				if part.part != partLiteral && f.state.handles[part.part].Focused(c) {
+					current, fieldFocused = part.part, true
+				}
+			}
+			previous := *last
+			*last = current
+			if previous != partLiteral && previous != current && f.blur != nil && !o.ReadOnly && !root.IsDisabled() {
+				f.blur(previous)
+				if o.errorKey == "invalidDate" || o.errorKey == "invalidTime" {
+					o.ErrorMessage, o.errorKey = "", ""
+				}
+				o = segmentOptions(o, fields...)
 			}
 			if !fieldFocused {
 				f.state.selectAll = false
 			}
 			if n > 0 {
-				ui.Icon(c.Key("separator"), lucide.Minus()).Size(t.text(16), t.text(16)).TextColor(t.Muted).Shrink(0)
+				var separator ui.Element
+				if extras.buildSeparator != nil {
+					separator = ui.Row(c.Key("separator")).AlignItems(ui.Center).Shrink(0).Role(ui.RoleNone).Children(func() { extras.buildSeparator(c, t) })
+				} else {
+					icon := extras.separator
+					if icon == nil {
+						icon = lucide.Minus()
+					}
+					separator = ui.Icon(c.Key("separator"), icon).Size(t.text(16), t.text(16)).Shrink(0).Role(ui.RoleNone)
+				}
+				finish(t, id, SeparatorSlot, separator, PartStyle{Foreground: Set(t.Muted)}, Decoration{UI: o.UI})
 			}
 			group := ui.Row(c.Key(n)).Gap(t.spacing(gap)).AlignItems(ui.Center).Shrink(0)
 			if len(fields) > 1 {
@@ -467,7 +517,7 @@ func segmentedInput(c *ui.Context, t Theme, fields []segmentField, o InputOption
 					}
 					lo, hi := f.limits(p)
 					if v := f.state.values[p]; v.Set {
-						e.Range(float64(lo), float64(hi), float64(v.Value)).Step(1)
+						e.Range(float64(lo), float64(hi), float64(v.Value)).Step(float64(max(1, f.steps[p])))
 					}
 					semantics := o
 					semantics.Label = name
@@ -489,6 +539,12 @@ func segmentedInput(c *ui.Context, t Theme, fields []segmentField, o InputOption
 						if config.Variant == Subtle || config.Variant == Soft {
 							background = t.Accented
 						}
+						if config.Variant == Soft && !root.Hovered() {
+							background = t.Accented.Alpha(.5)
+						}
+						if config.Variant == Ghost && root.Hovered() {
+							background = t.Accented
+						}
 						base.Background = Set(background)
 					}
 					e.Children(func() { ui.Text(c, text).Role(ui.RoleNone) })
@@ -508,8 +564,12 @@ func segmentedInput(c *ui.Context, t Theme, fields []segmentField, o InputOption
 					label = namedMessage(c, "clearNamed", o.Label)
 				}
 				ui.ButtonBase(c.Key("clear")).Label(label).Size(m.Icon, m.Icon).FocusRing(true).OnClick(func() {
-					for _, f := range fields {
-						f.paste("")
+					if extras.clear != nil {
+						extras.clear()
+					} else {
+						for _, f := range fields {
+							f.paste("")
+						}
 					}
 					targets[0].field.state.handles[targets[0].part].Focus(c)
 					if o.OnClear != nil {
@@ -518,7 +578,10 @@ func segmentedInput(c *ui.Context, t Theme, fields []segmentField, o InputOption
 				}).Children(func() { ui.Icon(c, lucide.X()).Size(m.Icon, m.Icon).TextColor(t.Muted) })
 			}
 		}
-		if o.Trailing != nil {
+		if o.Loading && !loadingLeading {
+			trailing = ui.Box(c.Key("trailing")).Size(m.Icon, m.Icon).Shrink(0)
+			loader = trailing
+		} else if o.Trailing != nil {
 			trailing = ui.Icon(c.Key("trailing"), o.Trailing).Size(m.Icon, m.Icon).Shrink(0)
 		}
 		if after != nil {
@@ -528,26 +591,37 @@ func segmentedInput(c *ui.Context, t Theme, fields []segmentField, o InputOption
 	focused := root.FocusWithin()
 	_, styles := resolve(t, id, ComponentTheme{Color: Primary, Size: MD, Variant: Outline}, ComponentTheme{Color: o.Color, Size: inheritedSize(t, o.Size), Variant: o.Variant, UI: o.UI}, func(v ComponentTheme) Styles {
 		s := inputRecipe(t, v, focused, root.Hovered() && !root.IsDisabled(), fieldInvalid(t, o))
-		if o.Highlight && !fieldInvalid(t, o) && v.Variant != None {
+		if o.Highlight && !fieldInvalid(t, o) {
 			r := s[Root]
-			r.BorderWidth, r.BorderColor = Set(float32(1)), Set(t.color(v.Color))
+			r.BorderWidth, r.BorderColor = Set(float32(1)), Set(inputColor(t, v.Color))
 			s[Root] = r
 		}
 		return s
 	})
-	styles[Root].apply(root)
-	styles[Leading].apply(leading)
-	styles[Trailing].apply(trailing)
-	for i, e := range segments {
-		styles[Editor].apply(e)
-		finish(t, id, Segment, e, segmentStyles[i], Decoration{UI: o.UI})
-	}
 	if focused && config.Variant != None {
 		color := config.Color
 		if fieldInvalid(t, o) {
 			color = Error
 		}
-		root.Shadow(0, 0, 0, 3, t.focusColor(color))
+		root.Shadow(0, 0, 0, 3, inputFocusColor(t, color))
+	}
+	styles[Root].apply(root)
+	styles[Leading].apply(leading)
+	styles[Trailing].apply(trailing)
+	if o.Loading {
+		icon := o.LoadingIcon
+		if icon == nil {
+			icon = lucide.LoaderCircle()
+		}
+		part := Trailing
+		if loadingLeading {
+			part = Leading
+		}
+		drawLoadingSVG(loader, icon, mergeValue(styles[Root].Foreground, styles[part].Foreground).Value, t.motion(c), t.Motion.Spin)
+	}
+	for i, e := range segments {
+		styles[Editor].apply(e)
+		finish(t, id, Segment, e, segmentStyles[i], Decoration{UI: o.UI})
 	}
 	if root.Clicked() && !root.IsDisabled() && !focused {
 		targets[0].field.state.handles[targets[0].part].Focus(c)

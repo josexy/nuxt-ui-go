@@ -1,333 +1,396 @@
-# 弹层、菜单与导航
+# Overlays, menus, and navigation
 
-对话框和通知用于处理当前操作，Tabs、分页和步骤条用于组织内容。先根据交互目的选组件：
+Dialogs and notifications support the task at hand; tabs, pagination, and steppers organize content. Choose a component by what the interaction is for:
 
-| 需要什么 | 组件 |
+| What you need | Component |
 | --- | --- |
-| 让用户先完成当前操作，再回到页面 | [Modal / Slideover](#modal-与-slideover) |
-| 简短提示，或在控件旁补充内容 | [Tooltip](#tooltip)、[Popover](inputs.md#popover-与-scrollarea) |
-| 下拉操作、右键菜单或操作结果通知 | [DropdownMenu / ContextMenu](#dropdownmenu-与-contextmenu)、[Toast](#toast) |
-| 切换内容、展开详情 | [Tabs / Collapsible / Accordion](#tabscollapsible-与-accordion) |
-| 页面路径、分页、流程、时间线或错误展示 | [导航组件](#breadcrumbpaginationsteppertimeline)、[Banner / ErrorView](#banner-与-errorview) |
+| Have the user finish a task before returning to the page | [Modal / Slideover](#modal-and-slideover) |
+| A short hint, or extra content next to a control | [Tooltip](#tooltip), [Popover](inputs.md#popover-and-scrollarea) |
+| A dropdown of actions, a context menu, or a notification about a result | [DropdownMenu / ContextMenu](#dropdownmenu-and-contextmenu), [Toast](#toast) |
+| Switch between content, or expand details | [Tabs / Collapsible / Accordion](#tabs-collapsible-and-accordion) |
+| A page path, pagination, a process, a timeline, or an error display | [Navigation components](#breadcrumb-pagination-stepper-and-timeline), [Banner / ErrorView](#banner-and-errorview) |
 
-## 公共约定
+## Shared conventions
 
-### 打开状态和稳定 ID
+### Open state and stable IDs
 
-应用保存弹层是否打开、当前选中项及其他持久状态。每个实例在创建前使用 `c.Key(...)`，构建所得 Element 和部件只用于当次界面，不存入模型或后台任务。关闭时返回的零值 Element 表示当前没有可用面板。
+Your app stores whether an overlay is open, the current selection, and other persistent state. Call `c.Key(...)` before creating each instance. The Elements and parts produced by a build belong to that build only; do not store them in the model or in background tasks. A zero-value Element returned on close means there is currently no panel.
 
-弹层组件应持续出现在视图函数中，包括关闭状态。这样组件才能完成退出动画、清理和焦点恢复，避免用 `if open` 包住整个组件调用。
+Keep calling overlay components from the view function even when they are closed. This lets them finish exit animations, clean up, and restore focus. Do not wrap the entire component call in `if open`.
 
-列表项 ID 必须非空且唯一，重复会 panic。Tabs、Accordion、Breadcrumb、Stepper、Timeline 要求各自列表内唯一，菜单要求整棵树唯一。显示名称可以重复。必需的状态指针不能为 nil；Banner 明确支持 nil，表示常驻。
+List item IDs must be non-empty and unique, or the component panics. Tabs, Accordion, Breadcrumb, Stepper, and Timeline require uniqueness within their own list; menus require it across the whole menu tree. Display names can repeat. Required state pointers must not be nil, except for Banner, which explicitly accepts nil to mean "always shown".
 
-### 样式和回调
+### Styles and callbacks
 
-多数组件返回 `ui.Element`，Toast 返回通知 ID，CloseToast 不返回元素。Style 在当前构建中同步配置部件，业务动作使用点击或选择回调。
+Most components return a `ui.Element`. Toast returns the notification ID, and CloseToast returns nothing. Style configures parts synchronously during the current build; use click or selection callbacks for business actions.
 
-样式从内置样式、主题组件配置、实例 UI 依次应用，最后执行 Style。各组件支持的 Color、Size、Variant 和部件不同，见末尾[部件索引](#部件索引)。尺寸使用 DIP，无需再乘屏幕缩放比例。
+Styles are applied in this order: built-in style, component configuration in the theme, instance UI, and finally Style. Each component supports a different set of Color, Size, Variant, and parts; see the [part index](#part-index) at the end. Sizes are in DIP, so you do not need to multiply them by the display scale.
 
-## Modal 与 Slideover
+## Modal and Slideover
 
-### 打开一个编辑对话框
+### Open an edit dialog
 
-Modal 居中显示，Slideover 从窗口边缘滑入。两者都属于模态弹层，打开时背景不可操作。
+Modal appears in the center, and Slideover slides in from an edge of the window. Both are modal: the background cannot be used while they are open.
 
 ```go
-// state 按窗口保存 EditOpen、Draft 和 EditTrigger（ui.Handle）。
-edit := nui.Button(c, t, "编辑", nui.ButtonOptions{}).
+// state stores EditOpen, Draft, and EditTrigger (a ui.Handle) per window.
+edit := nui.Button(c, t, "Edit", nui.ButtonOptions{}).
     Bind(&state.EditTrigger).
     OnClick(func() { state.EditOpen = true })
-nui.Tooltip(c, t, edit, "编辑当前资料", nui.TooltipOptions{})
+nui.Tooltip(c, t, edit, "Edit the current profile", nui.TooltipOptions{})
 
-// 每次构建都调用，包括 EditOpen=false 时。
+// Call this on every build, including when EditOpen is false.
 nui.ModalWithOptions(c.Key("edit"), t, &state.EditOpen, nui.ModalOptions{
-    Title: "编辑资料",
-    Description: "更改只在保存后应用。",
+    Title: "Edit profile",
+    Description: "Changes apply only after you save.",
     ReturnFocus: &state.EditTrigger,
     Footer: func(c *ui.Context, inner nui.Theme) {
-        nui.Button(c, inner, "完成", nui.ButtonOptions{}).
+        nui.Button(c, inner, "Done", nui.ButtonOptions{}).
             OnClick(func() { state.EditOpen = false })
     },
 }, func(inner nui.Theme) {
-    nui.Input(c, inner, &state.Draft, nui.InputOptions{Label: "名称"})
+    nui.Input(c, inner, &state.Draft, nui.InputOptions{Label: "Name"})
 })
 ```
 
-上例只演示打开、编辑草稿和关闭。真正保存数据时，由应用在完成动作中处理。简单对话框也可使用 `Modal(c, t, &open, title, body)`；完整配置使用 ModalWithOptions。
+This example only shows opening, editing a draft, and closing. To actually save the data, handle it in the app's Done action. For a simple dialog, you can also use `Modal(c, t, &open, title, body)`; use ModalWithOptions for the full set of options.
 
-### 关闭和焦点
+### Closing and focus
 
-| ModalOptions | 行为 |
+| ModalOptions | Behavior |
 | --- | --- |
-| Dismissible | Optional[bool]，默认 true；false 阻止遮罩点击和 Escape 关闭 |
-| CloseButton / CloseLabel | 默认显示关闭按钮，可单独隐藏或更换名称 |
-| OnClose | 用户通过组件关闭按钮、允许的遮罩或 Escape 关闭时调用一次；应用直接设 open=false 不调用 |
-| ReturnFocus | 指定关闭后恢复焦点的 Handle |
+| Dismissible | Optional[bool], default true. false prevents closing by clicking the overlay or pressing Escape |
+| CloseButton / CloseLabel | The close button is shown by default; you can hide it or rename it separately |
+| Close / CloseIcon | Configure the close button's color, size, loading state, and icon. Defaults to MD, Neutral, Ghost, and X. Close.Leading takes precedence over CloseIcon |
+| OnClose | Called once when the user closes the dialog with the close button, an allowed overlay click, or Escape. Not called when the app sets open=false directly |
+| OnClosePrevent | Called once when Dismissible=false blocks Escape or an outside click. Dismissible does not affect the close button |
+| ReturnFocus | The Handle that receives focus after the dialog closes |
 
-Dismissible 与 CloseButton 独立。需要禁止用户关闭时，两项都设为 `nui.Set(false)`。从菜单项打开对话框时，ReturnFocus 通常应指向仍存在的菜单触发按钮，因为菜单项会随菜单关闭而卸载。
+Dismissible and CloseButton are independent. To prevent the user from closing the dialog, set both to `nui.Set(false)`. When a menu item opens a dialog, ReturnFocus should usually point to the menu's trigger button, which still exists after the menu closes; the menu item itself unmounts with the menu.
 
-Tab 焦点限制在模态内容中，内部 Select / Popover 会先处理 Escape。默认聚焦第一个可聚焦控件，通常是关闭按钮；需要先聚焦字段时，在打开动作中请求该字段 Handle。Header / Footer 过高时，应用需要控制内容尺寸，为正文保留空间。
+Tab focus is trapped inside the modal content, and an inner Select or Popover handles Escape first. By default, the first focusable control receives focus, usually the close button. To focus a field first, request that field's Handle in the action that opens the dialog. If the Header or Footer is very tall, your app must constrain the content size to leave room for the body.
 
-### 内容、尺寸和外观
+### Content, size, and appearance
 
-| 选项 | 行为 |
+| Option | Behavior |
 | --- | --- |
-| Title / Description | 对话框名称和描述，也显示在默认标题区 |
-| Header / Footer | `func(*ui.Context, Theme)`，分别自定义标题区和操作区 |
-| Width / MaxHeight | Optional[float32]；默认宽 512 DIP，限制在窗口宽减 32、高减 64 内 |
-| Overlay | 默认 true；false 只隐藏遮罩颜色，仍保留模态焦点限制 |
-| Fullscreen | 使用整窗尺寸，去掉圆角和边框；仅用于 Modal |
+| Title / Description | The dialog's name and description, also shown in the default header |
+| Header / Footer | `func(*ui.Context, Theme)`. Header replaces the title and description content, while the close button is still created separately. Footer customizes the action area |
+| Width / MaxHeight | Optional[float32]. The default width is 512 DIP, limited to the window width minus 32 and the window height minus 64 |
+| Overlay | Default true. false only hides the overlay color; focus is still trapped |
+| Fullscreen | Uses the full window size without rounded corners or a border. Modal only |
+| Transition | Optional[bool], default true. false skips the entrance animation; switching back to true does not replay an entrance that already finished |
 
-正文可滚动，标题和 Footer 留在原位置。标题区上下内边距 16、左右 24、最低高度 64 DIP；正文内边距 24 DIP，Footer 间距 6 DIP。只在实际存在的区域之间画分隔线，body 为 nil 时不创建正文区。
+The body scrolls while the title and Footer stay in place. The header has 16 DIP of vertical padding, 24 DIP of horizontal padding, and a minimum height of 64 DIP. The body has 24 DIP of padding, and the Footer has a 6 DIP gap. If Title, Description, and Header are all empty and CloseButton=false, no header is created. If body is nil, no body region is created. With only a Footer, there is no stray separator.
 
-Footer 默认右对齐。PartStyle 不能设置对齐方式，需要其他排列时，在 Footer 回调内自行创建布局。
+The Panel's text styles are inherited directly by ordinary body elements. Panel.Gap sets the spacing between the regions that exist and defaults to 0. Inner content is clipped to the panel's rounded corners. The header, body, and Footer have stable identities, so removing the header or toggling Fullscreen keeps focus and selection in a body editor. Closing unmounts the content. Values your app stores persistently remain, but temporary control state is not guaranteed to survive reopening.
 
-Modal 面板圆角为 8 DIP，遮罩使用 Elevated 色的 75% 不透明度。打开时，面板在 200ms 内从 95% 大小淡入，遮罩同步淡入；减少动态效果时直接显示。Modal 关闭立即完成，原因与 [Popover](inputs.md#popover-与-scrollarea) 相同。
+The Footer is right-aligned by default. PartStyle cannot set alignment; for a different arrangement, create the layout yourself inside the Footer callback.
 
-### Slideover：从边缘打开
+The Modal panel has an 8 DIP corner radius, and the overlay uses the Elevated color at 75% opacity. On open, the panel fades in from 95% scale over 200 ms while the overlay fades in with it. With Transition=false or reduced motion, it appears immediately. Like [Popover](inputs.md#popover-and-scrollarea), Modal closes immediately without an exit animation. There is no upstream full-overlay scrolling mode, non-modal switch, or keep-mounted option.
 
-Slideover 复用 Modal 的标题、正文、Footer 和关闭配置，通过 Side / Extent 决定位置和大小：
+### Slideover: open from an edge
 
-| Side | Extent 的含义和默认值 |
+Slideover reuses Modal's title, body, Footer, and close options. Side and Extent determine its position and size:
+
+| Side | What Extent means, and its default |
 | --- | --- |
-| SideRight（默认）/ SideLeft | 面板宽度，默认 448 DIP |
-| SideTop / SideBottom | 面板高度；未设置时按内容高度，最多占满窗口 |
+| SideRight (default) / SideLeft | Panel width, 448 DIP by default |
+| SideTop / SideBottom | Panel height. When unset, it fits the content, up to the full window |
 
-显式 Extent 最多占满对应窗口轴。嵌入 ModalOptions 的 Width、MaxHeight、Fullscreen 不用于 Slideover；正文伸展并滚动，Footer 位于面板底部。
+An explicit Extent is limited to the window's size along that axis. The Width, MaxHeight, and Fullscreen fields embedded from ModalOptions are not used by Slideover. The body stretches and scrolls, and the Footer sits at the bottom of the panel.
 
-打开和关闭使用固定 200ms 的 cubic ease-out 位移及遮罩过渡；Theme.Motion.Reduce 时立即切换。退出过程中保留模态范围并禁止内容操作，结束后卸载和恢复焦点；中途反向切换会从当前进度继续。
+Inset defaults to false. When enabled, it leaves a 16 DIP margin on all sides of the window and uses an 8 DIP corner radius. The margin scales with the theme's spacing, and Extent is limited to the space left after the margin. Side is a physical edge and is not swapped in RTL. Left and right panels default to 448 DIP wide; Go does not use upstream's breakpoint rule that makes the panel full width on small screens.
 
-Slideover 不提供边缘拉伸。需要底部手柄拖动和多个停靠高度时使用 [Drawer](advanced.md#drawer)。
+Slideover always creates a body region; even with content=nil, it keeps the default 24 DIP of padding. For top and bottom panels sized to their content, this affects the panel height. This differs from Modal, which creates no body region when the body is nil. Body, Header, and Footer have stable identities, so changing the side or Inset keeps focus and selection in an editor.
+
+Opening and closing use a fixed 200 ms cubic ease-out slide and overlay transition. With Transition=false, Theme.Motion.Reduce, or the system's reduced motion setting, the change is immediate. During the exit, the modal scope is kept and the content cannot be used; afterward, the panel unmounts and focus is restored. If the direction reverses midway, the transition continues from its current progress.
+
+A Background override on the Backdrop, from the theme or the instance, also fades in and out, and the final Style still has the highest precedence. The native Backdrop contains the panel, so setting its Opacity affects the panel too. To hide only the overlay, use Overlay=false or a transparent background. For which inherited fields apply, see [Overlays and notifications](options.md#overlays-and-notifications).
+
+Slideover cannot be stretched from its edge. For dragging by a bottom handle with multiple snap heights, use [Drawer](advanced.md#drawer).
 
 ## Tooltip
 
-Tooltip 用于无交互的短提示：`Tooltip(c, t, anchor, text, options)`。它把文字设为锚点 Description，响应鼠标悬停和键盘焦点。该设置会替换已有 Description，应用需要提前合并所需描述。
+Tooltip shows a short, non-interactive hint: `Tooltip(c, t, anchor, text, options)`. It responds to mouse hover and keyboard focus, and appends its text and the formatted Kbds to the anchor's Description, keeping any existing description. Kbds only display shortcut hints; they do not register shortcut actions.
 
-| 行为 | 默认值 |
+| Behavior | Default |
 | --- | --- |
-| 位置和间距 | 下方居中，距锚点 8 DIP |
-| MaxWidth | 320 DIP，单行超长时省略 |
-| 外观 | 高 24 DIP、圆角 4 DIP、水平内边距 10 DIP、小阴影 |
-| 鼠标触发 | 延迟 600ms；连续查看提示时有 400ms 的快速切换时间窗口 |
-| 键盘触发 | 聚焦后立即显示 |
+| Position and offset | Below the anchor, centered, 8 DIP away |
+| MaxWidth | 320 DIP; text longer than one line is truncated with an ellipsis |
+| Appearance | 24 DIP tall, 4 DIP corner radius, 10 DIP horizontal padding, small shadow |
+| Mouse | 600 ms delay when DelayDuration is unset. When moving between tooltips, a 400 ms window lets the next one appear quickly |
+| Keyboard | Shown immediately on focus |
 
-指针离开、按下或 Escape 会隐藏提示；Disabled 或无效、禁用锚点不会显示。打开动画为 100ms 缩放淡入，当前没有延迟时长选项。需要多行或可点击内容时，使用 Popover。
+`DelayDuration` is an `Optional[time.Duration]`, for example `nui.Set(200 * time.Millisecond)`. An explicit 0 or a negative value shows the tooltip immediately. Leaving the anchor cancels the wait, and keyboard focus does not wait for the hover delay. Nuxt UI defaults to a 700 ms delay and a 300 ms skip window; Go keeps MyGo's native defaults.
 
-Kbds 显示快捷键，文字和快捷键间以 `·` 分隔，各键间距 2 DIP。受控 Open 和位置选项见[参数说明](options.md#弹层和通知)。
+The tooltip hides when the pointer leaves, the trigger is clicked, the user presses outside, or Escape is pressed. It also closes when it is Disabled, when the anchor is invalid or disabled, or when both the text and Kbds are empty. It opens with a 100 ms scale-and-fade animation, appears immediately with reduced motion, and disappears immediately on close. A Go Tooltip does not receive pointer input or focus, and it has no upstream hoverable content, arrow, or arbitrary content slot. For multiline or clickable content, use Popover.
 
-## DropdownMenu 与 ContextMenu
+Kbds use the SM size by default. The text and the shortcut are separated by `·`, and keys are 2 DIP apart. Unlike upstream, which hides shortcuts on narrow screens, Go always shows them. Panel.Gap sets the space between the text and the shortcut container, and Trailing styles the container of the shortcut and separator dot. The text is truncated to one line, but the shortcut does not shrink, so leave room for it in MaxWidth. For controlled Open and position options, see [Overlays and notifications](options.md#overlays-and-notifications).
 
-### 创建操作菜单
+## DropdownMenu and ContextMenu
 
-DropdownMenu 从按钮打开；ContextMenu 可从可聚焦区域的右键、Menu 键或 Shift+F10 打开。
+### Create an action menu
+
+DropdownMenu opens from a button. ContextMenu opens from a focusable area with a right-click, the Menu key, or Shift+F10.
 
 ```go
-anchor := nui.Button(c, t, "操作", nui.ButtonOptions{})
+anchor := nui.Button(c, t, "Actions", nui.ButtonOptions{})
 nui.DropdownMenu(c.Key("actions"), t, anchor, &state.Menu, []nui.MenuItem{
-    {ID: "pin", Label: "置顶", Checked: nui.Set(state.Pinned),
+    {ID: "pin", Label: "Pin", Checked: nui.Set(state.Pinned),
         OnSelect: func() { state.Pinned = !state.Pinned }},
-    {ID: "export", Label: "导出", Children: []nui.MenuItem{
+    {ID: "export", Label: "Export", Children: []nui.MenuItem{
         {ID: "csv", Label: "CSV", OnSelect: state.ExportCSV},
         {ID: "pdf", Label: "PDF", Disabled: true},
     }},
-}, nui.MenuOptions{Label: "文档操作"})
+}, nui.MenuOptions{Label: "Document actions"})
 ```
 
-每个窗口、每个独立触发器各保存一份 MenuState，应用可读写 Open。DropdownMenu 设置锚点的菜单按钮和展开语义；ContextMenu 的鼠标打开位置为右键点，键盘打开位置在锚点下方。关闭时返回零值面板。
+Keep one MenuState per window and per trigger; your app can read and write Open. DropdownMenu gives the anchor menu-button and expanded semantics. ContextMenu stores the right-click position in window coordinates. Another right-click only repositions the menu and does not report a second open. If the target's layout moves, the menu stays at the original click position. The Menu key and Shift+F10 use the target's bottom-left corner as the anchor point, and opening from the app uses the current target area. On close, it returns a zero-value panel and clears the old pointer position.
 
-### 菜单项配置
+### Menu items
 
-| MenuItem 字段 | 行为 |
+| MenuItem field | Behavior |
 | --- | --- |
-| ID / Label / Description / Icon | 稳定标识、名称、说明和图标；ID 在整棵菜单树中唯一 |
-| Kind | MenuAction（默认）、MenuLabel、MenuSeparator；分组标题和分隔符也要有 ID |
-| Shortcut | 在行尾显示快捷键，不自动注册快捷键 |
-| Disabled | 禁止聚焦和激活 |
-| Color | 非 Neutral 时，为文字和图标着色，高亮背景使用该颜色的 10% 不透明度 |
-| Checked / Radio | Checked 是 Optional[bool]；使用复选或单选菜单项语义，值和互斥关系由应用在 OnSelect 中更新 |
-| Children | 子菜单；支持鼠标和键盘打开，最多 32 层 |
-| OnSelect | 叶项激活后先关闭并请求恢复触发器焦点，再调用一次；父项只打开子菜单 |
-| Build | 自定义展示内容，仍需 Label；内容中不要嵌入独立输入框或按钮 |
+| ID / Label / Description / Icon | Stable identity, name, description, and icon. The ID is unique across the whole menu tree |
+| Kind | MenuAction (default), MenuLabel, or MenuSeparator. Group labels and separators also need IDs |
+| Shortcut | Shows a shortcut at the end of the row; does not register it |
+| Avatar / Loading | Loading takes precedence, then Icon, then Avatar. The loading icon does not disable the item |
+| Disabled | Prevents focus and activation |
+| Color | Any color other than Neutral tints the text and icon, and the highlight background uses that color at 10% opacity |
+| Checked / Radio | Checked is an Optional[bool]; an explicit false or true gives checkbox semantics. Radio is a native extension that must be used with Checked, and your app maintains mutual exclusion |
+| OnCheckedChange / Close | When a leaf item with Checked is activated, the new value is reported once (Radio reports true). Close defaults to true; `nui.Set(false)` keeps the menu open |
+| Children | A submenu that opens by mouse or keyboard; up to 32 levels deep |
+| Content | MenuContentOptions for a single submenu. Can override size, position, looping, filtering, and parts; size and icons are inherited from the root menu |
+| UI | Overrides this item's parts and takes precedence over MenuOptions.UI. Submenu panels use Content.UI |
+| OnSelect | By default, a leaf item first closes the menu and requests focus back on the trigger, then reports the checked change and the selection. With Close=false, the menu stays open. Parent items only open their submenu |
+| Build | Custom display content; Label is still required. Do not embed separate inputs or buttons in it |
 
-菜单行采用 MD 的[选项行样式](inputs.md#选项行的外观)：内边距 6 DIP、图标 20 DIP，描述与标签同字号。选中对勾在行尾，Icon 仍在行首，子菜单箭头随 RTL 调整。
+MenuOptions.Size defaults to MD, can be inherited from the component theme, or can be set explicitly from XS to XL. Menus use the [option row style](inputs.md#option-row-appearance): at MD, the padding is 6 DIP and icons are 20 DIP. Descriptions use the same font size as labels, and icons and trailing content align with the first line. The default avatar diameter is 16/16/20/20/24 DIP by size; an explicit Avatar.Size takes precedence. CheckedIcon defaults to Check and LoadingIcon to LoaderCircle. The submenu arrow follows RTL.
 
-MenuOptions 提供 Label、Width、MaxHeight 和 Decoration。宽度默认按内容，至少 128 DIP；最大高度默认 320 DIP，长菜单滚动。面板限制在窗口内，子菜单由 AttachTo 避让边缘。
+MenuOptions.Label sets the panel's name. Width follows the content by default, with a minimum of 128 DIP. MaxHeight defaults to 320 DIP, long menus scroll, and an explicit 0 hides the visible content. Sizes are limited to the window. The DropdownMenu root opens at BottomStart with an 8 DIP offset by default; ContextMenu opens at RightStart with a 2 DIP offset. Submenus open outward in the reading direction with a 3 DIP offset. Placement and Offset can both be overridden explicitly; for ContextMenu, this is a native extension. Menus stay clear of the window edges through AttachTo. There is no custom collision boundary or arrow option.
 
-Shortcut 按 `+` 拆分为 MD Kbd，`Ctrl++` 的末尾 `+` 表示加号键。FormatKey 将键名转换为对应平台的显示形式。
+Shortcut is split on `+` into Kbd keys; in `Ctrl++`, the final `+` is the plus key. FormatKey converts key names to each platform's display form. XS and SM menus use SM Kbds, MD and LG use MD, and XL uses LG; the gaps between keys are 2/2/2/4/4 DIP. Go shows shortcuts even in narrow windows.
 
-### 键盘和指针
+### Filtering and controlled state
 
-| 操作 | 行为 |
+Filter defaults to false. When enabled, a native Input is shown and receives focus when the root menu opens. SearchTerm can bind a persistent string; when nil, MenuState.Query is used. FilterFields defaults to `label` only and also supports `description`, `id`, and `shortcut`. Matching is a case-insensitive substring match that keeps the original order. With IgnoreFilter=true, the list is shown as passed in and your app supplies results based on the query. Group labels and separators are not matched. When no action matches, a localized empty state is shown. Submenus that are not open are not searched.
+
+FilterInput takes InputOptions for the name, placeholder, clear button, and appearance. OnSearchTermChange fires when the user edits or clears the query, but not for outside assignments or rebuilds without input. In the filter input, Escape first clears a non-empty query and then closes menus one level at a time. Enter activates the hovered item, or else the first available result. Up and Down move real focus to the results, after which typing performs prefix navigation in the menu. This differs from upstream, which keeps focus in the input using aria-activedescendant.
+
+A submenu enables its own filtering with MenuItem.Content.Filter; it does not inherit the root's Filter. Each level keeps its own query by stable ID, or can bind Content.SearchTerm. Opening a submenu by hovering does not take focus away from the current filter input; entering a submenu by click or keyboard focuses its filter input. If the query hides the focused item, focus returns to that level's filter field.
+
+Disabled closes the menu. DropdownMenu also disables its trigger, while ContextMenu keeps the target's own clicks, input, and focus. If the target itself is disabled, neither menu can open. OnOpenChange reports only root menu open/close changes caused by the user; changing MenuState.Open directly does not report. If the menu is closed from outside while focus is still inside it, focus returns to the trigger. Filtering corresponds to an upstream prop for DropdownMenu and is a native extension for ContextMenu.
+
+### Keyboard and pointer
+
+| Action | Behavior |
 | --- | --- |
-| ↑↓ / Home / End | 在可用项中移动 |
-| → / ← | 打开子菜单 / 返回父菜单，RTL 下交换 |
-| Enter / Space | 激活当前项 |
-| Escape | 关闭当前层；根层关闭后恢复锚点焦点 |
-| Tab / Shift+Tab | 关闭菜单，继续 MyGo 的正常焦点遍历 |
+| ↑↓ / Home / End | Move among available items. Loop defaults to false, which stops at the ends; true wraps around |
+| → / ← | Open a submenu / return to the parent menu; swapped in RTL |
+| Enter / Space | Activate the current item |
+| Escape | Close the current level; closing the root level restores focus to the anchor |
+| Tab / Shift+Tab | Close the menu and continue MyGo's normal focus order |
 
-直接输入字符可做忽略大小写的前缀查找，连续输入间隔为 1 秒，重复首字母可循环匹配。此功能不启用 IME 候选，也不做模糊搜索。
+Typing characters performs a case-insensitive prefix search; keystrokes less than 1 second apart are combined, and repeating the first letter cycles through matches. This does not use IME candidates and is not a fuzzy search.
 
-指针移入项目会改变高亮，悬停 180ms 打开子菜单。键盘操作会取消待打开的悬停任务，避免 Escape 后马上重开。项目重排按 ID 保留焦点，删除后清理相关状态。当前没有指针移动轨迹容错或触屏长按打开。
+Moving the pointer onto an item changes the highlight, and hovering for 180 ms opens a submenu. Keyboard actions cancel a pending hover-open so that a submenu does not reopen right after Escape. Reordering items keeps focus by ID, and removing items clears their state. There is currently no pointer-path tolerance for diagonal movement and no long-press to open on touch screens.
 
-### 与现有事件组合
+Upstream ContextMenu's pressOpenDelay defaults to 700 ms for long presses on touch screens or pens. The current MyGo InputEvent does not distinguish mouse, touch, and pen, so Go does not add a delay field that would mistake a mouse long-press for touch. Your app can provide an explicit menu button or set MenuState.Open instead.
 
-DropdownMenu 接管锚点 OnClick，ContextMenu 接管 HandleInput，不会自动组合已有的同类处理器。不同弹层不要共享同一个触发器状态。
+### Combining with existing events
 
-菜单是非模态的，外部点击会关闭并继续传给目标。窗口失焦时不显示焦点，也不执行焦点组方向键；后台重建不会反复将焦点拉回第一项。
+DropdownMenu adds an OnClick to the anchor, and the anchor's existing callback still runs; do not toggle the same MenuState.Open from that callback as well. ContextMenu takes over HandleInput and does not chain an existing handler of the same kind. Do not share one trigger state between different overlays.
+
+Menus are non-modal: an outside click closes the menu and still reaches its target. When the window loses focus, no focus indicator is shown and focus-group arrow keys do not run; background rebuilds do not keep pulling focus back to the first item.
 
 ## Toast
 
-### 添加通知区域并发布通知
+### Add a notification area and post notifications
 
-每个窗口构建一次 ToastViewport；在用户动作中调用 Toast：
+Build one ToastViewport per window, and call Toast from user actions:
 
 ```go
 t := nui.App(c, config)
-// 放在其他弹层前，模态遮罩才能盖住通知。
+// Put this before other overlays so modal overlays can cover notifications.
 nui.ToastViewport(c, t, nui.ToastViewportOptions{})
-nui.Button(c, t, "保存", nui.ButtonOptions{}).OnClick(func() {
+nui.Button(c, t, "Save", nui.ButtonOptions{}).OnClick(func() {
     previous := state.Value
     state.Value = state.Draft
     nui.Toast(c, t, nui.ToastOptions{
         ID: "saved",
-        Title: "已保存",
+        Title: "Saved",
         Color: nui.Success,
-        Action: "撤销",
+        Action: "Undo",
         OnAction: func() { state.Value = previous },
     })
 })
 ```
 
-不要在视图构建中无条件调用 Toast，否则每次重建都可能发布通知。后台结果通过 Window.Update 写回模型，再由窗口 UI 动作或明确控制的事件处理发布通知。
+Do not call Toast unconditionally during the view build, or a notification may be posted on every rebuild. Write background results back to the model through Window.Update, then post the notification from a window UI action or an explicitly controlled event handler.
 
-### 标识、时长和动作
+### IDs, duration, and actions
 
-| 选项或操作 | 行为 |
+| Option or action | Behavior |
 | --- | --- |
-| ID | 空值自动生成；同 ID 替换通知并重置时长，不调用旧项 OnClose |
-| Timeout | 默认 5 秒，负值表示常驻 |
-| Action / OnAction | 单个动作，执行后关闭通知并调用 OnClose |
-| Actions | 多个 ToastActionOptions；默认执行后关闭，单项 Close=false 可保留 |
-| ToastOptions.Close | `nui.Set(false)` 隐藏关闭按钮，不改变超时或动作关闭规则 |
-| OnClose / CloseToast | 关闭按钮、到时或 CloseToast 会调用 OnClose；`CloseToast(c, "")` 关闭全部通知 |
+| ID | Generated automatically when empty. Posting with an existing ID replaces that toast and restarts its timer, without calling the old toast's OnClose |
+| Timeout | 5 seconds by default; a negative value makes the toast persistent |
+| Action / OnAction | A single action. Running it closes the toast and calls OnClose |
+| Actions | Several ToastActionOptions. Each closes the toast by default; Close=false on an action keeps it open |
+| ToastOptions.Close | `nui.Set(false)` hides the close button without changing the timeout or the rules for closing on action |
+| Avatar / Icon | The avatar takes precedence. The default avatar diameter is 44 DIP and the icon is 20 DIP. An explicit avatar size uses Avatar's own size |
+| CloseOptions / CloseIcon | Optional button options and icon. Defaults to MD / Neutral / Link, no padding, and X. CloseOptions.Leading takes precedence |
+| ProgressOptions | ToastProgressOptions sets Color and the Progress UI. Defaults to size SM, with the color inherited from the toast |
+| OnClose / CloseToast | The close button, the timeout, and CloseToast all call OnClose. `CloseToast(c, "")` closes all toasts |
 
-单动作和 Actions 可以同时使用。Actions 中每个按钮可设置 Label、OnAction、ButtonOptions 和 Close；默认 XS、Solid，颜色继承通知。没有传 Icon 时，不自动添加状态图标。
+You can use the single action and Actions together. Each button in Actions can set ID, Label, OnAction, ButtonOptions, and Close; buttons default to XS and Solid, and inherit the toast's color. Provide stable IDs when actions are updated or reordered; non-empty IDs must be unique within a toast. Without IDs, actions are identified only by their position in a static list. Changing the orientation keeps focus on the current action button. Without an Icon or Avatar, no status icon is added automatically.
 
-OnAction、OnClose 及 Actions 中的 ButtonOptions.Style 会由队列保存，闭包只应捕获业务模型、数据或服务。不要捕获构建产生的 Element、Parts 或 Context；Style 接收到的元素也只在当次构建有效。
+Vertical is the default orientation: the actions sit below the body with a 10 DIP gap. Horizontal centers the content and actions vertically side by side. An empty title leaves no blank line. ToastOptions.UI.Actions styles the action container, such as its spacing; style individual buttons with ButtonOptions.UI on each Actions item. Code that used UI.Actions to style the single compatibility Action button should switch to an Actions list with button UI.
 
-### 位置、暂停和样式
+The queue stores OnAction, OnClose, and the ButtonOptions.Style of each action, so their closures should capture only the business model, data, or services. Do not capture Elements, Parts, or Contexts produced by a build; the elements Style receives are valid only during that build.
 
-ToastViewport 默认右下角、宽 384 DIP，还支持左下、中下、右上、左上、中上。Limit 支持 1–3，0 或越界按 3 处理。MyGo 最多提供最新 3 条可见通知，较早的排队项仍计时，Limit 不表示无限队列容量。
+### Position, pausing, and style
 
-悬停通知区域、焦点在通知内或窗口失焦时，队列计时暂停。默认倒计时条同步暂停，`Progress: nui.Set(false)` 可隐藏；常驻通知不显示倒计时。进入和退出过渡为 150ms，减少动态效果时直接切换，空队列不绘制面板。
+ToastViewport defaults to the bottom right and a width of 384 DIP. It also supports bottom left, bottom center, top right, top left, and top center. These are physical positions and are not swapped in RTL. Top positions put the newest toast at the top, and bottom positions put it at the bottom. The width is further limited by the viewport's actual padding; an explicit PaddingX=0 removes that extra limit.
 
-通知使用 RoleStatus，动作和关闭按钮可用键盘访问；实际读屏播报尚未验证。
+Limit accepts 1–3; 0 or an out-of-range value is treated as 3. MyGo shows at most the 3 newest toasts. Older queued toasts keep counting down and may reappear after newer ones close; Limit is not the queue capacity. Nuxt UI's max defaults to 5 and discards older toasts beyond the limit, so the rules differ.
 
-每条 Toast 保存创建时的 Theme 和 UI 副本。显示期间全局主题改变，已有通知仍使用原主题；需要更新同一条通知时，用相同 ID 再次发布。Viewport.Decoration 只影响 Root，每条通知通过 ToastOptions.UI 或创建时的 ComponentToast 配置。
+The queue timer pauses while the pointer is over the notification area, while focus is inside a toast, or while the window is unfocused. The default countdown bar pauses with it; hide it with `Progress: nui.Set(false)`. Persistent toasts have no countdown. With reduced motion, the remaining time is still updated, but it is shown in steps at least 250 ms apart without interpolation. Toasts enter and exit with a 150 ms, 8 DIP fade and slide toward the matching screen edge; with reduced motion, they switch immediately. An empty queue draws no panel.
 
-## Tabs、Collapsible 与 Accordion
+Toasts use RoleStatus, and the action and close buttons are keyboard accessible. Actual screen reader announcements have not been verified.
 
-### 选择组件和状态
+Each toast stores a copy of the visual Theme and options at the time it was created, without the source form's disabled state or field-group information. If the global theme changes while a toast is visible, existing toasts keep their original theme; to update a toast, post it again with the same ID. Automatically generated close names still follow the current language, while explicit app text is updated by your app. Viewport.Decoration affects only Root; style each toast through ToastOptions.UI or the ComponentToast configuration at creation time.
 
-| 组件 | 绑定状态 | 默认行为 |
+Updating with the same ID replaces the toast entirely: fields you do not pass again return to their defaults, the old OnClose is not called, and the timer restarts. There is no upstream duplicate-pulse effect, collapsed stacking, swipe to dismiss, arbitrary content slot, or foreground/background announcement policy. The website examples and copyable programs all create a ToastViewport explicitly so they do not fall back to MyGo's default notification look.
+
+## Tabs, Collapsible, and Accordion
+
+### Choose a component and its state
+
+| Component | Bound state | Default behavior |
 | --- | --- | --- |
-| Tabs | `*string` 当前项 ID | 胶囊样式，只显示当前内容；可选 Underline、Vertical |
-| Collapsible | `*bool` 是否展开 | 点击或 Enter/Space 切换，展开/收起默认 200ms |
-| Accordion | `*[]string` 展开项 ID | 默认只展开一项，可再次关闭；Multiple 开启多项 |
+| Tabs | `*string`, the current item ID | Pill style; only the current content is shown. Underline and Vertical are available |
+| Collapsible | `*bool`, whether it is expanded | Toggles on click or Enter/Space; expanding and collapsing take 200 ms by default |
+| Accordion | `*[]string`, the IDs of expanded items | Only one item can be open at a time by default, and it can be closed again. Multiple allows several |
 
-TabItem 包含 ID、Label、Icon、Disabled、Content；AccordionItem 包含相应的标题和内容字段。Tabs / Accordion 的内容回调接收 Context、Theme，Collapsible 正文接收 Theme 并使用外层 c。
+TabItem provides ID, Label, Icon, Avatar, Badge, BadgeOptions, Disabled, Content, and an item UI. Icon takes precedence over Avatar. The default avatar diameter is 16/16/20/20/24 DIP by size; an explicit Avatar.Size takes precedence. Badge is a string, and `"0"` is shown. It defaults to SM / Neutral / Outline and can be overridden with BadgeOptions. The body callbacks of Tabs and Accordion receive a Context and a Theme; Collapsible's body receives a Theme and uses the outer `c`.
 
-Tabs 用方向键跳过禁用项；当前项被删或禁用后转到首个可用项，没有可用项时保留业务 ID，但不显示正文。Accordion 标题间用 ↑↓、Home、End 移动，Tab 保留标题与正文的正常顺序。
+Tabs use Left/Right or Up/Down arrows depending on the orientation, wrapping around and skipping disabled items. In horizontal tabs, Left and Right swap in RTL, and keys for the other axis do not change the selection. If the current item is removed or disabled, the selection moves to the first available item. If no item is available, the business ID is kept but no content is shown. If the content that has focus is switched, hidden, or removed, focus returns to a valid tab. The content is a focusable native group, so Tab first enters the panel and then its inner controls; MyGo has no separate tabpanel role yet. In Accordion, ↑↓, Home, and End move between headers, and Tab keeps the normal order of headers and content.
 
-Tabs.OnChange 接收新 ID，Collapsible.OnChange 接收 bool，Accordion.OnChange 无参数，由应用读取 ID 列表。应用直接改值、Tabs 自动修正无效 ID、Accordion 单开模式截断多余 ID，都不会触发用户变更回调。
+Tabs.OnChange receives the new ID, Collapsible.OnChange receives a bool, and Accordion.OnChange has no parameters; your app reads the ID list. The user-change callbacks do not fire when the app changes the value directly, when Tabs corrects an invalid ID, or when Accordion's single mode trims extra IDs.
 
-Accordion 保留应用 open 列表中暂时消失的 ID，便于同 ID 再出现；永久删除时由应用清理。手动 Tabs 激活和 Accordion 的 Collapsible 选项见[参数说明](options.md#滑块和内容切换)。
+Accordion keeps IDs in the app's open list that are temporarily missing, so the item opens again if the same ID returns. Your app removes IDs that are gone for good. For manual Tabs activation and Accordion's Collapsible option, see [Sliders, tabs, and accordions](options.md#sliders-tabs-and-accordions).
 
-### 是否保留隐藏内容
+Collapsible.Disabled, Accordion.Disabled, and AccordionItem.Disabled affect only the headers; expanded content keeps the disabled settings of its own controls. If content being edited is closed from outside, focus returns to an available header. If Accordion removes the focused item, focus returns to the first available header. Content that is animating closed stops receiving input immediately, so it cannot trigger actions while collapsing.
 
-默认仅构建活动 Tabs 的正文，折叠内容在退出动画结束后卸载。应用模型保留，但编辑器选区、撤销历史和局部 UI 状态可能在卸载后丢失。
+### Keeping hidden content mounted
 
-KeepMounted=true 会在每次构建中保留所有正文，通过 Hidden 隐藏非活动内容，因而保留 MyGo 局部状态。隐藏项不参与布局和焦点，但内容回调仍执行。折叠保留模式即时隐藏正文，箭头仍按原生动画进度变化；删除整个条目仍会卸载。
+By default, only the active Tabs content is built, and collapsed content unmounts after its exit animation. The app model is kept, but editor selections, undo history, and local UI state may be lost on unmount.
 
-### 外观
+KeepMounted=true keeps all content in every build and hides inactive content with Hidden, so MyGo's local state is preserved. Hidden items take no part in layout or focus, but their content callbacks still run. In keep-mounted collapsible content, the body hides immediately while the arrow still follows the native animation. Removing an entire item still unmounts it.
 
-Tabs 的胶囊活动项使用语义色背景和反色文字，水平列表填满宽度。Underline 列表有 1 DIP 基线和活动指示线，横向在底部、纵向在起始侧，随 RTL 调整。触发器间距按 XS 到 XL 为 4/6/6/8/8 DIP。
+When KeepMounted changes while a Collapsible or Accordion is open, the content keeps the same identity and the editor's local state is not rebuilt. Theme.Motion.Reduce or the system's reduced motion setting completes height and icon changes immediately. The default animation uses MyGo's 200 ms interpolation, which is not frame-for-frame identical to upstream's CSS animation.
 
-Accordion / Collapsible 的触发器无悬停底色和水平内边距，上下内边距 14 DIP，图标 20 DIP、间距 6 DIP。Accordion 正文使用默认文字色，下边距 14 DIP。
+TabsOptions.Content defaults to true. An explicit false builds no panels, which unmounts local UI state even with KeepMounted=true; drafts your app stores are unaffected. When re-enabled, the panels are built from app data. Do not start I/O or submit anything unconditionally from content callbacks.
 
-## Breadcrumb、Pagination、Stepper、Timeline
+### Appearance
 
-### Breadcrumb：显示当前位置
+In the pill style, the active Tabs item uses the semantic color as its background with inverted text; Neutral uses InvertedBackground. A horizontal list fills the width. Underline corresponds to Nuxt UI's link style: the list has a 1 DIP baseline and an active indicator line, at the bottom when horizontal and on the start side when vertical, following RTL. Vertical tabs have equal widths, and the list and content are center-aligned. For XS–XL, the trigger gap is 4/6/6/8/8 DIP and the text line height is 16/16/20/20/24 DIP.
 
-BreadcrumbItem 包含 ID、Label、Icon、Disabled、OnSelect，Options 提供 Label 和 MaxItems。最后一项是不可点击的当前页，其余项作为链接；应用负责提供路径和导航动作。
+Indicator styles the active background or indicator line, Trailing styles the badge, and TabItem.UI overrides that item's parts. Existing Trigger.Background overrides still work; Indicator.Background is the more specific setting for the active background. The indicator currently updates directly with the selection, without upstream's 200 ms slide between tabs. There are no arbitrary leading/default/trailing or list-leading/list-trailing slots; place other actions in a toolbar outside Tabs.
 
-当前项使用 Primary 色和半粗体，可通过 ComponentBreadcrumb.Color 改色。祖先项为 14 DIP、无内边距的 Muted 链接，悬停变为 Text 色。分隔箭头 20 DIP、项间距 6 DIP，RTL 下箭头反向。
+In the pill style, Indicator and the active Trigger share one native element so the background stays behind the text and avatar. In the underline style, Indicator is a separate line. Configure the Style callback for these actual parts; do not assume every style entry point is a separate node.
 
-MaxItems≥2 时保留第一项及末尾若干项，中间用不可交互的省略号代替。目前没有省略项下拉菜单或路由系统。
+Accordion and Collapsible triggers have no hover background and no horizontal padding. They have 14 DIP of vertical padding, a 20 DIP icon, and a 6 DIP gap. Accordion content uses the default text color with a 14 DIP bottom margin.
 
-### Pagination：控制页码
+TrailingIcon defaults to ChevronDown. AccordionItem.TrailingIcon takes precedence over AccordionOptions.TrailingIcon. AccordionItem.UI can override that item's Item, Header, Trigger, Leading, Label, Trailing, and Body. Empty Content creates no body and no bottom margin. The body layout container and the animation clipping container do not have separate style entry points.
 
-Pagination 绑定 `*int`，页码从 1 开始。Total 是总条数，PageSize≤0 时默认 10。总数减少时会自动把页码限制到有效范围；这类修正不触发 OnChange，只有用户切到不同页时才通知。
+Nuxt UI's Collapsible uses a trigger slot supplied by the app. Go's Label, Icon, TrailingIcon, default header, and body spacing are native extensions. For an arbitrary trigger composition, use MyGo's Base APIs.
 
-组件不查询数据，应用收到变化后自行加载当前页。Siblings≤0 默认 2，最大 10；显式零相邻页使用 SiblingCount。ShowEdges 默认 false，Size 默认 MD，更多外观参数见[分页选项](options.md#pagination-的相邻页和外观)。
+## Breadcrumb, Pagination, Stepper, and Timeline
 
-翻页控件和页码采用方形按钮，边界按钮禁用，箭头随 RTL 调整。省略号不可交互。首页、上一页、下一页、末页和第 N 页的辅助技术名称随语言切换。
+### Breadcrumb: show the current location
 
-### Stepper：选择流程步骤
+BreadcrumbItem contains ID, Label, Icon, Avatar, Active, Disabled, OnSelect, and UI. The options provide Label, Color, SeparatorIcon, and MaxItems. Items with OnSelect are actionable, including the last one; items with a nil callback are static text. Your app provides the path and the navigation actions.
 
-Stepper 绑定当前步骤 `*string`，StepItem 包含 ID、Title、Description、Icon、Disabled。未知 ID 表示尚未开始，不自动选择第一项。
+When Active is unset, only the last item is active; an explicit false turns off the active style. Color defaults to Primary, and with Neutral the active text uses Highlighted. Inactive items are 14 DIP Muted text without padding, and actionable items change to the Text color on hover. The separator arrow is 20 DIP, and items are 6 DIP apart. In RTL, the default arrow is reversed, while a custom SeparatorIcon is kept as is. Icon takes precedence over Avatar, and the default avatar diameter is 20 DIP. The path stays on one line, and long text is truncated to fit.
 
-Linear 是 Optional[bool]，默认 true，允许返回或前进到紧邻的下一步；设为 `nui.Set(false)` 可选择任意可用步骤。CanSelect 能在实际激活时否决操作。方向键只移动焦点，Enter/Space 或点击圆点才激活。组件不会自动跳过线性流程中的禁用步骤，业务流程需由应用安排。
+When MaxItems is 2 or more, the first item and the last few items are kept, and the middle is replaced by a non-interactive ellipsis with separators on both sides. The ellipsis does not count toward the limit. MaxItems is a native extension; there is no dropdown for the collapsed items and no routing system. Item UI takes precedence over component UI, and SeparatorSlot uses the style of the preceding item. An empty Label uses the localized name of the navigation group.
 
-横向默认等宽，圆点居中，文字在下方；Vertical 把文字放在圆点旁，连接线改为纵向。Size 默认 MD，XS 到 XL 的圆点直径为 24/32/40/48/56 DIP，随 Density 缩放。之前的步骤和连接线使用完成色，当前步骤高亮；原图标或数字保留，不自动换成对勾。
+### Pagination: control the page
 
-### Timeline：展示时间线
+Pagination binds an `*int`, and pages start at 1. Total is the total number of items, and a PageSize of 0 or less defaults to 10. When the total shrinks, the page is clamped to the valid range automatically; such corrections do not fire OnChange, which fires only when the user goes to a different page.
 
-TimelineItem 包含 ID、Title、Description、Time、Icon、Color、Content，还可提供 Avatar 和 UI。默认纵向，Horizontal 将指示图标及连接线放在文字上方。
+The component does not query data; your app loads the current page when it receives a change. A Siblings value of 0 or less defaults to 2, with a maximum of 10; for an explicit zero, use SiblingCount. ShowEdges defaults to false and Size to MD. For more appearance options, see [Pagination siblings and appearance](options.md#pagination-siblings-and-appearance).
 
-Current 是从 0 开始的可选索引，CurrentID 优先；均未设置时没有活动或完成项。Reverse 改变进度解释，不重排数据。点击只调用 OnSelect，不自动改进度。
+Navigation controls and page numbers are square buttons. Controls at the bounds are disabled, and the arrows follow RTL. The ellipsis is not interactive. The accessible names for first, previous, next, last, and page N follow the language.
 
-Time 是应用格式化后的字符串。组件使用列表语义，不自动排序、换算时区或调度动画。
+FirstIcon, PrevIcon, NextIcon, LastIcon, and EllipsisIcon override the default icons; explicit icons are not mirrored in RTL. ActiveColor and ActiveVariant default to Primary / Solid, and ordinary buttons default to Neutral / Outline. Root and List share one layout element. For compatibility, Item still applies to all buttons; First, Previous, Next, and Last can further target the control buttons, and Ellipsis styles the ellipsis. Your app handles page links, data queries, and browser-style history in OnChange.
 
-## Banner 与 ErrorView
+### Stepper: choose a step in a process
 
-### Banner：页面内通知
+Stepper binds the current step as a `*string`. StepItem contains ID, Title, Description, Icon, Disabled, UI, and Content. An unknown ID means the process has not started, and the first item is not selected automatically. Content synchronously builds the current step's body; switching steps unmounts the old body. Your app stores business drafts. Reordering or changing orientation keeps the body's identity for the same ID.
 
-Banner 放在正常布局中，由应用决定位置。open=false 隐藏，nil 表示常驻且无关闭按钮，非 nil 的打开状态可被关闭。Options 包含 Title、Description、CloseLabel、Color、Icon、Actions、OnClose 和 Decoration。
+Linear is an Optional[bool] that defaults to true, which allows going back or forward only to the next adjacent step. Set it to `nui.Set(false)` to allow selecting any available step. CanSelect can veto an activation. Arrow keys only move focus; Enter/Space or clicking the dot activates a step. The component does not skip disabled steps in a linear process automatically; your app arranges the flow.
 
-背景使用语义色 Solid 样式，文字可换行，操作区支持多个按钮。关闭按钮悬停或键盘聚焦时显示 10% 背景色。极窄区域需要由应用减少操作，或改为纵向布局；Banner 不会自动固定在窗口顶部。
+Horizontal steppers give each step equal width, with the dot centered and the text below. Vertical places the text next to the dot and makes the connecting line vertical. Size defaults to MD, and the dot diameter is 24/32/40/48/56 DIP for XS to XL, scaled by Density. Earlier steps and their lines use the completed color, and the current step is highlighted. The original icon or number is kept and is not replaced by a check mark.
 
-### ErrorView：错误状态页面
+The step body is below a horizontal list or beside a vertical one. List styles the step list and Panel styles the current body. With Neutral, the dots and completed lines use InvertedBackground. Disabled disables only the step headers; controls in the body keep their own disabled settings. If the focused header is removed or disabled, or the focused body is switched, focus moves back to an available header. Changing the value from the app does not fire OnChange. Nuxt UI's next/prev and hasNext/hasPrev are implemented in native apps from the ID and the item list.
 
-Go 中 `nui.Error` 已用于语义颜色，因此错误展示函数名为 ErrorView。ErrorOptions 提供 Status、Title、Description、RetryLabel、Icon、OnRetry、Actions 和 Decoration。
+### Timeline: display a timeline
 
-只有传入 Icon 时才显示图标。默认状态码为 16 DIP 半粗体 Primary，标题 48 DIP 粗体，说明 18 DIP Muted。默认重试按钮为 LG、Primary、Solid，文案为重试；没有 OnRetry 时不创建按钮，Actions 可替代默认操作区。
+TimelineItem contains ID, Title, Description, Time, Icon, Color, and Content, and can also provide Avatar and UI. Timelines are vertical by default; Horizontal places the indicator icon and connecting line above the text.
 
-嵌入页面局部时可通过 UI[Label] 等降低字号。组件只展示错误，panic 处理、请求、导航及重试状态由应用负责。
+Current is an optional zero-based index, and CurrentID takes precedence over it. When neither is set, no item is active or completed. Reverse changes how progress is interpreted but does not reorder the data. Clicking an item only calls OnSelect; it does not change the progress.
 
-## 部件索引
+Time is a string your app formats. By default, its font size and line height are 12/20 DIP, configurable with DateSlot; the title and description default to 14/20 DIP. Header styles the container of the marker and connecting line, and horizontal items share the width equally. With Neutral, the active marker and completed lines use InvertedBackground. With OnSelect, items can be operated by click, or by Tab and Enter/Space; without a callback, they are not in the keyboard focus order.
 
-| Component 常量后缀 | 可用部件 |
+If CurrentID has no match, Current is not used as a fallback, and an invalid index highlights nothing. The component uses list semantics and does not sort, convert time zones, or schedule animations. Per-item Color, extra Content, and the five sizes are deliberate native configuration options.
+
+## Banner and ErrorView
+
+### Banner: an in-page notice
+
+Banner sits in the normal layout, and your app decides where. open=false hides it. When open is bound or Close options are provided, a close button is shown by default; CloseButton=false hides it explicitly. With a nil state, the banner is always shown; once closing is explicitly enabled, it uses internal state and reappears after being unmounted. To keep it closed across launches, your app stores that state; browser localStorage is not used.
+
+Color defaults to Primary. With Neutral, the background uses InvertedBackground and the text uses Inverted. The title and the native-extension Description each stay on one line and are truncated. When the window is at least 1024 DIP wide, the content is centered between the side regions; when narrower, it starts from the leading edge. The Body container uses 16/24/32 DIP of horizontal padding depending on the window width and is limited by Theme.ContainerWidth. The minimum height is 48 DIP by default, and the font and icons follow the text scale.
+
+Actions is a synchronous builder, and Buttons inside it default to Neutral / XS. OnSelect receives clicks or keyboard activation on the whole banner, while inner buttons act independently; your app decides what navigation to perform. Close and CloseIcon configure the close button, and CloseLabel sets its name. The button defaults to MD / Neutral / Ghost and shows a 10% background on hover or focus. OnClose fires once when the user closes the banner, not when the app opens or closes it. In very narrow areas, your app should reduce the number of actions. Banner does not pin itself to the top of the window.
+
+### ErrorView: an error page
+
+In Go, `nui.Error` is already a semantic color, so the error display function is called ErrorView. ErrorOptions provides Status, Title, Description, RetryLabel, Icon, Clear, Retry, OnRetry, Actions, and Decoration.
+
+A 40 DIP icon is shown only when you pass Icon. The status code defaults to 16/24 DIP semibold Primary and is styled with StatusSlot. The title uses a 36 DIP font when the window is narrower than 640 DIP and 48 DIP otherwise. The description is 18/28 DIP in Muted. An empty title creates no text, and a description identical to the title is omitted.
+
+The default retry button is LG / Primary / Solid with the label "Retry", but it is created only if you provide OnRetry. Clear defaults to true; false hides the default action. Retry configures the ButtonOptions. Actions replaces the entire action area and is not affected by Clear=false. The action area has a 32 DIP top margin and a 24 DIP gap by default, and no empty area is created when there are no actions.
+
+When embedding an ErrorView in part of a page, reduce font sizes through parts such as UI[Label]. The native implementation keeps its padding, a 480 DIP maximum description width, and level-2 heading semantics, and does not force itself to fill the window; with a set height, the content is centered. The component does not call Nuxt's clearError or redirect. Your app handles panics, requests, navigation, and clearing errors.
+
+## Part index
+
+| Component constant suffix | Parts |
 | --- | --- |
-| Tooltip | Panel、Label |
-| Modal / Slideover | Backdrop、Panel、Header、Label、Description、Close、Body、Footer |
-| Toast | Root（仅 viewport）、Panel、Leading、Label、Description、Actions、Close |
-| DropdownMenu / ContextMenu | Panel、Header（分组）、Item、Leading、Label、Description、Trailing；Build 替代 Label / Description 内容 |
-| Tabs | Root、List、Trigger、Leading、Label、Body |
-| Collapsible | Root、Trigger、Leading、Label、Trailing、Body |
-| Accordion | Root、Item、Trigger、Leading、Label、Trailing、Body |
-| Breadcrumb / Pagination | Root、Item |
-| Stepper | Root、Item、Header、Trigger、Indicator、Leading、SeparatorSlot、Body、Label、Description |
-| Timeline | Root、Item、Indicator、SeparatorSlot、Body、Label、Description |
-| Banner | Root、Leading、Label、Description、Actions、Close |
-| Error | Root、Leading、Label、Description、Actions |
+| Tooltip | Panel, Label, Trailing |
+| Modal / Slideover | Backdrop, Panel, Header, Label, Description, Close, Body, Footer |
+| Toast | Root (viewport only), Panel, Body, Leading, Label, Description, Actions, Close. ProgressOptions.UI uses Progress's Root and Indicator |
+| DropdownMenu / ContextMenu | Panel, Header (group), Item, Body, Leading, Label, Description, Trailing (row-end container), Indicator, SeparatorSlot, Editor (filter root), EmptySlot. Build replaces the Body content |
+| Tabs | Root, List, Trigger, Leading, Label, Trailing, Indicator, Body. TabItem.UI styles a single item |
+| Collapsible | Root, Trigger, Leading, Label, Trailing, Body |
+| Accordion | Root, Item, Header, Trigger, Leading, Label, Trailing, Body |
+| Breadcrumb | Root/List, Item/Trigger, Leading, Label, SeparatorSlot, Ellipsis. Parts joined by a slash share one node |
+| Pagination | Root/List, Item, First, Previous, Next, Last, Ellipsis, Leading, Label. Root and List share one node |
+| Stepper | Root, List, Item, Header, Trigger, Indicator, Leading, SeparatorSlot, Body, Label, Description, Panel |
+| Timeline | Root, Item, Header, Indicator, SeparatorSlot, Body, DateSlot, Label, Description |
+| Banner | Root, Body, Header, Leading, Label, Description, Actions, Trailing, Close |
+| Error | Root, Leading, StatusSlot, Label, Description, Actions |
 
-Stepper 的 Header 是圆点和连线容器，Trigger 是圆形按钮，Leading 为图标，SeparatorSlot 为连接线，Body 为文字区域。
+In Stepper, Header is the container for the dot and the connecting line, Trigger is the round button, Leading is the icon, SeparatorSlot is the connecting line, and Body is the text area.
 
-Tabs、Stepper、Timeline 接受全局和实例 Color / Size；Banner、Toast 接受 Color。菜单项和 Timeline 条目的 Color 是各条目自己的设置，其他样式通过已列出的部件配置。
+Tabs, Stepper, and Timeline accept global and instance Color and Size; Banner and Toast accept Color. Color on menu items and Timeline items is a per-item setting. Other styles are configured through the parts listed above.
 
-## 示例
+## Examples
 
-Gallery 的 **Overlays & menus** 和 **Navigation & disclosure** 展示弹层、菜单和导航。Settings 示例包含编辑、校验、重置确认、Toast 撤销和通知筛选。示例状态保存在窗口模型中，长期存储仍由应用实现。
+The Gallery's **Overlays & menus** and **Navigation & disclosure** pages show overlays, menus, and navigation. The Settings example includes editing, validation, reset confirmation, Toast undo, and notification filtering. The examples keep state in the window model; long-term storage is left to your app.
 
-平台和输入法限制见[兼容性说明](compatibility.md)。
+For platform and IME limitations, see [Compatibility and known limitations](compatibility.md).

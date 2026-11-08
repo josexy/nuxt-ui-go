@@ -23,6 +23,8 @@ var buttonVariants = []struct {
 
 func buttonPage() *componentPage {
 	clicks, searches, blocked := 0, 0, 0
+	avatarLoading, avatarClicks := false, 0
+	reduceMotion, dangerColor := false, false
 	return &componentPage{Scenes: []exampleScene{
 		scene("usage", "Basic usage", "Click, press Enter or Space. Each activation updates the count once.", func(c *ui.Context, t nui.Theme) {
 			nui.Button(c.Key("save"), t, "Save changes", nui.ButtonOptions{Leading: lucide.Check()}).OnClick(func() { clicks++ })
@@ -64,12 +66,34 @@ func buttonPage() *componentPage {
 			})
 			ui.Textf(c, "Blocked callbacks: %d", blocked)
 		}),
+		scene("avatar", "Avatar and loading", "A leading icon or loader replaces the avatar. An avatar-only action still has an accessible name.", func(c *ui.Context, t nui.Theme) {
+			nui.Switch(c.Key("loading"), t, &avatarLoading, nui.SwitchOptions{Label: "Load account action"})
+			ui.Row(c).Wrap().Gap(10).Children(func() {
+				nui.Button(c.Key("account"), t, "Account with avatar", nui.ButtonOptions{Avatar: &nui.AvatarOptions{Alt: "Ada Lovelace"}, Loading: avatarLoading}).OnClick(func() { avatarClicks++ })
+				nui.Button(c.Key("icon"), t, "Icon takes priority", nui.ButtonOptions{Avatar: &nui.AvatarOptions{Alt: "Ada Lovelace"}, Leading: lucide.Check()})
+				nui.Button(c.Key("only"), t, "", nui.ButtonOptions{Avatar: &nui.AvatarOptions{Alt: "Ada Lovelace"}, AccessibleLabel: "Account avatar"}).OnClick(func() { avatarClicks++ })
+			})
+			ui.Textf(c, "Avatar actions: %d", avatarClicks)
+		}),
+		scene("motion-state", "Color changes and reduced motion", "Enable reduced motion, change the color, then restore motion. The button keeps its current color without briefly showing the old one.", func(c *ui.Context, t nui.Theme) {
+			nui.Checkbox(c.Key("reduce"), t, &reduceMotion, nui.CheckboxOptions{Label: "Reduce button motion"})
+			nui.Checkbox(c.Key("color"), t, &dangerColor, nui.CheckboxOptions{Label: "Use error button color"})
+			local := t
+			local.Motion.Reduce = local.Motion.Reduce || reduceMotion
+			color := nui.Primary
+			if dangerColor {
+				color = nui.Error
+			}
+			nui.Button(c.Key("sample"), local, "Motion state sample", nui.ButtonOptions{Color: color})
+		}),
 	}}
 }
 
 func inputPage() *componentPage {
 	name, invalid, readonly := "Nuxt workspace", "team@", "workspace_01"
 	disabled, loading := "disabled_01", "loading_01"
+	account, showAvatar, accountLoading, trailingLoading := "Account draft", false, false, true
+	changes, submits, clears := 0, 0, 0
 	variants, sizes := make([]string, 5), make([]string, 5)
 	return &componentPage{Scenes: []exampleScene{
 		scene("usage", "Basic usage", "Edit English or Chinese text. The draft survives navigation and theme changes.", func(c *ui.Context, t nui.Theme) {
@@ -93,7 +117,20 @@ func inputPage() *componentPage {
 				}
 			})
 		}),
-		scene("states", "Editing states", "Invalid fields expose an error. Read-only fields remain selectable; disabled and loading fields cannot edit.", func(c *ui.Context, t nui.Theme) {
+		scene("accessories", "Avatar and loading", "Toggle accessories while editing. Trailing loading keeps the avatar visible; loading fields remain editable.", func(c *ui.Context, t nui.Theme) {
+			ui.Row(c).Wrap().Gap(8).Children(func() {
+				nui.Button(c.Key("avatar"), t, "Toggle input avatar", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() { showAvatar = !showAvatar })
+				nui.Button(c.Key("loading"), t, "Toggle input loading", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() { accountLoading = !accountLoading })
+				nui.Button(c.Key("side"), t, "Toggle loading side", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() { trailingLoading = !trailingLoading })
+			})
+			var avatar *nui.AvatarOptions
+			if showAvatar {
+				avatar = &nui.AvatarOptions{Alt: "Account input avatar", Text: "AL"}
+			}
+			nui.Input(c.Key("account"), t, &account, nui.InputOptions{Label: "Account draft", Avatar: avatar, Loading: accountLoading, LoadingTrailing: trailingLoading, Clearable: true, ClearLabel: "Clear account draft", OnChange: func(string) { changes++ }, OnSubmit: func(string) { submits++ }, OnClear: func() { clears++ }, UI: nui.Styles{nui.Leading: {Foreground: nui.Set(t.Error)}, nui.Trailing: {Foreground: nui.Set(t.Error)}}}).FillWidth()
+			ui.Textf(c, "Account: %s · Changes: %d · Submits: %d · Clears: %d", account, changes, submits, clears).Role(ui.RoleStatus)
+		}),
+		scene("states", "Editing states", "Invalid fields expose an error. Read-only fields remain selectable; disabled fields cannot edit. Loading only displays an indicator.", func(c *ui.Context, t nui.Theme) {
 			nui.Input(c.Key("invalid-email"), t, &invalid, nui.InputOptions{Label: "Email", Invalid: true, ErrorMessage: "Enter a complete email address"}).FillWidth()
 			ui.Text(c, "Enter a complete email address").TextColor(t.Error)
 			nui.Input(c.Key("readonly"), t, &readonly, nui.InputOptions{Label: "Workspace ID", ReadOnly: true}).FillWidth()

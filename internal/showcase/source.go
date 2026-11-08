@@ -13,7 +13,7 @@ import (
 )
 
 var imports = map[string]string{
-	"fmt": "fmt", "time": "time", "strings": "strings", "cmp": "cmp", "context": "context", "log": "log",
+	"fmt": "fmt", "time": "time", "strings": "strings", "slices": "slices", "cmp": "cmp", "context": "context", "log": "log",
 	"base64": "encoding/base64", "errors": "errors",
 	"mygo": "github.com/egoist/mygo", "ui": "github.com/egoist/mygo/ui",
 	"nui": "github.com/josexy/nuxt-ui-go", "lucide": "github.com/josexy/nuxt-ui-go/icons/lucide",
@@ -163,12 +163,16 @@ func main() {
 
 func (d Demo) disposeBody() string {
 	switch d.ID {
+	case "form":
+		return "s.Form.Cancel()"
 	case "command-palette":
 		return "s.Commands.Close()"
 	case "tree":
 		return "s.Tree.Close()"
 	case "file-upload":
 		return "s.Files.Dispose()"
+	case "select-menu":
+		return "s.Results.Cancel()"
 	default:
 		return ""
 	}

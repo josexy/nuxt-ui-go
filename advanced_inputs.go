@@ -15,15 +15,36 @@ type TagsState struct {
 	Query           string
 	Handle          ui.Handle
 	focused, pasted bool
+	active          Optional[tagKey]
+	removers        map[tagKey]*ui.Handle
 }
+
+type tagKey struct {
+	value      string
+	occurrence int
+}
+
+func tagKeys(values []string) []tagKey {
+	keys := make([]tagKey, len(values))
+	counts := map[string]int{}
+	for i, value := range values {
+		keys[i] = tagKey{value, counts[value]}
+		counts[value]++
+	}
+	return keys
+}
+
 type InputTagsOptions struct {
 	InputOptions
-	MaxTags                        int
-	Separators                     string
-	AddOnTab, AddOnBlur, Duplicate bool
-	AddOnPaste                     Optional[bool]
-	MaxLength                      int // Native editing limit in UTF-16 units; 0 is unlimited.
-	OnTagsChange                   func([]string)
+	MaxTags                          int
+	Separators                       string
+	AddOnTab, AddOnBlur, Duplicate   bool
+	AddOnPaste                       Optional[bool]
+	MaxLength                        int // Native editing limit in UTF-16 units; 0 is unlimited.
+	OnTagsChange                     func([]string)
+	DeleteIcon                       *ui.SVG
+	ConvertValue, DisplayValue       func(string) string
+	OnAddTag, OnRemoveTag, OnInvalid func(string)
 }
 
 // AddTags trims and deduplicates without changing the order of existing tags.
@@ -62,6 +83,14 @@ func InputTags(c *ui.Context, t Theme, value *[]string, s *TagsState, o InputTag
 	if value == nil || s == nil {
 		panic("nui: InputTags requires value and state")
 	}
+	keys := tagKeys(*value)
+	if s.active.Set && !slices.Contains(keys, s.active.Value) {
+		s.active = Optional[tagKey]{}
+	}
+	if s.removers == nil {
+		s.removers = map[tagKey]*ui.Handle{}
+	}
+	mutable := !o.ReadOnly && !o.Disabled && !t.field.Disabled
 	emit := func(next []string) {
 		if !slices.Equal(*value, next) {
 			*value = next
@@ -70,127 +99,232 @@ func InputTags(c *ui.Context, t Theme, value *[]string, s *TagsState, o InputTag
 			}
 		}
 	}
-	parse := func(text string) []string {
-		return addTags(*value, text, o.Separators, o.MaxTags, o.Duplicate)
+	separators := o.Separators
+	if separators == "" {
+		separators = ","
 	}
-	add := func(text string) {
-		if o.ReadOnly || o.Disabled || t.field.Disabled {
-			return
+	add := func(text string, clearDraft bool) bool {
+		if !mutable {
+			return false
 		}
-		next := parse(text)
-		if len(next) != len(*value) {
-			emit(next)
+		next := slices.Clone(*value)
+		var added []string
+		for _, candidate := range strings.FieldsFunc(text, func(r rune) bool { return strings.ContainsRune(separators, r) }) {
+			candidate = strings.TrimSpace(candidate)
+			if candidate == "" {
+				continue
+			}
+			if o.ConvertValue != nil {
+				candidate = o.ConvertValue(candidate)
+			}
+			if candidate == "" || o.MaxTags > 0 && len(next) >= o.MaxTags || !o.Duplicate && slices.Contains(next, candidate) {
+				if o.OnInvalid != nil {
+					o.OnInvalid(candidate)
+				}
+				continue
+			}
+			next = append(next, candidate)
+			added = append(added, candidate)
+		}
+		if len(added) == 0 {
+			return false
+		}
+		emit(next)
+		if clearDraft {
 			s.Query = ""
 		}
+		s.active = Optional[tagKey]{}
+		if o.OnAddTag != nil {
+			for _, tag := range added {
+				o.OnAddTag(tag)
+			}
+		}
+		return true
 	}
-	root := ui.Column(c).MinWidth(0).Disabled(o.Disabled || t.field.Disabled)
-	// Text editing always indicates focus; tag buttons only do so when reached
-	// by keyboard. Match Nuxt's has-focus-visible on the outer field.
-	focusVisible := false
-	size := selected(defaults(t, ComponentInputTags, ComponentTheme{Size: MD}), ComponentTheme{Size: inheritedSize(t, o.Size)}).Size
-	root.Children(func() {
-		ui.Row(c.Key("tags")).Wrap().Gap(t.spacing(4)).Children(func() {
-			occurrences := map[string]int{}
-			for i, tag := range *value {
-				key := struct {
-					Tag        string
-					Occurrence int
-				}{tag, occurrences[tag]}
-				occurrences[tag]++
-				c.Key(key)
-				_, del := tagChip(c, t, tag, namedMessage(c, "removeNamed", tag), size, o.ReadOnly, func() { emit(slices.Delete(slices.Clone(*value), i, i+1)) })
-				focusVisible = focusVisible || del.FocusVisible()
-			}
-		})
-		in := o.InputOptions
-		in.UI = cloneStyles(o.UI)
-		// The outer field owns decorations, including the error border. Keep
-		// error semantics on the editor without drawing a second border inside.
-		in.UI[Root] = PartStyle{BorderWidth: Set(float32(0))}
-		changed, submitted := in.OnChange, in.OnSubmit
-		previousQuery := s.Query
-		in.OnChange = func(text string) {
-			if o.MaxLength > 0 {
-				text = limitTextEdit(previousQuery, text, o.MaxLength)
-				s.Query = text
-			}
-			sep := o.Separators
-			if sep == "" {
-				sep = ","
-			}
-			if !s.pasted && insertedSeparator(previousQuery, text, sep) {
-				add(text)
-			}
-			s.pasted = false
-			if changed != nil {
-				changed(text)
+	remove := func(key tagKey) {
+		if !mutable {
+			return
+		}
+		i := slices.Index(tagKeys(*value), key)
+		if i < 0 {
+			return
+		}
+		removed := (*value)[i]
+		emit(slices.Delete(slices.Clone(*value), i, i+1))
+		s.active = Optional[tagKey]{}
+		if o.OnRemoveTag != nil {
+			o.OnRemoveTag(removed)
+		}
+		s.Handle.Focus(c)
+	}
+	in := o.InputOptions
+	in.MaxLength = o.MaxLength
+	in.focusWithin = true
+	changed, submitted, style := in.OnChange, in.OnSubmit, in.Style
+	previousQuery := s.Query
+	in.OnChange = func(text string) {
+		s.active = Optional[tagKey]{}
+		if !s.pasted && insertedSeparator(previousQuery, text, separators) {
+			if !add(text, true) {
+				s.Query = strings.TrimFunc(text, func(r rune) bool { return strings.ContainsRune(separators, r) })
 			}
 		}
-		in.OnSubmit = func(text string) {
-			add(text)
-			if submitted != nil {
-				submitted(text)
-			}
+		s.pasted = false
+		if changed != nil {
+			changed(text)
 		}
-		style := in.Style
-		in.Style = func(root, editor, leading, trailing ui.Element) {
-			focusVisible = focusVisible || editor.Focused()
-			editor.Bind(&s.Handle).OnPaste(func(text string) bool {
-				if !valueOr(o.AddOnPaste, false) {
-					s.pasted = text != ""
+	}
+	in.OnSubmit = func(text string) {
+		add(text, true)
+		if submitted != nil {
+			submitted(text)
+		}
+	}
+	config := inputDefaults(t, ComponentInputTags, in)
+	m := buttonMetrics(t, config.Size)
+	in.Style = func(root, editor, leading, trailing ui.Element) {
+		editor.Bind(&s.Handle).Basis(t.spacing(80))
+		editor.OnPaste(func(text string) bool {
+			if !valueOr(o.AddOnPaste, false) {
+				s.pasted = text != ""
+				return false
+			}
+			if !mutable {
+				return false
+			}
+			add(text, false)
+			return true
+		}).OnTextKey(func(k ui.TextKey) bool {
+			if !mutable || c.Resolve(s.Handle).Composing() {
+				return false
+			}
+			if o.AddOnTab && k.Key == ui.KeyTab && (k.Mods == 0 || k.Mods == ui.Shift) {
+				if k.Text() == "" {
 					return false
 				}
-				if !o.ReadOnly {
-					next := parse(text)
-					if len(next) != len(*value) {
-						emit(next)
-					}
-					return true
-				}
-				return false
-			}).OnTextKey(func(k ui.TextKey) bool {
-				if o.AddOnTab && k.Key == ui.KeyTab && (k.Mods == 0 || k.Mods == ui.Shift) && !o.ReadOnly {
-					if k.Text() == "" {
-						return false
-					}
-					add(k.Text())
-					k.SetText(s.Query)
-					return true
-				}
-				if !o.ReadOnly && k.Key == ui.KeyBackspace && k.Text() == "" && len(*value) > 0 {
-					emit(slices.Clone((*value)[:len(*value)-1]))
-					return true
-				}
-				return false
-			})
-			if style != nil {
-				style(root, editor, leading, trailing)
+				s.Query = k.Text()
+				add(k.Text(), true)
+				k.SetText(s.Query)
+				return true
 			}
+			if k.Mods != 0 {
+				s.active = Optional[tagKey]{}
+				return false
+			}
+			start, end := c.Resolve(s.Handle).TextSelection()
+			if start != 0 || end != 0 {
+				s.active = Optional[tagKey]{}
+				return false
+			}
+			current := tagKeys(*value)
+			index := -1
+			if s.active.Set {
+				index = slices.Index(current, s.active.Value)
+			}
+			if len(current) == 0 {
+				return false
+			}
+			switch k.Key {
+			case ui.KeyBackspace, ui.KeyDelete:
+				if index >= 0 {
+					remove(current[index])
+					remaining := tagKeys(*value)
+					if len(remaining) > 0 {
+						s.active = Set(remaining[min(index, len(remaining)-1)])
+					}
+					return true
+				}
+				if k.Key == ui.KeyBackspace {
+					s.active = Set(current[len(current)-1])
+					return true
+				}
+			case ui.KeyLeft, ui.KeyRight:
+				back := (k.Key == ui.KeyLeft) != (c.Direction() == ui.RightToLeft)
+				if index < 0 {
+					if back {
+						s.active = Set(current[len(current)-1])
+						return true
+					}
+					return false
+				}
+				if back {
+					index = max(0, index-1)
+				} else {
+					index++
+				}
+				if index >= len(current) {
+					s.active = Optional[tagKey]{}
+				} else {
+					s.active = Set(current[index])
+				}
+				return true
+			case ui.KeyHome, ui.KeyEnd:
+				if index >= 0 {
+					index = 0
+					if k.Key == ui.KeyEnd {
+						index = len(current) - 1
+					}
+					s.active = Set(current[index])
+					return true
+				}
+			case ui.KeyUp, ui.KeyDown:
+				return index >= 0
+			default:
+				s.active = Optional[tagKey]{}
+			}
+			return false
+		})
+		if style != nil {
+			style(root, editor, leading, trailing)
 		}
-		in.Variant = None
-		Input(c.Key("query"), t, &s.Query, in)
-	})
+	}
+	root := inputShell(c, t, &s.Query, in, ComponentInputTags, 0, 0, func() ui.Element {
+		var editor ui.Element
+		body := ui.Row(c.Key("body")).Grow(1).MinWidth(0).Wrap().AlignItems(ui.Center).Gap(m.Gap)
+		finish(t, ComponentInputTags, Body, body, PartStyle{}, Decoration{UI: o.UI})
+		body.Children(func() {
+			for i, tag := range *value {
+				key := keys[i]
+				if s.removers[key] == nil {
+					s.removers[key] = &ui.Handle{}
+				}
+				label := tag
+				if o.DisplayValue != nil {
+					label = o.DisplayValue(tag)
+				}
+				_, del := tagChipStyled(c.Key(key), t, label, namedMessage(c, "removeNamed", label), config.Size, o.ReadOnly, o.DeleteIcon, func() { remove(key) }, func(slot Slot, e ui.Element) {
+					if slot == Item {
+						active := s.active.Set && s.active.Value == key
+						e.Font(t.Font).Selected(active).Background(t.Elevated).TextColor(t.Text)
+						if active {
+							e.Background(t.Accented)
+						}
+					}
+					finish(t, ComponentInputTags, slot, e, PartStyle{}, Decoration{UI: o.UI})
+				})
+				del.Bind(s.removers[key])
+			}
+			editor = ui.TextInputBase(c.Key("query"), &s.Query)
+		})
+		return editor
+	}, nil)
+	for key, handle := range s.removers {
+		if !slices.Contains(keys, key) {
+			if !root.IsDisabled() && handle.Focused(c) {
+				s.Handle.Focus(c)
+			}
+			handle.CancelFocus(c)
+			delete(s.removers, key)
+		}
+	}
 	focused := s.Handle.Focused(c)
-	if s.focused && !focused && o.AddOnBlur {
-		add(s.Query)
+	if s.focused && !focused {
+		s.active = Optional[tagKey]{}
+		if o.AddOnBlur && !root.IsDisabled() && add(s.Query, true) {
+			c.Services().Invalidate()
+		}
 	}
 	s.focused = focused
-	config, styles := resolve(t, ComponentInputTags, ComponentTheme{Color: Primary, Size: MD, Variant: Outline}, ComponentTheme{Color: o.Color, Size: inheritedSize(t, o.Size), Variant: o.Variant, UI: o.UI}, func(v ComponentTheme) Styles {
-		styles := inputRecipe(t, v, focusVisible, (root.Hovered() || root.FocusWithin()) && !root.IsDisabled(), fieldInvalid(t, o.InputOptions))
-		style := styles[Root]
-		style.Gap = Set(t.spacing(4))
-		styles[Root] = style
-		return styles
-	})
-	styles[Root].apply(root)
-	if focusVisible && config.Variant != None {
-		color := config.Color
-		if fieldInvalid(t, o.InputOptions) {
-			color = Error
-		}
-		root.Shadow(0, 0, 0, 3, t.focusColor(color))
-	}
-	applyGroup(c, root, t, styles[Root].Radius.Value)
 	return root
 }
 
@@ -213,6 +347,7 @@ type PinInputOptions struct {
 	Length               int
 	Disabled, Mask       bool
 	Numeric, ReadOnly    bool // Text is the default; Numeric keeps only ASCII digits.
+	Highlight            bool
 	Placeholder          string
 	Color                Color
 	Variant              Variant
@@ -284,6 +419,9 @@ func PinInput(c *ui.Context, t Theme, value *string, s *PinState, o PinInputOpti
 	}
 	config := selected(defaults(t, ComponentPinInput, ComponentTheme{Color: Primary, Variant: Outline, Size: MD}), ComponentTheme{Color: o.Color, Variant: o.Variant, Size: inheritedSize(t, o.Size)})
 	slotSize := t.text([5]float32{24, 28, 32, 36, 40}[sizeIndex(config.Size)])
+	rootStyle := mergeStyle(t.components[ComponentPinInput].UI[Root], o.UI[Root])
+	gap := valueOr(rootStyle.Gap, t.spacing(6))
+	paddingX, paddingY := valueOr(rootStyle.PaddingX, 0), valueOr(rootStyle.PaddingY, 0)
 	separators := map[int]bool{}
 	for _, at := range o.Separator {
 		if at > 0 && at < n {
@@ -297,11 +435,20 @@ func PinInput(c *ui.Context, t Theme, value *string, s *PinState, o PinInputOpti
 	}
 	// Match the separator's text advance instead of reserving a fixed-width
 	// dash box. Keep both layers absolute so slots receive pointer input.
+	separatorStyle := mergeStyle(PartStyle{Font: Set(t.Font), FontSize: Set(t.text(16)), Foreground: Set(t.Dimmed)}, t.components[ComponentPinInput].UI[SeparatorSlot])
+	separatorStyle = mergeStyle(separatorStyle, o.UI[SeparatorSlot])
 	var separatorWidth float32
+	contentHeight := slotSize
 	if len(separators) > 0 {
-		separatorWidth, _ = c.MeasureText(0, ui.Span{Text: "•", Font: t.Font, Size: t.text(16)})
+		var separatorHeight float32
+		separatorWidth, separatorHeight = c.MeasureText(0, ui.Span{Text: "•", Font: separatorStyle.Font.Value, Size: separatorStyle.FontSize.Value, Weight: valueOr(separatorStyle.Weight, 400)})
+		separatorWidth += 2 * valueOr(separatorStyle.PaddingX, 0)
+		if separatorStyle.LineHeight.Set {
+			separatorHeight = max(separatorHeight, separatorStyle.FontSize.Value*separatorStyle.LineHeight.Value)
+		}
+		contentHeight = max(contentHeight, separatorHeight+2*valueOr(separatorStyle.PaddingY, 0))
 	}
-	root := ui.Column(c).Width(float32(n)*slotSize + float32(n-1)*t.spacing(6) + float32(len(separators))*(separatorWidth+t.spacing(6))).Height(slotSize).Disabled(o.Disabled || t.field.Disabled)
+	root := ui.Column(c).Width(float32(n)*slotSize + float32(n-1)*gap + float32(len(separators))*(separatorWidth+gap) + 2*paddingX).Height(contentHeight + 2*paddingY).Disabled(o.Disabled || t.field.Disabled)
 	characters := []rune(*value)
 	caret := len(characters)
 	focused := s.Handle.Focused(c)
@@ -362,13 +509,17 @@ func PinInput(c *ui.Context, t Theme, value *string, s *PinState, o PinInputOpti
 		if resetCaret || editing != caretState.focused || s.start != caretState.start || s.end != caretState.end || *value != caretState.text {
 			*caretState = pinCaretState{focused: editing, start: s.start, end: s.end, text: *value, since: c.Now()}
 		}
-		ui.Row(c.Key("slots")).Absolute().Left(0).Top(0).Height(slotSize).AlignItems(ui.Center).Gap(t.spacing(6)).Cursor(ui.CursorText).OnClick(func() {
+		ui.Row(c.Key("slots")).Absolute().Left(paddingX).Top(paddingY).Height(contentHeight).AlignItems(ui.Center).Gap(gap).Cursor(ui.CursorText).OnClick(func() {
 			length := len([]rune(*value))
 			c.Resolve(s.Handle).Focus().SetTextSelection(length, length)
 		}).Children(func() {
 			for i := range n {
 				if separators[i] {
-					ui.Text(c.Key(fmt.Sprintf("separator:%d", i)), "•").Font(t.Font).FontSize(t.text(16)).TextColor(t.Dimmed).Shrink(0).IgnoreInput(true).Role(ui.RoleNone)
+					separator := ui.Text(c.Key(fmt.Sprintf("separator:%d", i)), "•").Shrink(0).IgnoreInput(true).Role(ui.RoleNone)
+					separatorStyle.apply(separator)
+					if o.Style != nil {
+						o.Style(SeparatorSlot, separator)
+					}
 				}
 				active := focused && !root.IsDisabled() && i == min(caret, n-1)
 				v := o.Placeholder
@@ -388,16 +539,21 @@ func PinInput(c *ui.Context, t Theme, value *string, s *PinState, o PinInputOpti
 					start := min(i, length)
 					end := min(i+1, length)
 					c.Resolve(s.Handle).Focus().SetTextSelection(start, end)
-				}).Children(func() { ui.Text(c, v).Role(ui.RoleNone).IgnoreInput(true) })
+				}).Children(func() {
+					finish(t, ComponentPinInput, Label, ui.Text(c, v).SingleLine().MinWidth(0).Role(ui.RoleNone).IgnoreInput(true), PartStyle{}, o.Decoration)
+				})
 				invalid := fieldInvalid(t, InputOptions{})
 				recipe := inputRecipe(t, config, active, e.Hovered() && !e.IsDisabled(), invalid)[Root]
 				recipe.PaddingX, recipe.PaddingY = Set(float32(0)), Set(float32(0))
+				if o.Highlight && !invalid {
+					recipe.BorderWidth, recipe.BorderColor = Set(float32(1)), Set(inputColor(t, config.Color))
+				}
 				if active && config.Variant != None {
 					color := config.Color
 					if invalid {
 						color = Error
 					}
-					e.Shadow(0, 0, 0, 3, t.focusColor(color))
+					e.Shadow(0, 0, 0, 3, inputFocusColor(t, color))
 				}
 				if active && editing {
 					var textWidth float32
@@ -508,26 +664,38 @@ func InputRating(c *ui.Context, t Theme, value *int, o InputRatingOptions) ui.El
 			clear()
 		}
 	})
-	config := selected(defaults(t, ComponentInputRating, ComponentTheme{Color: Primary, Size: MD}), ComponentTheme{Color: o.Color, Size: inheritedSize(t, o.Size)})
-	tone := config.Color
+	tone := o.Color
 	if t.field.Error != "" {
 		tone = Error // An invalid field colors the stars and the ring, as Nuxt's.
 	}
+	config, styles := resolve(t, ComponentInputRating, ComponentTheme{Color: Primary, Size: MD}, ComponentTheme{Color: tone, Size: inheritedSize(t, o.Size), UI: o.UI}, func(v ComponentTheme) Styles {
+		return Styles{Root: {Gap: Set(t.spacing(2))}, Indicator: {Foreground: Set(t.color(v.Color))}}
+	})
+	tone = config.Color
 	size := t.text([5]float32{12, 16, 20, 24, 28}[sizeIndex(config.Size)])
 	// Nuxt's inline-flex rating takes its stars' size instead of stretching
 	// across its container, so hover and focus end where the stars do.
-	base := PartStyle{Gap: Set(t.spacing(2))}
-	style := mergeStyle(mergeStyle(base, t.components[ComponentInputRating].UI[Root]), o.UI[Root])
+	style := styles[Root]
 	length := float32(n)*size + float32(n-1)*style.Gap.Value
 	w, h := length, size
 	if vert {
 		w, h = size, length
 	}
 	root.Size(w+2*style.PaddingX.Value, h+2*style.PaddingY.Value)
-	finish(t, ComponentInputRating, Root, root, base, o.Decoration)
+	decorated(Root, root, styles, o.Style)
 	focus := root.FocusVisible()
 	preview := *value
 	now := 0 // The star under the pointer in this build.
+	icon, emptyIcon := o.Icon, o.EmptyIcon
+	if icon == nil {
+		icon = lucide.Star()
+	}
+	if emptyIcon == nil {
+		emptyIcon = icon
+	}
+	// These elements are used only while configuring this build. Keeping both
+	// layers lets the filled preview change without replacing item identities.
+	indicators := make([]ui.Element, n)
 	root.Children(func() {
 		for i := 1; i <= n; i++ {
 			e := ui.Box(c.Key(i)).Size(size, size).Center().Radius(t.radius(4)).OnClick(func() {
@@ -538,6 +706,9 @@ func InputRating(c *ui.Context, t Theme, value *int, o InputRatingOptions) ui.El
 					set(i)
 				}
 			})
+			if o.ReadOnly && !root.IsDisabled() {
+				e.Cursor(ui.CursorDefault)
+			}
 			if e.Hovered() {
 				now = i
 			}
@@ -548,27 +719,24 @@ func InputRating(c *ui.Context, t Theme, value *int, o InputRatingOptions) ui.El
 			}
 			if t.motion(c) && t.Motion.Transition > 0 {
 				scale = e.AnimateWith("nui-rating-scale", scale, t.Motion.Transition, ui.EaseOut)
+			} else {
+				e.Jump("nui-rating-scale", scale)
 			}
 			e.TransformOrigin(.5, .5).Scale(scale, scale)
-			e.Draw(func(p *ui.Painter, r ui.Rect) {
-				color, icon := t.Muted, o.EmptyIcon
-				if icon == nil {
-					icon = o.Icon
-				}
-				if i <= preview {
-					color = t.color(tone)
-					icon = o.Icon
-				}
-				if icon == nil {
-					icon = lucide.Star()
-				}
-				p.Icon(icon, r, color)
-			})
-			finish(t, ComponentInputRating, Item, e, PartStyle{}, o.Decoration)
 			// The ring marks the current star: the rated one, or the first of an empty rating.
 			if focus && i == max(1, *value) {
-				e.Shadow(0, 0, 0, 3, t.focusColor(tone))
+				e.Shadow(0, 0, 0, 3, inputFocusColor(t, tone))
 			}
+			decorated(Item, e, styles, o.Style)
+			e.Children(func() {
+				decorated(EmptyIconSlot, ui.Icon(c.Key("empty"), emptyIcon).Fill().TextColor(t.Muted), styles, o.Style)
+				indicator := ui.Box(c.Key("indicator")).Absolute().Left(0).Top(0).Fill().Clip()
+				decorated(Indicator, indicator, styles, o.Style)
+				indicator.Children(func() {
+					decorated(IconSlot, ui.Icon(c.Key("icon"), icon).Fill(), styles, o.Style)
+				})
+				indicators[i-1] = indicator
+			})
 		}
 	})
 	if interactive && valueOr(o.Hoverable, false) {
@@ -585,6 +753,9 @@ func InputRating(c *ui.Context, t Theme, value *int, o InputRatingOptions) ui.El
 	} else {
 		memory.over, memory.hover = now, 0
 	}
+	for i, indicator := range indicators {
+		indicator.Hidden(i+1 > preview)
+	}
 	return root
 }
 
@@ -598,7 +769,9 @@ const (
 
 type CheckboxTriOptions struct {
 	CheckboxOptions
-	OnStateChange func(CheckState)
+	// IndeterminateIcon replaces the minus in a visible mixed-state indicator.
+	IndeterminateIcon *ui.SVG
+	OnStateChange     func(CheckState)
 }
 
 func CheckboxTri(c *ui.Context, t Theme, value *CheckState, o CheckboxTriOptions) ui.Element {
@@ -613,6 +786,7 @@ func CheckboxTri(c *ui.Context, t Theme, value *CheckState, o CheckboxTriOptions
 	}
 	p := o.CheckboxOptions
 	p.mixed = mixed
+	p.indeterminateIcon = o.IndeterminateIcon
 	togglePresentation(c, t, e, on || mixed, ComponentCheckbox, false, false, p)
 	fieldActivation(c, e, t, func() bool {
 		if o.Disabled || t.field.Disabled {

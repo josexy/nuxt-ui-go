@@ -136,13 +136,22 @@ var optionTypes = map[string]reflect.Type{
 		}
 		out.WriteString("},\n")
 	}
-	command := exec.Command("go", "list", "-m", "-f", "{{.Dir}}", "github.com/egoist/mygo")
+	// go list -m reports an empty Dir until the module is in the cache, and this
+	// generator imports no MyGo package; go mod download fetches it if needed.
+	command := exec.Command("go", "mod", "download", "-json", "github.com/egoist/mygo")
 	command.Dir = *root
-	moduleDir, err := command.Output()
+	output, err := command.Output()
 	if err != nil {
 		log.Fatal(err)
 	}
-	keyFile, err := parser.ParseFile(token.NewFileSet(), filepath.Join(strings.TrimSpace(string(moduleDir)), "ui", "keys.go"), nil, 0)
+	var module struct{ Dir string }
+	if err := json.Unmarshal(output, &module); err != nil {
+		log.Fatal(err)
+	}
+	if module.Dir == "" {
+		log.Fatal("go mod download did not report a directory for github.com/egoist/mygo")
+	}
+	keyFile, err := parser.ParseFile(token.NewFileSet(), filepath.Join(module.Dir, "ui", "keys.go"), nil, 0)
 	if err != nil {
 		log.Fatal(err)
 	}

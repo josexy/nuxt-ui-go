@@ -126,27 +126,70 @@ func fieldSchemas(t reflect.Type) []ValueField {
 		choices := enumNames(field.Type, t.Name(), field.Name)
 		if field.Name == "FilterFields" {
 			choices = []string{"label", "description", "value"}
-			if t.Name() == "SelectMenuOptions" {
+			if t.Name() == "SelectMenuOptions" || t.Name() == "ListboxOptions" {
 				choices = append(choices, "id", "group")
+			} else if t.Name() == "MenuOptions" || t.Name() == "MenuContentOptions" {
+				choices = []string{"label", "description", "id", "shortcut"}
+			} else if t.Name() == "CommandPaletteOptions" {
+				choices = []string{"label", "description", "suffix", "keywords"}
 			}
 		}
 		if field.Type.Kind() == reflect.Func {
 			choices = fieldFunctionModes(field.Type, field.Name)
 		}
 		description := notes[field.Name]
-		if specific, ok := notes[t.Name()+"."+field.Name]; ok {
+		owner, _, _ := strings.Cut(t.Name(), "[")
+		if specific, ok := notes[owner+"."+field.Name]; ok {
 			description = specific
 		}
 		editor := ValueField{Name: field.Name, Type: goType(field.Type), Description: description, Choices: choices}
+		if t == reflect.TypeFor[nui.CalendarOptions]() {
+			switch field.Name {
+			case "UI", "Style":
+				editor.Slots = []string{"root", "header", "heading", "body", "grid", "gridRow", "weekDay", "weekNumber", "item"}
+			case "MaximumDays", "FixedDate", "AllowNonContiguousRanges", "IsDateHighlightable":
+				editor.When = &FieldCondition{Field: "Range", Value: "true", Label: Text{ZH: "仅范围选择", EN: "Range selection only"}}
+			case "ViewControlOptions":
+				editor.Hint = &Text{ZH: "仅 ViewControl 启用时显示", EN: "Shown while ViewControl is enabled"}
+			case "YearsPerPage", "IsYearDisabled", "IsYearUnavailable":
+				editor.Hint = &Text{ZH: "用于年导航视图", EN: "Used by the year navigation view"}
+			case "IsMonthDisabled", "IsMonthUnavailable":
+				editor.Hint = &Text{ZH: "用于月导航视图", EN: "Used by the month navigation view"}
+			}
+		}
+		if t == reflect.TypeFor[nui.TextareaOptions]() {
+			switch field.Name {
+			case "Password":
+				editor.Hint = &Text{ZH: "多行输入不适用", EN: "Not used by multiline input"}
+			case "OnSubmit":
+				editor.Hint = &Text{ZH: "Enter 用于换行", EN: "Enter inserts a line"}
+			case "MaxRows":
+				editor.Hint = &Text{ZH: "仅 AutoResize=true 时生效", EN: "Only applies with AutoResize=true"}
+			}
+		}
 		if t == reflect.TypeFor[nui.InputDateOptions]() || t == reflect.TypeFor[nui.InputTimeOptions]() {
 			switch field.Name {
 			case "Placeholder", "Password", "MaxLength":
 				editor.Hint = &Text{ZH: "分段输入不适用", EN: "Not used by segments"}
 			case "UI":
 				editor.Slots = []string{"root", "editor", "segment", "leading", "trailing"}
+				if t == reflect.TypeFor[nui.InputDateOptions]() {
+					editor.Slots = append(editor.Slots, "separator")
+				}
 			case "Style":
 				editor.Slots = []string{"root", "editor", "leading", "trailing"}
 			}
+		}
+		if t == reflect.TypeFor[nui.InputDateOptions]() {
+			switch field.Name {
+			case "OnRangeChange", "SeparatorIcon", "BuildSeparator":
+				editor.Hint = &Text{ZH: "仅 InputDateRange 使用", EN: "Used only by InputDateRange"}
+			case "OnValueChange":
+				editor.Hint = &Text{ZH: "仅 InputDate 使用；范围使用 OnRangeChange", EN: "InputDate only; ranges use OnRangeChange"}
+			}
+		}
+		if t == reflect.TypeFor[nui.InputTimeOptions]() && field.Name == "Seconds" {
+			editor.Hint = &Text{ZH: "仅 Granularity 未设置时生效", EN: "Applies only when Granularity is unset"}
 		}
 		if t == reflect.TypeFor[nui.PopoverOptions]() {
 			switch field.Name {
@@ -158,7 +201,298 @@ func fieldSchemas(t reflect.Type) []ValueField {
 				editor.Slots = []string{"panel"}
 			}
 		}
+		if t == reflect.TypeFor[nui.TooltipOptions]() {
+			switch field.Name {
+			case "UI", "Style":
+				editor.Slots = []string{"panel", "label", "trailing"}
+			case "DelayDuration":
+				editor.Hint = &Text{ZH: "编辑器单位为毫秒；0 表示立即显示", EN: "Editor uses milliseconds; 0 shows immediately"}
+			}
+		}
+		if t == reflect.TypeFor[nui.ModalOptions]() || t == reflect.TypeFor[nui.SlideoverOptions]() {
+			switch field.Name {
+			case "UI", "Style":
+				editor.Slots = []string{"backdrop", "panel", "header", "label", "description", "close", "body", "footer"}
+			case "Close", "CloseIcon", "CloseLabel":
+				editor.Hint = &Text{ZH: "仅 CloseButton 未关闭时生效", EN: "Applies while CloseButton is enabled"}
+			case "OnClosePrevent":
+				editor.When = &FieldCondition{Field: "Dismissible", Value: "false", Label: Text{ZH: "仅阻止关闭时", EN: "Blocked dismissal only"}}
+			}
+		}
+		if t == reflect.TypeFor[nui.SlideoverOptions]() {
+			switch field.Name {
+			case "Width", "MaxHeight", "Fullscreen":
+				editor.Hint = &Text{ZH: "继承字段，不参与 Slideover 布局；使用 Side / Extent / Inset", EN: "Inherited but unused by Slideover layout; use Side / Extent / Inset"}
+			}
+		}
+		if t == reflect.TypeFor[nui.ToastOptions]() {
+			switch field.Name {
+			case "UI":
+				editor.Slots = []string{"panel", "body", "leading", "label", "description", "actions", "close"}
+			case "Avatar":
+				editor.Hint = &Text{ZH: "优先于 Icon", EN: "Takes precedence over Icon"}
+			case "CloseOptions", "CloseIcon":
+				editor.Hint = &Text{ZH: "仅 Close 未关闭时使用", EN: "Used while Close is enabled"}
+			case "ProgressOptions":
+				editor.Hint = &Text{ZH: "仅 Progress 开启且通知不是常驻时使用", EN: "Used for enabled progress on timed notices"}
+			}
+		}
+		if t == reflect.TypeFor[nui.ToastViewportOptions]() {
+			switch field.Name {
+			case "UI", "Style":
+				editor.Slots = []string{"root"}
+			case "Limit":
+				editor.Hint = &Text{ZH: "MyGo 最多提供 3 条可见通知", EN: "MyGo supplies at most three visible notices"}
+			}
+		}
+		if t == reflect.TypeFor[nui.ToastProgressOptions]() && field.Name == "UI" {
+			editor.Slots = []string{"root", "indicator"}
+		}
+		if t == reflect.TypeFor[nui.MenuOptions]() || t == reflect.TypeFor[nui.MenuContentOptions]() {
+			switch field.Name {
+			case "UI", "Style":
+				editor.Slots = []string{"panel", "header", "item", "body", "leading", "label", "description", "trailing", "indicator", "separator", "editor", "empty"}
+			case "FilterFields", "IgnoreFilter", "FilterInput", "SearchTerm", "OnSearchTermChange":
+				editor.Hint = &Text{ZH: "仅 Filter=true 时生效", EN: "Only applies with Filter=true"}
+			}
+		}
+		if t == reflect.TypeFor[nui.MenuItem]() && field.Name == "UI" {
+			editor.Slots = []string{"header", "item", "body", "leading", "label", "description", "trailing", "indicator", "separator"}
+		}
+		if t == reflect.TypeFor[nui.TabsOptions]() && (field.Name == "UI" || field.Name == "Style") {
+			editor.Slots = []string{"root", "list", "trigger", "leading", "label", "trailing", "indicator", "body"}
+		}
+		if t == reflect.TypeFor[nui.TabItem]() && field.Name == "UI" {
+			editor.Slots = []string{"trigger", "leading", "label", "trailing", "indicator", "body"}
+		}
+		if t == reflect.TypeFor[nui.CollapsibleOptions]() && (field.Name == "UI" || field.Name == "Style") {
+			editor.Slots = []string{"root", "trigger", "leading", "label", "trailing", "body"}
+		}
+		if t == reflect.TypeFor[nui.AccordionOptions]() && (field.Name == "UI" || field.Name == "Style") {
+			editor.Slots = []string{"root", "item", "header", "trigger", "leading", "label", "trailing", "body"}
+		}
+		if t == reflect.TypeFor[nui.AccordionItem]() && field.Name == "UI" {
+			editor.Slots = []string{"item", "header", "trigger", "leading", "label", "trailing", "body"}
+		}
+		if field.Name == "UI" || field.Name == "Style" {
+			if strings.HasPrefix(t.Name(), "TableColumn[") {
+				editor.Slots = []string{"item", "label"}
+			}
+			switch t {
+			case reflect.TypeFor[nui.SidebarOptions]():
+				editor.Slots = []string{"root", "header", "label", "description", "actions", "trigger", "body", "footer", "separator", "panel", "backdrop", "close"}
+			case reflect.TypeFor[nui.HeaderOptions]():
+				editor.Slots = []string{"root", "leading", "body", "label", "description", "actions"}
+			case reflect.TypeFor[nui.FooterOptions]():
+				editor.Slots = []string{"root", "label", "actions"}
+			case reflect.TypeFor[nui.FooterColumnsOptions]():
+				editor.Slots = []string{"root", "body", "label", "list", "item", "itemLeading", "itemLabel"}
+			case reflect.TypeFor[nui.MarqueeOptions]():
+				editor.Slots = []string{"root", "body"}
+			case reflect.TypeFor[nui.SplitterOptions]():
+				editor.Slots = []string{"root", "leading", "trailing", "separator", "indicator"}
+			case reflect.TypeFor[nui.CarouselOptions]():
+				editor.Slots = []string{"root", "body", "item", "previous", "next", "actions", "list", "indicator", "trigger", "empty"}
+			case reflect.TypeFor[nui.CarouselItem]():
+				editor.Slots = []string{"item"}
+			case reflect.TypeFor[nui.ChartOptions]():
+				editor.Slots = []string{"root", "body", "description", "empty", "list", "item", "label", "indicator", "xAxis", "yAxis", "center"}
+			case reflect.TypeFor[nui.FileUploadOptions]():
+				editor.Slots = []string{"root", "body", "leading", "label", "description", "trigger", "list", "item", "itemLeading", "itemLabel", "status", "error", "itemTrailing"}
+			case reflect.TypeFor[nui.DrawerOptions]():
+				editor.Slots = []string{"backdrop", "panel", "container", "thumb", "indicator", "header", "label", "description", "body", "footer", "close"}
+			case reflect.TypeFor[nui.NavigationOptions]():
+				editor.Slots = []string{"root", "list", "label", "body", "item", "itemLeading", "itemLabel", "description", "itemTrailing", "indicator", "panel"}
+			case reflect.TypeFor[nui.NavigationItem]():
+				editor.Slots = []string{"list", "label", "body", "item", "itemLeading", "itemLabel", "description", "itemTrailing", "indicator", "panel"}
+			case reflect.TypeFor[nui.CommandPaletteOptions]():
+				editor.Slots = []string{"root", "editor", "back", "panel", "list", "label", "item", "body", "itemLeading", "itemLabel", "itemLabelPrefix", "itemLabelSuffix", "description", "itemTrailing", "indicator", "empty", "loading", "loadingIcon"}
+			case reflect.TypeFor[nui.CommandAction]():
+				editor.Slots = []string{"item", "body", "itemLeading", "itemLabel", "itemLabelPrefix", "itemLabelSuffix", "description", "itemTrailing", "indicator"}
+			case reflect.TypeFor[nui.TreeOptions]():
+				editor.Slots = []string{"root", "list", "item", "leading", "label", "trailing", "indicator", "empty"}
+			case reflect.TypeFor[nui.TreeNode]():
+				editor.Slots = []string{"item", "leading", "label", "trailing"}
+			case reflect.TypeFor[nui.TableOptions]():
+				editor.Slots = []string{"root", "caption", "body", "panel", "item", "label", "empty", "loading", "indicator"}
+			case reflect.TypeFor[nui.ColorPickerOptions]():
+				editor.Slots = []string{"root", "panel", "body", "item", "label"}
+			case reflect.TypeFor[nui.FormOptions]():
+				editor.Slots = []string{"root"}
+			case reflect.TypeFor[nui.InputNumberOptions]():
+				editor.Slots = []string{"root", "editor", "leading", "trailing"}
+				if field.Name == "UI" {
+					editor.Slots = append(editor.Slots, "increment", "decrement")
+				}
+			case reflect.TypeFor[nui.InputTagsOptions]():
+				editor.Slots = []string{"root", "editor", "leading", "trailing"}
+				if field.Name == "UI" {
+					editor.Slots = append(editor.Slots, "body", "item", "label", "close", "indicator")
+				}
+			case reflect.TypeFor[nui.PinInputOptions]():
+				editor.Slots = []string{"root", "item", "label", "separator"}
+			case reflect.TypeFor[nui.InputRatingOptions]():
+				editor.Slots = []string{"root", "item", "indicator", "icon", "emptyIcon"}
+			case reflect.TypeFor[nui.ListboxOptions]():
+				editor.Slots = []string{"root", "list", "editor", "loading", "loadingIcon", "label", "separator", "item", "leading", "body", "itemLabel", "description", "trailing", "indicator", "empty"}
+			case reflect.TypeFor[nui.ListboxItemOptions]():
+				editor.Slots = []string{"label", "separator", "item", "leading", "body", "itemLabel", "description", "trailing", "indicator"}
+			case reflect.TypeFor[nui.SelectMenuOptions]():
+				editor.Slots = []string{"root", "trigger", "leading", "label", "trailing", "close", "editor", "list", "header", "separator", "item", "itemLeading", "body", "itemLabel", "description", "itemTrailing", "indicator", "empty"}
+			case reflect.TypeFor[nui.BreadcrumbOptions]():
+				editor.Slots = []string{"root", "list", "item", "trigger", "leading", "label", "separator", "ellipsis"}
+			case reflect.TypeFor[nui.BreadcrumbItem]():
+				editor.Slots = []string{"item", "trigger", "leading", "label", "separator"}
+			case reflect.TypeFor[nui.PaginationOptions]():
+				editor.Slots = []string{"root", "list", "item", "first", "previous", "next", "last", "ellipsis", "leading", "label"}
+			case reflect.TypeFor[nui.StepperOptions]():
+				editor.Slots = []string{"root", "list", "item", "header", "trigger", "indicator", "leading", "separator", "body", "label", "description", "panel"}
+			case reflect.TypeFor[nui.StepItem]():
+				editor.Slots = []string{"item", "header", "trigger", "indicator", "leading", "separator", "body", "label", "description"}
+			case reflect.TypeFor[nui.TimelineOptions]():
+				editor.Slots = []string{"root", "item", "header", "indicator", "separator", "body", "date", "label", "description"}
+			case reflect.TypeFor[nui.TimelineItem]():
+				editor.Slots = []string{"item", "header", "indicator", "separator", "body", "date", "label", "description"}
+			case reflect.TypeFor[nui.BannerOptions]():
+				editor.Slots = []string{"root", "body", "header", "leading", "label", "description", "actions", "trailing", "close"}
+			case reflect.TypeFor[nui.ErrorOptions]():
+				editor.Slots = []string{"root", "leading", "status", "label", "description", "actions"}
+			}
+		}
+		if t == reflect.TypeFor[nui.SelectMenuOptions]() {
+			switch field.Name {
+			case "Filter":
+				editor.Hint = &Text{ZH: "不适用；用 SearchInput 控制弹层搜索框", EN: "Not used; SearchInput controls the popup search field"}
+			case "FilterInput", "FocusSearch", "SearchPlaceholder":
+				editor.Hint = &Text{ZH: "SearchInput 开启时生效", EN: "Used when SearchInput is enabled"}
+			case "ClearIcon", "ClearOptions", "ResetModelValueOnClear", "OnClear":
+				editor.Hint = &Text{ZH: "Clearable 开启且当前有选择时生效", EN: "Used when Clearable is enabled and a selection exists"}
+			case "Orientation", "ItemWidth", "SelectionBehavior":
+				editor.Hint = &Text{ZH: "原生列表扩展；单选时使用替换选择", EN: "Native list extension; single mode uses replacement selection"}
+			}
+		}
+		if t == reflect.TypeFor[nui.ListboxOptions]() && field.Name == "FilterInput" {
+			editor.Hint = &Text{ZH: "Filter 开启时生效；不会自动显示筛选框", EN: "Used when Filter is enabled; does not show the field by itself"}
+		}
+		if t == reflect.TypeFor[nui.DrawerOptions]() {
+			switch field.Name {
+			case "Width", "MaxHeight", "Fullscreen":
+				editor.Hint = &Text{ZH: "不适用；宽度由窗口决定，高度由 SnapPoints / Snap 控制", EN: "Unused; window width and SnapPoints/Snap determine the dimensions"}
+			}
+		}
+		if t == reflect.TypeFor[nui.ChartOptions]() {
+			switch field.Name {
+			case "Thickness", "DonutInnerRadius":
+				editor.When = &FieldCondition{Field: "Kind", Value: "nui.ChartDonut", Label: Text{ZH: "仅圆环图", EN: "Donut only"}}
+			case "Points":
+				editor.When = &FieldCondition{Field: "Kind", Value: "nui.ChartLine", Label: Text{ZH: "仅折线图", EN: "Line only"}}
+			case "Stack":
+				editor.Hint = &Text{ZH: "仅柱状图或面积图生效", EN: "Applies to bars and areas only"}
+			case "Curve":
+				editor.Hint = &Text{ZH: "仅折线图或面积图生效", EN: "Applies to lines and areas only"}
+			case "TooltipOptions":
+				editor.Hint = &Text{ZH: "Tooltip 开启时生效；原生文本提示", EN: "Used when Tooltip is enabled; native text tooltip"}
+			}
+		}
+		if t == reflect.TypeFor[nui.CarouselOptions]() {
+			switch field.Name {
+			case "Prev", "Next", "PrevIcon", "NextIcon":
+				editor.When = &FieldCondition{Field: "Arrows", Value: "true", Label: Text{ZH: "显示箭头时生效", EN: "When arrows are enabled"}}
+			case "Active":
+				editor.Hint = &Text{ZH: "仅门控自动播放，不禁用手动操作", EN: "Gates autoplay only; manual navigation remains enabled"}
+			case "StopOnInteraction":
+				editor.Hint = &Text{ZH: "Autoplay 为正时生效，默认 true", EN: "Used with positive Autoplay; defaults to true"}
+			}
+		}
+		if t == reflect.TypeFor[nui.FileUploadOptions]() {
+			switch field.Name {
+			case "Position":
+				editor.Hint = &Text{ZH: "仅 UploadArea / UploadList 生效；网格和按钮模式保持外置列表", EN: "Only applies to UploadArea / UploadList; grid and button modes keep files outside"}
+			case "FileImage":
+				editor.Hint = &Text{ZH: "显示应用提供的 Avatar；组件不读取文件内容生成图片", EN: "Shows an application-provided Avatar; does not read files to create images"}
+			case "Dialog":
+				editor.Hint = &Text{ZH: "只控制原生选择框；Multiple 不限制队列总数，使用 Rules.MaxFiles 限制数量", EN: "Native picker only; Multiple does not limit the queue, use Rules.MaxFiles for count limits"}
+			}
+		}
+		if t == reflect.TypeFor[nui.NavigationOptions]() {
+			switch field.Name {
+			case "Compact", "Single", "Collapsible", "OnExpandedChange":
+				editor.When = &FieldCondition{Field: "Vertical", Value: "true", Label: Text{ZH: "仅纵向导航", EN: "Vertical navigation only"}}
+			case "Popover", "PopoverOptions", "PopupPlacement":
+				editor.Hint = &Text{ZH: "用于紧凑纵向导航的侧向弹层", EN: "Used by collapsed vertical navigation popovers"}
+			case "Tooltip", "TooltipOptions":
+				editor.Hint = &Text{ZH: "全局开关用于紧凑纵向导航；横向提示由单项 Tooltip 启用", EN: "Global toggle applies to collapsed vertical navigation; horizontal tooltips use item Tooltip"}
+			}
+		}
+		if t == reflect.TypeFor[nui.NavigationItem]() && !slices.Contains([]string{"ID", "Label", "Icon", "Disabled", "Active", "OnSelect", "UI", "Style"}, field.Name) {
+			editor.Hint = &Text{ZH: "NavigationMenu 配置；FooterColumns 当前不使用此字段", EN: "NavigationMenu configuration; currently unused by FooterColumns"}
+		}
+		if t == reflect.TypeFor[nui.NavigationItem]() && (field.Name == "UI" || field.Name == "Style") {
+			editor.Hint = &Text{ZH: "FooterColumns 使用 Item、ItemLeadingSlot、ItemLabelSlot；其他部件用于 NavigationMenu", EN: "FooterColumns uses Item, ItemLeadingSlot and ItemLabelSlot; other parts belong to NavigationMenu"}
+		}
+		if t == reflect.TypeFor[nui.InputMenuOptions]() {
+			switch field.Name {
+			case "Multiple", "SelectedIcon", "ResetSearchTermOnSelect", "ResetModelValueOnClear":
+				editor.When = &FieldCondition{Field: "Mode", Value: "nui.InputMenuCombobox", Label: Text{ZH: "仅组合框模式", EN: "Combobox only"}}
+			case "DeleteIcon", "OnValuesChange":
+				editor.Hint = &Text{ZH: "仅多选组合框", EN: "Multiple combobox only"}
+			case "AllowCustom":
+				editor.Hint = &Text{ZH: "Autocomplete 始终允许自由文本提交", EN: "Autocomplete always allows free-text submission"}
+			case "OnSubmit":
+				editor.Hint = &Text{ZH: "仅 AllowCustom 或 Autocomplete，且未激活候选时调用", EN: "AllowCustom or Autocomplete only, when no suggestion is activated"}
+			}
+		}
 		fields = append(fields, editor)
+	}
+	return fields
+}
+
+// componentFields describes a binding in the context of its actual call. Type
+// aliases retain their shared reflect.Type and configuration ID, but not every
+// field of that type is meaningful to every control using it.
+func componentFields(t reflect.Type, component string) []ValueField {
+	fields := fieldSchemas(t)
+	if component == "ContextMenu" && t == reflect.TypeFor[nui.MenuOptions]() {
+		for i := range fields {
+			if slices.Contains([]string{"Filter", "FilterFields", "IgnoreFilter", "SearchTerm", "FilterInput", "OnSearchTermChange"}, fields[i].Name) {
+				fields[i].Hint = &Text{ZH: "原生扩展；Nuxt ContextMenu 无筛选框", EN: "Native extension; Nuxt ContextMenu has no filter input"}
+			}
+			switch fields[i].Name {
+			case "Disabled":
+				fields[i].Description = Text{ZH: "禁用上下文菜单并关闭当前面板；保留锚点自身的点击、输入和焦点能力。", EN: "Disables and closes the context menu while preserving the target’s own click, input and focus behavior."}
+			case "Placement", "Offset":
+				fields[i].Hint = &Text{ZH: "原生扩展；根菜单默认 RightStart、2 DIP", EN: "Native extension; root defaults to RightStart and 2 DIP"}
+			}
+		}
+	}
+	owner := ""
+	switch {
+	case (component == "Checkbox" || component == "CheckboxTri") && (t == reflect.TypeFor[nui.CheckboxOptions]() || t == reflect.TypeFor[nui.CheckboxTriOptions]()):
+		owner = "CheckboxOptions"
+	case component == "Switch" && t == reflect.TypeFor[nui.SwitchOptions]():
+		owner = "SwitchOptions"
+	case component == "CheckboxGroup" && t == reflect.TypeFor[nui.CheckboxGroupOptions]():
+		owner = "CheckboxGroupOptions"
+	case component == "RadioGroup" && t == reflect.TypeFor[nui.RadioGroupOptions]():
+		owner = "RadioGroupOptions"
+	}
+	if owner == "" {
+		return fields
+	}
+	notes := APINotes()
+	for i := range fields {
+		field := &fields[i]
+		if description, ok := notes[owner+"."+field.Name]; ok {
+			field.Description = description
+		}
+		switch {
+		case owner == "CheckboxOptions" && slices.Contains([]string{"Loading", "LoadingIcon", "UncheckedIcon"}, field.Name), owner == "RadioGroupOptions" && field.Name == "Max":
+			field.Hint = &Text{ZH: "不适用", EN: "Not used"}
+		case owner == "CheckboxOptions" && field.Name == "Variant":
+			field.Hint = &Text{ZH: "ChoiceTable 为原生扩展", EN: "ChoiceTable is a native extension"}
+		case owner == "SwitchOptions" && (field.Name == "Variant" || field.Name == "Indicator"):
+			field.Hint = &Text{ZH: "原生扩展", EN: "Native extension"}
+		}
 	}
 	return fields
 }
@@ -174,9 +508,11 @@ func enumNames(t reflect.Type, owner, field string) []string {
 	if t == reflect.TypeFor[nui.Variant]() {
 		var allowed []string
 		switch owner {
+		case "NavigationOptions":
+			allowed = []string{"nui.VariantDefault", "nui.Soft", "nui.LinkVariant"}
 		case "InputOptions", "TextareaOptions", "SelectOptions", "InputMenuOptions", "InputNumberOptions", "InputTagsOptions", "PinInputOptions", "SelectMenuOptions", "InputDateOptions", "InputTimeOptions":
 			allowed = []string{"nui.VariantDefault", "nui.Outline", "nui.Soft", "nui.Subtle", "nui.Ghost", "nui.None"}
-		case "BadgeOptions", "AlertOptions", "CardOptions", "KbdOptions":
+		case "BadgeOptions", "AlertOptions", "CardOptions", "KbdOptions", "CalendarOptions":
 			allowed = []string{"nui.VariantDefault", "nui.Solid", "nui.Outline", "nui.Soft", "nui.Subtle"}
 		case "EmptyOptions":
 			allowed = []string{"nui.VariantDefault", "nui.Solid", "nui.Outline", "nui.Soft", "nui.Subtle", "nui.None"}
@@ -394,7 +730,7 @@ func (d Demo) bindingsFor(body string) []Binding {
 	var result []Binding
 	counts := map[string]int{}
 	bound := map[ast.Expr]bool{}
-	add := func(expr ast.Expr, name string) {
+	add := func(expr ast.Expr, name, component string) {
 		if bound[expr] {
 			return
 		}
@@ -412,7 +748,7 @@ func (d Demo) bindingsFor(body string) []Binding {
 		if counts[name] > 1 {
 			id += strconv.Itoa(counts[name])
 		}
-		fields := fieldSchemas(typ)
+		fields := componentFields(typ, component)
 		for i := range fields {
 			expr := literalField(literal, typ, fields[i].Name)
 			key := expressionControl(expr)
@@ -451,7 +787,7 @@ func (d Demo) bindingsFor(body string) []Binding {
 					if name == "" {
 						name = fun.Sel.Name + "Items"
 					}
-					add(lit, name)
+					add(lit, name, fun.Sel.Name)
 				}
 			}
 		}
@@ -460,7 +796,7 @@ func (d Demo) bindingsFor(body string) []Binding {
 	if d.ID == "theme" {
 		ast.Inspect(f, func(n ast.Node) bool {
 			if lit, ok := n.(*ast.CompositeLit); ok && nodeText(lit.Type) == "nui.ComponentTheme" {
-				add(lit, "ComponentTheme")
+				add(lit, "ComponentTheme", "")
 			}
 			return true
 		})

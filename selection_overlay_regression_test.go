@@ -101,6 +101,70 @@ func TestSelectMenuCreateKeepsBusinessBuilderSeparate(t *testing.T) {
 	}
 }
 
+func TestSelectMenuClearAndSearchSubmit(t *testing.T) {
+	state := nui.SelectMenuState{}
+	values := []string{"b"}
+	reset, search, focusSearch, focusElsewhere := true, true, true, false
+	changes, clears := 0, 0
+	var outside ui.Handle
+	tt := ui.NewTester(func(c *ui.Context) {
+		th := nui.App(c, nui.AppConfig{})
+		ui.Column(c).Children(func() {
+			nui.Button(c.Key("outside"), th, "Outside target", nui.ButtonOptions{}).Bind(&outside)
+			nui.SelectMenu(c.Key("menu"), th, &values, &state, []nui.ListboxItem{{ID: "a", Label: "Alpha"}, {ID: "b", Label: "Beta"}}, nui.SelectMenuOptions{
+				Label: "Menu", Clearable: true, ResetModelValueOnClear: nui.Set(reset), SearchInput: nui.Set(search), FocusSearch: nui.Set(focusSearch),
+				ResetSearchTermOnBlur: nui.Set(false), FilterInput: &nui.InputOptions{Label: "Filter choices"},
+				OnChange: func([]string) { changes++ }, OnClear: func() { clears++ },
+				OnSelect: func(string) {
+					if focusElsewhere {
+						outside.Focus(c)
+					}
+				},
+			}).Width(300)
+		})
+	}, 450, 400)
+	click(t, tt, "Menu")
+	tt.Type("alp")
+	tt.Key(0, ui.KeyEnter)
+	if !slices.Equal(values, []string{"a"}) || changes != 1 || state.Open || state.Query != "" {
+		t.Fatalf("search Enter: values=%v changes=%d open=%v query=%q", values, changes, state.Open, state.Query)
+	}
+	reset = false
+	state.Query = "draft"
+	tt.Frame()
+	click(t, tt, "Clear selection")
+	if !slices.Equal(values, []string{"a"}) || state.Query != "" || changes != 1 || clears != 1 || !tt.Focused("Menu") {
+		t.Fatal("clear without model reset changed the value, kept the query, or lost focus")
+	}
+	reset = true
+	tt.Frame()
+	click(t, tt, "Clear selection")
+	if len(values) != 0 || changes != 2 || clears != 2 || !tt.Focused("Menu") {
+		t.Fatal("clear did not reset once and return trigger focus")
+	}
+	search, focusSearch = false, false
+	state.Open, state.Query = true, "bet"
+	tt.Frame()
+	if tt.HasText("Alpha") || !tt.HasText("Beta") || !tt.Focused("Menu options") {
+		t.Fatal("hidden search ignored its controlled query or initial list focus")
+	}
+	tt.Key(0, ui.KeyEnter)
+	if !slices.Equal(values, []string{"b"}) || changes != 3 || state.Open {
+		t.Fatal("searchless selection did not commit")
+	}
+	search, focusElsewhere = true, true
+	state.Open = true
+	tt.Frame()
+	if !tt.Focused("Menu options") {
+		t.Fatal("FocusSearch=false did not focus the list")
+	}
+	tt.Key(0, ui.KeyEnter)
+	tt.Advance(time.Second)
+	if state.Open || !tt.Focused("Outside target") || changes != 3 {
+		t.Fatal("closing a reselected value discarded application focus or emitted a value change")
+	}
+}
+
 func TestInputMenuTrailingStylesAndToggle(t *testing.T) {
 	var state nui.SearchState
 	var instance, callback nui.Optional[ui.Color]

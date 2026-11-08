@@ -113,7 +113,7 @@ func TestLocaleSwitchRefreshesExistingFormErrors(t *testing.T) {
 			changes := 0
 			tt := ui.NewTester(func(c *ui.Context) {
 				th := nui.App(c, nui.AppConfig{})
-				nui.Form(c, th, &form, nui.FormOptions{}, func(ft nui.Theme) {
+				nui.Form(c, th, &form, nui.FormOptions{LoadingAuto: nui.Set(false)}, func(ft nui.Theme) {
 					nui.FormField(c, ft, nui.FormFieldOptions{Name: "value", Label: "Field", Value: fmt.Sprint(number, date, clock)}, func(it nui.Theme) {
 						o := nui.InputOptions{Label: "Editor", OnChange: func(string) { changes++ }}
 						switch kind {
@@ -202,10 +202,10 @@ func TestLocaleSwitchInsideSelectMenu(t *testing.T) {
 		}
 	}
 	click(t, tt, "清空选择")
-	if len(selected) != 0 {
+	if len(selected) != 0 || state.Query != "" {
 		t.Fatal("translated clear action stopped working")
 	}
-	state.Open = true
+	state.Open, state.Query = true, "draft"
 	tt.Frame()
 	tt.SetLocale("en")
 	if !tt.HasText("Create “draft”") {
@@ -226,7 +226,7 @@ func TestLocaleSwitchCalendarAndPagination(t *testing.T) {
 	}, 640, 560)
 	click(t, tt, "Next month")
 	tt.SetLocale("zh-Hans")
-	for _, text := range []string{"2026年12月", "周日", "下个月", "上一页"} {
+	for _, text := range []string{"2026年12月", "日", "下个月", "上一页", "上一年", "下一年"} {
 		if !tt.HasText(text) {
 			t.Fatalf("missing %q: %v", text, tt.Texts())
 		}

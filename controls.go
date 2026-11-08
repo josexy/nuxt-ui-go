@@ -11,6 +11,7 @@ import (
 
 type ToggleOptions struct {
 	mixed                                   bool
+	indeterminateIcon                       *ui.SVG
 	table                                   choiceTableItem
 	Label, Description, ErrorMessage        string
 	Disabled, Invalid                       bool
@@ -133,6 +134,9 @@ func togglePresentation(c *ui.Context, t Theme, e ui.Element, on bool, id Compon
 	}
 	config, styles := resolve(t, id, ComponentTheme{Color: Primary, Size: MD}, ComponentTheme{Color: o.Color, Size: inheritedSize(t, o.Size), UI: o.UI}, func(v ComponentTheme) Styles {
 		bg, border := t.Background, t.BorderAccented
+		if isSwitch {
+			bg = t.Accented
+		}
 		if on {
 			bg = t.color(v.Color)
 			border = bg
@@ -145,6 +149,9 @@ func togglePresentation(c *ui.Context, t Theme, e ui.Element, on bool, id Compon
 			border = t.Error
 		}
 		indicator := PartStyle{Background: Set(bg), BorderWidth: Set(float32(1)), BorderColor: Set(border), Radius: Set(t.radius(4))}
+		if isSwitch || radio {
+			indicator.Radius = Set(float32(999))
+		}
 		if isSwitch && !o.Highlight && !invalid {
 			// Nuxt's switch track border is transparent; only highlight and errors draw a ring.
 			indicator.BorderWidth = Set(float32(0))
@@ -152,32 +159,52 @@ func togglePresentation(c *ui.Context, t Theme, e ui.Element, on bool, id Compon
 		// Text lines match the indicator container: Nuxt's text-xs/sm/base line heights.
 		font := [5]float32{12, 12, 14, 14, 16}[sizeIndex(v.Size)]
 		line := [5]float32{16, 16, 20, 20, 24}[sizeIndex(v.Size)]
-		return Styles{rowSlot: {Gap: Set(t.spacing(8)), Font: Set(t.Font), FontSize: Set(t.text(font)), LineHeight: Set(line / font)}, Indicator: indicator, Label: {Foreground: Set(t.Text), Weight: Set(500)}, Description: {Foreground: Set(t.Muted), FontSize: Set(t.text([5]float32{12, 12, 14, 14, 16}[sizeIndex(v.Size)]))}, Thumb: {Background: Set(t.Background)}}
+		root := PartStyle{Gap: Set(t.spacing(8)), Font: Set(t.Font), FontSize: Set(t.text(font)), LineHeight: Set(line / font)}
+		if o.Variant != ChoiceList {
+			padding := t.spacing([5]float32{10, 12, 14, 16, 18}[sizeIndex(v.Size)])
+			root.PaddingX, root.PaddingY = Set(padding), Set(padding)
+			root.BorderWidth, root.BorderColor, root.Radius = Set(float32(1)), Set(t.Border), Set(t.radius(8))
+			if on && !o.mixed {
+				root.BorderColor, root.Background = Set(t.color(v.Color).Alpha(.5)), Set(t.color(v.Color).Alpha(.10))
+				if v.Color == Neutral {
+					root.Background = Set(t.Elevated)
+				}
+			} else if e.Hovered() && !e.IsDisabled() && !e.FocusVisible() {
+				root.Background = Set(t.Elevated.Alpha(.5))
+				if !o.Highlight {
+					root.BorderColor = Set(t.BorderAccented)
+				}
+			}
+			if o.Highlight && o.Indicator == IndicatorHidden && !e.IsDisabled() {
+				root.BorderColor = Set(t.color(v.Color))
+			}
+			if e.FocusVisible() && !e.IsDisabled() {
+				root.BorderColor = Set(t.color(v.Color))
+				if invalid {
+					root.BorderColor = Set(t.Error)
+				}
+			}
+		}
+		iconColor := t.Inverted
+		if o.Indicator == IndicatorHidden {
+			iconColor = t.Text
+		}
+		return Styles{rowSlot: root, Indicator: indicator, Leading: {Foreground: Set(iconColor)}, Label: {Foreground: Set(t.Text), Weight: Set(500)}, Description: {Foreground: Set(t.Muted), FontSize: Set(t.text([5]float32{12, 12, 14, 14, 16}[sizeIndex(v.Size)]))}, Thumb: {Background: Set(t.Background)}}
 	})
 	e.MinWidth(0).AlignItems(ui.Start)
+	focusColor := config.Color
+	if o.Invalid || o.ErrorMessage != "" || t.field.Error != "" {
+		focusColor = Error
+	}
+	if (o.Variant != ChoiceList || o.Indicator == IndicatorHidden) && e.FocusVisible() {
+		e.Shadow(0, 0, 0, 3, t.focusColor(focusColor))
+	}
 	styles[rowSlot].apply(e)
 	if o.Variant > ChoiceTable || o.Indicator > IndicatorHidden {
 		panic("nui: invalid choice appearance")
 	}
-	if o.Variant != ChoiceList {
-		e.Padding(t.spacing([5]float32{10, 12, 14, 16, 18}[sizeIndex(config.Size)])).BorderWidth(1).BorderColor(t.Border).Radius(t.radius(8))
-		if o.Variant == ChoiceTable {
-			tableChoice(c, e, t, o.table)
-		}
-		if on {
-			e.BorderColor(t.color(config.Color).Alpha(.5)).Background(t.color(config.Color).Alpha(.10))
-			if config.Color == Neutral {
-				e.Background(t.Elevated)
-			}
-		} else if e.Hovered() && !e.IsDisabled() {
-			e.Background(t.Elevated.Alpha(.5))
-		}
-		if o.Highlight {
-			e.BorderColor(t.color(config.Color))
-		}
-	}
-	if (o.Variant != ChoiceList || o.Indicator == IndicatorHidden) && e.FocusVisible() {
-		e.Shadow(0, 0, 0, 3, t.focusColor(config.Color))
+	if o.Variant == ChoiceTable {
+		tableChoice(c, e, t, o.table)
 	}
 	if o.Label != "" {
 		e.Label(o.Label)
@@ -201,27 +228,14 @@ func togglePresentation(c *ui.Context, t Theme, e ui.Element, on bool, id Compon
 			}
 			ui.Box(c.Key("indicator")).Height(container).Shrink(0).Center().Children(func() {
 				box := ui.Box(c).Size(boxSize, boxSize).Center().Shrink(0)
-				styles[Indicator].apply(box)
-				if radio {
-					box.Radius(999)
+				if o.Variant == ChoiceList && e.FocusVisible() {
+					box.Shadow(0, 0, 0, 3, t.focusColor(focusColor))
 				}
+				styles[Indicator].apply(box)
 				if isSwitch {
 					width := t.text([5]float32{28, 32, 36, 40, 44}[sizeIndex(config.Size)])
 					height := boxSize + 4
-					bg := t.Accented
-					if on {
-						bg = t.color(config.Color)
-					}
-					bg = mergeValue(Set(bg), t.components[id].UI[Indicator].Background).Value
-					if o.Color != ColorDefault {
-						if on {
-							bg = t.color(o.Color)
-						} else {
-							bg = t.Accented
-						}
-					}
-					bg = mergeValue(Set(bg), o.UI[Indicator].Background).Value
-					box.Size(width, height).Radius(999).Background(bg)
+					box.Size(width, height)
 					offset := float32(2)
 					if on {
 						offset = width - boxSize - 2
@@ -264,18 +278,14 @@ func togglePresentation(c *ui.Context, t Theme, e ui.Element, on bool, id Compon
 								icon = o.CheckedIcon
 							}
 							if o.mixed {
-								icon = lucide.Minus()
+								icon = o.indeterminateIcon
+								if icon == nil {
+									icon = lucide.Minus()
+								}
 							}
-							ui.Icon(c, icon).Size(boxSize-2, boxSize-2).TextColor(t.Inverted)
+							decorated(Leading, ui.Icon(c.Key("icon"), icon).Size(boxSize-2, boxSize-2).Shrink(0), styles, o.Style)
 						}
 					})
-				}
-				if e.FocusVisible() {
-					color := config.Color
-					if o.Invalid || o.ErrorMessage != "" || t.field.Error != "" {
-						color = Error
-					}
-					box.Shadow(0, 0, 0, 3, t.focusColor(color))
 				}
 				if o.Style != nil {
 					o.Style(Indicator, box)
@@ -283,13 +293,34 @@ func togglePresentation(c *ui.Context, t Theme, e ui.Element, on bool, id Compon
 			})
 		}
 		label := func() {
-			if o.Label != "" || o.Description != "" {
-				ui.Column(c.Key("label")).MinWidth(0).Grow(1).Gap(t.spacing(2)).Children(func() {
+			hidden := o.Indicator == IndicatorHidden && !isSwitch
+			var icon *ui.SVG
+			if hidden {
+				// Unlike the checked indicator, the label has no default icon.
+				icon = o.CheckedIcon
+			}
+			if icon != nil || o.Label != "" || o.Description != "" {
+				wrapper := ui.Column(c.Key("label")).MinWidth(0).Grow(1).Gap(0)
+				if hidden {
+					wrapper.AlignItems(ui.Center).Gap(t.spacing(4))
+				}
+				wrapper.Children(func() {
+					if icon != nil {
+						decorated(Leading, ui.Icon(c.Key("icon"), icon).Size(boxSize, boxSize).Shrink(0), styles, o.Style)
+					}
 					if o.Label != "" {
-						decorated(Label, ui.Text(c, o.Label), styles, o.Style)
+						text := ui.Text(c.Key("text"), o.Label)
+						if hidden {
+							text.FillWidth().TextAlign(ui.Center)
+						}
+						decorated(Label, text, styles, o.Style)
 					}
 					if o.Description != "" {
-						decorated(Description, ui.Text(c, o.Description), styles, o.Style)
+						text := ui.Text(c.Key("description"), o.Description)
+						if hidden {
+							text.FillWidth().TextAlign(ui.Center)
+						}
+						decorated(Description, text, styles, o.Style)
 					}
 				})
 			}
@@ -315,14 +346,57 @@ type ChoiceGroupOptions struct {
 	Color                            Color
 	Size                             Size
 	Max                              Optional[int]
-	Variant                          ChoiceVariant
-	Indicator                        IndicatorPlacement
-	Highlight                        bool
-	OnChange                         func()
+	// Loop controls arrow-key wrapping; defaults to false for CheckboxGroup and true for RadioGroup.
+	Loop      Optional[bool]
+	Variant   ChoiceVariant
+	Indicator IndicatorPlacement
+	Highlight bool
+	OnChange  func()
 	Decoration
 }
 type CheckboxGroupOptions = ChoiceGroupOptions
 type RadioGroupOptions = ChoiceGroupOptions
+
+func choiceOrientation(horizontal bool) ui.Orientation {
+	if horizontal {
+		return ui.Horizontal
+	}
+	return ui.Vertical
+}
+
+func enabledChoiceBounds[T comparable](options []Option[T]) (first, last int) {
+	first, last = -1, -1
+	for i, option := range options {
+		if !option.Disabled {
+			if first < 0 {
+				first = i
+			}
+			last = i
+		}
+	}
+	return
+}
+
+// MyGo focus groups wrap by default. Claim only the boundary arrows when
+// wrapping is disabled; native grouping still owns Tab, selection and focus.
+func choiceBoundaryKeys(c *ui.Context, item ui.Element, horizontal, loop bool, i, first, last int) {
+	if loop {
+		return
+	}
+	back, next := ui.KeyUp, ui.KeyDown
+	if horizontal {
+		back, next = ui.KeyLeft, ui.KeyRight
+		if c.Direction() == ui.RightToLeft {
+			back, next = next, back
+		}
+	}
+	if i == first {
+		item.OnShortcut(0, back, func() {})
+	}
+	if i == last {
+		item.OnShortcut(0, next, func() {})
+	}
+}
 
 func CheckboxGroup[T comparable](c *ui.Context, t Theme, selected *[]T, options []Option[T], o CheckboxGroupOptions) ui.Element {
 	if selected == nil {
@@ -330,7 +404,7 @@ func CheckboxGroup[T comparable](c *ui.Context, t Theme, selected *[]T, options 
 	}
 	validateOptions(options)
 	config := selectedDefaults(t, ComponentCheckboxGroup, o)
-	e := ui.Column(c).MinWidth(0).Role(ui.RoleGroup).Label(o.Label).Description(o.Description).Disabled(o.Disabled || t.field.Disabled)
+	e := ui.Column(c).MinWidth(0).Role(ui.RoleGroup).Label(o.Label).Description(o.Description).Disabled(o.Disabled || t.field.Disabled).FocusGroup(choiceOrientation(o.Horizontal))
 	if o.Horizontal {
 		e.Row()
 		if o.Variant != ChoiceTable {
@@ -354,13 +428,15 @@ func CheckboxGroup[T comparable](c *ui.Context, t Theme, selected *[]T, options 
 			}
 		}
 	}
+	first, last := enabledChoiceBounds(options)
 	e.Children(func() {
 		afterChecked := false
 		for i, option := range options {
 			checked := slices.Contains(*selected, option.Value)
 			limited := o.Max.Set && !checked && len(*selected) >= max(0, o.Max.Value)
 			table := choiceTableItem{true, i == 0, i == len(options)-1, afterChecked, o.Horizontal}
-			item := Checkbox(c.Key(optionKey[T]{option.Value}), t, &checked, CheckboxOptions{table: table, Label: option.Label, Description: option.Description, Disabled: o.Disabled || option.Disabled, Invalid: o.Invalid || o.ErrorMessage != "", Color: config.Color, Size: config.Size, Variant: o.Variant, Indicator: o.Indicator, Highlight: o.Highlight, Decoration: child})
+			item := Checkbox(c.Key(optionKey[T]{option.Value}), t, &checked, CheckboxOptions{table: table, Label: option.Label, Description: option.Description, CheckedIcon: option.Icon, Disabled: o.Disabled || option.Disabled, Invalid: o.Invalid || o.ErrorMessage != "", Color: config.Color, Size: config.Size, Variant: o.Variant, Indicator: o.Indicator, Highlight: o.Highlight, Decoration: child})
+			choiceBoundaryKeys(c, item, o.Horizontal, valueOr(o.Loop, false), i, first, last)
 			afterChecked = checked
 			finish(t, ComponentCheckboxGroup, Item, item, PartStyle{}, o.Decoration)
 			if limited {
@@ -398,17 +474,19 @@ func RadioGroup[T comparable](c *ui.Context, t Theme, value *T, options []Option
 	}
 	validateOptions(options)
 	changed := false
+	first, last := enabledChoiceBounds(options)
 	e := ui.RadioGroup(c, func() {
 		afterChecked := false
 		for i, option := range options {
 			item := ui.RadioBase(c.Key(optionKey[T]{option.Value}), value, option.Value).Disabled(o.Disabled || option.Disabled || t.field.Disabled).FocusRing(false)
 			on := *value == option.Value
 			table := choiceTableItem{true, i == 0, i == len(options)-1, afterChecked, o.Horizontal}
-			togglePresentation(c, t, item, on, ComponentRadioGroup, false, true, ToggleOptions{table: table, Label: option.Label, Description: option.Description, Disabled: o.Disabled || option.Disabled, Invalid: o.Invalid || o.ErrorMessage != "", Color: o.Color, Size: o.Size, Variant: o.Variant, Indicator: o.Indicator, Highlight: o.Highlight, Decoration: o.Decoration})
+			togglePresentation(c, t, item, on, ComponentRadioGroup, false, true, ToggleOptions{table: table, Label: option.Label, Description: option.Description, CheckedIcon: option.Icon, Disabled: o.Disabled || option.Disabled, Invalid: o.Invalid || o.ErrorMessage != "", Color: o.Color, Size: o.Size, Variant: o.Variant, Indicator: o.Indicator, Highlight: o.Highlight, Decoration: o.Decoration})
+			choiceBoundaryKeys(c, item, o.Horizontal, valueOr(o.Loop, true), i, first, last)
 			changed = changed || item.Changed()
 			afterChecked = on
 		}
-	}).MinWidth(0).Label(o.Label).Description(o.Description).Disabled(o.Disabled || t.field.Disabled)
+	}).MinWidth(0).Label(o.Label).Description(o.Description).Disabled(o.Disabled || t.field.Disabled).FocusGroup(choiceOrientation(o.Horizontal))
 	if o.Horizontal {
 		e.Row()
 		if o.Variant != ChoiceTable {
@@ -462,8 +540,9 @@ func Slider(c *ui.Context, t Theme, value *float64, o SliderOptions) ui.Element 
 	}
 	*value = math.Max(lo, math.Min(hi, finite(*value)))
 	e := ui.Box(c).Focusable().Role(ui.RoleSlider).Range(lo, hi, *value)
+	disabled := o.Disabled || t.field.Disabled || e.IsDisabled()
 	s := ui.Local(e, "interaction", func() sliderInputMemory { return sliderInputMemory{} })
-	if o.Disabled || t.field.Disabled {
+	if disabled {
 		s.dragging = false
 	}
 	e.Bind(&s.handle)
@@ -475,8 +554,9 @@ func Slider(c *ui.Context, t Theme, value *float64, o SliderOptions) ui.Element 
 	if step == 0 {
 		step = 1
 	}
+	precision := sliderPrecision(lo, step)
 	set := func(v float64) bool {
-		v = max(lo, min(hi, lo+math.Round((v-lo)/step)*step))
+		v = snapSliderValue(v, lo, hi, step, precision)
 		if v == *value {
 			return false
 		}
@@ -496,9 +576,21 @@ func Slider(c *ui.Context, t Theme, value *float64, o SliderOptions) ui.Element 
 			})
 		}
 	}
-	e.Label(o.Label).Description(o.Description).Disabled(o.Disabled || t.field.Disabled).FocusRing(false).Step(o.Step)
+	e.Disabled(disabled).FocusRing(false).Step(o.Step)
 	bindField(c, e, t)
-	config := selected(defaults(t, ComponentSlider, ComponentTheme{Color: Primary, Size: MD}), ComponentTheme{Color: o.Color, Size: inheritedSize(t, o.Size)})
+	label := o.Label
+	if label == "" {
+		label = t.field.Label
+	}
+	if label == "" {
+		label = message(c, "sliderThumb")
+	}
+	e.Label(label).Description(o.Description)
+	explicitColor := o.Color
+	if t.field.Error != "" {
+		explicitColor = Error
+	}
+	config := selected(defaults(t, ComponentSlider, ComponentTheme{Color: Primary, Size: MD}), ComponentTheme{Color: explicitColor, Size: inheritedSize(t, o.Size)})
 	thumb := t.text([5]float32{12, 14, 16, 18, 20}[sizeIndex(config.Size)])
 	thickness := t.spacing([5]float32{6, 7, 8, 9, 10}[sizeIndex(config.Size)])
 	rootStyle := PartStyle{PaddingX: Set(thumb / 2)}
@@ -514,7 +606,7 @@ func Slider(c *ui.Context, t Theme, value *float64, o SliderOptions) ui.Element 
 	{
 		e.Step(step)
 		input := func(ev ui.InputEvent) bool {
-			if o.Disabled || t.field.Disabled {
+			if disabled {
 				return false
 			}
 			if ev.Kind == ui.InputPointerUp {
@@ -547,12 +639,7 @@ func Slider(c *ui.Context, t Theme, value *float64, o SliderOptions) ui.Element 
 		}
 		e.HandleInput(input)
 	}
-	color := t.color(config.Color)
-	if global := t.components[ComponentSlider].UI[Indicator].Background; global.Set && o.Color == ColorDefault {
-		color = global.Value
-	}
-	color = mergeValue(Set(color), o.UI[Indicator].Background).Value
-	thumbColor := mergeValue(mergeValue(Set(t.Background), t.components[ComponentSlider].UI[Thumb].Background), o.UI[Thumb].Background).Value
+	color, thumbColor, focusColor := sliderColors(t, config.Color, explicitColor, o.UI)
 	ratio := float32((*value - lo) / (hi - lo))
 	rtl := c.Direction() == ui.RightToLeft
 	focus := e.FocusVisible()
@@ -599,14 +686,20 @@ func Slider(c *ui.Context, t Theme, value *float64, o SliderOptions) ui.Element 
 			dot.Y = r.Y + (r.H-thumb)/2
 		}
 		p.Fill(filled, color, 999)
-		sliderThumb(p, dot, color, thumbColor, t.focusColor(config.Color), focus)
+		sliderThumb(p, dot, color, thumbColor, focusColor, focus)
 	})
 	if o.Tooltip {
 		position := ratio
+		padding := rootStyle.PaddingX.Value
+		if o.Vertical {
+			padding = rootStyle.PaddingY.Value
+		}
 		if (o.Vertical || rtl) != o.Inverted {
 			position = 1 - position
 		}
-		e.Children(func() { sliderValueTooltip(c, t, e.Focused(), fmt.Sprint(*value), position, o.Vertical, thumb) })
+		e.Children(func() {
+			sliderValueTooltip(c, t, e.Focused(), fmt.Sprint(*value), position, o.Vertical, thumb, padding)
+		})
 	}
 	if o.Style != nil {
 		o.Style(Root, e)

@@ -1,6 +1,38 @@
 package nui
 
-import "github.com/egoist/mygo/ui"
+import (
+	"strings"
+
+	"github.com/egoist/mygo/ui"
+)
+
+// Repeated characters cycle, while a longer prefix can keep the current match.
+func typeaheadIndex(prefix string, current, count int, label func(int) (string, bool)) int {
+	chars := []rune(prefix)
+	if len(chars) == 0 {
+		return -1
+	}
+	repeated := true
+	for _, ch := range chars[1:] {
+		if ch != chars[0] {
+			repeated = false
+			break
+		}
+	}
+	start := max(current, 0)
+	if repeated {
+		prefix = string(chars[0])
+		start = current + 1
+	}
+	for j := range count {
+		i := (start + j) % count
+		text, enabled := label(i)
+		if enabled && strings.HasPrefix(strings.ToLower(text), prefix) {
+			return i
+		}
+	}
+	return -1
+}
 
 // A popup's keyboard candidates belong to its data, independently of the rows
 // built by ui.List. Native SelectBase/ComboboxBase derive them from Item calls
@@ -100,7 +132,20 @@ func (s *optionListState[T]) move(key ui.Key) {
 	}
 }
 
-func optionList[T comparable](c *ui.Context, t Theme, s *optionListState[T], owner ui.Element, count int, option func(int) Option[T], height float32, component Component, decoration Decoration, size Size, chosen func(T) bool, choose func(T)) {
+func (s *optionListState[T]) moveWrapped(key ui.Key, loop bool) {
+	previous := s.active
+	s.move(key)
+	if loop && s.active == previous {
+		switch key {
+		case ui.KeyDown:
+			s.move(ui.KeyHome)
+		case ui.KeyUp:
+			s.move(ui.KeyEnd)
+		}
+	}
+}
+
+func optionList[T comparable](c *ui.Context, t Theme, s *optionListState[T], owner ui.Element, count int, option func(int) Option[T], height float32, component Component, decoration Decoration, size Size, selectedIcon *ui.SVG, highlightOnHover bool, chosen func(T) bool, choose func(T)) {
 	m := optionRecipe(t, size)
 	// Rows are a line and their padding; a description adds a line of the same size.
 	estimate := float32(count)*(m.Line+2*m.Pad) + float32(s.descriptions)*m.Line
@@ -115,13 +160,13 @@ func optionList[T comparable](c *ui.Context, t Theme, s *optionListState[T], own
 		}
 		optionStyle(item, t, component, decoration, size, highlighted)
 		item.HandleInput(func(ev ui.InputEvent) bool {
-			if ev.Kind == ui.InputPointerMove && !o.Disabled && (!s.active.Set || s.active.Value != o.Value) {
+			if highlightOnHover && ev.Kind == ui.InputPointerMove && !o.Disabled && (!s.active.Set || s.active.Value != o.Value) {
 				s.highlight(o.Value, false)
 				return true
 			}
 			return false
 		})
 		item.OnClick(func() { choose(o.Value) })
-		item.Children(func() { optionContent(r.Context, t, o, chosen(o.Value), highlighted, size) })
+		item.Children(func() { optionContent(r.Context, t, o, chosen(o.Value), highlighted, size, selectedIcon) })
 	})
 }

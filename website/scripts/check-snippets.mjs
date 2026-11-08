@@ -35,13 +35,35 @@ execFileSync(
     stdio: 'inherit'
   }
 )
+// There are over 3,000 configured programs. go vet type-checks each one against
+// the compiled library without compiling it, which is several times faster than
+// go test. These analyzers are the subset go test runs by default.
+const vetAnalyzers = [
+  'atomic',
+  'bools',
+  'buildtag',
+  'directive',
+  'errorsas',
+  'ifaceassert',
+  'nilfunc',
+  'printf',
+  'stdversion',
+  'stringintconv',
+  'tests'
+]
 execFileSync(
   'go',
-  ['test', '-p', '2', `./${path.relative(root, configured).replaceAll('\\', '/')}/...`],
+  [
+    'vet',
+    ...vetAnalyzers.map(name => `-${name}`),
+    `./${path.relative(root, configured).replaceAll('\\', '/')}/...`
+  ],
   {
     cwd: root,
     env,
     stdio: ['ignore', 'pipe', 'inherit']
   }
 )
-console.log('Every public field configuration and data example compiles against the public library')
+console.log(
+  'Every public field configuration and data example type-checks against the public library'
+)

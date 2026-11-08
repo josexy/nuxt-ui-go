@@ -4,7 +4,10 @@ package preview
 
 import (
 	"cmp"
+	"context"
+	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -50,13 +53,21 @@ func (s *themeExample) SetWindow(window *mygo.Window)       { s.Live.Window = wi
 func (s *themeExample) Configure(cfg showcase.Config) error { return nil }
 func (s *themeExample) Dispose()                            {}
 
-type containerExample struct{ Live showcase.Runtime }
+type containerExample struct {
+	Live  showcase.Runtime
+	Draft string
+}
 
 func (s *containerExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Container(c.Key("container"), t, showcase.Options(cfg, "ContainerOptions", nui.ContainerOptions{MaxWidth: nui.Set(float32(cfg.Number("width"))), Padding: nui.Set(float32(cfg.Number("padding")))}, c, t, &s.Live), func() {
-		nui.Card(c.Key("card"), t, nui.CardOptions{Title: "Contained content"}, func() { ui.Text(c, "Resize the browser to see the width constraint.") })
-	})
+	padding := nui.Optional[float32]{}
+	if !cfg.Bool("defaultPadding") {
+		padding = nui.Set(float32(cfg.Number("padding")))
+	}
+	nui.Container(c.Key("container"), t, showcase.Options(cfg, "ContainerOptions", nui.ContainerOptions{MaxWidth: nui.Set(float32(cfg.Number("width"))), Padding: padding}, c, t, &s.Live), func() {
+		ui.Box(c.Key("boundary")).FillWidth().Height(3).Background(t.Primary).Label("Content boundary")
+		nui.Input(c.Key("draft"), t, &s.Draft, nui.InputOptions{Label: "Container draft"}).FillWidth()
+	}).Label("Container preview")
 }
 func (s *containerExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *containerExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -94,7 +105,20 @@ type buttonExample struct {
 
 func (s *buttonExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Button(c.Key("button"), t, cfg.String("label"), showcase.Options(cfg, "ButtonOptions", nui.ButtonOptions{AccessibleLabel: cmp.Or(cfg.String("label"), "Example action"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "solid": nui.Solid, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "link": nui.LinkVariant}), Disabled: cfg.Bool("disabled"), Loading: cfg.Bool("loading"), Leading: showcase.Select(cfg, "icon", map[string]*ui.SVG{"none": nil, "check": lucide.Check(), "plus": lucide.Plus(), "search": lucide.Search(), "settings": lucide.Settings()})}, c, t, &s.Live)).AlignSelf(ui.Start).OnClick(func() { s.Clicks++ })
+	if cfg.Bool("reduceMotion") {
+		t.Motion.Reduce = true
+	}
+	if cfg.Bool("customNeutral") {
+		t.InvertedBackground = ui.Hex("#7e22ce")
+		if t.Dark {
+			t.InvertedBackground = ui.Hex("#c084fc")
+		}
+	}
+	var avatar *nui.AvatarOptions
+	if cfg.Bool("avatar") {
+		avatar = &nui.AvatarOptions{Alt: "Ada Lovelace"}
+	}
+	nui.Button(c.Key("button"), t, cfg.String("label"), showcase.Options(cfg, "ButtonOptions", nui.ButtonOptions{AccessibleLabel: cmp.Or(cfg.String("label"), "Example action"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "solid": nui.Solid, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "link": nui.LinkVariant}), Disabled: cfg.Bool("disabled"), Loading: cfg.Bool("loading"), Leading: showcase.Select(cfg, "icon", map[string]*ui.SVG{"none": nil, "check": lucide.Check(), "plus": lucide.Plus(), "search": lucide.Search(), "settings": lucide.Settings()}), Avatar: avatar, LoadingTrailing: cfg.Bool("loadingTrailing")}, c, t, &s.Live)).AlignSelf(ui.Start).OnClick(func() { s.Clicks++ })
 	ui.Textf(c, "Clicked %d times", s.Clicks)
 }
 func (s *buttonExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
@@ -121,32 +145,76 @@ type badgeExample struct{ Live showcase.Runtime }
 
 func (s *badgeExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Badge(c.Key("badge"), t, cfg.String("label"), showcase.Options(cfg, "BadgeOptions", nui.BadgeOptions{Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "solid": nui.Solid, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle}), Leading: showcase.Select(cfg, "icon", map[string]*ui.SVG{"none": nil, "check": lucide.Check(), "plus": lucide.Plus(), "search": lucide.Search(), "settings": lucide.Settings()}), Square: cfg.Bool("square")}, c, t, &s.Live)).AlignSelf(ui.Start)
+	if cfg.Bool("customNeutral") {
+		t.InvertedBackground = ui.Hex("#7e22ce")
+		if t.Dark {
+			t.InvertedBackground = ui.Hex("#c084fc")
+		}
+	}
+	var avatar *nui.AvatarOptions
+	if cfg.Bool("avatar") {
+		avatar = &nui.AvatarOptions{Alt: "Ada Lovelace"}
+	}
+	nui.Badge(c.Key("badge"), t, cfg.String("label"), showcase.Options(cfg, "BadgeOptions", nui.BadgeOptions{Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "solid": nui.Solid, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle}), Leading: showcase.Select(cfg, "icon", map[string]*ui.SVG{"none": nil, "check": lucide.Check(), "plus": lucide.Plus(), "search": lucide.Search(), "settings": lucide.Settings()}), Avatar: avatar, Square: cfg.Bool("square")}, c, t, &s.Live)).AlignSelf(ui.Start).Label("Badge preview")
 }
 func (s *badgeExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *badgeExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
 func (s *badgeExample) Configure(cfg showcase.Config) error { return nil }
 func (s *badgeExample) Dispose()                            {}
 
-type cardExample struct{ Live showcase.Runtime }
+type cardExample struct {
+	Live  showcase.Runtime
+	Draft string
+}
 
 func (s *cardExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Card(c.Key("card"), t, showcase.Options(cfg, "CardOptions", nui.CardOptions{Title: cfg.String("label"), Description: "A native Go component", Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "solid": nui.Solid, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle})}, c, t, &s.Live), func() {
+	nui.Card(c.Key("card"), t, showcase.Options(cfg, "CardOptions", nui.CardOptions{Title: cfg.String("label"), Description: cfg.String("description"), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "solid": nui.Solid, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle})}, c, t, &s.Live), func() {
 		ui.Text(c, "A focused space for related content.")
-		nui.Button(c.Key("action"), t, "Continue", nui.ButtonOptions{})
+		nui.Input(c.Key("draft"), t, &s.Draft, nui.InputOptions{Label: "Card draft"}).FillWidth()
 	})
+	ui.Text(c, "Draft: "+s.Draft)
 }
 func (s *cardExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *cardExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
 func (s *cardExample) Configure(cfg showcase.Config) error { return nil }
 func (s *cardExample) Dispose()                            {}
 
-type alertExample struct{ Live showcase.Runtime }
+type alertExample struct {
+	Live             showcase.Runtime
+	Hidden           bool
+	Reviewed, Closed int
+}
 
 func (s *alertExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Alert(c.Key("alert"), t, showcase.Options(cfg, "AlertOptions", nui.AlertOptions{Title: cfg.String("label"), Description: "Your changes are ready to review.", Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "solid": nui.Solid, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle}), Icon: lucide.Info(), Orientation: nui.Set(showcase.Select(cfg, "orientation", map[string]nui.Orientation{"horizontal": nui.Horizontal, "vertical": nui.Vertical}))}, c, t, &s.Live))
+	if cfg.Bool("customNeutral") {
+		t.InvertedBackground = ui.Hex("#7e22ce")
+		if t.Dark {
+			t.InvertedBackground = ui.Hex("#c084fc")
+		}
+	}
+	var avatar *nui.AvatarOptions
+	if cfg.Bool("avatar") {
+		avatar = &nui.AvatarOptions{Alt: "Ada Lovelace"}
+	}
+	var closeOptions *nui.ButtonOptions
+	var onClose func()
+	if cfg.Bool("closable") {
+		closeOptions = &nui.ButtonOptions{Disabled: cfg.Bool("closeDisabled")}
+		onClose = func() { s.Hidden = true; s.Closed++ }
+	}
+	var closeIcon *ui.SVG
+	if cfg.Bool("customCloseIcon") {
+		closeIcon = lucide.ArrowRight()
+	}
+	nui.Button(c.Key("reopen"), t, "Reopen notice", nui.ButtonOptions{Variant: nui.Outline, Size: nui.XS}).OnClick(func() { s.Hidden = false })
+	if !s.Hidden {
+		nui.Alert(c.Key("alert"), t, showcase.Options(cfg, "AlertOptions", nui.AlertOptions{Title: cfg.String("label"), Description: cfg.String("description"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "solid": nui.Solid, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle}), Icon: lucide.Info(), Avatar: avatar, Orientation: nui.Set(showcase.Select(cfg, "orientation", map[string]nui.Orientation{"horizontal": nui.Horizontal, "vertical": nui.Vertical})), Close: closeOptions, CloseIcon: closeIcon, OnClose: onClose, Actions: func() {
+			nui.Button(c.Key("review"), t, "Review changes", nui.ButtonOptions{Size: nui.XS, Color: nui.Neutral, Variant: nui.Subtle}).OnClick(func() { s.Reviewed++ })
+		}}, c, t, &s.Live))
+	}
+	ui.Textf(c, "Reviewed %d times; closed %d times", s.Reviewed, s.Closed)
 }
 func (s *alertExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *alertExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -157,40 +225,97 @@ type avatarExample struct{ Live showcase.Runtime }
 
 func (s *avatarExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Avatar(c.Key("avatar"), t, showcase.Options(cfg, "AvatarOptions", nui.AvatarOptions{Alt: cfg.String("label"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL})}, c, t, &s.Live)).AlignSelf(ui.Start)
+	nui.Chip(c.Key("chip"), t, nui.ChipOptions{Hidden: !cfg.Bool("chip"), Inset: true, Color: nui.Success}, func() {
+		nui.Avatar(c.Key("avatar"), t, showcase.Options(cfg, "AvatarOptions", nui.AvatarOptions{Alt: cfg.String("label"), Text: cfg.String("text"), Icon: showcase.Select(cfg, "icon", map[string]*ui.SVG{"none": nil, "user": lucide.UserRound()}), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Style: func(slot nui.Slot, e ui.Element) {
+			if slot == nui.Root && cfg.Bool("enlarge") {
+				e.Size(64, 64)
+			}
+		}}, c, t, &s.Live))
+	}).AlignSelf(ui.Start)
 }
 func (s *avatarExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *avatarExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
 func (s *avatarExample) Configure(cfg showcase.Config) error { return nil }
 func (s *avatarExample) Dispose()                            {}
 
-type avatar_groupExample struct{ Live showcase.Runtime }
+type avatar_groupExample struct {
+	Live    showcase.Runtime
+	Reverse bool
+}
 
 func (s *avatar_groupExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.AvatarGroup(c.Key("avatars"), t, showcase.Options(cfg, "AvatarGroupItems", []nui.AvatarItem{{ID: "ada", Avatar: nui.AvatarOptions{Alt: "Ada Lovelace"}}, {ID: "grace", Avatar: nui.AvatarOptions{Alt: "Grace Hopper"}}, {ID: "lin", Avatar: nui.AvatarOptions{Alt: "Lin Chen"}}}, c, t, &s.Live), showcase.Options(cfg, "AvatarGroupOptions", nui.AvatarGroupOptions{Max: nui.Set(cfg.Int("maximum")), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral})}, c, t, &s.Live))
+	items := showcase.Options(cfg, "AvatarGroupItems", []nui.AvatarItem{{ID: "ada", Avatar: nui.AvatarOptions{Alt: "Ada Lovelace"}}, {ID: "grace", Avatar: nui.AvatarOptions{Alt: "Grace Hopper"}}, {ID: "lin", Avatar: nui.AvatarOptions{Alt: "Lin Chen"}}}, c, t, &s.Live)
+	if s.Reverse {
+		for i, j := 0, len(items)-1; i < j; i, j = i+1, j-1 {
+			items[i], items[j] = items[j], items[i]
+		}
+	}
+	var styles nui.Styles
+	if cfg.Bool("memberStyle") {
+		styles = nui.Styles{nui.Item: {Radius: nui.Set(float32(8)), BorderColor: nui.Set(t.Primary), BorderWidth: nui.Set(float32(2))}}
+	}
+	nui.AvatarGroup(c.Key("avatars"), t, items, showcase.Options(cfg, "AvatarGroupOptions", nui.AvatarGroupOptions{Max: nui.Set(cfg.Int("maximum")), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), UI: styles}, c, t, &s.Live))
+	nui.Button(c.Key("reverse"), t, "Reverse avatars", nui.ButtonOptions{Size: nui.XS, Variant: nui.Outline}).OnClick(func() { s.Reverse = !s.Reverse })
 }
 func (s *avatar_groupExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *avatar_groupExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
 func (s *avatar_groupExample) Configure(cfg showcase.Config) error { return nil }
 func (s *avatar_groupExample) Dispose()                            {}
 
-type chipExample struct{ Live showcase.Runtime }
+type chipExample struct {
+	Live  showcase.Runtime
+	Count int
+}
 
 func (s *chipExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Chip(c.Key("chip"), t, showcase.Options(cfg, "ChipOptions", nui.ChipOptions{Text: cfg.String("label"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Hidden: cfg.Bool("hidden")}, c, t, &s.Live), func() { nui.Avatar(c.Key("avatar"), t, nui.AvatarOptions{Alt: "Ada Lovelace", Size: nui.XL}) }).AlignSelf(ui.Start)
+	if cfg.Bool("customNeutral") {
+		t.InvertedBackground = ui.Hex("#7e22ce")
+	}
+	var content func()
+	if !cfg.Bool("standalone") {
+		content = func() {
+			nui.Button(c.Key("host"), t, "Notifications", nui.ButtonOptions{Variant: nui.Outline, AccessibleLabel: "Notifications " + cfg.String("label")}).OnClick(func() { s.Count++ })
+		}
+	}
+	var styles nui.Styles
+	if cfg.Bool("styledText") {
+		styles = nui.Styles{nui.Indicator: {Font: nui.Set(t.MonoFont), FontSize: nui.Set(float32(14) * t.TextScale), PaddingX: nui.Set(float32(4))}}
+	}
+	nui.Chip(c.Key("chip"), t, showcase.Options(cfg, "ChipOptions", nui.ChipOptions{Text: cfg.String("label"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Hidden: cfg.Bool("hidden"), Position: showcase.Select(cfg, "position", map[string]nui.ChipPosition{"top-right": nui.TopRight, "top-left": nui.TopLeft, "bottom-right": nui.BottomRight, "bottom-left": nui.BottomLeft}), Inset: cfg.Bool("inset"), UI: styles, Style: func(slot nui.Slot, e ui.Element) {
+		if slot == nui.Indicator && cfg.Bool("styledText") {
+			e.Height(18 * t.TextScale)
+		}
+	}}, c, t, &s.Live), content).AlignSelf(ui.Start)
+	ui.Textf(c, "Host actions: %d", s.Count)
 }
 func (s *chipExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *chipExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
 func (s *chipExample) Configure(cfg showcase.Config) error { return nil }
 func (s *chipExample) Dispose()                            {}
 
-type separatorExample struct{ Live showcase.Runtime }
+type separatorExample struct {
+	Live  showcase.Runtime
+	Draft string
+}
 
 func (s *separatorExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Separator(c.Key("separator"), t, showcase.Options(cfg, "SeparatorOptions", nui.SeparatorOptions{Label: cfg.String("label"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Orientation: showcase.Select(cfg, "orientation", map[string]nui.Orientation{"horizontal": nui.Horizontal, "vertical": nui.Vertical})}, c, t, &s.Live))
+	var avatar *nui.AvatarOptions
+	if cfg.Bool("avatar") {
+		avatar = &nui.AvatarOptions{Alt: "Separator member"}
+	}
+	var content func()
+	if cfg.Bool("editor") {
+		content = func() { nui.Input(c.Key("draft"), t, &s.Draft, nui.InputOptions{Label: "Separator draft"}).Width(160) }
+	}
+	options := showcase.Options(cfg, "SeparatorOptions", nui.SeparatorOptions{Label: cfg.String("label"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Orientation: showcase.Select(cfg, "orientation", map[string]nui.Orientation{"horizontal": nui.Horizontal, "vertical": nui.Vertical}), Position: showcase.Select(cfg, "position", map[string]nui.SeparatorPosition{"center": nui.SeparatorCenter, "start": nui.SeparatorStart, "end": nui.SeparatorEnd}), Type: showcase.Select(cfg, "lineType", map[string]nui.SeparatorType{"solid": nui.SeparatorSolid, "dashed": nui.SeparatorDashed, "dotted": nui.SeparatorDotted}), Avatar: avatar, Content: content}, c, t, &s.Live)
+	part := nui.Separator(c.Key("separator"), t, options)
+	if options.Vertical || options.Orientation == nui.Vertical {
+		part.Width(180).Height(160)
+	}
+	ui.Text(c, "Draft: "+s.Draft)
 }
 func (s *separatorExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *separatorExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -201,7 +326,13 @@ type kbdExample struct{ Live showcase.Runtime }
 
 func (s *kbdExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Kbd(c.Key("shortcut"), t, showcase.Options(cfg, "KbdItems", []string{"Ctrl", "K"}, c, t, &s.Live), showcase.Options(cfg, "KbdOptions", nui.KbdOptions{Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "solid": nui.Solid, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle})}, c, t, &s.Live)).AlignSelf(ui.Start)
+	if cfg.Bool("customNeutral") {
+		t.InvertedBackground = ui.Hex("#7e22ce")
+		if t.Dark {
+			t.InvertedBackground = ui.Hex("#c084fc")
+		}
+	}
+	nui.Kbd(c.Key("shortcut"), t, showcase.Options(cfg, "KbdItems", []string{"CmdOrCtrl", "K"}, c, t, &s.Live), showcase.Options(cfg, "KbdOptions", nui.KbdOptions{Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "solid": nui.Solid, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle}), Platform: showcase.Select(cfg, "platform", map[string]string{"native": "", "windows": "windows", "macos": "darwin", "linux": "linux"})}, c, t, &s.Live)).AlignSelf(ui.Start)
 }
 func (s *kbdExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *kbdExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -212,7 +343,11 @@ type skeletonExample struct{ Live showcase.Runtime }
 
 func (s *skeletonExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Skeleton(c.Key("skeleton"), t, showcase.Options(cfg, "SkeletonOptions", nui.SkeletonOptions{Width: nui.Set(float32(cfg.Number("width"))), Height: nui.Set(float32(cfg.Number("height"))), Animate: cfg.OptionalBool("animate")}, c, t, &s.Live))
+	nui.Skeleton(c.Key("skeleton"), t, showcase.Options(cfg, "SkeletonOptions", nui.SkeletonOptions{Width: nui.Set(float32(cfg.Number("width"))), Height: nui.Set(float32(cfg.Number("height"))), Animate: cfg.OptionalBool("animate"), Decoration: nui.Decoration{UI: nui.Styles{nui.Root: {Radius: nui.Set(float32(cfg.Number("radius")))}}, Style: func(_ nui.Slot, e ui.Element) {
+		if cfg.Bool("square") {
+			e.Radius(0)
+		}
+	}}}, c, t, &s.Live))
 }
 func (s *skeletonExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *skeletonExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -223,7 +358,13 @@ type progressExample struct{ Live showcase.Runtime }
 
 func (s *progressExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Progress(c.Key("progress"), t, cfg.Number("value"), showcase.Options(cfg, "ProgressOptions", nui.ProgressOptions{Label: "Progress", Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Indeterminate: cfg.Bool("indeterminate"), Orientation: showcase.Select(cfg, "orientation", map[string]nui.Orientation{"horizontal": nui.Horizontal, "vertical": nui.Vertical})}, c, t, &s.Live))
+	if cfg.Bool("customNeutral") {
+		t.InvertedBackground = ui.Hex("#7e22ce")
+		if t.Dark {
+			t.InvertedBackground = ui.Hex("#c084fc")
+		}
+	}
+	nui.Progress(c.Key("progress"), t, cfg.Number("value"), showcase.Options(cfg, "ProgressOptions", nui.ProgressOptions{Label: "Progress", Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Max: nui.Set(float64(cfg.Number("max"))), Indeterminate: cfg.Bool("indeterminate"), Orientation: showcase.Select(cfg, "orientation", map[string]nui.Orientation{"horizontal": nui.Horizontal, "vertical": nui.Vertical}), Inverted: cfg.Bool("inverted"), Animate: cfg.OptionalBool("animate")}, c, t, &s.Live))
 }
 func (s *progressExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *progressExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -234,29 +375,87 @@ type progress_groupExample struct{ Live showcase.Runtime }
 
 func (s *progress_groupExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.ProgressGroup(c.Key("progress"), t, showcase.Options(cfg, "ProgressGroupItems", []nui.ProgressSegment{{ID: "code", Label: "Code", Value: 45, Color: nui.Primary}, {ID: "tests", Label: "Tests", Value: 30, Color: nui.Info}, {ID: "docs", Label: "Docs", Value: 15, Color: nui.Warning}}, c, t, &s.Live), showcase.Options(cfg, "ProgressGroupOptions", nui.ProgressGroupOptions{Label: "Project progress", Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), HideLegend: cfg.Bool("hideLegend"), Orientation: showcase.Select(cfg, "orientation", map[string]nui.Orientation{"horizontal": nui.Horizontal, "vertical": nui.Vertical}), Height: 160}, c, t, &s.Live))
+	if cfg.Bool("customNeutral") {
+		t.InvertedBackground = ui.Hex("#7e22ce")
+		if t.Dark {
+			t.InvertedBackground = ui.Hex("#c084fc")
+		}
+	}
+	var codeIcon, testIcon, docIcon *ui.SVG
+	if cfg.Bool("icons") {
+		codeIcon, testIcon, docIcon = lucide.Settings(), lucide.Check(), lucide.Folder()
+	}
+	var segmentUI nui.Styles
+	if cfg.Bool("customSegment") {
+		segmentUI = nui.Styles{nui.Segment: {Background: nui.Set(ui.Hex("#f97316"))}}
+	}
+	nui.ProgressGroup(c.Key("progress"), t, showcase.Options(cfg, "ProgressGroupItems", []nui.ProgressSegment{{ID: "code", Label: "Code", Value: 45, Icon: codeIcon}, {ID: "tests", Label: "Tests", Value: 30, Color: nui.Info, Icon: testIcon, UI: segmentUI}, {ID: "docs", Label: "Docs", Value: 15, Color: nui.Warning, Icon: docIcon}}, c, t, &s.Live), showcase.Options(cfg, "ProgressGroupOptions", nui.ProgressGroupOptions{Label: "Project progress", Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Max: nui.Set(float64(cfg.Number("max"))), HideLegend: cfg.Bool("hideLegend"), Orientation: showcase.Select(cfg, "orientation", map[string]nui.Orientation{"horizontal": nui.Horizontal, "vertical": nui.Vertical}), Height: 160}, c, t, &s.Live))
 }
 func (s *progress_groupExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *progress_groupExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
 func (s *progress_groupExample) Configure(cfg showcase.Config) error { return nil }
 func (s *progress_groupExample) Dispose()                            {}
 
-type emptyExample struct{ Live showcase.Runtime }
+type emptyExample struct {
+	Live    showcase.Runtime
+	Created int
+}
 
 func (s *emptyExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Empty(c.Key("empty"), t, showcase.Options(cfg, "EmptyOptions", nui.EmptyOptions{Title: cfg.String("label"), Description: "Create a project to get started.", Icon: lucide.Folder(), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "solid": nui.Solid, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "none": nui.None}), Loading: cfg.Bool("loading"), Actions: func() { nui.Button(c.Key("create"), t, "Create project", nui.ButtonOptions{}) }}, c, t, &s.Live))
+	icon := lucide.Folder()
+	var avatar *nui.AvatarOptions
+	if cfg.Bool("avatar") {
+		icon = nil
+		avatar = &nui.AvatarOptions{Text: "NU", Alt: "Empty preview avatar"}
+	}
+	var header, body func()
+	if cfg.Bool("customHeader") {
+		header = func() { ui.Text(c, "Custom header content") }
+	}
+	if cfg.Bool("customBody") {
+		body = func() {
+			nui.Button(c.Key("custom"), t, "Complete custom body", nui.ButtonOptions{}).OnClick(func() { s.Created++ })
+		}
+	}
+	var parts nui.Styles
+	if cfg.Bool("loadingColor") {
+		parts = nui.Styles{nui.Leading: {Foreground: nui.Set(t.Error)}}
+	}
+	nui.Empty(c.Key("empty"), t, showcase.Options(cfg, "EmptyOptions", nui.EmptyOptions{Title: cfg.String("label"), Description: "Create a project to get started.", Icon: icon, Avatar: avatar, Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "solid": nui.Solid, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "none": nui.None}), Loading: cfg.Bool("loading"), Header: header, Body: body, Actions: func() {
+		nui.Button(c.Key("create"), t, "Create project", nui.ButtonOptions{}).OnClick(func() { s.Created++ })
+	}, Footer: func() { ui.Textf(c, "Created: %d", s.Created) }, Decoration: nui.Decoration{UI: parts}}, c, t, &s.Live))
 }
 func (s *emptyExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *emptyExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
 func (s *emptyExample) Configure(cfg showcase.Config) error { return nil }
 func (s *emptyExample) Dispose()                            {}
 
-type userExample struct{ Live showcase.Runtime }
+type userExample struct {
+	Live      showcase.Runtime
+	Activated int
+}
 
 func (s *userExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.User(c.Key("user"), t, showcase.Options(cfg, "UserOptions", nui.UserOptions{Name: cfg.String("label"), Description: "Maintainer", Avatar: nui.AvatarOptions{Alt: cfg.String("label")}, Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Vertical: cfg.Bool("vertical"), Disabled: cfg.Bool("disabled")}, c, t, &s.Live))
+	avatar := nui.AvatarOptions{}
+	if cfg.Bool("avatar") {
+		avatar.Alt = cfg.String("label")
+	}
+	var chip *nui.ChipOptions
+	if cfg.Bool("chip") {
+		chip = &nui.ChipOptions{Color: nui.Success, Text: "3"}
+	}
+	var activate func()
+	if cfg.Bool("interactive") {
+		activate = func() { s.Activated++ }
+	}
+	var body func()
+	if cfg.Bool("customBody") {
+		body = func() { ui.Text(c, "Custom user content"); ui.Text(c, cfg.String("label")) }
+	}
+	nui.User(c.Key("user"), t, showcase.Options(cfg, "UserOptions", nui.UserOptions{Name: cfg.String("label"), Description: "Maintainer", Avatar: avatar, Chip: chip, Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Vertical: cfg.Bool("vertical"), Disabled: cfg.Bool("disabled"), OnActivate: activate, Body: body}, c, t, &s.Live))
+	ui.Textf(c, "Activated: %d", s.Activated)
 }
 func (s *userExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *userExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -264,14 +463,30 @@ func (s *userExample) Configure(cfg showcase.Config) error { return nil }
 func (s *userExample) Dispose()                            {}
 
 type inputExample struct {
-	Live  showcase.Runtime
-	Value string
+	Live                     showcase.Runtime
+	Value                    string
+	Changes, Submits, Clears int
 }
 
 func (s *inputExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Input(c.Key("input"), t, &s.Value, showcase.Options(cfg, "InputOptions", nui.InputOptions{Label: cfg.String("label"), Placeholder: cfg.String("placeholder"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Disabled: cfg.Bool("disabled"), ReadOnly: cfg.Bool("readOnly"), Loading: cfg.Bool("loading")}, c, t, &s.Live))
+	if cfg.Bool("customNeutral") {
+		t.InvertedBackground = ui.Hex("#7e22ce")
+		if t.Dark {
+			t.InvertedBackground = ui.Hex("#c084fc")
+		}
+	}
+	var avatar *nui.AvatarOptions
+	if cfg.Bool("avatar") {
+		avatar = &nui.AvatarOptions{Alt: "Input preview avatar", Text: "AL"}
+	}
+	var parts nui.Styles
+	if cfg.Bool("loadingColor") {
+		parts = nui.Styles{nui.Leading: {Foreground: nui.Set(t.Error)}, nui.Trailing: {Foreground: nui.Set(t.Error)}}
+	}
+	nui.Input(c.Key("input"), t, &s.Value, showcase.Options(cfg, "InputOptions", nui.InputOptions{Label: cfg.String("label"), Placeholder: cfg.String("placeholder"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Disabled: cfg.Bool("disabled"), ReadOnly: cfg.Bool("readOnly"), Loading: cfg.Bool("loading"), LoadingTrailing: cfg.Bool("loadingTrailing"), Avatar: avatar, Clearable: cfg.Bool("clearable"), Highlight: cfg.Bool("highlight"), UI: parts, OnChange: func(string) { s.Changes++ }, OnSubmit: func(string) { s.Submits++ }, OnClear: func() { s.Clears++ }}, c, t, &s.Live)).FillWidth()
 	ui.Textf(c, "Value: %s", s.Value)
+	ui.Textf(c, "Changes: %d · Submits: %d · Clears: %d", s.Changes, s.Submits, s.Clears)
 }
 func (s *inputExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *inputExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -279,13 +494,29 @@ func (s *inputExample) Configure(cfg showcase.Config) error { return nil }
 func (s *inputExample) Dispose()                            {}
 
 type textareaExample struct {
-	Live  showcase.Runtime
-	Value string
+	Live            showcase.Runtime
+	Value           string
+	Changes, Clears int
 }
 
 func (s *textareaExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Textarea(c.Key("textarea"), t, &s.Value, showcase.Options(cfg, "TextareaOptions", nui.TextareaOptions{InputOptions: nui.InputOptions{Label: cfg.String("label"), Placeholder: cfg.String("placeholder"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Disabled: cfg.Bool("disabled"), ReadOnly: cfg.Bool("readOnly"), Loading: cfg.Bool("loading")}, Rows: cfg.Int("rows"), AutoResize: cfg.Bool("autoResize")}, c, t, &s.Live))
+	if cfg.Bool("customNeutral") {
+		t.InvertedBackground = ui.Hex("#7e22ce")
+		if t.Dark {
+			t.InvertedBackground = ui.Hex("#c084fc")
+		}
+	}
+	var avatar *nui.AvatarOptions
+	if cfg.Bool("avatar") {
+		avatar = &nui.AvatarOptions{Alt: "Textarea preview avatar", Text: "AL"}
+	}
+	var parts nui.Styles
+	if cfg.Bool("loadingColor") {
+		parts = nui.Styles{nui.Leading: {Foreground: nui.Set(t.Error)}, nui.Trailing: {Foreground: nui.Set(t.Error)}}
+	}
+	nui.Textarea(c.Key("textarea"), t, &s.Value, showcase.Options(cfg, "TextareaOptions", nui.TextareaOptions{InputOptions: nui.InputOptions{Label: cfg.String("label"), Placeholder: cfg.String("placeholder"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Disabled: cfg.Bool("disabled"), ReadOnly: cfg.Bool("readOnly"), Loading: cfg.Bool("loading"), LoadingTrailing: cfg.Bool("loadingTrailing"), Avatar: avatar, Clearable: cfg.Bool("clearable"), Highlight: cfg.Bool("highlight"), UI: parts, OnChange: func(string) { s.Changes++ }, OnClear: func() { s.Clears++ }}, Rows: cfg.Int("rows"), MaxRows: cfg.Int("maxRows"), AutoResize: cfg.Bool("autoResize")}, c, t, &s.Live)).FillWidth()
+	ui.Textf(c, "Changes: %d · Clears: %d", s.Changes, s.Clears)
 }
 func (s *textareaExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *textareaExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -299,9 +530,18 @@ type form_fieldExample struct {
 
 func (s *form_fieldExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.FormField(c.Key("field"), t, showcase.Options(cfg, "FormFieldOptions", nui.FormFieldOptions{Label: cfg.String("label"), Help: "Use a name your team will recognize.", Required: cfg.Bool("required"), Disabled: cfg.Bool("disabled"), Error: cfg.String("error"), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL})}, c, t, &s.Live), func(ft nui.Theme) {
-		nui.Input(c.Key("input"), ft, &s.Value, nui.InputOptions{Placeholder: "Project name"})
-	})
+	orientation := nui.Vertical
+	if cfg.Bool("horizontal") {
+		orientation = nui.Horizontal
+	}
+	var parts nui.Styles
+	if cfg.Bool("regionStyles") {
+		parts = nui.Styles{nui.Header: {PaddingX: nui.Set(float32(8)), Background: nui.Set(t.MutedBackground)}, nui.Body: {PaddingX: nui.Set(float32(8)), Background: nui.Set(t.MutedBackground)}}
+	}
+	nui.FormField(c.Key("field"), t, showcase.Options(cfg, "FormFieldOptions", nui.FormFieldOptions{Label: cfg.String("label"), Description: cfg.String("description"), Hint: cfg.String("hint"), Help: cfg.String("help"), Required: cfg.Bool("required"), Disabled: cfg.Bool("disabled"), Error: cfg.String("error"), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Orientation: nui.Set(orientation), Decoration: nui.Decoration{UI: parts}}, c, t, &s.Live), func(ft nui.Theme) {
+		nui.Input(c.Key("input"), ft, &s.Value, nui.InputOptions{Label: cmp.Or(cfg.String("label"), "Project input"), Placeholder: "Project name"}).Width(240)
+	}).FillWidth()
+	ui.Text(c, "Value: "+s.Value)
 }
 func (s *form_fieldExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *form_fieldExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -309,17 +549,23 @@ func (s *form_fieldExample) Configure(cfg showcase.Config) error { return nil }
 func (s *form_fieldExample) Dispose()                            {}
 
 type field_groupExample struct {
-	Live  showcase.Runtime
-	Value string
+	Live   showcase.Runtime
+	Value  string
+	Result string
 }
 
 func (s *field_groupExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.FieldGroup(c.Key("group"), t, showcase.Options(cfg, "FieldGroupOptions", nui.FieldGroupOptions{Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Disabled: cfg.Bool("disabled"), Vertical: cfg.Bool("vertical")}, c, t, &s.Live), showcase.Options(cfg, "FieldGroupItems", []nui.FieldGroupItem{{ID: "input", Build: func(c *ui.Context, t nui.Theme) ui.Element {
-		return nui.Input(c.Key("input"), t, &s.Value, nui.InputOptions{Label: "Search", Placeholder: "Search projects"})
-	}}, {ID: "button", Build: func(c *ui.Context, t nui.Theme) ui.Element {
-		return nui.Button(c.Key("search"), t, "Search", nui.ButtonOptions{Leading: lucide.Search()})
-	}}}, c, t, &s.Live))
+	items := showcase.Options(cfg, "FieldGroupItems", []nui.FieldGroupItem{{ID: "input", Build: func(c *ui.Context, inner nui.Theme) ui.Element {
+		return nui.Input(c, inner, &s.Value, nui.InputOptions{Label: "Search text", Placeholder: "Search"}).Grow(1).MinWidth(0)
+	}}, {ID: "button", Build: func(c *ui.Context, inner nui.Theme) ui.Element {
+		return nui.Button(c, inner, "Search", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { s.Result = "Submitted: " + s.Value })
+	}}}, c, t, &s.Live)
+	if cfg.Bool("reversed") {
+		items[0], items[1] = items[1], items[0]
+	}
+	nui.FieldGroup(c.Key("group"), t, showcase.Options(cfg, "FieldGroupOptions", nui.FieldGroupOptions{Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Disabled: cfg.Bool("disabled"), Vertical: cfg.Bool("vertical")}, c, t, &s.Live), items).FillWidth()
+	ui.Text(c, s.Result)
 }
 func (s *field_groupExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *field_groupExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -327,16 +573,26 @@ func (s *field_groupExample) Configure(cfg showcase.Config) error { return nil }
 func (s *field_groupExample) Dispose()                            {}
 
 type checkboxExample struct {
-	Live  showcase.Runtime
-	Value bool
-	Mixed nui.CheckState
+	Live                  showcase.Runtime
+	Value                 bool
+	Mixed                 nui.CheckState
+	Changes, MixedChanges int
 }
 
 func (s *checkboxExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Checkbox(c.Key("toggle"), t, &s.Value, showcase.Options(cfg, "ToggleOptions", nui.CheckboxOptions{Label: cfg.String("label"), Description: "Updates are saved locally in this example.", Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Disabled: cfg.Bool("disabled"), Loading: cfg.Bool("loading")}, c, t, &s.Live))
+	var checkedIcon, mixedIcon *ui.SVG
+	if cfg.Bool("customIcons") {
+		checkedIcon = lucide.Heart()
+		mixedIcon = lucide.Plus()
+	}
+	nui.FormField(c.Key("field"), t, nui.FormFieldOptions{Label: "Notification permission", Required: cfg.Bool("required"), Help: "Applies to this workspace"}, func(field nui.Theme) {
+		nui.Checkbox(c.Key("toggle"), field, &s.Value, showcase.Options(cfg, "ToggleOptions", nui.CheckboxOptions{Label: cfg.String("label"), Description: "Updates are saved locally in this example.", Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Disabled: cfg.Bool("disabled"), Loading: cfg.Bool("loading"), Variant: showcase.Select(cfg, "variant", map[string]nui.ChoiceVariant{"list": nui.ChoiceList, "card": nui.ChoiceCard, "table": nui.ChoiceTable}), Indicator: showcase.Select(cfg, "indicator", map[string]nui.IndicatorPlacement{"start": nui.IndicatorStart, "end": nui.IndicatorEnd, "hidden": nui.IndicatorHidden}), CheckedIcon: checkedIcon, OnChange: func(bool) { s.Changes++ }}, c, t, &s.Live))
+	})
 	ui.Textf(c, "Enabled: %t", s.Value)
-	nui.CheckboxTri(c.Key("tri"), t, &s.Mixed, showcase.Options(cfg, "CheckboxTriOptions", nui.CheckboxTriOptions{CheckboxOptions: nui.CheckboxOptions{Label: "Mixed selection", Disabled: cfg.Bool("disabled")}}, c, t, &s.Live))
+	nui.CheckboxTri(c.Key("tri"), t, &s.Mixed, showcase.Options(cfg, "CheckboxTriOptions", nui.CheckboxTriOptions{CheckboxOptions: nui.CheckboxOptions{Label: "Mixed selection", Disabled: cfg.Bool("disabled"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.ChoiceVariant{"list": nui.ChoiceList, "card": nui.ChoiceCard, "table": nui.ChoiceTable}), Indicator: showcase.Select(cfg, "indicator", map[string]nui.IndicatorPlacement{"start": nui.IndicatorStart, "end": nui.IndicatorEnd, "hidden": nui.IndicatorHidden}), CheckedIcon: checkedIcon}, IndeterminateIcon: mixedIcon, OnStateChange: func(nui.CheckState) { s.MixedChanges++ }}, c, t, &s.Live))
+	nui.Button(c.Key("reset-mixed"), t, "Reset mixed state", nui.ButtonOptions{Variant: nui.Outline, Disabled: cfg.Bool("disabled")}).OnClick(func() { s.Mixed = nui.Indeterminate })
+	ui.Textf(c, "Changes: %d / %d", s.Changes, s.MixedChanges)
 }
 func (s *checkboxExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *checkboxExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -344,14 +600,24 @@ func (s *checkboxExample) Configure(cfg showcase.Config) error { return nil }
 func (s *checkboxExample) Dispose()                            {}
 
 type switchExample struct {
-	Live  showcase.Runtime
-	Value bool
+	Live    showcase.Runtime
+	Value   bool
+	Changes int
 }
 
 func (s *switchExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Switch(c.Key("toggle"), t, &s.Value, showcase.Options(cfg, "ToggleOptions", nui.SwitchOptions{Label: cfg.String("label"), Description: "Updates are saved locally in this example.", Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Disabled: cfg.Bool("disabled"), Loading: cfg.Bool("loading")}, c, t, &s.Live))
+	var checkedIcon, uncheckedIcon, loadingIcon *ui.SVG
+	if cfg.Bool("customIcons") {
+		checkedIcon = lucide.Check()
+		uncheckedIcon = lucide.X()
+		loadingIcon = lucide.RefreshCw()
+	}
+	nui.FormField(c.Key("field"), t, nui.FormFieldOptions{Label: "Sync policy", Help: "Applies to this workspace"}, func(field nui.Theme) {
+		nui.Switch(c.Key("toggle"), field, &s.Value, showcase.Options(cfg, "ToggleOptions", nui.SwitchOptions{Label: cfg.String("label"), Description: "Updates are saved locally in this example.", Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Disabled: cfg.Bool("disabled"), Loading: cfg.Bool("loading"), Highlight: cfg.Bool("highlight"), CheckedIcon: checkedIcon, UncheckedIcon: uncheckedIcon, LoadingIcon: loadingIcon, OnChange: func(bool) { s.Changes++ }}, c, t, &s.Live))
+	})
 	ui.Textf(c, "Enabled: %t", s.Value)
+	ui.Textf(c, "Changes: %d", s.Changes)
 }
 func (s *switchExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *switchExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -359,14 +625,40 @@ func (s *switchExample) Configure(cfg showcase.Config) error { return nil }
 func (s *switchExample) Dispose()                            {}
 
 type checkbox_groupExample struct {
-	Live   showcase.Runtime
-	Values []string
+	Live    showcase.Runtime
+	Values  []string
+	Reverse bool
+	Changes int
 }
 
 func (s *checkbox_groupExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.CheckboxGroup(c.Key("choices"), t, &s.Values, showcase.Options(cfg, "CheckboxGroupItems", []nui.Option[string]{{Value: "go", Label: "Go"}, {Value: "rust", Label: "Rust"}, {Value: "typescript", Label: "TypeScript"}}, c, t, &s.Live), showcase.Options(cfg, "ChoiceGroupOptions", nui.CheckboxGroupOptions{Label: "Languages", Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Disabled: cfg.Bool("disabled"), Horizontal: cfg.Bool("horizontal")}, c, t, &s.Live))
+	items := showcase.Options(cfg, "CheckboxGroupItems", []nui.Option[string]{{Value: "go", Label: "Go"}, {Value: "rust", Label: "Rust"}, {Value: "typescript", Label: "TypeScript"}}, c, t, &s.Live)
+	if cfg.Bool("customIcons") {
+		for i := range items {
+			if items[i].Icon == nil {
+				switch items[i].Value {
+				case "go":
+					items[i].Icon = lucide.Code()
+				case "rust":
+					items[i].Icon = lucide.Flame()
+				default:
+					items[i].Icon = lucide.FileCode()
+				}
+			}
+		}
+	}
+	if s.Reverse {
+		for i, j := 0, len(items)-1; i < j; i, j = i+1, j-1 {
+			items[i], items[j] = items[j], items[i]
+		}
+	}
+	nui.FormField(c.Key("field"), t, nui.FormFieldOptions{Label: "Language preferences"}, func(field nui.Theme) {
+		nui.CheckboxGroup(c.Key("choices"), field, &s.Values, items, showcase.Options(cfg, "ChoiceGroupOptions", nui.CheckboxGroupOptions{Label: "Languages", Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Disabled: cfg.Bool("disabled"), Horizontal: cfg.Bool("horizontal"), Variant: showcase.Select(cfg, "variant", map[string]nui.ChoiceVariant{"list": nui.ChoiceList, "card": nui.ChoiceCard, "table": nui.ChoiceTable}), Indicator: showcase.Select(cfg, "indicator", map[string]nui.IndicatorPlacement{"start": nui.IndicatorStart, "end": nui.IndicatorEnd, "hidden": nui.IndicatorHidden}), Loop: nui.Set(cfg.Bool("loop")), OnChange: func() { s.Changes++ }}, c, t, &s.Live))
+	})
 	ui.Textf(c, "Selected: %v", s.Values)
+	nui.Button(c.Key("reverse"), t, "Reverse choices", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { s.Reverse = !s.Reverse })
+	ui.Textf(c, "Changes: %d", s.Changes)
 }
 func (s *checkbox_groupExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *checkbox_groupExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -374,14 +666,40 @@ func (s *checkbox_groupExample) Configure(cfg showcase.Config) error { return ni
 func (s *checkbox_groupExample) Dispose()                            {}
 
 type radio_groupExample struct {
-	Live  showcase.Runtime
-	Value string
+	Live    showcase.Runtime
+	Value   string
+	Reverse bool
+	Changes int
 }
 
 func (s *radio_groupExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.RadioGroup(c.Key("choices"), t, &s.Value, showcase.Options(cfg, "RadioGroupItems", []nui.Option[string]{{Value: "go", Label: "Go"}, {Value: "rust", Label: "Rust"}, {Value: "typescript", Label: "TypeScript"}}, c, t, &s.Live), showcase.Options(cfg, "ChoiceGroupOptions", nui.RadioGroupOptions{Label: "Languages", Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Disabled: cfg.Bool("disabled"), Horizontal: cfg.Bool("horizontal")}, c, t, &s.Live))
+	items := showcase.Options(cfg, "RadioGroupItems", []nui.Option[string]{{Value: "go", Label: "Go"}, {Value: "rust", Label: "Rust"}, {Value: "typescript", Label: "TypeScript"}}, c, t, &s.Live)
+	if cfg.Bool("customIcons") {
+		for i := range items {
+			if items[i].Icon == nil {
+				switch items[i].Value {
+				case "go":
+					items[i].Icon = lucide.Code()
+				case "rust":
+					items[i].Icon = lucide.Flame()
+				default:
+					items[i].Icon = lucide.FileCode()
+				}
+			}
+		}
+	}
+	if s.Reverse {
+		for i, j := 0, len(items)-1; i < j; i, j = i+1, j-1 {
+			items[i], items[j] = items[j], items[i]
+		}
+	}
+	nui.FormField(c.Key("field"), t, nui.FormFieldOptions{Label: "Language preferences"}, func(field nui.Theme) {
+		nui.RadioGroup(c.Key("choices"), field, &s.Value, items, showcase.Options(cfg, "ChoiceGroupOptions", nui.RadioGroupOptions{Label: "Languages", Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Disabled: cfg.Bool("disabled"), Horizontal: cfg.Bool("horizontal"), Variant: showcase.Select(cfg, "variant", map[string]nui.ChoiceVariant{"list": nui.ChoiceList, "card": nui.ChoiceCard, "table": nui.ChoiceTable}), Indicator: showcase.Select(cfg, "indicator", map[string]nui.IndicatorPlacement{"start": nui.IndicatorStart, "end": nui.IndicatorEnd, "hidden": nui.IndicatorHidden}), Loop: nui.Set(cfg.Bool("loop")), OnChange: func() { s.Changes++ }}, c, t, &s.Live))
+	})
 	ui.Textf(c, "Selected: %v", s.Value)
+	nui.Button(c.Key("reverse"), t, "Reverse choices", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { s.Reverse = !s.Reverse })
+	ui.Textf(c, "Changes: %d", s.Changes)
 }
 func (s *radio_groupExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *radio_groupExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -389,15 +707,52 @@ func (s *radio_groupExample) Configure(cfg showcase.Config) error { return nil }
 func (s *radio_groupExample) Dispose()                            {}
 
 type sliderExample struct {
-	Live             showcase.Runtime
-	Value, Low, High float64
+	Live                                         showcase.Runtime
+	Value, Low, High                             float64
+	Changes, Commits, RangeChanges, RangeCommits int
 }
 
 func (s *sliderExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Slider(c.Key("slider"), t, &s.Value, showcase.Options(cfg, "SliderOptions", nui.SliderOptions{Label: "Volume", Min: nui.Set(0.0), Max: nui.Set(100.0), Step: cfg.Number("step"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Disabled: cfg.Bool("disabled"), Vertical: cfg.Bool("vertical"), Tooltip: true}, c, t, &s.Live))
-	ui.Textf(c, "Value: %.0f", s.Value)
-	nui.RangeSlider(c.Key("range"), t, &s.Low, &s.High, showcase.Options(cfg, "RangeSliderOptions", nui.RangeSliderOptions{Label: "Range", Min: 0, Max: 100, Step: cfg.Number("step"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Disabled: cfg.Bool("disabled")}, c, t, &s.Live))
+	if cfg.Bool("customNeutral") {
+		t.InvertedBackground = ui.Hex("#7e22ce")
+		if t.Dark {
+			t.InvertedBackground = ui.Hex("#c084fc")
+		}
+	}
+	parts, singleParts := nui.Styles{}, nui.Styles{}
+	if cfg.Bool("customParts") {
+		parts[nui.Indicator] = nui.PartStyle{Background: nui.Set(t.Info)}
+		parts[nui.Thumb] = nui.PartStyle{Background: nui.Set(t.Elevated)}
+		for part, style := range parts {
+			singleParts[part] = style
+		}
+	}
+	if cfg.Bool("padded") {
+		if cfg.Bool("vertical") {
+			singleParts[nui.Root] = nui.PartStyle{PaddingY: nui.Set(float32(48))}
+		} else {
+			singleParts[nui.Root] = nui.PartStyle{PaddingX: nui.Set(float32(48))}
+		}
+	}
+	errorText := ""
+	if cfg.Bool("fieldError") {
+		errorText = "Choose another value"
+	}
+	orientation := nui.Horizontal
+	if cfg.Bool("vertical") {
+		orientation = nui.Vertical
+	}
+	ui.Column(c.Key("controls")).Disabled(cfg.Bool("parentDisabled")).Gap(16).Children(func() {
+		nui.FormField(c.Key("single-field"), t, nui.FormFieldOptions{Error: errorText}, func(ft nui.Theme) {
+			nui.Slider(c.Key("slider"), ft, &s.Value, showcase.Options(cfg, "SliderOptions", nui.SliderOptions{Label: "Volume", Min: nui.Set(0.0), Max: nui.Set(100.0), Step: cfg.Number("step"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Disabled: cfg.Bool("disabled"), Vertical: cfg.Bool("vertical"), Inverted: cfg.Bool("inverted"), Tooltip: cfg.Bool("tooltip"), OnChange: func(float64) { s.Changes++ }, OnCommit: func(float64) { s.Commits++ }, Decoration: nui.Decoration{UI: singleParts}}, c, t, &s.Live))
+		})
+		ui.Textf(c, "Value: %g · Changes: %d · Commits: %d", s.Value, s.Changes, s.Commits)
+		nui.FormField(c.Key("range-field"), t, nui.FormFieldOptions{Error: errorText}, func(ft nui.Theme) {
+			nui.RangeSlider(c.Key("range"), ft, &s.Low, &s.High, showcase.Options(cfg, "RangeSliderOptions", nui.RangeSliderOptions{Label: "Range", Min: 0, Max: 100, Step: cfg.Number("step"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Disabled: cfg.Bool("disabled"), Orientation: orientation, Inverted: cfg.Bool("inverted"), Tooltip: cfg.Bool("tooltip"), MinStepsBetweenThumbs: cfg.Int("minimumGap"), OnChange: func(float64, float64) { s.RangeChanges++ }, OnCommit: func(float64, float64) { s.RangeCommits++ }, Decoration: nui.Decoration{UI: parts}}, c, t, &s.Live))
+		})
+		ui.Textf(c, "Range: %g – %g · Changes: %d · Commits: %d", s.Low, s.High, s.RangeChanges, s.RangeCommits)
+	})
 }
 func (s *sliderExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *sliderExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -405,16 +760,38 @@ func (s *sliderExample) Configure(cfg showcase.Config) error { return nil }
 func (s *sliderExample) Dispose()                            {}
 
 type selectExample struct {
-	Live  showcase.Runtime
-	Value string
-	Many  []string
+	Live                 showcase.Runtime
+	Value                string
+	Many                 []string
+	Open, ManyOpen       bool
+	Changes, ManyChanges int
 }
 
 func (s *selectExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Select(c.Key("select"), t, &s.Value, showcase.Options(cfg, "SelectItems", []nui.Option[string]{{Value: "go", Label: "Go"}, {Value: "rust", Label: "Rust"}, {Value: "typescript", Label: "TypeScript"}}, c, t, &s.Live), showcase.Options(cfg, "SelectOptions", nui.SelectOptions{Label: "Language", Placeholder: cfg.String("placeholder"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Disabled: cfg.Bool("disabled")}, c, t, &s.Live))
-	ui.Textf(c, "Selected: %s", s.Value)
-	nui.SelectMultiple(c.Key("multiple"), t, &s.Many, showcase.Options(cfg, "SelectMultipleItems", []nui.Option[string]{{Value: "go", Label: "Go"}, {Value: "rust", Label: "Rust"}, {Value: "typescript", Label: "TypeScript"}}, c, t, &s.Live), showcase.Options(cfg, "SelectOptions2", nui.SelectOptions{Label: "Multiple languages", Placeholder: "Select several", Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Disabled: cfg.Bool("disabled")}, c, t, &s.Live))
+	if cfg.Bool("customNeutral") {
+		t.InvertedBackground = ui.Hex("#7e22ce")
+		if t.Dark {
+			t.InvertedBackground = ui.Hex("#c084fc")
+		}
+	}
+	var avatar *nui.AvatarOptions
+	if cfg.Bool("avatar") {
+		avatar = &nui.AvatarOptions{Text: "GO", Alt: "Language avatar"}
+	}
+	var leading, trailing, selected *ui.SVG
+	if cfg.Bool("customIcons") {
+		leading = lucide.Code()
+		trailing = lucide.ChevronsUpDown()
+		selected = lucide.Heart()
+	}
+	items := showcase.Options(cfg, "SelectItems", []nui.Option[string]{{Value: "go", Label: "Go", Description: "Backend services", Icon: lucide.Code()}, {Value: "rust", Label: "Rust", Description: "Native applications", Icon: lucide.Code()}, {Value: "blocked", Label: "Disabled language", Disabled: true}, {Value: "typescript", Label: "TypeScript", Description: "Web applications", Icon: lucide.Code()}}, c, t, &s.Live)
+	nui.Select(c.Key("select"), t, &s.Value, items, showcase.Options(cfg, "SelectOptions", nui.SelectOptions{Label: "Language", Placeholder: cfg.String("placeholder"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Disabled: cfg.Bool("disabled"), Avatar: avatar, Leading: leading, Trailing: trailing, SelectedIcon: selected, Loading: cfg.Bool("loading"), LoadingTrailing: cfg.Bool("loadingTrailing"), Highlight: cfg.Bool("highlight"), Open: &s.Open, OnChange: func() { s.Changes++ }}, c, t, &s.Live))
+	ui.Textf(c, "Selected: %s · Changes: %d · Open: %v", s.Value, s.Changes, s.Open)
+	nui.SelectMultiple(c.Key("multiple"), t, &s.Many, items, showcase.Options(cfg, "SelectOptions2", nui.SelectOptions{Label: "Multiple languages", Placeholder: cfg.String("placeholder"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Disabled: cfg.Bool("disabled"), Avatar: avatar, Leading: leading, Trailing: trailing, SelectedIcon: selected, Loading: cfg.Bool("loading"), LoadingTrailing: cfg.Bool("loadingTrailing"), Highlight: cfg.Bool("highlight"), Open: &s.ManyOpen, OnChange: func() { s.ManyChanges++ }}, c, t, &s.Live))
+	ui.Textf(c, "Selected IDs: %v · Changes: %d · Open: %v", s.Many, s.ManyChanges, s.ManyOpen)
+	nui.Button(c.Key("open-one"), t, "Toggle single select", nui.ButtonOptions{Variant: nui.Outline, Disabled: cfg.Bool("disabled")}).OnClick(func() { s.Open = !s.Open })
+	nui.Button(c.Key("open-many"), t, "Toggle multiple select", nui.ButtonOptions{Variant: nui.Outline, Disabled: cfg.Bool("disabled")}).OnClick(func() { s.ManyOpen = !s.ManyOpen })
 }
 func (s *selectExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *selectExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -422,13 +799,35 @@ func (s *selectExample) Configure(cfg showcase.Config) error { return nil }
 func (s *selectExample) Dispose()                            {}
 
 type input_menuExample struct {
-	Live   showcase.Runtime
-	Search nui.SearchState
+	Live                                         showcase.Runtime
+	Search                                       nui.SearchState
+	Open                                         bool
+	Queries, Selections, Values, Clears, Submits int
+	Created                                      string
 }
 
 func (s *input_menuExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.InputMenu(c.Key("menu"), t, &s.Search, showcase.Options(cfg, "InputMenuItems", []nui.Option[string]{{Value: "go", Label: "Go"}, {Value: "rust", Label: "Rust"}, {Value: "typescript", Label: "TypeScript"}}, c, t, &s.Live), showcase.Options(cfg, "InputMenuOptions", nui.InputMenuOptions{InputOptions: nui.InputOptions{Label: cfg.String("label"), Placeholder: cfg.String("placeholder"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Disabled: cfg.Bool("disabled"), ReadOnly: cfg.Bool("readOnly"), Loading: cfg.Bool("loading")}, Multiple: cfg.Bool("multiple")}, c, t, &s.Live))
+	disabled, readOnly := cfg.Bool("disabled"), cfg.Bool("readOnly")
+	var avatar *nui.AvatarOptions
+	if cfg.Bool("avatar") {
+		avatar = &nui.AvatarOptions{Text: "GO", Alt: "Search avatar"}
+	}
+	var selectedIcon, deleteIcon, clearIcon *ui.SVG
+	if cfg.Bool("customIcons") {
+		selectedIcon = lucide.Heart()
+		deleteIcon = lucide.Minus()
+		clearIcon = lucide.Eraser()
+	}
+	var onCreate func(string)
+	if cfg.Bool("create") {
+		onCreate = func(value string) { s.Created = value }
+	}
+	nui.InputMenu(c.Key("menu"), t, &s.Search, showcase.Options(cfg, "InputMenuItems", []nui.Option[string]{{Value: "go", Label: "Go", Description: "Backend services", Icon: lucide.Code()}, {Value: "rust", Label: "Rust", Description: "Native applications", Icon: lucide.Code()}, {Value: "blocked", Label: "Disabled language", Disabled: true}, {Value: "typescript", Label: "TypeScript", Description: "Web applications", Icon: lucide.Code()}}, c, t, &s.Live), showcase.Options(cfg, "InputMenuOptions", nui.InputMenuOptions{InputOptions: nui.InputOptions{Label: cmp.Or(cfg.String("label"), "Language search"), Placeholder: cfg.String("placeholder"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Disabled: cfg.Bool("disabled"), ReadOnly: cfg.Bool("readOnly"), Loading: cfg.Bool("loading"), LoadingTrailing: cfg.Bool("loadingTrailing"), Avatar: avatar, Clearable: cfg.Bool("clearable"), OnChange: func(string) { s.Queries++ }, OnClear: func() { s.Clears++ }, OnSubmit: func(string) { s.Submits++ }}, Multiple: cfg.Bool("multiple"), Mode: showcase.Select(cfg, "mode", map[string]nui.InputMenuMode{"combobox": nui.InputMenuCombobox, "autocomplete": nui.InputMenuAutocomplete}), Open: &s.Open, Loop: cfg.Bool("loop"), HighlightOnHover: cfg.OptionalBool("highlightOnHover"), OpenOnClick: cfg.OptionalBool("openOnClick"), OpenOnFocus: cfg.OptionalBool("openOnFocus"), ResetSearchTermOnSelect: cfg.OptionalBool("resetOnSelect"), ResetSearchTermOnBlur: cfg.OptionalBool("resetOnBlur"), ResetModelValueOnClear: cfg.OptionalBool("resetModel"), SelectedIcon: selectedIcon, DeleteIcon: deleteIcon, ClearIcon: clearIcon, OnCreate: onCreate, CreateAtTop: cfg.Bool("createAtTop"), OnSelect: func(string) { s.Selections++ }, OnValuesChange: func([]string) { s.Values++ }}, c, t, &s.Live))
+	ui.Textf(c, "Query: %s · Selected: %s · IDs: %v", s.Search.Query, s.Search.Selected, s.Search.SelectedValues)
+	ui.Textf(c, "Events: query %d · select %d · values %d · clear %d · submit %d", s.Queries, s.Selections, s.Values, s.Clears, s.Submits)
+	ui.Textf(c, "Open: %v · Create request: %s", s.Open, s.Created)
+	nui.Button(c.Key("toggle"), t, "Toggle search list", nui.ButtonOptions{Variant: nui.Outline, Disabled: disabled || readOnly}).OnClick(func() { s.Open = !s.Open })
 }
 func (s *input_menuExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *input_menuExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -436,22 +835,41 @@ func (s *input_menuExample) Configure(cfg showcase.Config) error { return nil }
 func (s *input_menuExample) Dispose()                            {}
 
 type popoverExample struct {
-	Live showcase.Runtime
-	Open bool
+	Live  showcase.Runtime
+	Open  bool
+	Draft string
 }
 
 func (s *popoverExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	options := showcase.Options(cfg, "PopoverOptions", nui.PopoverOptions{Dismissible: cfg.OptionalBool("dismissible")}, c, t, &s.Live)
+	t.Motion.Reduce = t.Motion.Reduce || cfg.Bool("reduced")
+	parts := nui.Styles{}
+	if cfg.Bool("styled") {
+		parts[nui.Panel] = nui.PartStyle{Background: nui.Set(t.Elevated), Foreground: nui.Set(t.Info), FontSize: nui.Set(float32(18)), LineHeight: nui.Set(float32(1.5)), Gap: nui.Set(float32(12))}
+	}
+	options := showcase.Options(cfg, "PopoverOptions", nui.PopoverOptions{Dismissible: cfg.OptionalBool("dismissible"), Width: nui.Set(float32(240)), Decoration: nui.Decoration{UI: parts}}, c, t, &s.Live)
 	ui.Column(c.Key("popover-stage")).Fill().Center().Children(func() {
-		anchor := nui.Button(c.Key("trigger"), t, cfg.String("label"), nui.ButtonOptions{AccessibleLabel: cmp.Or(cfg.String("label"), "Example action")}).OnClick(func() {
-			if options.Mode == nui.PopoverClick {
-				s.Open = !s.Open
-			}
+		var first, second ui.Element
+		ui.Row(c.Key("anchors")).Gap(8).Wrap().Children(func() {
+			first = nui.Button(c.Key("trigger"), t, cfg.String("label"), nui.ButtonOptions{AccessibleLabel: cmp.Or(cfg.String("label"), "Example action")}).OnClick(func() {
+				if options.Mode == nui.PopoverClick {
+					s.Open = !s.Open
+				}
+			})
+			second = nui.Button(c.Key("alternate"), t, "Alternate anchor", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() {
+				if options.Mode == nui.PopoverClick {
+					s.Open = !s.Open
+				}
+			})
 		})
-		nui.Popover(c.Key("popover"), t, anchor, &s.Open, options, func(t nui.Theme) {
+		anchor := first
+		if cfg.Bool("alternate") {
+			anchor = second
+		}
+		nui.Popover(c.Key("popover"), t, anchor, &s.Open, options, func(inner nui.Theme) {
 			ui.Text(c, "Additional information")
-			nui.Button(c.Key("close"), t, "Close", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { s.Open = false })
+			nui.Input(c.Key("draft"), inner, &s.Draft, nui.InputOptions{Label: "Popover draft"}).FillWidth()
+			nui.Button(c.Key("close"), inner, "Close", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { s.Open = false })
 		})
 	})
 }
@@ -460,27 +878,82 @@ func (s *popoverExample) SetWindow(window *mygo.Window)       { s.Live.Window = 
 func (s *popoverExample) Configure(cfg showcase.Config) error { return nil }
 func (s *popoverExample) Dispose()                            {}
 
-type scroll_areaExample struct{ Live showcase.Runtime }
+type scroll_areaExample struct {
+	Live   showcase.Runtime
+	Scroll ui.ScrollState
+}
 
 func (s *scroll_areaExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.ScrollArea(c.Key("scroll"), t, showcase.Options(cfg, "ScrollAreaOptions", nui.ScrollAreaOptions{ScrollbarWidth: nui.Set(float32(cfg.Number("width")))}, c, t, &s.Live), func() {
-		for i := range 30 {
-			ui.Textf(c.Key(i), "Activity item %02d", i+1).Padding(8)
+	direction := showcase.Select(cfg, "direction", map[string]nui.ScrollDirection{"vertical": nui.ScrollVertical, "horizontal": nui.ScrollHorizontal, "both": nui.ScrollBoth})
+	radius := float32(0)
+	if cfg.Bool("rounded") {
+		radius = 16
+	}
+	color := nui.Optional[ui.Color]{}
+	if cfg.Bool("customColor") {
+		color = nui.Set(t.Info)
+	}
+	options := showcase.Options(cfg, "ScrollAreaOptions", nui.ScrollAreaOptions{Direction: direction, State: &s.Scroll, ScrollbarWidth: nui.Set(float32(cfg.Number("width"))), ScrollbarColor: color, Decoration: nui.Decoration{UI: nui.Styles{nui.Root: {Radius: nui.Set(radius)}}, Style: func(part nui.Slot, e ui.Element) {
+		if part == nui.Body {
+			e.Label("Scrollable records")
 		}
-	}).Height(240)
+	}}}, c, t, &s.Live)
+	nui.ScrollArea(c.Key("scroll"), t, options, func() {
+		for i := range 30 {
+			row := ui.Textf(c.Key(i), "Activity item %02d · Scrollable content", i+1).PaddingX(12).Background(t.Elevated)
+			if options.Direction == nui.ScrollHorizontal {
+				row.Width(180).Height(140)
+			} else {
+				row.Width(900).Height(40)
+			}
+		}
+	}).Height(240).FillWidth()
+	if position := options.State; position != nil {
+		ui.Textf(c, "Scroll position: x=%.0f y=%.0f", position.X, position.Y)
+		nui.Button(c.Key("end"), t, "Scroll to end", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { position.X, position.Y = position.MaxX, position.MaxY })
+		nui.Button(c.Key("start"), t, "Scroll to start", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { position.X, position.Y = 0, 0 })
+	} else {
+		ui.Text(c, "Attach State to inspect offsets")
+	}
 }
 func (s *scroll_areaExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *scroll_areaExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
 func (s *scroll_areaExample) Configure(cfg showcase.Config) error { return nil }
 func (s *scroll_areaExample) Dispose()                            {}
 
-type tooltipExample struct{ Live showcase.Runtime }
+type tooltipExample struct {
+	Live showcase.Runtime
+	open bool
+}
 
 func (s *tooltipExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	anchor := nui.Button(c.Key("trigger"), t, "Hover or focus", nui.ButtonOptions{Variant: nui.Outline})
-	nui.Tooltip(c.Key("tooltip"), t, anchor, cfg.String("label"), showcase.Options(cfg, "TooltipOptions", nui.TooltipOptions{Disabled: cfg.Bool("disabled"), Kbds: []string{"Ctrl", "K"}}, c, t, &s.Live))
+	var delay nui.Optional[time.Duration]
+	if cfg.Bool("customDelay") {
+		delay = nui.Set(time.Duration(cfg.Number("delay")) * time.Millisecond)
+	}
+	var keys []string
+	if cfg.Bool("keys") {
+		keys = []string{"Ctrl", "K"}
+	}
+	styles := nui.Styles{}
+	if cfg.Bool("styled") {
+		styles[nui.Panel] = nui.PartStyle{Gap: nui.Set(float32(16))}
+	}
+	options := showcase.Options(cfg, "TooltipOptions", nui.TooltipOptions{Open: &s.open, Disabled: cfg.Bool("disabled"), DelayDuration: delay, MaxWidth: nui.Set(float32(cfg.Number("maxWidth"))), Kbds: keys, Decoration: nui.Decoration{UI: styles}}, c, t, &s.Live)
+	nui.Button(c.Key("toggle"), t, "Toggle tooltip", nui.ButtonOptions{Disabled: options.Open == nil || options.Disabled, Variant: nui.Outline}).OnClick(func() {
+		if options.Open != nil {
+			*options.Open = !*options.Open
+		}
+	})
+	anchor := nui.Button(c.Key("trigger"), t, "Hover or focus", nui.ButtonOptions{Variant: nui.Outline}).Description("Workspace action")
+	nui.Tooltip(c.Key("tooltip"), t, anchor, cfg.String("label"), options)
+	if options.Open != nil {
+		ui.Text(c, fmt.Sprintf("Tooltip open: %t", *options.Open))
+	} else {
+		ui.Text(c, "Uncontrolled tooltip")
+	}
 }
 func (s *tooltipExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *tooltipExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -488,18 +961,39 @@ func (s *tooltipExample) Configure(cfg showcase.Config) error { return nil }
 func (s *tooltipExample) Dispose()                            {}
 
 type modalExample struct {
-	Live  showcase.Runtime
-	Open  bool
-	Value string
+	Live              showcase.Runtime
+	Open              bool
+	Value             string
+	Closed, Prevented int
+	trigger           ui.Handle
 }
 
 func (s *modalExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Button(c.Key("open"), t, "Open dialog", nui.ButtonOptions{}).OnClick(func() { s.Open = true })
-	nui.ModalWithOptions(c.Key("modal"), t, &s.Open, showcase.Options(cfg, "ModalOptions", nui.ModalOptions{Title: cfg.String("label"), Description: "Edit and save the project name.", Dismissible: cfg.OptionalBool("dismissible"), CloseButton: cfg.OptionalBool("closeButton"), Fullscreen: cfg.Bool("fullscreen")}, c, t, &s.Live), func(t nui.Theme) {
-		nui.Input(c.Key("name"), t, &s.Value, nui.InputOptions{Label: "Project name"})
+	nui.Button(c.Key("open"), t, "Open dialog", nui.ButtonOptions{}).Bind(&s.trigger).OnClick(func() { s.Open = true })
+	title, description := cfg.String("label"), "Edit and save the project name."
+	closeButton := cfg.OptionalBool("closeButton")
+	if cfg.Bool("headerless") {
+		title, description, closeButton = "", "", nui.Set(false)
+	}
+	var closeOptions *nui.ButtonOptions
+	var closeIcon *ui.SVG
+	if cfg.Bool("customClose") {
+		closeOptions = &nui.ButtonOptions{Size: nui.XL, Color: nui.Error, Variant: nui.Soft, AccessibleLabel: "Configured dialog close"}
+		closeIcon = lucide.Check()
+	}
+	nui.ModalWithOptions(c.Key("modal"), t, &s.Open, showcase.Options(cfg, "ModalOptions", nui.ModalOptions{Title: title, Description: description, Dismissible: cfg.OptionalBool("dismissible"), CloseButton: closeButton, Fullscreen: cfg.Bool("fullscreen"), Overlay: cfg.OptionalBool("overlay"), Transition: cfg.OptionalBool("transition"), Close: closeOptions, CloseIcon: closeIcon, ReturnFocus: &s.trigger, OnClose: func() { s.Closed++ }, OnClosePrevent: func() { s.Prevented++ }, Footer: func(c *ui.Context, t nui.Theme) {
 		nui.Button(c.Key("save"), t, "Save", nui.ButtonOptions{}).OnClick(func() { s.Open = false })
+	}}, c, t, &s.Live), func(t nui.Theme) {
+		nui.Input(c.Key("name"), t, &s.Value, nui.InputOptions{Label: "Project name"})
+		ui.Text(c.Key("explanation"), "The body scrolls while the header and footer stay visible.")
+		if cfg.Bool("longBody") {
+			for i := range 18 {
+				ui.Text(c.Key(i), fmt.Sprintf("Detail row %02d", i+1)).Height(32)
+			}
+		}
 	})
+	ui.Text(c, fmt.Sprintf("Close notifications: %d · Prevented: %d", s.Closed, s.Prevented))
 }
 func (s *modalExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *modalExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -507,30 +1001,98 @@ func (s *modalExample) Configure(cfg showcase.Config) error { return nil }
 func (s *modalExample) Dispose()                            {}
 
 type slideoverExample struct {
-	Live showcase.Runtime
-	Open bool
+	Live              showcase.Runtime
+	Open              bool
+	Draft             string
+	Closed, Prevented int
+	trigger           ui.Handle
 }
 
 func (s *slideoverExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Button(c.Key("open"), t, "Open panel", nui.ButtonOptions{}).OnClick(func() { s.Open = true })
-	nui.Slideover(c.Key("panel"), t, &s.Open, showcase.Options(cfg, "SlideoverOptions", nui.SlideoverOptions{ModalOptions: nui.ModalOptions{Title: cfg.String("label"), Dismissible: cfg.OptionalBool("dismissible")}, Side: showcase.Select(cfg, "side", map[string]nui.Side{"right": nui.SideRight, "left": nui.SideLeft, "top": nui.SideTop, "bottom": nui.SideBottom})}, c, t, &s.Live), func(t nui.Theme) {
-		ui.Text(c, "Keep the main view in context.")
+	nui.Button(c.Key("open"), t, "Open panel", nui.ButtonOptions{}).Bind(&s.trigger).OnClick(func() { s.Open = true })
+	var extent nui.Optional[float32]
+	if cfg.Bool("customExtent") {
+		extent = nui.Set(float32(cfg.Number("extent")))
+	}
+	styles := nui.Styles{}
+	if cfg.Bool("customBackdrop") {
+		styles[nui.Backdrop] = nui.PartStyle{Background: nui.Set(t.Info.Alpha(.35))}
+	}
+	var body func(nui.Theme)
+	if !cfg.Bool("emptyBody") {
+		body = func(t nui.Theme) {
+			nui.Input(c.Key("draft"), t, &s.Draft, nui.InputOptions{Label: "Panel draft"})
+			ui.Text(c, "The footer stays visible while the body scrolls.")
+		}
+	}
+	nui.Slideover(c.Key("panel"), t, &s.Open, showcase.Options(cfg, "SlideoverOptions", nui.SlideoverOptions{ModalOptions: nui.ModalOptions{Title: cfg.String("label"), Dismissible: cfg.OptionalBool("dismissible"), Transition: cfg.OptionalBool("transition"), ReturnFocus: &s.trigger, Decoration: nui.Decoration{UI: styles}, OnClose: func() { s.Closed++ }, OnClosePrevent: func() { s.Prevented++ }, Footer: func(c *ui.Context, t nui.Theme) {
 		nui.Button(c.Key("close"), t, "Done", nui.ButtonOptions{}).OnClick(func() { s.Open = false })
-	})
+	}}, Side: showcase.Select(cfg, "side", map[string]nui.Side{"right": nui.SideRight, "left": nui.SideLeft, "top": nui.SideTop, "bottom": nui.SideBottom}), Inset: cfg.Bool("inset"), Extent: extent}, c, t, &s.Live), body)
+	ui.Text(c, fmt.Sprintf("Panel notifications: closed=%d prevented=%d", s.Closed, s.Prevented))
 }
 func (s *slideoverExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *slideoverExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
 func (s *slideoverExample) Configure(cfg showcase.Config) error { return nil }
 func (s *slideoverExample) Dispose()                            {}
 
-type toastExample struct{ Live showcase.Runtime }
+type toastExample struct {
+	Live                    showcase.Runtime
+	Used, Closed, Published int
+	Last                    string
+	Reversed                bool
+}
 
 func (s *toastExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Button(c.Key("notify"), t, "Show notification", nui.ButtonOptions{}).OnClick(func() {
-		nui.Toast(c, t, showcase.Options(cfg, "ToastOptions", nui.ToastOptions{Title: cfg.String("label"), Description: "The example stays entirely in your browser.", Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Timeout: 4 * time.Second}, c, t, &s.Live))
-	})
+	nui.ToastViewport(c.Key("viewport"), t, showcase.Options(cfg, "ToastViewportOptions", nui.ToastViewportOptions{Position: showcase.Select(cfg, "position", map[string]nui.ToastPosition{"bottom-right": nui.ToastBottomRight, "bottom-left": nui.ToastBottomLeft, "bottom-center": nui.ToastBottomCenter, "top-right": nui.ToastTopRight, "top-left": nui.ToastTopLeft, "top-center": nui.ToastTopCenter}), Width: nui.Set(float32(cfg.Number("width"))), Limit: int(cfg.Number("limit"))}, c, t, &s.Live))
+	publish := func() {
+		var avatar *nui.AvatarOptions
+		if cfg.Bool("avatar") {
+			avatar = &nui.AvatarOptions{Alt: "Ada Lovelace"}
+		}
+		var closeOptions *nui.ButtonOptions
+		if cfg.Bool("customClose") {
+			closeOptions = &nui.ButtonOptions{AccessibleLabel: "Close example toast", Size: nui.XL, Color: nui.Info, Variant: nui.Soft}
+		}
+		progressColor := nui.ColorDefault
+		var progressUI nui.Styles
+		if cfg.Bool("customProgress") {
+			progressColor = nui.Warning
+			progressUI = nui.Styles{nui.Indicator: {Background: nui.Set(ui.RGB(255, 0, 255))}}
+		}
+		progress := &nui.ToastProgressOptions{Color: progressColor, UI: progressUI}
+		var actions []nui.ToastActionOptions
+		if cfg.Bool("actions") {
+			actions = []nui.ToastActionOptions{{ID: "keep", Label: "Keep", ButtonOptions: nui.ButtonOptions{AccessibleLabel: "Keep notification"}, Close: nui.Set(false), OnAction: func() { s.Used++ }}, {ID: "done", Label: "Done", ButtonOptions: nui.ButtonOptions{AccessibleLabel: "Done notification"}, OnAction: func() { s.Used++ }}}
+		}
+		horizontal := cfg.Bool("horizontal")
+		if s.Reversed {
+			horizontal = !horizontal
+			if len(actions) == 2 {
+				actions[0], actions[1] = actions[1], actions[0]
+			}
+		}
+		orientation := nui.Vertical
+		if horizontal {
+			orientation = nui.Horizontal
+		}
+		id := ""
+		if cfg.Bool("sameID") {
+			id = "example-notification"
+		}
+		timeout := 4 * time.Second
+		if cfg.Bool("persistent") {
+			timeout = -1
+		}
+		s.Last = nui.Toast(c, t, showcase.Options(cfg, "ToastOptions", nui.ToastOptions{ID: id, Title: cfg.String("label"), Description: cfg.String("description"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Icon: lucide.Info(), Avatar: avatar, CloseOptions: closeOptions, CloseIcon: lucide.X(), Progress: nui.Set(cfg.Bool("progress")), ProgressOptions: progress, Orientation: nui.Set(orientation), Actions: actions, Timeout: timeout, OnClose: func() { s.Closed++ }}, c, t, &s.Live))
+		s.Published++
+	}
+	nui.Button(c.Key("notify"), t, "Show notification", nui.ButtonOptions{}).OnClick(publish)
+	nui.Button(c.Key("update"), t, "Update focused notification", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() { s.Reversed = !s.Reversed; publish() })
+	nui.Button(c.Key("close"), t, "Close latest notification", nui.ButtonOptions{Variant: nui.Outline, Disabled: s.Last == ""}).OnClick(func() { nui.CloseToast(c, s.Last) })
+	nui.Button(c.Key("clear"), t, "Clear notifications", nui.ButtonOptions{Variant: nui.Ghost}).OnClick(func() { nui.CloseToast(c, "") })
+	ui.Text(c, fmt.Sprintf("Published: %d · Actions: %d · Closed: %d", s.Published, s.Used, s.Closed))
 }
 func (s *toastExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *toastExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -538,16 +1100,47 @@ func (s *toastExample) Configure(cfg showcase.Config) error { return nil }
 func (s *toastExample) Dispose()                            {}
 
 type dropdown_menuExample struct {
-	Live   showcase.Runtime
-	Menu   nui.MenuState
-	Action string
+	Live                                          showcase.Runtime
+	Menu                                          nui.MenuState
+	Action, Query, SubQuery                       string
+	Pinned, Reverse                               bool
+	Actions, CheckedChanges, OpenChanges, Queries int
 }
 
 func (s *dropdown_menuExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	anchor := nui.Button(c.Key("trigger"), t, cfg.String("label"), nui.ButtonOptions{AccessibleLabel: cmp.Or(cfg.String("label"), "Example action"), Variant: nui.Outline})
-	nui.DropdownMenu(c.Key("menu"), t, anchor, &s.Menu, showcase.Options(cfg, "DropdownMenuItems", []nui.MenuItem{{ID: "edit", Label: "Edit", Icon: lucide.Pencil(), OnSelect: func() { s.Action = "Edit" }}, {ID: "copy", Label: "Duplicate", Icon: lucide.Copy(), OnSelect: func() { s.Action = "Duplicate" }}, {ID: "archive", Label: "Archive", Disabled: cfg.Bool("disabled"), OnSelect: func() { s.Action = "Archive" }}}, c, t, &s.Live), showcase.Options(cfg, "MenuOptions", nui.MenuOptions{Label: "Project actions"}, c, t, &s.Live))
+	var avatar *nui.AvatarOptions
+	icon := lucide.Pencil()
+	if cfg.Bool("avatar") {
+		avatar = &nui.AvatarOptions{Alt: "Editor avatar", Text: "ED"}
+		icon = nil
+	}
+	var checkedIcon, loadingIcon *ui.SVG
+	if cfg.Bool("customIcons") {
+		checkedIcon = lucide.Heart()
+		loadingIcon = lucide.RefreshCw()
+	}
+	var width nui.Optional[float32]
+	if cfg.Bool("customWidth") {
+		width = nui.Set(float32(cfg.Number("width")))
+	}
+	items := showcase.Options(cfg, "DropdownMenuItems", []nui.MenuItem{
+		{ID: "edit", Label: "Edit", Description: "Change project details", Icon: icon, Avatar: avatar, Loading: cfg.Bool("loading"), Shortcut: "Ctrl+E", OnSelect: func() { s.Action = "Edit"; s.Actions++ }},
+		{ID: "copy", Label: "Duplicate", Description: "Copy this project", Icon: lucide.Copy(), OnSelect: func() { s.Action = "Duplicate"; s.Actions++ }},
+		{ID: "archive", Label: "Archive", Disabled: cfg.Bool("disabled"), Color: nui.Warning, OnSelect: func() { s.Action = "Archive"; s.Actions++ }},
+		{ID: "separator", Kind: nui.MenuSeparator},
+		{ID: "pin", Label: "Pinned", Checked: nui.Set(s.Pinned), Close: nui.Set(false), OnCheckedChange: func(v bool) { s.Pinned = v; s.CheckedChanges++ }, OnSelect: func() { s.Action = "Pinned"; s.Actions++ }},
+		{ID: "export", Label: "Export", Children: []nui.MenuItem{{ID: "csv", Label: "CSV", OnSelect: func() { s.Action = "CSV"; s.Actions++ }}, {ID: "json", Label: "JSON", OnSelect: func() { s.Action = "JSON"; s.Actions++ }}}, Content: &nui.MenuContentOptions{Filter: cfg.Bool("subFilter"), SearchTerm: &s.SubQuery, FilterInput: &nui.InputOptions{Label: "Export search"}}},
+		{ID: "reorder", Label: "Reverse actions", Close: nui.Set(false), OnSelect: func() { s.Reverse = !s.Reverse; s.Action = "Reordered" }},
+	}, c, t, &s.Live)
+	if s.Reverse {
+		slices.Reverse(items)
+	}
+	anchor := nui.Button(c.Key("trigger"), t, cfg.String("label"), nui.ButtonOptions{AccessibleLabel: cmp.Or(cfg.String("label"), "Example action"), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: nui.Outline})
+	nui.DropdownMenu(c.Key("menu"), t, anchor, &s.Menu, items, showcase.Options(cfg, "MenuOptions", nui.MenuOptions{Label: "Project actions", Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Disabled: cfg.Bool("disabledMenu"), Loop: cfg.Bool("loop"), Width: width, Placement: showcase.Select(cfg, "placement", map[string]nui.Optional[nui.Placement]{"bottom-start": nui.Set(nui.BottomStart), "bottom-end": nui.Set(nui.BottomEnd), "top-start": nui.Set(nui.TopStart), "right": nui.Set(nui.RightStart), "left": nui.Set(nui.LeftStart)}), CheckedIcon: checkedIcon, LoadingIcon: loadingIcon, Filter: cfg.Bool("filter"), IgnoreFilter: cfg.Bool("ignoreFilter"), FilterFields: []string{"label", "description"}, SearchTerm: &s.Query, FilterInput: &nui.InputOptions{Label: "Action search", Clearable: true}, OnSearchTermChange: func(string) { s.Queries++ }, OnOpenChange: func(bool) { s.OpenChanges++ }}, c, t, &s.Live))
 	ui.Text(c, s.Action)
+	ui.Textf(c, "Actions: %d · Checked changes: %d · Open changes: %d", s.Actions, s.CheckedChanges, s.OpenChanges)
+	ui.Textf(c, "Query: %s · Changes: %d · Pinned: %v", s.Query, s.Queries, s.Pinned)
 }
 func (s *dropdown_menuExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *dropdown_menuExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -555,16 +1148,56 @@ func (s *dropdown_menuExample) Configure(cfg showcase.Config) error { return nil
 func (s *dropdown_menuExample) Dispose()                            {}
 
 type context_menuExample struct {
-	Live   showcase.Runtime
-	Menu   nui.MenuState
-	Action string
+	Live                                          showcase.Runtime
+	Menu                                          nui.MenuState
+	Action, Query, SubQuery                       string
+	Pinned, Reverse                               bool
+	Actions, CheckedChanges, OpenChanges, Queries int
+	TargetClicks                                  int
+	TargetMoved                                   bool
 }
 
 func (s *context_menuExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	anchor := nui.Button(c.Key("trigger"), t, cfg.String("label"), nui.ButtonOptions{AccessibleLabel: cmp.Or(cfg.String("label"), "Example action"), Variant: nui.Outline})
-	nui.ContextMenu(c.Key("menu"), t, anchor, &s.Menu, showcase.Options(cfg, "ContextMenuItems", []nui.MenuItem{{ID: "edit", Label: "Edit", Icon: lucide.Pencil(), OnSelect: func() { s.Action = "Edit" }}, {ID: "copy", Label: "Duplicate", Icon: lucide.Copy(), OnSelect: func() { s.Action = "Duplicate" }}, {ID: "archive", Label: "Archive", Disabled: cfg.Bool("disabled"), OnSelect: func() { s.Action = "Archive" }}}, c, t, &s.Live), showcase.Options(cfg, "MenuOptions", nui.MenuOptions{Label: "Project actions"}, c, t, &s.Live))
+	var avatar *nui.AvatarOptions
+	icon := lucide.Pencil()
+	if cfg.Bool("avatar") {
+		avatar = &nui.AvatarOptions{Alt: "Editor avatar", Text: "ED"}
+		icon = nil
+	}
+	var checkedIcon, loadingIcon *ui.SVG
+	if cfg.Bool("customIcons") {
+		checkedIcon = lucide.Heart()
+		loadingIcon = lucide.RefreshCw()
+	}
+	var width nui.Optional[float32]
+	if cfg.Bool("customWidth") {
+		width = nui.Set(float32(cfg.Number("width")))
+	}
+	items := showcase.Options(cfg, "ContextMenuItems", []nui.MenuItem{
+		{ID: "edit", Label: "Edit", Description: "Change project details", Icon: icon, Avatar: avatar, Loading: cfg.Bool("loading"), Shortcut: "Ctrl+E", OnSelect: func() { s.Action = "Edit"; s.Actions++ }},
+		{ID: "copy", Label: "Duplicate", Description: "Copy this project", Icon: lucide.Copy(), OnSelect: func() { s.Action = "Duplicate"; s.Actions++ }},
+		{ID: "archive", Label: "Archive", Disabled: cfg.Bool("disabled"), Color: nui.Warning, OnSelect: func() { s.Action = "Archive"; s.Actions++ }},
+		{ID: "separator", Kind: nui.MenuSeparator},
+		{ID: "pin", Label: "Pinned", Checked: nui.Set(s.Pinned), Close: nui.Set(false), OnCheckedChange: func(v bool) { s.Pinned = v; s.CheckedChanges++ }, OnSelect: func() { s.Action = "Pinned"; s.Actions++ }},
+		{ID: "export", Label: "Export", Children: []nui.MenuItem{{ID: "csv", Label: "CSV", OnSelect: func() { s.Action = "CSV"; s.Actions++ }}, {ID: "json", Label: "JSON", OnSelect: func() { s.Action = "JSON"; s.Actions++ }}}, Content: &nui.MenuContentOptions{Filter: cfg.Bool("subFilter"), SearchTerm: &s.SubQuery, FilterInput: &nui.InputOptions{Label: "Export search"}}},
+		{ID: "reorder", Label: "Reverse actions", Close: nui.Set(false), OnSelect: func() { s.Reverse = !s.Reverse; s.Action = "Reordered" }},
+		{ID: "move-target", Label: "Move target", Close: nui.Set(false), OnSelect: func() { s.TargetMoved = !s.TargetMoved }},
+	}, c, t, &s.Live)
+	if s.Reverse {
+		slices.Reverse(items)
+	}
+	left := float32(0)
+	if s.TargetMoved {
+		left = 32
+	}
+	anchor := nui.Button(c.Key("trigger"), t, cfg.String("label"), nui.ButtonOptions{AccessibleLabel: cmp.Or(cfg.String("label"), "Example action"), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: nui.Outline}).Width(280).Height(64).AlignSelf(ui.Start).Margin(0, 0, 0, left).OnClick(func() { s.TargetClicks++ })
+	nui.ContextMenu(c.Key("menu"), t, anchor, &s.Menu, items, showcase.Options(cfg, "MenuOptions", nui.MenuOptions{Label: "Project actions", Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Disabled: cfg.Bool("disabledMenu"), Loop: cfg.Bool("loop"), Width: width, Placement: showcase.Select(cfg, "placement", map[string]nui.Optional[nui.Placement]{"bottom-start": nui.Set(nui.BottomStart), "bottom-end": nui.Set(nui.BottomEnd), "top-start": nui.Set(nui.TopStart), "right": nui.Set(nui.RightStart), "left": nui.Set(nui.LeftStart)}), CheckedIcon: checkedIcon, LoadingIcon: loadingIcon, Filter: cfg.Bool("filter"), IgnoreFilter: cfg.Bool("ignoreFilter"), FilterFields: []string{"label", "description"}, SearchTerm: &s.Query, FilterInput: &nui.InputOptions{Label: "Action search", Clearable: true}, OnSearchTermChange: func(string) { s.Queries++ }, OnOpenChange: func(bool) { s.OpenChanges++ }}, c, t, &s.Live))
 	ui.Text(c, s.Action)
+	ui.Textf(c, "Actions: %d · Checked changes: %d · Open changes: %d", s.Actions, s.CheckedChanges, s.OpenChanges)
+	ui.Textf(c, "Query: %s · Changes: %d · Pinned: %v", s.Query, s.Queries, s.Pinned)
+	nui.Button(c.Key("open-at-target"), t, "Open at target", nui.ButtonOptions{Variant: nui.Soft}).AlignSelf(ui.Start).OnClick(func() { s.Menu.Open = true })
+	ui.Textf(c, "Target clicks: %d · Moved: %v", s.TargetClicks, s.TargetMoved)
 }
 func (s *context_menuExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *context_menuExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -572,13 +1205,53 @@ func (s *context_menuExample) Configure(cfg showcase.Config) error { return nil 
 func (s *context_menuExample) Dispose()                            {}
 
 type tabsExample struct {
-	Live  showcase.Runtime
-	Value string
+	Live                       showcase.Runtime
+	Value, Draft               string
+	Reversed, OverviewDisabled bool
+	Changes                    int
 }
 
 func (s *tabsExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Tabs(c.Key("tabs"), t, &s.Value, showcase.Options(cfg, "TabsItems", []nui.TabItem{{ID: "overview", Label: "Overview", Content: func(c *ui.Context, t nui.Theme) { ui.Text(c, "Project overview") }}, {ID: "settings", Label: "Settings", Content: func(c *ui.Context, t nui.Theme) { ui.Text(c, "Project settings") }}}, c, t, &s.Live), showcase.Options(cfg, "TabsOptions", nui.TabsOptions{Label: "Project tabs", Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Vertical: cfg.Bool("vertical"), Underline: cfg.Bool("underline")}, c, t, &s.Live))
+	var avatar *nui.AvatarOptions
+	if cfg.Bool("avatar") {
+		avatar = &nui.AvatarOptions{Alt: "Account avatar", Text: "AL"}
+	}
+	var icon *ui.SVG
+	if cfg.Bool("icon") {
+		icon = lucide.User()
+	}
+	badge := ""
+	if cfg.Bool("showBadge") {
+		badge = cfg.String("badge")
+	}
+	var badgeOptions *nui.BadgeOptions
+	if cfg.Bool("customBadge") {
+		badgeOptions = &nui.BadgeOptions{Color: nui.Info, Variant: nui.Soft}
+	}
+	var itemUI nui.Styles
+	if cfg.Bool("customItem") {
+		itemUI = nui.Styles{nui.Label: {Weight: nui.Set(700)}, nui.Body: {Background: nui.Set(t.Elevated), PaddingX: nui.Set(float32(12)), PaddingY: nui.Set(float32(12))}}
+	}
+	var parts nui.Styles
+	if cfg.Bool("customIndicator") {
+		parts = nui.Styles{nui.Indicator: {Background: nui.Set(ui.RGB(255, 0, 255))}}
+	}
+	mode := nui.ActivationAutomatic
+	if cfg.Bool("manual") {
+		mode = nui.ActivationManual
+	}
+	items := showcase.Options(cfg, "TabsItems", []nui.TabItem{{ID: "overview", Label: "Overview", Avatar: avatar, Icon: icon, Badge: badge, BadgeOptions: badgeOptions, Disabled: s.OverviewDisabled, Content: func(c *ui.Context, t nui.Theme) {
+		ui.Text(c, "Project overview")
+		nui.Input(c.Key("draft"), t, &s.Draft, nui.InputOptions{Label: "Tab draft"})
+	}}, {ID: "settings", Label: "Settings", Disabled: cfg.Bool("disabled"), UI: itemUI, Content: func(c *ui.Context, t nui.Theme) { ui.Text(c, "Project settings") }}}, c, t, &s.Live)
+	if s.Reversed {
+		slices.Reverse(items)
+	}
+	nui.Tabs(c.Key("tabs"), t, &s.Value, items, showcase.Options(cfg, "TabsOptions", nui.TabsOptions{Label: "Project tabs", Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Vertical: cfg.Bool("vertical"), Underline: cfg.Bool("underline"), Content: nui.Set(cfg.Bool("content")), KeepMounted: cfg.Bool("keepMounted"), ActivationMode: mode, OnChange: func(string) { s.Changes++ }, Decoration: nui.Decoration{UI: parts}}, c, t, &s.Live))
+	nui.Button(c.Key("reverse"), t, "Reverse tabs", nui.ButtonOptions{Variant: nui.Outline}).AlignSelf(ui.Start).KeepFocus().OnClick(func() { s.Reversed = !s.Reversed })
+	nui.Button(c.Key("disable-overview"), t, "Toggle Overview disabled", nui.ButtonOptions{Variant: nui.Soft}).AlignSelf(ui.Start).KeepFocus().OnClick(func() { s.OverviewDisabled = !s.OverviewDisabled })
+	ui.Textf(c, "Selected: %s · Changes: %d", s.Value, s.Changes)
 }
 func (s *tabsExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *tabsExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -586,13 +1259,29 @@ func (s *tabsExample) Configure(cfg showcase.Config) error { return nil }
 func (s *tabsExample) Dispose()                            {}
 
 type collapsibleExample struct {
-	Live showcase.Runtime
-	Open bool
+	Live             showcase.Runtime
+	Open             bool
+	Draft            string
+	Actions, Changes int
 }
 
 func (s *collapsibleExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Collapsible(c.Key("collapsible"), t, &s.Open, showcase.Options(cfg, "CollapsibleOptions", nui.CollapsibleOptions{Label: cfg.String("label"), Disabled: cfg.Bool("disabled"), KeepMounted: cfg.Bool("keepMounted")}, c, t, &s.Live), func(t nui.Theme) { ui.Text(c, "The hidden section is now expanded.") })
+	local := t
+	local.Motion.Reduce = local.Motion.Reduce || cfg.Bool("reduceMotion")
+	var leading, trailing *ui.SVG
+	if cfg.Bool("leadingIcon") {
+		leading = lucide.Settings()
+	}
+	if cfg.Bool("trailingIcon") {
+		trailing = lucide.Plus()
+	}
+	nui.Collapsible(c.Key("collapsible"), local, &s.Open, showcase.Options(cfg, "CollapsibleOptions", nui.CollapsibleOptions{Label: cfg.String("label"), Icon: leading, TrailingIcon: trailing, Disabled: cfg.Bool("disabled"), KeepMounted: cfg.Bool("keepMounted"), OnChange: func(bool) { s.Changes++ }}, c, t, &s.Live), func(inner nui.Theme) {
+		nui.Input(c, inner, &s.Draft, nui.InputOptions{Label: "Disclosure draft"}).FillWidth()
+		nui.Button(c, inner, "Body action", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { s.Actions++ })
+	})
+	nui.Button(c, t, "Toggle open externally", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() { s.Open = !s.Open })
+	ui.Textf(c, "Open: %t · Changes: %d · Actions: %d", s.Open, s.Changes, s.Actions)
 }
 func (s *collapsibleExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *collapsibleExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -600,13 +1289,49 @@ func (s *collapsibleExample) Configure(cfg showcase.Config) error { return nil }
 func (s *collapsibleExample) Dispose()                            {}
 
 type accordionExample struct {
-	Live showcase.Runtime
-	Open []string
+	Live             showcase.Runtime
+	Open             []string
+	Draft            string
+	Reversed         bool
+	Changes, Actions int
 }
 
 func (s *accordionExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Accordion(c.Key("accordion"), t, &s.Open, showcase.Options(cfg, "AccordionItems", []nui.AccordionItem{{ID: "install", Label: "Installation", Content: func(c *ui.Context, t nui.Theme) { ui.Text(c, "go get github.com/josexy/nuxt-ui-go") }}, {ID: "usage", Label: "Usage", Content: func(c *ui.Context, t nui.Theme) { ui.Text(c, "Create a window and pass a theme to components.") }}}, c, t, &s.Live), showcase.Options(cfg, "AccordionOptions", nui.AccordionOptions{Multiple: cfg.Bool("multiple"), Disabled: cfg.Bool("disabled"), Collapsible: cfg.OptionalBool("collapsible")}, c, t, &s.Live))
+	local := t
+	local.Motion.Reduce = local.Motion.Reduce || cfg.Bool("reduceMotion")
+	var trailing, itemTrailing *ui.SVG
+	if cfg.Bool("trailingIcon") {
+		trailing = lucide.Plus()
+	}
+	if cfg.Bool("itemTrailingIcon") {
+		itemTrailing = lucide.ChevronRight()
+	}
+	var itemUI nui.Styles
+	if cfg.Bool("itemUI") {
+		itemUI = nui.Styles{nui.Trigger: {Foreground: nui.Set(t.Info)}, nui.Body: {PaddingX: nui.Set(float32(12))}}
+	}
+	items := showcase.Options(cfg, "AccordionItems", []nui.AccordionItem{
+		{ID: "install", Label: "Installation", Icon: lucide.Settings(), TrailingIcon: itemTrailing, UI: itemUI, Content: func(c *ui.Context, inner nui.Theme) {
+			nui.Input(c, inner, &s.Draft, nui.InputOptions{Label: "Accordion draft"}).FillWidth()
+			nui.Button(c, inner, "Body action", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { s.Actions++ })
+		}},
+		{ID: "usage", Label: "Usage", Disabled: cfg.Bool("disabledUsage"), Content: func(c *ui.Context, inner nui.Theme) { ui.Text(c, "Create a window and pass a theme to components.") }},
+		{ID: "empty", Label: "Heading without content"},
+	}, c, t, &s.Live)
+	if s.Reversed {
+		slices.Reverse(items)
+	}
+	nui.Accordion(c.Key("accordion"), local, &s.Open, items, showcase.Options(cfg, "AccordionOptions", nui.AccordionOptions{Multiple: cfg.Bool("multiple"), Disabled: cfg.Bool("disabled"), Collapsible: cfg.OptionalBool("collapsible"), KeepMounted: cfg.Bool("keepMounted"), TrailingIcon: trailing, OnChange: func() { s.Changes++ }}, c, t, &s.Live))
+	nui.Button(c, t, "Reverse sections", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() { s.Reversed = !s.Reversed })
+	nui.Button(c, t, "Toggle installation externally", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() {
+		if slices.Contains(s.Open, "install") {
+			s.Open = slices.DeleteFunc(s.Open, func(id string) bool { return id == "install" })
+		} else {
+			s.Open = []string{"install"}
+		}
+	})
+	ui.Textf(c, "Open IDs: %v · Changes: %d · Actions: %d", s.Open, s.Changes, s.Actions)
 }
 func (s *accordionExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *accordionExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -616,12 +1341,33 @@ func (s *accordionExample) Dispose()                            {}
 type breadcrumbExample struct {
 	Live   showcase.Runtime
 	Active string
+	Clicks int
 }
 
 func (s *breadcrumbExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Breadcrumb(c.Key("breadcrumb"), t, showcase.Options(cfg, "BreadcrumbItems", []nui.BreadcrumbItem{{ID: "home", Label: "Home", OnSelect: func() { s.Active = "Home" }}, {ID: "projects", Label: "Projects", OnSelect: func() { s.Active = "Projects" }}, {ID: "current", Label: "NuxtUI Go"}}, c, t, &s.Live), showcase.Options(cfg, "BreadcrumbOptions", nui.BreadcrumbOptions{Label: "Location", MaxItems: cfg.Int("maximum")}, c, t, &s.Live))
-	ui.Text(c, s.Active)
+	var separator, icon *ui.SVG
+	if cfg.Bool("customSeparator") {
+		separator = lucide.Slash()
+	}
+	if cfg.Bool("icon") {
+		icon = lucide.House()
+	}
+	var avatar *nui.AvatarOptions
+	if cfg.Bool("avatar") {
+		avatar = &nui.AvatarOptions{Alt: "Ada Lovelace"}
+	}
+	var styles nui.Styles
+	if cfg.Bool("itemUI") {
+		styles = nui.Styles{nui.Label: {Foreground: nui.Set(t.Info)}}
+	}
+	nui.Breadcrumb(c.Key("breadcrumb"), t, showcase.Options(cfg, "BreadcrumbItems", []nui.BreadcrumbItem{
+		{ID: "home", Label: "Home", Icon: icon, Avatar: avatar, OnSelect: func() { s.Active = "Home"; s.Clicks++ }},
+		{ID: "projects", Label: "Projects", OnSelect: func() { s.Active = "Projects"; s.Clicks++ }},
+		{ID: "desktop", Label: "Desktop", OnSelect: func() { s.Active = "Desktop"; s.Clicks++ }},
+		{ID: "current", Label: "NuxtUI Go", Active: nui.Set(cfg.Bool("active")), Disabled: cfg.Bool("disabled"), UI: styles, OnSelect: func() { s.Active = "NuxtUI Go"; s.Clicks++ }},
+	}, c, t, &s.Live), showcase.Options(cfg, "BreadcrumbOptions", nui.BreadcrumbOptions{Label: "Location", MaxItems: cfg.Int("maximum"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), SeparatorIcon: separator}, c, t, &s.Live))
+	ui.Textf(c, "Selected: %s · Clicks: %d", s.Active, s.Clicks)
 }
 func (s *breadcrumbExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *breadcrumbExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -629,14 +1375,25 @@ func (s *breadcrumbExample) Configure(cfg showcase.Config) error { return nil }
 func (s *breadcrumbExample) Dispose()                            {}
 
 type paginationExample struct {
-	Live showcase.Runtime
-	Page int
+	Live          showcase.Runtime
+	Page, Changes int
 }
 
 func (s *paginationExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Pagination(c.Key("pagination"), t, &s.Page, showcase.Options(cfg, "PaginationOptions", nui.PaginationOptions{Total: 100, PageSize: 10, SiblingCount: nui.Set(cfg.Int("siblings")), ShowControls: cfg.OptionalBool("controls"), ShowEdges: cfg.OptionalBool("edges"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "solid": nui.Solid, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "link": nui.LinkVariant}), Disabled: cfg.Bool("disabled")}, c, t, &s.Live))
+	var first, previous, next, last, ellipsis *ui.SVG
+	if cfg.Bool("customIcons") {
+		first = lucide.ChevronsUp()
+		previous = lucide.ArrowLeft()
+		next = lucide.ArrowRight()
+		last = lucide.ChevronsDown()
+	}
+	if cfg.Bool("customEllipsis") {
+		ellipsis = lucide.EllipsisVertical()
+	}
+	nui.Pagination(c.Key("pagination"), t, &s.Page, showcase.Options(cfg, "PaginationOptions", nui.PaginationOptions{Label: "Pages", Total: cfg.Int("total"), PageSize: cfg.Int("pageSize"), SiblingCount: nui.Set(cfg.Int("siblings")), ShowControls: cfg.OptionalBool("controls"), ShowEdges: cfg.OptionalBool("edges"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "solid": nui.Solid, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "link": nui.LinkVariant}), ActiveColor: showcase.Select(cfg, "activeColor", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), ActiveVariant: showcase.Select(cfg, "activeVariant", map[string]nui.Variant{"default": nui.VariantDefault, "solid": nui.Solid, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "link": nui.LinkVariant}), Disabled: cfg.Bool("disabled"), FirstIcon: first, PrevIcon: previous, NextIcon: next, LastIcon: last, EllipsisIcon: ellipsis, OnChange: func(int) { s.Changes++ }}, c, t, &s.Live))
 	ui.Textf(c, "Page %d", s.Page)
+	ui.Textf(c, "Changes: %d", s.Changes)
 }
 func (s *paginationExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *paginationExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -644,24 +1401,69 @@ func (s *paginationExample) Configure(cfg showcase.Config) error { return nil }
 func (s *paginationExample) Dispose()                            {}
 
 type stepperExample struct {
-	Live showcase.Runtime
-	Step string
+	Live        showcase.Runtime
+	Step, Draft string
+	Reversed    bool
+	Changes     int
 }
 
 func (s *stepperExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Stepper(c.Key("stepper"), t, &s.Step, showcase.Options(cfg, "StepperItems", []nui.StepItem{{ID: "details", Title: "Details", Description: "Project name"}, {ID: "team", Title: "Team", Description: "Invite members"}, {ID: "review", Title: "Review", Description: "Confirm changes"}}, c, t, &s.Live), showcase.Options(cfg, "StepperOptions", nui.StepperOptions{Label: "Setup", Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Vertical: cfg.Bool("vertical"), Disabled: cfg.Bool("disabled"), Linear: cfg.OptionalBool("linear")}, c, t, &s.Live))
+	var styles nui.Styles
+	if cfg.Bool("itemUI") {
+		styles = nui.Styles{nui.Label: {Foreground: nui.Set(t.Info)}}
+	}
+	items := showcase.Options(cfg, "StepperItems", []nui.StepItem{
+		{ID: "details", Title: "Details", Description: "Project name", Icon: lucide.Folder(), UI: styles, Content: func(c *ui.Context, inner nui.Theme) {
+			nui.Input(c, inner, &s.Draft, nui.InputOptions{Label: "Step draft"}).FillWidth()
+		}},
+		{ID: "team", Title: "Team", Description: "Invite members", Content: func(c *ui.Context, inner nui.Theme) { ui.Text(c, "Choose the people who can access the project.") }},
+		{ID: "review", Title: "Review", Description: "Confirm changes", Content: func(c *ui.Context, inner nui.Theme) { ui.Text(c, "Review the project before continuing.") }},
+	}, c, t, &s.Live)
+	if !cfg.Bool("showContent") {
+		for i := range items {
+			items[i].Content = nil
+		}
+	}
+	if s.Reversed {
+		slices.Reverse(items)
+	}
+	nui.Stepper(c.Key("stepper"), t, &s.Step, items, showcase.Options(cfg, "StepperOptions", nui.StepperOptions{Label: "Setup", Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Vertical: cfg.Bool("vertical"), Disabled: cfg.Bool("disabled"), Linear: cfg.OptionalBool("linear"), CanSelect: func(id string) bool { return !cfg.Bool("blockReview") || id != "review" }, OnChange: func(string) { s.Changes++ }}, c, t, &s.Live))
+	nui.Button(c, t, "Reverse steps", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() { s.Reversed = !s.Reversed })
+	nui.Button(c, t, "Select review externally", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() { s.Step = "review" })
+	ui.Textf(c, "Step: %s · Changes: %d", s.Step, s.Changes)
 }
 func (s *stepperExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *stepperExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
 func (s *stepperExample) Configure(cfg showcase.Config) error { return nil }
 func (s *stepperExample) Dispose()                            {}
 
-type timelineExample struct{ Live showcase.Runtime }
+type timelineExample struct {
+	Live       showcase.Runtime
+	Selected   string
+	Selections int
+}
 
 func (s *timelineExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Timeline(c.Key("timeline"), t, showcase.Options(cfg, "TimelineItems", []nui.TimelineItem{{ID: "create", Title: "Created", Time: "09:00", Description: "Project initialized"}, {ID: "build", Title: "Built", Time: "09:10", Description: "Checks passed"}, {ID: "ship", Title: "Published", Time: "09:20", Description: "Ready to share"}}, c, t, &s.Live), showcase.Options(cfg, "TimelineOptions", nui.TimelineOptions{Label: "Activity", Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Horizontal: cfg.Bool("horizontal"), Current: nui.Set(cfg.Int("current"))}, c, t, &s.Live))
+	var avatar *nui.AvatarOptions
+	if cfg.Bool("avatar") {
+		avatar = &nui.AvatarOptions{Alt: "Ada Lovelace"}
+	}
+	var styles nui.Styles
+	if cfg.Bool("dateStyle") {
+		styles = nui.Styles{nui.DateSlot: {Foreground: nui.Set(t.Info)}}
+	}
+	currentID := cfg.String("currentID")
+	if cfg.Bool("followSelection") && s.Selected != "" {
+		currentID = s.Selected
+	}
+	nui.Timeline(c.Key("timeline"), t, showcase.Options(cfg, "TimelineItems", []nui.TimelineItem{
+		{ID: "create", Title: "Created", Time: "09:00", Description: "Project initialized", Avatar: avatar, UI: styles},
+		{ID: "build", Title: "Built", Time: "09:10", Description: "Checks passed", Icon: lucide.Check()},
+		{ID: "ship", Title: "Published", Time: "09:20", Description: "Ready to share", Icon: lucide.Send()},
+	}, c, t, &s.Live), showcase.Options(cfg, "TimelineOptions", nui.TimelineOptions{Label: "Activity", Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Horizontal: cfg.Bool("horizontal"), Current: nui.Set(cfg.Int("current")), CurrentID: currentID, Reverse: cfg.Bool("reverse"), OnSelect: func(id string) { s.Selected = id; s.Selections++ }}, c, t, &s.Live))
+	ui.Textf(c, "Selected: %s · Selections: %d", s.Selected, s.Selections)
 }
 func (s *timelineExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *timelineExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -669,14 +1471,34 @@ func (s *timelineExample) Configure(cfg showcase.Config) error { return nil }
 func (s *timelineExample) Dispose()                            {}
 
 type bannerExample struct {
-	Live showcase.Runtime
-	Open bool
+	Live                        showcase.Runtime
+	Open                        bool
+	Closed, Actions, Selections int
 }
 
 func (s *bannerExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Banner(c.Key("banner"), t, &s.Open, showcase.Options(cfg, "BannerOptions", nui.BannerOptions{Title: cfg.String("label"), Description: "Review the new release notes.", Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral})}, c, t, &s.Live))
+	var icon *ui.SVG
+	if cfg.Bool("icon") {
+		icon = lucide.Info()
+	}
+	var actions func(*ui.Context, nui.Theme)
+	if cfg.Bool("actions") {
+		actions = func(c *ui.Context, inner nui.Theme) {
+			nui.Button(c, inner, "Release notes", nui.ButtonOptions{}).OnClick(func() { s.Actions++ })
+		}
+	}
+	var selectBanner func()
+	if cfg.Bool("selectable") {
+		selectBanner = func() { s.Selections++ }
+	}
+	var close *nui.ButtonOptions
+	if cfg.Bool("customClose") {
+		close = &nui.ButtonOptions{Color: nui.Neutral, Variant: nui.Outline, Size: nui.SM, Leading: lucide.Check(), AccessibleLabel: "Close update"}
+	}
+	nui.Banner(c.Key("banner"), t, &s.Open, showcase.Options(cfg, "BannerOptions", nui.BannerOptions{Title: cfg.String("label"), Description: cfg.String("description"), Icon: icon, Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Actions: actions, OnSelect: selectBanner, CloseButton: cfg.OptionalBool("closeButton"), Close: close, OnClose: func() { s.Closed++ }}, c, t, &s.Live))
 	nui.Button(c.Key("show"), t, "Show banner", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { s.Open = true })
+	ui.Textf(c, "Selections: %d · Actions: %d · Closed: %d", s.Selections, s.Actions, s.Closed)
 }
 func (s *bannerExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *bannerExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -684,14 +1506,28 @@ func (s *bannerExample) Configure(cfg showcase.Config) error { return nil }
 func (s *bannerExample) Dispose()                            {}
 
 type errorExample struct {
-	Live    showcase.Runtime
-	Retries int
+	Live                showcase.Runtime
+	Retries, Recoveries int
 }
 
 func (s *errorExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.ErrorView(c.Key("error"), t, showcase.Options(cfg, "ErrorOptions", nui.ErrorOptions{Status: "404", Title: cfg.String("label"), Description: "This example does not make network requests.", OnRetry: func() { s.Retries++ }}, c, t, &s.Live))
-	ui.Textf(c, "Retry attempts: %d", s.Retries)
+	var icon *ui.SVG
+	if cfg.Bool("icon") {
+		icon = lucide.CircleAlert()
+	}
+	var retry *nui.ButtonOptions
+	if cfg.Bool("customRetry") {
+		retry = &nui.ButtonOptions{Color: nui.Info, Variant: nui.Outline, Size: nui.MD, Leading: lucide.RefreshCw()}
+	}
+	var actions func(*ui.Context, nui.Theme)
+	if cfg.Bool("customActions") {
+		actions = func(c *ui.Context, inner nui.Theme) {
+			nui.Button(c, inner, "Recover locally", nui.ButtonOptions{}).OnClick(func() { s.Recoveries++ })
+		}
+	}
+	nui.ErrorView(c.Key("error"), t, showcase.Options(cfg, "ErrorOptions", nui.ErrorOptions{Status: cfg.String("status"), Title: cfg.String("label"), Description: cfg.String("description"), Icon: icon, Clear: cfg.OptionalBool("clear"), Retry: retry, Actions: actions, OnRetry: func() { s.Retries++ }}, c, t, &s.Live))
+	ui.Textf(c, "Retry attempts: %d · Recoveries: %d", s.Retries, s.Recoveries)
 }
 func (s *errorExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *errorExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -699,40 +1535,78 @@ func (s *errorExample) Configure(cfg showcase.Config) error { return nil }
 func (s *errorExample) Dispose()                            {}
 
 type formExample struct {
-	Live         showcase.Runtime
-	Form         nui.FormState
-	Name, Status string
+	Live                  showcase.Runtime
+	Form                  nui.FormState
+	Ticket                nui.FormTicket
+	Name, Status          string
+	Requests, ErrorEvents int
 }
 
 func (s *formExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Form(c.Key("form"), t, &s.Form, showcase.Options(cfg, "FormOptions", nui.FormOptions{Label: "Project form", Disabled: cfg.Bool("disabled"), Validate: func(values nui.FormValues) nui.FormErrors {
+	nui.Form(c.Key("form"), t, &s.Form, showcase.Options(cfg, "FormOptions", nui.FormOptions{Label: "Project form", Disabled: cfg.Bool("disabled"), LoadingAuto: nui.Set(cfg.Bool("loadingAuto")), Validate: func(values nui.FormValues) nui.FormErrors {
+		if cfg.Bool("globalError") {
+			return nui.FormErrors{"": "Project is unavailable"}
+		}
 		if strings.TrimSpace(values["name"]) == "" {
 			return nui.FormErrors{"name": "Enter a project name"}
 		}
 		return nil
-	}, OnSubmit: func(values nui.FormValues) { s.Status = "Saved: " + values["name"] }}, c, t, &s.Live), func(t nui.Theme) {
+	}, OnError: func(nui.FormErrors) { s.ErrorEvents++; s.Status = "Validation failed" }, OnSubmit: func(values nui.FormValues) {
+		s.Requests++
+		if cfg.Bool("async") {
+			s.Ticket = s.Form.BeginAsync()
+			s.Status = "Request pending"
+		} else {
+			s.Status = "Saved: " + values["name"]
+		}
+	}}, c, t, &s.Live), func(t nui.Theme) {
 		nui.FormField(c.Key("field"), t, nui.FormFieldOptions{Name: "name", Value: s.Name, Label: "Project name", Required: true}, func(t nui.Theme) {
 			nui.Input(c.Key("name"), t, &s.Name, nui.InputOptions{Placeholder: "A new project"})
 		})
 		nui.Button(c.Key("submit"), t, "Save project", nui.ButtonOptions{}).OnClick(s.Form.Submit)
 	})
-	ui.Text(c, s.Status)
+	if cfg.Bool("async") || s.Form.Submitting {
+		ui.Row(c.Key("async-actions")).Wrap().Gap(8).Children(func() {
+			nui.Button(c.Key("complete"), t, "Complete request", nui.ButtonOptions{}).OnClick(func() {
+				if s.Form.CompleteAsync(s.Ticket, nil) {
+					s.Status = "Saved: " + s.Ticket.Values["name"]
+				} else {
+					s.Status = "Stale result rejected"
+				}
+			})
+			nui.Button(c.Key("cancel"), t, "Cancel request", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { s.Form.Cancel(); s.Status = "Request cancelled" })
+			nui.Button(c.Key("repeat"), t, "Repeat submit", nui.ButtonOptions{Variant: nui.Outline}).OnClick(s.Form.Submit)
+		})
+	}
+	if message := s.Form.Errors()[""]; message != "" {
+		ui.Text(c.Key("global-error"), message).TextColor(t.Error)
+	}
+	nui.Button(c.Key("reset"), t, "Restore project name", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { s.Name = "Restored project"; s.Form.Reset(); s.Status = "Form reset" })
+	ui.Text(c.Key("status"), s.Status)
+	ui.Textf(c, "Requests: %d · Errors: %d · Dirty: %t", s.Requests, s.ErrorEvents, s.Form.Field("name").Dirty)
 }
 func (s *formExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *formExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
 func (s *formExample) Configure(cfg showcase.Config) error { return nil }
-func (s *formExample) Dispose()                            {}
+func (s *formExample) Dispose()                            { s.Form.Cancel() }
 
 type input_numberExample struct {
-	Live   showcase.Runtime
-	Value  nui.Optional[float64]
-	Number nui.NumberState
+	Live    showcase.Runtime
+	Value   nui.Optional[float64]
+	Number  nui.NumberState
+	Changes int
 }
 
 func (s *input_numberExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.InputNumber(c.Key("number"), t, &s.Value, &s.Number, showcase.Options(cfg, "InputNumberOptions", nui.InputNumberOptions{InputOptions: nui.InputOptions{Label: cfg.String("label"), Placeholder: cfg.String("placeholder"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Disabled: cfg.Bool("disabled"), ReadOnly: cfg.Bool("readOnly"), Loading: cfg.Bool("loading")}, Orientation: showcase.Select(cfg, "orientation", map[string]nui.Orientation{"horizontal": nui.Horizontal, "vertical": nui.Vertical}), Min: nui.Set(0.0), Max: nui.Set(100.0), Step: cfg.Number("step")}, c, t, &s.Live))
+	var incrementIcon, decrementIcon *ui.SVG
+	if cfg.Bool("customIcons") {
+		incrementIcon = lucide.ArrowUp()
+		decrementIcon = lucide.ArrowDown()
+	}
+	nui.InputNumber(c.Key("number"), t, &s.Value, &s.Number, showcase.Options(cfg, "InputNumberOptions", nui.InputNumberOptions{InputOptions: nui.InputOptions{Label: cfg.String("label"), Placeholder: cfg.String("placeholder"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Disabled: cfg.Bool("disabled"), ReadOnly: cfg.Bool("readOnly"), Loading: cfg.Bool("loading")}, Orientation: showcase.Select(cfg, "orientation", map[string]nui.Orientation{"horizontal": nui.Horizontal, "vertical": nui.Vertical}), Min: nui.Set(0.0), Max: nui.Set(100.0), Step: cfg.Number("step"), StepSnapping: nui.Set(cfg.Bool("snapping")), StartingValue: nui.Set(float64(cfg.Int("starting"))), FocusOnChange: nui.Set(cfg.Bool("focusOnChange")), Increment: nui.Set(cfg.Bool("increment")), Decrement: nui.Set(cfg.Bool("decrement")), IncrementDisabled: cfg.Bool("incrementDisabled"), DecrementDisabled: cfg.Bool("decrementDisabled"), IncrementIcon: incrementIcon, DecrementIcon: decrementIcon, AllowInvalid: cfg.Bool("allowInvalid"), DisableWheelChange: cfg.Bool("disableWheel"), InvertWheelChange: cfg.Bool("invertWheel"), OnValueChange: func(nui.Optional[float64]) { s.Changes++ }}, c, t, &s.Live))
+	ui.Textf(c, "Value: %v · Changes: %d", s.Value, s.Changes)
 }
 func (s *input_numberExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *input_numberExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -740,14 +1614,32 @@ func (s *input_numberExample) Configure(cfg showcase.Config) error { return nil 
 func (s *input_numberExample) Dispose()                            {}
 
 type input_tagsExample struct {
-	Live   showcase.Runtime
-	Values []string
-	Tags   nui.TagsState
+	Live                              showcase.Runtime
+	Values                            []string
+	Tags                              nui.TagsState
+	Changes, Added, Removed, Rejected int
+	LastRejected                      string
 }
 
 func (s *input_tagsExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.InputTags(c.Key("tags"), t, &s.Values, &s.Tags, showcase.Options(cfg, "InputTagsOptions", nui.InputTagsOptions{InputOptions: nui.InputOptions{Label: cfg.String("label"), Placeholder: cfg.String("placeholder"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Disabled: cfg.Bool("disabled"), ReadOnly: cfg.Bool("readOnly"), Loading: cfg.Bool("loading")}, MaxTags: cfg.Int("maximum"), AddOnPaste: cfg.OptionalBool("paste")}, c, t, &s.Live))
+	var convert, display func(string) string
+	if cfg.Bool("normalize") {
+		convert = strings.ToLower
+	}
+	if cfg.Bool("displayUpper") {
+		display = strings.ToUpper
+	}
+	var deleteIcon *ui.SVG
+	if cfg.Bool("customDelete") {
+		deleteIcon = lucide.Minus()
+	}
+	nui.InputTags(c.Key("tags"), t, &s.Values, &s.Tags, showcase.Options(cfg, "InputTagsOptions", nui.InputTagsOptions{InputOptions: nui.InputOptions{Label: cfg.String("label"), Placeholder: cfg.String("placeholder"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Disabled: cfg.Bool("disabled"), ReadOnly: cfg.Bool("readOnly"), Loading: cfg.Bool("loading")}, MaxTags: cfg.Int("maximum"), MaxLength: cfg.Int("maxLength"), AddOnPaste: cfg.OptionalBool("paste"), AddOnTab: cfg.Bool("addOnTab"), AddOnBlur: cfg.Bool("addOnBlur"), Duplicate: cfg.Bool("duplicate"), DeleteIcon: deleteIcon, ConvertValue: convert, DisplayValue: display, OnTagsChange: func([]string) { s.Changes++ }, OnAddTag: func(string) { s.Added++ }, OnRemoveTag: func(string) { s.Removed++ }, OnInvalid: func(value string) { s.Rejected++; s.LastRejected = value }}, c, t, &s.Live))
+	nui.Button(c.Key("leave"), t, "Leave tag input", nui.ButtonOptions{Variant: nui.Outline})
+	ui.Textf(c, "Changes: %d · Added: %d · Removed: %d · Rejected: %d", s.Changes, s.Added, s.Removed, s.Rejected)
+	if s.LastRejected != "" {
+		ui.Text(c, "Last rejected: "+s.LastRejected)
+	}
 }
 func (s *input_tagsExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *input_tagsExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -755,14 +1647,20 @@ func (s *input_tagsExample) Configure(cfg showcase.Config) error { return nil }
 func (s *input_tagsExample) Dispose()                            {}
 
 type pin_inputExample struct {
-	Live  showcase.Runtime
-	Value string
-	Pin   nui.PinState
+	Live              showcase.Runtime
+	Value             string
+	Pin               nui.PinState
+	Changes, Complete int
 }
 
 func (s *pin_inputExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.PinInput(c.Key("pin"), t, &s.Value, &s.Pin, showcase.Options(cfg, "PinInputOptions", nui.PinInputOptions{Label: "Verification code", Length: cfg.Int("length"), Numeric: cfg.Bool("numeric"), Mask: cfg.Bool("mask"), ReadOnly: cfg.Bool("readOnly"), Disabled: cfg.Bool("disabled"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None})}, c, t, &s.Live))
+	var parts nui.Styles
+	if cfg.Bool("customParts") {
+		parts = nui.Styles{nui.Root: {Gap: nui.Set(float32(10)), PaddingX: nui.Set(float32(4)), PaddingY: nui.Set(float32(4))}, nui.SeparatorSlot: {FontSize: nui.Set(float32(20)), Foreground: nui.Set(t.Info)}}
+	}
+	nui.PinInput(c.Key("pin"), t, &s.Value, &s.Pin, showcase.Options(cfg, "PinInputOptions", nui.PinInputOptions{Label: "Verification code", Length: cfg.Int("length"), Numeric: cfg.Bool("numeric"), Mask: cfg.Bool("mask"), ReadOnly: cfg.Bool("readOnly"), Disabled: cfg.Bool("disabled"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Highlight: cfg.Bool("highlight"), SeparatorEvery: cfg.Int("separatorEvery"), OnChange: func(string) { s.Changes++ }, OnComplete: func(string) { s.Complete++ }, Decoration: nui.Decoration{UI: parts}}, c, t, &s.Live))
+	ui.Textf(c, "Characters: %d · Changes: %d · Complete: %d", len([]rune(s.Value)), s.Changes, s.Complete)
 }
 func (s *pin_inputExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *pin_inputExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -770,14 +1668,27 @@ func (s *pin_inputExample) Configure(cfg showcase.Config) error { return nil }
 func (s *pin_inputExample) Dispose()                            {}
 
 type input_ratingExample struct {
-	Live  showcase.Runtime
-	Value int
+	Live    showcase.Runtime
+	Value   int
+	Changes int
 }
 
 func (s *input_ratingExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.InputRating(c.Key("rating"), t, &s.Value, showcase.Options(cfg, "InputRatingOptions", nui.InputRatingOptions{Label: "Rating", Max: cfg.Int("maximum"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Disabled: cfg.Bool("disabled"), ReadOnly: cfg.Bool("readOnly"), Orientation: showcase.Select(cfg, "orientation", map[string]nui.Orientation{"horizontal": nui.Horizontal, "vertical": nui.Vertical}), Clearable: cfg.Bool("clearable")}, c, t, &s.Live))
-	ui.Textf(c, "Rating: %d", s.Value)
+	if cfg.Bool("reduceMotion") {
+		t.Motion.Reduce = true
+	}
+	var filled, empty *ui.SVG
+	if cfg.Bool("customIcons") {
+		filled = lucide.Heart()
+		empty = lucide.Circle()
+	}
+	var parts nui.Styles
+	if cfg.Bool("customParts") {
+		parts = nui.Styles{nui.Indicator: {Foreground: nui.Set(t.Info)}, nui.EmptyIconSlot: {Foreground: nui.Set(t.Warning)}}
+	}
+	nui.InputRating(c.Key("rating"), t, &s.Value, showcase.Options(cfg, "InputRatingOptions", nui.InputRatingOptions{Label: "Rating", Max: cfg.Int("maximum"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Disabled: cfg.Bool("disabled"), ReadOnly: cfg.Bool("readOnly"), Orientation: showcase.Select(cfg, "orientation", map[string]nui.Orientation{"horizontal": nui.Horizontal, "vertical": nui.Vertical}), Clearable: cfg.Bool("clearable"), Hoverable: nui.Set(cfg.Bool("hoverable")), Icon: filled, EmptyIcon: empty, UI: parts, OnChange: func(int) { s.Changes++ }}, c, t, &s.Live))
+	ui.Textf(c, "Rating: %d · Changes: %d", s.Value, s.Changes)
 }
 func (s *input_ratingExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *input_ratingExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -785,14 +1696,38 @@ func (s *input_ratingExample) Configure(cfg showcase.Config) error { return nil 
 func (s *input_ratingExample) Dispose()                            {}
 
 type listboxExample struct {
-	Live   showcase.Runtime
-	Values []string
-	List   nui.ListboxState
+	Live                                               showcase.Runtime
+	Values                                             []string
+	List                                               nui.ListboxState
+	Changes, Selections, Queries, Attempts, Highlights int
+	Reversed                                           bool
 }
 
 func (s *listboxExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Listbox(c.Key("list"), t, &s.Values, &s.List, showcase.Options(cfg, "ListboxItems", []nui.ListboxItem{{ID: "go", Label: "Go", Description: "Native applications"}, {ID: "rust", Label: "Rust", Description: "Systems programming"}, {ID: "typescript", Label: "TypeScript", Description: "Web applications"}}, c, t, &s.Live), showcase.Options(cfg, "ListboxOptions", nui.ListboxOptions{Label: "Languages", Multiple: cfg.Bool("multiple"), Disabled: cfg.Bool("disabled"), Height: 220}, c, t, &s.Live))
+	items := showcase.Options(cfg, "ListboxItems", []nui.ListboxItem{
+		{ID: "languages", Label: "Languages", Kind: nui.ListboxLabel},
+		{ID: "go", Label: "Go", Description: "Native applications", Icon: lucide.Code()},
+		{ID: "rust", Label: "Rust", Description: "Systems programming", Chip: &nui.ChipOptions{Color: nui.Warning}},
+		{ID: "typescript", Label: "TypeScript", Description: "Web applications", Avatar: &nui.AvatarOptions{Text: "TS", Alt: "TypeScript"}},
+		{ID: "separator", Kind: nui.ListboxSeparator},
+		{ID: "prefix", Label: "Cafeteria", Description: "Prefix match"},
+		{ID: "contains", Label: "A café", Description: "Contains the query"},
+		{ID: "exact", Label: "Café", Description: "Exact match; activation can be cancelled", Options: &nui.ListboxItemOptions{OnSelect: func(e *nui.ListboxEvent) {
+			s.Attempts++
+			if cfg.Bool("protect") {
+				e.PreventDefault()
+			}
+		}, Decoration: nui.Decoration{UI: nui.Styles{nui.ItemLabelSlot: {Weight: nui.Set(600)}}}}},
+	}, c, t, &s.Live)
+	if s.Reversed {
+		items[1], items[3] = items[3], items[1]
+	}
+	nui.Listbox(c.Key("list"), t, &s.Values, &s.List, items, showcase.Options(cfg, "ListboxOptions", nui.ListboxOptions{Label: "Languages", Multiple: cfg.Bool("multiple"), Disabled: cfg.Bool("disabled"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Highlight: cfg.Bool("highlight"), Loading: cfg.Bool("loading"), Filter: cfg.Bool("filter"), FilterInput: &nui.InputOptions{Label: "Filter languages", Placeholder: "Search languages or cafe"}, SelectedIcon: lucide.Check(), Height: 320, OnChange: func([]string) { s.Changes++ }, OnSelect: func(string) { s.Selections++ }, OnSearchTermChange: func(string) { s.Queries++ }, OnHighlight: func(string) { s.Highlights++ }}, c, t, &s.Live))
+	nui.Button(c.Key("reorder"), t, "Reorder options", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() { s.Reversed = !s.Reversed })
+	ui.Textf(c, "Selected: %v · Changes: %d · Activations: %d", s.Values, s.Changes, s.Selections)
+	ui.Textf(c, "Queries: %d · Highlights: %d · Attempts: %d", s.Queries, s.Highlights, s.Attempts)
+
 }
 func (s *listboxExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *listboxExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -800,29 +1735,103 @@ func (s *listboxExample) Configure(cfg showcase.Config) error { return nil }
 func (s *listboxExample) Dispose()                            {}
 
 type select_menuExample struct {
-	Live   showcase.Runtime
-	Values []string
-	Menu   nui.SelectMenuState
+	Live                                                              showcase.Runtime
+	Values                                                            []string
+	Menu                                                              nui.SelectMenuState
+	Changes, Selections, Queries, Attempts, Highlights, Opens, Clears int
+	Reversed                                                          bool
+	Remote                                                            nui.SelectMenuState
+	RemoteValues                                                      []string
+	Results                                                           nui.QueryState[nui.ListboxItem]
+	Current, Previous                                                 nui.QueryTicket
+	Status                                                            string
 }
 
 func (s *select_menuExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.SelectMenu(c.Key("select"), t, &s.Values, &s.Menu, showcase.Options(cfg, "SelectMenuItems", []nui.ListboxItem{{ID: "go", Label: "Go", Description: "Native applications"}, {ID: "rust", Label: "Rust", Description: "Systems programming"}, {ID: "typescript", Label: "TypeScript", Description: "Web applications"}}, c, t, &s.Live), showcase.Options(cfg, "SelectMenuOptions", nui.SelectMenuOptions{ListboxOptions: nui.ListboxOptions{Label: "Languages", Multiple: cfg.Bool("multiple"), Disabled: cfg.Bool("disabled")}, Placeholder: cfg.String("placeholder"), SearchInput: cfg.OptionalBool("search"), Clearable: true, Loading: cfg.Bool("loading"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None})}, c, t, &s.Live))
+	items := showcase.Options(cfg, "SelectMenuItems", []nui.ListboxItem{
+		{ID: "languages", Label: "Languages", Kind: nui.ListboxLabel},
+		{ID: "go", Label: "Go", Description: "Native applications", Icon: lucide.Code()},
+		{ID: "rust", Label: "Rust", Description: "Systems programming", Chip: &nui.ChipOptions{Color: nui.Warning}},
+		{ID: "typescript", Label: "TypeScript", Description: "Web applications", Avatar: &nui.AvatarOptions{Text: "TS", Alt: "TypeScript"}},
+		{ID: "separator", Kind: nui.ListboxSeparator},
+		{ID: "prefix", Label: "Cafeteria", Description: "Prefix match"},
+		{ID: "contains", Label: "A café", Description: "Contains the query"},
+		{ID: "exact", Label: "Café", Description: "Exact match; activation can be cancelled", Options: &nui.ListboxItemOptions{OnSelect: func(e *nui.ListboxEvent) {
+			s.Attempts++
+			if cfg.Bool("protect") {
+				e.PreventDefault()
+			}
+		}, Decoration: nui.Decoration{UI: nui.Styles{nui.ItemLabelSlot: {Weight: nui.Set(600)}}}}},
+	}, c, t, &s.Live)
+	if s.Reversed {
+		items[1], items[3] = items[3], items[1]
+	}
+	nui.SelectMenu(c.Key("select"), t, &s.Values, &s.Menu, items, showcase.Options(cfg, "SelectMenuOptions", nui.SelectMenuOptions{ListboxOptions: nui.ListboxOptions{Label: "Languages", Multiple: cfg.Bool("multiple"), Disabled: cfg.Bool("disabled"), FilterInput: &nui.InputOptions{Label: "Search languages", Placeholder: "Search languages or cafe"}, OnChange: func([]string) { s.Changes++ }, OnSelect: func(string) { s.Selections++ }, OnSearchTermChange: func(string) { s.Queries++ }, OnHighlight: func(string) { s.Highlights++ }}, Placeholder: cfg.String("placeholder"), SearchInput: cfg.OptionalBool("search"), FocusSearch: cfg.OptionalBool("focusSearch"), Clearable: true, ResetModelValueOnClear: cfg.OptionalBool("resetModel"), ResetSearchTermOnSelect: cfg.OptionalBool("resetSelect"), ResetSearchTermOnBlur: cfg.OptionalBool("resetBlur"), Loading: cfg.Bool("loading"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Avatar: &nui.AvatarOptions{Text: "UI", Alt: "Language choice"}, OnOpenChange: func(bool) { s.Opens++ }, OnClear: func() { s.Clears++ }}, c, t, &s.Live))
+	nui.Button(c.Key("reorder"), t, "Reorder options", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() { s.Reversed = !s.Reversed })
+	ui.Textf(c, "Selected: %v · Changes: %d · Activations: %d", s.Values, s.Changes, s.Selections)
+	ui.Textf(c, "Queries: %d · Highlights: %d · Attempts: %d", s.Queries, s.Highlights, s.Attempts)
+
+	ui.Textf(c, "Open changes: %d · Clears: %d", s.Opens, s.Clears)
+	if cfg.Bool("remote") {
+		ui.Text(c, "Simulated remote search")
+		nui.SelectMenu(c.Key("remote"), t, &s.RemoteValues, &s.Remote, s.Results.Items, showcase.Options(cfg, "SelectMenuOptions2", nui.SelectMenuOptions{Label: "Remote options", ExternalFilter: true, Loading: s.Results.Loading, ResetSearchTermOnBlur: nui.Set(false), ResetSearchTermOnSelect: nui.Set(false), OnQuery: func(query string) {
+			s.Previous = s.Current
+			_, s.Current = s.Results.Start(context.Background(), query)
+			s.Status = "Request pending: " + query
+		}}, c, t, &s.Live))
+		ui.Row(c).Wrap().Gap(8).Children(func() {
+			nui.Button(c.Key("stale"), t, "Complete stale request", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() {
+				if s.Results.Complete(s.Previous, []nui.ListboxItem{{ID: "stale", Label: "Stale result"}}, nil) {
+					s.Status = "Previous result accepted"
+				} else {
+					s.Status = "Stale result rejected"
+				}
+			})
+			nui.Button(c.Key("current"), t, "Complete current request", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() {
+				if s.Results.Complete(s.Current, []nui.ListboxItem{{ID: "result", Label: "Result: " + s.Current.Query}}, nil) {
+					s.Status = "Current result accepted"
+				} else {
+					s.Status = "Current result rejected"
+				}
+			})
+			nui.Button(c.Key("cancel"), t, "Cancel request", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { s.Results.Cancel(); s.Status = "Request cancelled" })
+		})
+		ui.Text(c, s.Status)
+		ui.Textf(c, "Remote selection: %v", s.RemoteValues)
+	}
+
 }
 func (s *select_menuExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *select_menuExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
 func (s *select_menuExample) Configure(cfg showcase.Config) error { return nil }
-func (s *select_menuExample) Dispose()                            {}
+func (s *select_menuExample) Dispose()                            { s.Results.Cancel() }
 
 type calendarExample struct {
-	Live     showcase.Runtime
-	Value    nui.DateSelection
-	Calendar nui.CalendarState
+	Live                   showcase.Runtime
+	Value                  nui.DateSelection
+	Calendar               nui.CalendarState
+	Changes, Months, Views int
 }
 
 func (s *calendarExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Calendar(c.Key("calendar"), t, &s.Value, &s.Calendar, showcase.Options(cfg, "CalendarOptions", nui.CalendarOptions{Label: "Date", Range: cfg.Bool("range"), Disabled: cfg.Bool("disabled"), Today: nui.Set(nui.Date{Year: 2026, Month: time.November, Day: 2})}, c, t, &s.Live))
+	o := showcase.Options(cfg, "CalendarOptions", nui.CalendarOptions{Label: "Date", Range: cfg.Bool("range"), Disabled: cfg.Bool("disabled"), ReadOnly: cfg.Bool("readonly"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "solid": nui.Solid, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), WeekStart: time.Monday, WeekNumbers: cfg.Bool("weekNumbers"), FixedWeeks: cfg.OptionalBool("fixedWeeks"), NumberOfMonths: cfg.Int("months"), PagedNavigation: cfg.Bool("paged"), PreventDeselect: cfg.Bool("prevent"), AllowNonContiguousRanges: cfg.Bool("gaps"), MaximumDays: cfg.Int("maxDays"), Today: nui.Set(nui.Date{Year: 2024, Month: time.February, Day: 15}), OnChange: func(nui.DateSelection) { s.Changes++ }, OnMonthChange: func(nui.Date) { s.Months++ }, OnViewChange: func(nui.CalendarView) { s.Views++ }}, c, t, &s.Live)
+	if cfg.Bool("unavailable") {
+		o.IsDateUnavailable = func(date nui.Date) bool { return date.Day == 20 }
+	}
+	nui.Calendar(c.Key("calendar"), t, &s.Value, &s.Calendar, o)
+	ui.Row(c).Wrap().Gap(8).Children(func() {
+		nui.Button(c.Key("reset"), t, "Reset example date", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() {
+			s.Value = nui.DateSelection{Start: nui.Set(nui.Date{Year: 2024, Month: time.February, Day: 15})}
+			s.Calendar.Month = nui.Date{Year: 2024, Month: time.February, Day: 1}
+			s.Calendar.View = nui.CalendarDayView
+		})
+		nui.Button(c.Key("clear"), t, "Clear example date", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { s.Value = nui.DateSelection{} })
+	})
+	ui.Textf(c, "Date: %s to %s · Changes: %d", s.Value.Start.Value.String(), s.Value.End.Value.String(), s.Changes)
+	ui.Textf(c, "Month: %s · Month changes: %d · View changes: %d", s.Calendar.Month, s.Months, s.Views)
+
 }
 func (s *calendarExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *calendarExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -830,17 +1839,38 @@ func (s *calendarExample) Configure(cfg showcase.Config) error { return nil }
 func (s *calendarExample) Dispose()                            {}
 
 type input_dateExample struct {
-	Live       showcase.Runtime
-	Value      nui.Optional[nui.Date]
-	Date       nui.DateInputState
-	Range      nui.DateSelection
-	RangeInput nui.DateRangeInputState
+	Live                          showcase.Runtime
+	Value                         nui.Optional[nui.Date]
+	Date                          nui.DateInputState
+	Range                         nui.DateSelection
+	RangeInput                    nui.DateRangeInputState
+	Changes, RangeChanges, Clears int
 }
 
 func (s *input_dateExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.InputDate(c.Key("date"), t, &s.Value, &s.Date, showcase.Options(cfg, "InputDateOptions", nui.InputDateOptions{InputOptions: nui.InputOptions{Label: cfg.String("label"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Disabled: cfg.Bool("disabled"), ReadOnly: cfg.Bool("readOnly"), Loading: cfg.Bool("loading")}, ShowCalendar: cfg.Bool("showCalendar")}, c, t, &s.Live))
-	nui.InputDateRange(c.Key("range"), t, &s.Range, &s.RangeInput, showcase.Options(cfg, "InputDateOptions2", nui.InputDateOptions{InputOptions: nui.InputOptions{Label: "Date range", Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Disabled: cfg.Bool("disabled"), ReadOnly: cfg.Bool("readOnly"), Loading: cfg.Bool("loading")}, ShowCalendar: cfg.Bool("showCalendar")}, c, t, &s.Live))
+	var avatar *nui.AvatarOptions
+	if cfg.Bool("avatar") {
+		avatar = &nui.AvatarOptions{Text: "Ada"}
+	}
+	calendar := nui.CalendarOptions{}
+	if cfg.Bool("bounded") {
+		calendar.Min = nui.Set(nui.Date{Year: 2024, Month: time.February, Day: 1})
+		calendar.Max = nui.Set(nui.Date{Year: 2024, Month: time.March, Day: 31})
+	}
+	if cfg.Bool("unavailable") {
+		calendar.IsDateUnavailable = func(d nui.Date) bool { return d.Day == 20 }
+	}
+	var separator func(*ui.Context, nui.Theme)
+	if cfg.Bool("customSeparator") {
+		separator = func(c *ui.Context, t nui.Theme) { ui.Text(c, "to").TextColor(t.Info) }
+	}
+	o := showcase.Options(cfg, "InputDateOptions", nui.InputDateOptions{InputOptions: nui.InputOptions{Avatar: avatar, Label: cfg.String("label"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Disabled: cfg.Bool("disabled"), ReadOnly: cfg.Bool("readOnly"), Loading: cfg.Bool("loading"), LoadingTrailing: cfg.Bool("loadingTrailing"), Highlight: cfg.Bool("highlight"), Clearable: cfg.Bool("clearable"), OnClear: func() { s.Clears++ }}, Calendar: calendar, ShowCalendar: cfg.Bool("showCalendar"), Step: nui.DateStep{Day: showcase.Select(cfg, "dayStep", map[string]int{"1": 1, "2": 2, "7": 7})}, OnValueChange: func(nui.Optional[nui.Date]) { s.Changes++ }}, c, t, &s.Live)
+	r := showcase.Options(cfg, "InputDateOptions2", nui.InputDateOptions{InputOptions: nui.InputOptions{Avatar: avatar, Label: "Date range", Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Disabled: cfg.Bool("disabled"), ReadOnly: cfg.Bool("readOnly"), Loading: cfg.Bool("loading"), LoadingTrailing: cfg.Bool("loadingTrailing"), Highlight: cfg.Bool("highlight"), Clearable: cfg.Bool("clearable"), OnClear: func() { s.Clears++ }}, Calendar: calendar, BuildSeparator: separator, ShowCalendar: cfg.Bool("showCalendar"), Step: nui.DateStep{Day: showcase.Select(cfg, "dayStep", map[string]int{"1": 1, "2": 2, "7": 7})}, OnRangeChange: func(nui.DateSelection) { s.RangeChanges++ }}, c, t, &s.Live)
+	nui.InputDate(c.Key("date"), t, &s.Value, &s.Date, o)
+	nui.InputDateRange(c.Key("range"), t, &s.Range, &s.RangeInput, r)
+	ui.Textf(c, "Date: %s · Changes: %d", s.Value.Value.String(), s.Changes)
+	ui.Textf(c, "Range: %s to %s · Changes: %d · Clears: %d", s.Range.Start.Value.String(), s.Range.End.Value.String(), s.RangeChanges, s.Clears)
 }
 func (s *input_dateExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *input_dateExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -848,14 +1878,27 @@ func (s *input_dateExample) Configure(cfg showcase.Config) error { return nil }
 func (s *input_dateExample) Dispose()                            {}
 
 type input_timeExample struct {
-	Live  showcase.Runtime
-	Value nui.Optional[nui.ClockTime]
-	Time  nui.TimeInputState
+	Live            showcase.Runtime
+	Value           nui.Optional[nui.ClockTime]
+	Time            nui.TimeInputState
+	Changes, Clears int
 }
 
 func (s *input_timeExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.InputTime(c.Key("time"), t, &s.Value, &s.Time, showcase.Options(cfg, "InputTimeOptions", nui.InputTimeOptions{InputOptions: nui.InputOptions{Label: cfg.String("label"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Disabled: cfg.Bool("disabled"), ReadOnly: cfg.Bool("readOnly"), Loading: cfg.Bool("loading")}, TwelveHour: cfg.OptionalBool("twelveHour"), Seconds: cfg.Bool("seconds")}, c, t, &s.Live))
+	var avatar *nui.AvatarOptions
+	if cfg.Bool("avatar") {
+		avatar = &nui.AvatarOptions{Text: "Ada"}
+	}
+	var minimum, maximum nui.Optional[nui.ClockTime]
+	if cfg.Bool("bounded") {
+		minimum = nui.Set(nui.ClockTime{Hour: 9})
+		maximum = nui.Set(nui.ClockTime{Hour: 17, Minute: 30})
+	}
+	o := showcase.Options(cfg, "InputTimeOptions", nui.InputTimeOptions{Min: minimum, Max: maximum, InputOptions: nui.InputOptions{Avatar: avatar, Label: cfg.String("label"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Disabled: cfg.Bool("disabled"), ReadOnly: cfg.Bool("readOnly"), Loading: cfg.Bool("loading"), LoadingTrailing: cfg.Bool("loadingTrailing"), Highlight: cfg.Bool("highlight"), Clearable: cfg.Bool("clearable"), OnClear: func() { s.Clears++ }}, TwelveHour: cfg.OptionalBool("twelveHour"), Seconds: cfg.Bool("seconds"), Granularity: showcase.Select(cfg, "granularity", map[string]nui.TimeGranularity{"auto": nui.TimeGranularityDefault, "hour": nui.TimeHour, "minute": nui.TimeMinute, "second": nui.TimeSecond}), Step: nui.TimeStep{Minute: showcase.Select(cfg, "minuteStep", map[string]int{"1": 1, "5": 5, "15": 15})}, StepSnapping: cfg.Bool("stepSnapping"), OnValueChange: func(nui.Optional[nui.ClockTime]) { s.Changes++ }}, c, t, &s.Live)
+	nui.InputTime(c.Key("time"), t, &s.Value, &s.Time, o)
+	ui.Textf(c, "Time: %s · Set: %t · Changes: %d · Clears: %d", s.Value.Value.String(), s.Value.Set, s.Changes, s.Clears)
+	ui.Textf(c, "Draft: %s · Error: %s", s.Time.Text, s.Time.Error)
 }
 func (s *input_timeExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *input_timeExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -863,14 +1906,28 @@ func (s *input_timeExample) Configure(cfg showcase.Config) error { return nil }
 func (s *input_timeExample) Dispose()                            {}
 
 type color_pickerExample struct {
-	Live   showcase.Runtime
-	Value  ui.Color
-	Picker nui.ColorPickerState
+	Live        showcase.Runtime
+	Value, Last ui.Color
+	Picker      nui.ColorPickerState
+	Changes     int
 }
 
 func (s *color_pickerExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.ColorPicker(c.Key("color"), t, &s.Value, &s.Picker, showcase.Options(cfg, "ColorPickerOptions", nui.ColorPickerOptions{Label: "Accent color", Disabled: cfg.Bool("disabled")}, c, t, &s.Live))
+	direction := ui.LeftToRight
+	if cfg.Bool("rtl") {
+		direction = ui.RightToLeft
+	}
+	var styles nui.Styles
+	if cfg.Bool("styled") {
+		styles = nui.Styles{nui.Body: {Gap: nui.Set(float32(10))}, nui.Label: {Foreground: nui.Set(t.Info)}, nui.Root: {BorderWidth: nui.Set(float32(1)), BorderColor: nui.Set(t.Border)}}
+	}
+	ui.Column(c.Key("direction")).Direction(direction).Children(func() {
+		nui.ColorPicker(c.Key("color"), t, &s.Value, &s.Picker, showcase.Options(cfg, "ColorPickerOptions", nui.ColorPickerOptions{Label: "Accent color", Disabled: cfg.Bool("disabled"), Size: showcase.Select(cfg, "size", map[string]nui.Size{"xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Throttle: nui.Set(showcase.Select(cfg, "throttle", map[string]time.Duration{"0": 0 * time.Millisecond, "50": 50 * time.Millisecond, "200": 200 * time.Millisecond})), Decoration: nui.Decoration{UI: styles}, OnChange: func(v ui.Color) { s.Last = v; s.Changes++ }}, c, t, &s.Live))
+	})
+	nui.Button(c.Key("external"), t, "Set translucent blue", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { s.Value = ui.Hex("#11223344") })
+	ui.Textf(c, "Color: #%02X%02X%02X%02X", s.Value.R, s.Value.G, s.Value.B, s.Value.A)
+	ui.Textf(c, "Last notification: #%02X%02X%02X%02X · Changes: %d", s.Last.R, s.Last.G, s.Last.B, s.Last.A, s.Changes)
 }
 func (s *color_pickerExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *color_pickerExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -878,13 +1935,65 @@ func (s *color_pickerExample) Configure(cfg showcase.Config) error { return nil 
 func (s *color_pickerExample) Dispose()                            {}
 
 type tableExample struct {
-	Live  showcase.Runtime
-	Table nui.TableState[string]
+	Live                          showcase.Runtime
+	Table                         nui.TableState[string]
+	Orders                        []ui.SortOrder
+	Empty, Multiple               bool
+	SortChanges, SelectionChanges int
+	Activated                     string
 }
 
 func (s *tableExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Table(c.Key("table"), t, &s.Table, showcase.Options(cfg, "TableItems", []nui.TableColumn[string]{{ID: "name", Title: "Project", Width: 240, Value: func(v string) string { return v }, Compare: func(a, b string) int { return strings.Compare(a, b) }}}, c, t, &s.Live), showcase.Options(cfg, "TableOptions", nui.TableOptions{Label: "Projects", Height: float32(cfg.Number("height")), Disabled: cfg.Bool("disabled")}, c, t, &s.Live))
+	if s.Empty != cfg.Bool("empty") {
+		s.Empty = cfg.Bool("empty")
+		rows := []string{"NuxtUI Go", "MyGo", "Documentation"}
+		if s.Empty {
+			rows = nil
+		}
+		s.Table.SetRows(rows, func(v string) string { return v })
+	}
+	if s.Multiple != cfg.Bool("multiple") {
+		s.Multiple = cfg.Bool("multiple")
+		if s.Multiple {
+			s.Orders = nil
+			if s.Table.Sort.Column != "" {
+				s.Orders = append(s.Orders, s.Table.Sort)
+			}
+			s.Table.List.SortBy = &s.Orders
+		} else {
+			s.Table.List.SortBy = nil
+		}
+	}
+	var caption func(*ui.Context, nui.Theme)
+	if cfg.Bool("caption") {
+		caption = func(c *ui.Context, t nui.Theme) { ui.Text(c, "Project records").TextColor(t.Highlighted) }
+	}
+	direction := ui.LeftToRight
+	if cfg.Bool("rtl") {
+		direction = ui.RightToLeft
+	}
+	ui.Row(c).Wrap().Gap(8).Children(func() {
+		nui.Button(c.Key("sort"), t, "Sort Project descending", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() {
+			s.Table.Sort = ui.SortOrder{Column: "name", Descending: true}
+			if s.Multiple {
+				s.Orders = []ui.SortOrder{s.Table.Sort}
+			}
+		})
+		nui.Button(c.Key("restore"), t, "Restore input order", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { s.Table.Sort = ui.SortOrder{}; s.Orders = nil })
+	})
+	ui.Column(c.Key("direction")).Direction(direction).Children(func() {
+		nui.Table(c.Key("table"), t, &s.Table, showcase.Options(cfg, "TableItems", []nui.TableColumn[string]{
+			{ID: "name", Title: "Project", Width: 240, MinWidth: 100, Value: func(v string) string { return v }, Compare: func(a, b string) int { return strings.Compare(a, b) }},
+			{ID: "length", Title: "Length", Width: 100, MinWidth: 80, Value: func(v string) string { return fmt.Sprint(len(v)) }, Compare: func(a, b string) int { return cmp.Compare(len(a), len(b)) }},
+		}, c, t, &s.Live), showcase.Options(cfg, "TableOptions", nui.TableOptions{Label: "Projects", Caption: "Project records", Height: float32(cfg.Number("height")), Disabled: cfg.Bool("disabled"), ManualSorting: cfg.Bool("manual"), Loading: cfg.Bool("loading"), LoadingAnimation: showcase.Select(cfg, "animation", map[string]nui.TableLoadingAnimation{"carousel": nui.TableLoadingCarousel, "carousel-inverse": nui.TableLoadingCarouselInverse, "swing": nui.TableLoadingSwing, "elastic": nui.TableLoadingElastic}), BuildCaption: caption, BuildLoading: func(c *ui.Context, _ nui.Theme) { ui.Text(c, "Loading projects") }, OnSortChange: func([]ui.SortOrder) { s.SortChanges++ }, OnSelectionChange: func([]string) { s.SelectionChanges++ }, OnActivate: func(id string) { s.Activated = id }}, c, t, &s.Live))
+	})
+	first := "None"
+	if s.Table.Len() > 0 {
+		first = s.Table.RowID(0)
+	}
+	ui.Textf(c, "First: %s · Selected: %d", first, s.Table.Selection.Len())
+	ui.Textf(c, "Sort changes: %d · Selection changes: %d · Activated: %s", s.SortChanges, s.SelectionChanges, s.Activated)
 }
 func (s *tableExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *tableExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -892,58 +2001,199 @@ func (s *tableExample) Configure(cfg showcase.Config) error { return nil }
 func (s *tableExample) Dispose()                            {}
 
 type treeExample struct {
-	Live showcase.Runtime
-	Tree nui.TreeState
+	Live                       showcase.Runtime
+	Tree                       nui.TreeState
+	Ticket                     nui.TreeTicket
+	Changes, Expansions, Loads int
+	Result                     string
 }
 
 func (s *treeExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Tree = &s.Tree
 	s.Live.Begin(c, t, cfg)
-	nui.Tree(c.Key("tree"), t, &s.Tree, showcase.Options(cfg, "TreeOptions", nui.TreeOptions{Label: "Project files", Height: 260, Nested: nui.Set(cfg.Bool("nested")), Disabled: cfg.Bool("disabled"), Multiple: cfg.Bool("multiple"), SelectionBehavior: showcase.Select(cfg, "behavior", map[string]nui.SelectionBehavior{"toggle": nui.SelectionToggle, "replace": nui.SelectionReplace}), PropagateSelect: cfg.Bool("propagate"), BubbleSelect: cfg.Bool("bubble"), Loop: cfg.Bool("loop"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL})}, c, t, &s.Live))
+	var leading, trailing func(*ui.Context, nui.Theme, nui.TreeItemState)
+	if cfg.Bool("custom") {
+		leading = func(c *ui.Context, _ nui.Theme, _ nui.TreeItemState) { ui.Icon(c, lucide.Circle()).Size(16, 16) }
+		trailing = func(c *ui.Context, _ nui.Theme, item nui.TreeItemState) {
+			if item.Indeterminate {
+				ui.Text(c, "Mixed")
+			} else if item.Expanded {
+				ui.Text(c, "Open")
+			}
+		}
+	}
+	direction := ui.LeftToRight
+	if cfg.Bool("rtl") {
+		direction = ui.RightToLeft
+	}
+	ui.Column(c.Key("direction")).Direction(direction).Children(func() {
+		nui.Tree(c.Key("tree"), t, &s.Tree, showcase.Options(cfg, "TreeOptions", nui.TreeOptions{Label: "Project files", Height: 280, Nested: nui.Set(cfg.Bool("nested")), Disabled: cfg.Bool("disabled"), Multiple: cfg.Bool("multiple"), SelectionBehavior: showcase.Select(cfg, "behavior", map[string]nui.SelectionBehavior{"toggle": nui.SelectionToggle, "replace": nui.SelectionReplace}), PropagateSelect: cfg.Bool("propagate"), BubbleSelect: cfg.Bool("bubble"), Loop: cfg.Bool("loop"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), ExpandOnClick: nui.Set(cfg.Bool("expandClick")), BuildLeading: leading, BuildTrailing: trailing,
+			OnSelect: func(e *nui.TreeEvent) {
+				if cfg.Bool("protect") && e.ID == "src" {
+					e.PreventDefault()
+					s.Result = "src selection prevented"
+				}
+			},
+			OnToggle: func(e *nui.TreeEvent) {
+				if cfg.Bool("protect") && e.ID == "src" {
+					e.PreventDefault()
+					s.Result = "src toggle prevented"
+				}
+			},
+			OnChange: func() { s.Changes++ }, OnExpandedChange: func([]string) { s.Expansions++ },
+			OnLoad: func(_ string, ticket nui.TreeTicket) { s.Ticket = ticket; s.Loads++; s.Result = "Loading remote files" }}, c, t, &s.Live))
+	})
+	ui.Row(c).Wrap().Gap(8).Children(func() {
+		nui.Button(c.Key("collapse"), t, "Collapse remote", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { s.Tree.SetExpanded("remote", false); s.Result = "Remote branch collapsed" })
+		nui.Button(c.Key("complete"), t, "Complete empty load", nui.ButtonOptions{Variant: nui.Outline, Disabled: s.Loads == 0}).OnClick(func() {
+			if s.Tree.CompleteLoad(s.Ticket, nil, nil) {
+				s.Result = "Remote directory is empty"
+			} else {
+				s.Result = "Stale completion rejected"
+			}
+		})
+	})
+	ui.Textf(c, "Selected IDs: %v", slices.Sorted(s.Tree.Selection.All()))
+	ui.Textf(c, "Selection changes: %d · Expansion changes: %d", s.Changes, s.Expansions)
+	ui.Textf(c, "%s · Loads: %d", s.Result, s.Loads)
 }
 func (s *treeExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *treeExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
 func (s *treeExample) Configure(cfg showcase.Config) error {
 	return s.Live.ApplyData(cfg, []string{"TreeNodeItems"}, func() error {
-		s.Tree.SetNodes(showcase.Options(cfg, "TreeNodeItems", []nui.TreeNode{{ID: "src", Label: "src", DefaultExpanded: true, Children: []nui.TreeNode{{ID: "main", Label: "main.go", Icon: lucide.FileCode()}, {ID: "theme", Label: "theme.go", Icon: lucide.FileCode()}, {ID: "components", Label: "components", DefaultExpanded: true, Children: []nui.TreeNode{{ID: "button-file", Label: "button.go", Icon: lucide.FileCode()}, {ID: "input-file", Label: "input.go", Icon: lucide.FileCode()}}}, {ID: "locked", Label: "generated.go (disabled)", Disabled: true}}}, {ID: "docs", Label: "docs", Children: []nui.TreeNode{{ID: "readme", Label: "README.md", Icon: lucide.FileText()}}}}, nil, nui.Theme{}, &s.Live))
+		s.Tree.SetNodes(showcase.Options(cfg, "TreeNodeItems", []nui.TreeNode{
+			{ID: "src", Label: "src", DefaultExpanded: true, Children: []nui.TreeNode{
+				{ID: "main", Label: "main.go", Icon: lucide.FileCode(), Decoration: nui.Decoration{UI: nui.Styles{nui.Label: {Weight: nui.Set(600)}}}},
+				{ID: "theme", Label: "theme.go", Icon: lucide.FileCode()},
+				{ID: "components", Label: "components", DefaultExpanded: true, Children: []nui.TreeNode{{ID: "button-file", Label: "button.go", Icon: lucide.FileCode()}, {ID: "input-file", Label: "input.go", Icon: lucide.FileCode()}}},
+				{ID: "locked", Label: "generated.go (disabled)", Disabled: true},
+			}},
+			{ID: "docs", Label: "docs", Children: []nui.TreeNode{{ID: "readme", Label: "README.md", Icon: lucide.FileText()}}},
+			{ID: "remote", Label: "Remote files", Lazy: true},
+		}, nil, nui.Theme{}, &s.Live))
+		s.Result = "Ready"
 		return nil
 	})
 }
 func (s *treeExample) Dispose() { s.Tree.Close() }
 
 type command_paletteExample struct {
-	Live     showcase.Runtime
-	Commands nui.CommandPaletteState
-	Selected string
+	Live                   showcase.Runtime
+	Commands               nui.CommandPaletteState
+	Index                  *nui.CommandIndex
+	Opener                 ui.Handle
+	Selected, Status       string
+	Calls, Edits, Requests int
+	Protect                bool
+	Ticket, Previous       nui.QueryTicket
+	PendingCtx             context.Context
+	Query, Parent          string
 }
 
 func (s *command_paletteExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Commands = &s.Commands
 	s.Live.Begin(c, t, cfg)
-	nui.Button(c.Key("open"), t, "Open commands", nui.ButtonOptions{}).OnClick(func() { s.Commands.Open = true })
-	nui.CommandPalette(c.Key("commands"), t, &s.Commands, showcase.Options(cfg, "CommandPaletteOptions", nui.CommandPaletteOptions{Title: cfg.String("label"), Placeholder: "Search commands…", DisableShortcut: true, OnSelect: func(id string) { s.Selected = id }}, c, t, &s.Live))
-	ui.Text(c, s.Selected)
+	s.Protect = cfg.Bool("protect")
+	var search func(context.Context, nui.QueryTicket, string, string)
+	if cfg.Bool("manual") {
+		search = func(ctx context.Context, ticket nui.QueryTicket, query, parent string) {
+			s.Previous, s.Ticket = s.Ticket, ticket
+			s.PendingCtx = ctx
+			s.Query, s.Parent = query, parent
+			s.Requests++
+			s.Status = "Waiting for result"
+		}
+	}
+	direction := ui.LeftToRight
+	if cfg.Bool("rtl") {
+		direction = ui.RightToLeft
+	}
+	ui.Column(c.Key("direction")).Direction(direction).Children(func() {
+		nui.Button(c.Key("open"), t, "Open commands", nui.ButtonOptions{}).Bind(&s.Opener).OnClick(func() { s.Commands.Open = true })
+		nui.CommandPalette(c.Key("commands"), t, &s.Commands, showcase.Options(cfg, "CommandPaletteOptions", nui.CommandPaletteOptions{Title: cfg.String("label"), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), SearchDelay: showcase.Select(cfg, "delay", map[string]time.Duration{"immediate": time.Duration(0), "150ms": 150 * time.Millisecond}), Disabled: cfg.Bool("disabled"), IgnoreFilter: cfg.Bool("ignore"), PreserveGroupOrder: cfg.Bool("preserve"), CloseOnSelect: nui.Set(!cfg.Bool("keepOpen")), SearchInput: nui.Set(cfg.Bool("input")), ShowIcon: nui.Set(cfg.Bool("icon")), DisableShortcut: true, Search: search,
+			OnSelect: func(id string) { s.Selected = id; s.Calls++; s.Status = "Command completed" }, OnSearchTermChange: func(string) { s.Edits++ },
+			Modal: nui.ModalOptions{ReturnFocus: &s.Opener, Footer: func(c *ui.Context, t nui.Theme) {
+				if cfg.Bool("manual") {
+					ui.Row(c).Wrap().Gap(8).Children(func() {
+						nui.Button(c.Key("stale"), t, "Try stale result", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() {
+							if s.Commands.Results.Complete(s.Previous, nil, nil) {
+								s.Status = "Unexpected stale completion"
+							} else {
+								s.Status = "Stale result rejected"
+							}
+						})
+						nui.Button(c.Key("complete"), t, "Complete search", nui.ButtonOptions{Disabled: s.PendingCtx == nil}).OnClick(func() {
+							if s.Commands.Results.Complete(s.Ticket, s.Index.Search(s.PendingCtx, s.Query, s.Parent, 200), nil) {
+								s.Status = "Result received"
+							} else {
+								s.Status = "Obsolete request"
+							}
+						})
+					})
+				}
+				ui.Textf(c, "Command: %s · Calls: %d · Edits: %d", s.Selected, s.Calls, s.Edits)
+				ui.Textf(c, "%s · Requests: %d", s.Status, s.Requests)
+			}}}, c, t, &s.Live))
+	})
+	ui.Textf(c, "Command: %s · Calls: %d", s.Selected, s.Calls)
 }
 func (s *command_paletteExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *command_paletteExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
 func (s *command_paletteExample) Configure(cfg showcase.Config) error {
 	return s.Live.ApplyData(cfg, []string{"CommandActionItems"}, func() error {
-		s.Commands.SetIndex(nui.NewCommandIndex(showcase.Options(cfg, "CommandActionItems", []nui.CommandAction{{ID: "new", Label: "Create project", Icon: lucide.Plus()}, {ID: "settings", Label: "Open settings", Icon: lucide.Settings()}, {ID: "search", Label: "Search workspace", Icon: lucide.Search()}}, nil, nui.Theme{}, &s.Live)))
+		s.Index = nui.NewCommandIndex(showcase.Options(cfg, "CommandActionItems", []nui.CommandAction{
+			{ID: "create", Label: "Create document", Prefix: "File", Suffix: "Local", Description: "Start a blank invoice", Group: "Files", Keywords: "new", Icon: lucide.FilePlus(), Kbds: []string{"Ctrl", "N"}},
+			{ID: "appearance", Label: "Appearance options", Placeholder: "Choose a theme…", Group: "Preferences", Children: []nui.CommandAction{{ID: "light", Label: "Light workspace", Icon: lucide.Sun()}, {ID: "dark", Label: "Dark workspace", Icon: lucide.Moon()}}},
+			{ID: "profile", Label: "Personal workspace", Description: "Your account and documents", Group: "Files", Avatar: &nui.AvatarOptions{Text: "LC", Alt: "Lin Chen"}, Decoration: nui.Decoration{UI: nui.Styles{nui.ItemLabelSlot: {Weight: nui.Set(600)}}}},
+			{ID: "status", Label: "Service status", Group: "Status", Chip: &nui.ChipOptions{Color: nui.Success}},
+			{ID: "sync", Label: "Background sync", Group: "Status", Loading: true, Disabled: true},
+			{ID: "protected", Label: "Protected command", Group: "Actions", OnSelectEvent: func(e *nui.CommandEvent) {
+				if s.Protect {
+					e.PreventDefault()
+					s.Status = "Activation prevented"
+				}
+			}},
+		}, nil, nui.Theme{}, &s.Live))
+		s.Commands.SetIndex(s.Index)
+		s.Status = "Ready"
 		return nil
 	})
 }
 func (s *command_paletteExample) Dispose() { s.Commands.Close() }
 
 type navigation_menuExample struct {
-	Live       showcase.Runtime
-	Active     string
-	Navigation nui.NavigationState
+	Live                showcase.Runtime
+	Active, Result      string
+	Navigation          nui.NavigationState
+	Items               []nui.NavigationItem
+	Protect             bool
+	Actions, Expansions int
 }
 
 func (s *navigation_menuExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.NavigationMenu(c.Key("navigation"), t, &s.Active, &s.Navigation, showcase.Options(cfg, "NavigationMenuItems", []nui.NavigationItem{{ID: "home", Label: "Overview", Icon: lucide.House()}, {ID: "projects", Label: "Projects", Icon: lucide.Folder()}, {ID: "settings", Label: "Settings", Icon: lucide.Settings()}}, c, t, &s.Live), showcase.Options(cfg, "NavigationOptions", nui.NavigationOptions{Label: "Workspace", Vertical: cfg.Bool("vertical"), Compact: cfg.Bool("compact")}, c, t, &s.Live))
+	s.Protect = cfg.Bool("protect")
+	direction := ui.LeftToRight
+	if cfg.Bool("rtl") {
+		direction = ui.RightToLeft
+	}
+	frame := ui.Column(c.Key("direction")).Direction(direction)
+	if cfg.Bool("vertical") {
+		if cfg.Bool("compact") {
+			frame.Width(64)
+		}
+	}
+	frame.Children(func() {
+		nui.NavigationMenu(c.Key("navigation"), t, &s.Active, &s.Navigation, s.Items, showcase.Options(cfg, "NavigationOptions", nui.NavigationOptions{Label: "Workspace", Vertical: cfg.Bool("vertical"), Compact: cfg.Bool("compact"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"pill": nui.Soft, "link": nui.LinkVariant}), Highlight: cfg.Bool("highlight"), Disabled: cfg.Bool("disabled"), Single: cfg.Bool("single"), Collapsible: nui.Set(cfg.Bool("collapsible")), Tooltip: nui.Set(cfg.Bool("tooltip")), Popover: nui.Set(cfg.Bool("popover")), OnNavigate: func(id string) { s.Actions++; s.Result = "Opened " + id }, OnExpandedChange: func([]string) { s.Expansions++ }}, c, t, &s.Live))
+	})
+	nui.Button(c.Key("collapse"), t, "Collapse Settings externally", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() {
+		if s.Navigation.Expanded != nil {
+			s.Navigation.Expanded["settings"] = false
+		}
+	})
 	ui.Textf(c, "Active: %s", s.Active)
+	ui.Textf(c, "Actions: %d · Expansion changes: %d", s.Actions, s.Expansions)
+	ui.Text(c, s.Result)
 }
 func (s *navigation_menuExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *navigation_menuExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -951,17 +2201,31 @@ func (s *navigation_menuExample) Configure(cfg showcase.Config) error { return n
 func (s *navigation_menuExample) Dispose()                            {}
 
 type drawerExample struct {
-	Live   showcase.Runtime
-	Drawer nui.DrawerState
+	Live                     showcase.Runtime
+	Drawer                   nui.DrawerState
+	Opener                   ui.Handle
+	Draft                    string
+	Snaps, Closed, Prevented int
 }
 
 func (s *drawerExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Button(c.Key("open"), t, "Open drawer", nui.ButtonOptions{}).OnClick(func() { s.Drawer.Open = true })
-	nui.Drawer(c.Key("drawer"), t, &s.Drawer, showcase.Options(cfg, "DrawerOptions", nui.DrawerOptions{ModalOptions: nui.ModalOptions{Title: cfg.String("label"), Dismissible: cfg.OptionalBool("dismissible")}, SnapPoints: []float32{0.5, 0.8}}, c, t, &s.Live), func(t nui.Theme) {
-		ui.Text(c, "Drag the bottom drawer handle.")
+	var parts nui.Styles
+	if cfg.Bool("custom") {
+		parts = nui.Styles{nui.Indicator: {Background: nui.Set(t.Secondary)}}
+	}
+	nui.Button(c.Key("open"), t, "Open drawer", nui.ButtonOptions{}).Bind(&s.Opener).OnClick(func() { s.Drawer.Open = true })
+	nui.Drawer(c.Key("drawer"), t, &s.Drawer, showcase.Options(cfg, "DrawerOptions", nui.DrawerOptions{ModalOptions: nui.ModalOptions{Title: cfg.String("label"), Dismissible: cfg.OptionalBool("dismissible"), CloseButton: nui.Set(cfg.Bool("close")), ReturnFocus: &s.Opener, OnClose: func() { s.Closed++ }, OnClosePrevent: func() { s.Prevented++ }, Decoration: nui.Decoration{UI: parts}, Footer: func(c *ui.Context, t nui.Theme) {
 		nui.Button(c.Key("close"), t, "Done", nui.ButtonOptions{}).OnClick(func() { s.Drawer.Open = false })
+		ui.Textf(c, "Snap: %d · Changes: %d · Closed: %d · Prevented: %d", s.Drawer.Snap, s.Snaps, s.Closed, s.Prevented)
+	}}, Handle: nui.Set(cfg.Bool("handle")), Inset: cfg.Bool("inset"), SnapPoints: showcase.Select(cfg, "points", map[string][]float32{"two": []float32{0.5, 0.8}, "three": []float32{0.3, 0.55, 0.85}}), OnSnap: func(int) { s.Snaps++ }}, c, t, &s.Live), func(t nui.Theme) {
+		nui.Input(c.Key("draft"), t, &s.Draft, nui.InputOptions{Label: "Drawer draft"})
+		ui.Text(c, "Drag the bottom drawer handle.")
+		for i := range 8 {
+			ui.Textf(c, "Review item %02d", i+1)
+		}
 	})
+	ui.Textf(c, "Snap: %d · Changes: %d · Closed: %d · Prevented: %d", s.Drawer.Snap, s.Snaps, s.Closed, s.Prevented)
 }
 func (s *drawerExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *drawerExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -969,13 +2233,32 @@ func (s *drawerExample) Configure(cfg showcase.Config) error { return nil }
 func (s *drawerExample) Dispose()                            {}
 
 type file_uploadExample struct {
-	Live  showcase.Runtime
-	Files nui.FileUploadState
+	Live              showcase.Runtime
+	Files             nui.FileUploadState
+	Changes, Rejected int
 }
 
 func (s *file_uploadExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.FileUpload(c.Key("files"), t, &s.Files, showcase.Options(cfg, "FileUploadOptions", nui.FileUploadOptions{Label: cfg.String("label"), Description: "Sample files; no network upload", Disabled: cfg.Bool("disabled"), Interactive: nui.Set(false), FileDelete: cfg.OptionalBool("remove"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL})}, c, t, &s.Live))
+	outcome := showcase.Select(cfg, "outcome", map[string]string{"files": "files", "cancel": "cancel", "error": "error"})
+	o := showcase.Options(cfg, "FileUploadOptions", nui.FileUploadOptions{Label: cfg.String("label"), Description: "Sample metadata; no file reads or network upload", Disabled: cfg.Bool("disabled"), Interactive: nui.Set(cfg.Bool("interactive")), Dropzone: nui.Set(cfg.Bool("dropzone")), Preview: nui.Set(cfg.Bool("preview")), FileImage: nui.Set(cfg.Bool("fileImage")), ShowIcon: nui.Set(cfg.Bool("showIcon")), Highlight: cfg.Bool("highlight"), FileDelete: cfg.OptionalBool("remove"), Variant: showcase.Select(cfg, "variant", map[string]nui.UploadVariant{"area": nui.UploadArea, "button": nui.UploadButton}), Layout: showcase.Select(cfg, "layout", map[string]nui.UploadLayout{"list": nui.UploadList, "grid": nui.UploadGrid}), Position: showcase.Select(cfg, "position", map[string]nui.UploadPosition{"outside": nui.UploadOutside, "inside": nui.UploadInside}), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Rules: nui.UploadRules{Accept: []string{".md, .txt, .png"}, MaxFiles: 3, MaxBytes: 2 << 20}, Choose: func(context.Context) ([]nui.UploadFile, error) {
+		if outcome == "cancel" {
+			return nil, nil
+		}
+		if outcome == "error" {
+			return nil, errors.New("sample selection failed")
+		}
+		return []nui.UploadFile{{Path: "sample/notes.txt", Name: "notes.txt", Size: 512}, {Path: "sample/application.exe", Name: "application.exe", Size: 1024}}, nil
+	}, OnChange: func([]nui.UploadFile) { s.Changes++ }, OnReject: func(files []nui.UploadFile) { s.Rejected += len(files) }}, c, t, &s.Live)
+	if cfg.Bool("custom") {
+		o.Icon = lucide.FolderUp()
+		o.FileIcon = lucide.FileText()
+		o.FileDeleteIcon = lucide.Trash()
+		o.FileDeleteOptions = &nui.ButtonOptions{Color: nui.Error, Variant: nui.Outline}
+		o.UI = nui.Styles{nui.ItemLabelSlot: {Foreground: nui.Set(t.Info)}, nui.Body: {BorderColor: nui.Set(t.Info)}}
+	}
+	nui.FileUpload(c.Key("files"), t, &s.Files, o)
+	ui.Textf(c, "Changes: %d · Rejected: %d", s.Changes, s.Rejected)
 }
 func (s *file_uploadExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *file_uploadExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -983,29 +2266,53 @@ func (s *file_uploadExample) Configure(cfg showcase.Config) error { return nil }
 func (s *file_uploadExample) Dispose()                            { s.Files.Dispose() }
 
 type chartExample struct {
-	Live   showcase.Runtime
-	Chart  nui.ChartState
-	Slices nui.ChartState
+	Live                         showcase.Runtime
+	Chart                        nui.ChartState
+	Slices                       nui.ChartState
+	Focuses, Selections, Legends int
+	Last                         string
 }
 
 func (s *chartExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
+	kind := showcase.Select(cfg, "kind", map[string]nui.ChartKind{"line": nui.ChartLine, "bar": nui.ChartBar, "area": nui.ChartArea, "scatter": nui.ChartScatter, "pie": nui.ChartPie, "donut": nui.ChartDonut})
 	chart := &s.Chart
-	if showcase.Select(cfg, "kind", map[string]nui.ChartKind{"line": nui.ChartLine, "bar": nui.ChartBar, "area": nui.ChartArea, "scatter": nui.ChartScatter, "pie": nui.ChartPie, "donut": nui.ChartDonut}) == nui.ChartPie || showcase.Select(cfg, "kind", map[string]nui.ChartKind{"line": nui.ChartLine, "bar": nui.ChartBar, "area": nui.ChartArea, "scatter": nui.ChartScatter, "pie": nui.ChartPie, "donut": nui.ChartDonut}) == nui.ChartDonut {
+	if kind == nui.ChartPie || kind == nui.ChartDonut {
 		chart = &s.Slices
 	}
-	nui.Chart(c.Key("chart"), t, chart, showcase.Options(cfg, "ChartOptions", nui.ChartOptions{Label: "Weekly activity", Kind: showcase.Select(cfg, "kind", map[string]nui.ChartKind{"line": nui.ChartLine, "bar": nui.ChartBar, "area": nui.ChartArea, "scatter": nui.ChartScatter, "pie": nui.ChartPie, "donut": nui.ChartDonut}), Height: 260, Legend: cfg.OptionalBool("legend"), Grid: cfg.OptionalBool("grid"), Animate: cfg.OptionalBool("animate")}, c, t, &s.Live))
+	o := showcase.Options(cfg, "ChartOptions", nui.ChartOptions{Label: "Weekly activity", Description: "Daily views and visits", Kind: kind, Legend: cfg.OptionalBool("legend"), Grid: cfg.OptionalBool("grid"), Animate: cfg.OptionalBool("animate"), XAxis: nui.Set(cfg.Bool("xaxis")), YAxis: nui.Set(cfg.Bool("yaxis")), XLabel: "Weekday", YLabel: "Events", Points: cfg.Bool("points"), Tooltip: nui.Set(cfg.Bool("tooltip")), Thickness: nui.Set(float32(cfg.Number("thickness"))), OnFocusChange: func(nui.ChartSelection) { s.Focuses++ }, OnSelect: func(point nui.ChartSelection) {
+		s.Selections++
+		s.Last = fmt.Sprintf("Activated index %d / slice %s", point.Index, point.SliceID)
+	}, OnLegendChange: func(string, bool) { s.Legends++ }}, c, t, &s.Live)
+	if cfg.Bool("ratio") {
+		o.AspectRatio = 2
+	}
+	if cfg.Bool("palette") {
+		o.Colors = []ui.Color{t.Warning, t.Info}
+		o.UI = nui.Styles{nui.XAxisSlot: {Foreground: nui.Set(t.Info)}, nui.Indicator: {Radius: nui.Set(float32(1))}}
+	}
+	if cfg.Bool("center") {
+		o.Center = func(c *ui.Context, t nui.Theme) { ui.Text(c, "Total").TextColor(t.Text) }
+	}
+	direction := ui.LeftToRight
+	if cfg.Bool("rtl") {
+		direction = ui.RightToLeft
+	}
+	ui.Column(c.Key("direction")).Direction(direction).Children(func() { nui.Chart(c.Key("chart"), t, chart, o) })
+	ui.Textf(c, "Focus changes: %d · Selections: %d · Legend changes: %d", s.Focuses, s.Selections, s.Legends)
+	ui.Text(c, s.Last)
 }
 func (s *chartExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *chartExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
 func (s *chartExample) Configure(cfg showcase.Config) error {
 	return s.Live.ApplyData(cfg, []string{"Categories", "ChartSeriesItems", "ChartSliceItems"}, func() error {
-		if err := s.Chart.SetCategories(showcase.Options(cfg, "Categories", []string{"Mon", "Tue", "Wed", "Thu", "Fri"}, nil, nui.Theme{}, &s.Live), showcase.Options(cfg, "ChartSeriesItems", []nui.ChartSeries{{ID: "views", Label: "Views", Values: []float64{25, 42, 35, 65, 80}, Color: nui.Primary}, {ID: "visits", Label: "Visits", Values: []float64{15, 24, 20, 45, 55}, Color: nui.Info}}, nil, nui.Theme{}, &s.Live)); err != nil {
+		if err := s.Chart.SetCategories(showcase.Options(cfg, "Categories", []string{"Mon", "Tue", "Wed", "Thu", "Fri"}, nil, nui.Theme{}, &s.Live), showcase.Options(cfg, "ChartSeriesItems", []nui.ChartSeries{{ID: "views", Label: "Views", Values: []float64{25, 42, 35, 65, 80}}, {ID: "visits", Label: "Visits", Values: []float64{15, 24, 20, 45, 55}}}, nil, nui.Theme{}, &s.Live)); err != nil {
 			return err
 		}
-		if err := s.Slices.SetSlices(showcase.Options(cfg, "ChartSliceItems", []nui.ChartSlice{{ID: "go", Label: "Go", Value: 55, Color: nui.Primary}, {ID: "web", Label: "Web", Value: 30, Color: nui.Info}, {ID: "docs", Label: "Docs", Value: 15, Color: nui.Warning}}, nil, nui.Theme{}, &s.Live)); err != nil {
+		if err := s.Slices.SetSlices(showcase.Options(cfg, "ChartSliceItems", []nui.ChartSlice{{ID: "go", Label: "Go", Value: 55}, {ID: "web", Label: "Web", Value: 30}, {ID: "docs", Label: "Docs", Value: 15}}, nil, nui.Theme{}, &s.Live)); err != nil {
 			return err
 		}
+		s.Last = "No activation"
 		return nil
 	})
 }
@@ -1014,17 +2321,70 @@ func (s *chartExample) Dispose() {}
 type carouselExample struct {
 	Live     showcase.Runtime
 	Carousel nui.CarouselState
+	Drafts   [3]string
+	Hidden   [3]bool
+	Changes  int
 }
 
 func (s *carouselExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Carousel(c.Key("carousel"), t, &s.Carousel, showcase.Options(cfg, "CarouselItems", []nui.CarouselItem{{ID: "one", Label: "One", Build: func(c *ui.Context, t nui.Theme) {
-		nui.Card(c.Key("card"), t, nui.CardOptions{Title: "Design"}, func() { ui.Text(c, "Start with a focused idea.") })
-	}}, {ID: "two", Label: "Two", Build: func(c *ui.Context, t nui.Theme) {
-		nui.Card(c.Key("card"), t, nui.CardOptions{Title: "Build"}, func() { ui.Text(c, "Compose native Go components.") })
-	}}, {ID: "three", Label: "Three", Build: func(c *ui.Context, t nui.Theme) {
-		nui.Card(c.Key("card"), t, nui.CardOptions{Title: "Share"}, func() { ui.Text(c, "Publish your work.") })
-	}}}, c, t, &s.Live), showcase.Options(cfg, "CarouselOptions", nui.CarouselOptions{Label: "Slides", Height: 180, Orientation: showcase.Select(cfg, "orientation", map[string]nui.Orientation{"horizontal": nui.Horizontal, "vertical": nui.Vertical}), Arrows: cfg.OptionalBool("arrows"), Dots: cfg.Bool("dots"), Wrap: cfg.Bool("wrap")}, c, t, &s.Live))
+	ids := []string{"one", "two", "three"}
+	titles := []string{"Design", "Build", "Share"}
+	descriptions := []string{"Start with a focused idea.", "Compose native Go components.", "Publish your work."}
+	items := []nui.CarouselItem{}
+	for i, id := range ids {
+		if s.Hidden[i] {
+			continue
+		}
+		items = append(items, nui.CarouselItem{ID: id, Label: titles[i], Build: func(c *ui.Context, t nui.Theme) {
+			ui.Text(c, titles[i]).FontSize(18)
+			ui.Text(c, descriptions[i])
+			nui.Input(c.Key("draft"), t, &s.Drafts[i], nui.InputOptions{Label: "Preview " + titles[i] + " draft", Placeholder: "Keep a draft"})
+			nui.Button(c.Key("remove"), t, "Remove "+titles[i], nui.ButtonOptions{Variant: nui.Ghost}).OnClick(func() { s.Hidden[i] = true })
+		}})
+	}
+	o := showcase.Options(cfg, "CarouselOptions", nui.CarouselOptions{Label: "Slides", Height: 220, Orientation: showcase.Select(cfg, "orientation", map[string]nui.Orientation{"horizontal": nui.Horizontal, "vertical": nui.Vertical}), Arrows: cfg.OptionalBool("arrows"), Dots: cfg.Bool("dots"), Wrap: cfg.Bool("wrap"), WatchDrag: nui.Set(cfg.Bool("watch")), StopOnInteraction: nui.Set(cfg.Bool("stop")), Active: nui.Set(cfg.Bool("active")), OnChange: func(int) { s.Changes++ }}, c, t, &s.Live)
+	o.UI = nui.Styles{}
+	if o.Orientation == nui.Vertical {
+		o.Height = 280
+	}
+	if o.Arrows.Set {
+		if o.Arrows.Value {
+			if o.Orientation == nui.Vertical {
+				o.UI[nui.Item] = nui.PartStyle{PaddingY: nui.Set(float32(64))}
+			} else {
+				o.UI[nui.Item] = nui.PartStyle{PaddingX: nui.Set(float32(64))}
+			}
+		}
+	}
+	if cfg.Bool("autoplay") {
+		o.Autoplay = 3 * time.Second
+	}
+	if cfg.Bool("custom") {
+		o.Prev = &nui.ButtonOptions{Size: nui.XS, Color: nui.Info}
+		o.Next = &nui.ButtonOptions{Size: nui.XL, Color: nui.Warning}
+		o.PrevIcon = lucide.ChevronLeft()
+		o.NextIcon = lucide.ChevronRight()
+		if o.Orientation == nui.Vertical {
+			o.PrevIcon = lucide.ChevronUp()
+			o.NextIcon = lucide.ChevronDown()
+		} else if cfg.Bool("rtl") {
+			o.PrevIcon = lucide.ChevronRight()
+			o.NextIcon = lucide.ChevronLeft()
+		}
+		o.UI[nui.Indicator] = nui.PartStyle{Radius: nui.Set(float32(2))}
+	}
+	if cfg.Bool("avatar") {
+		o.PrevIcon = nil
+		o.Prev = &nui.ButtonOptions{Avatar: &nui.AvatarOptions{Text: "P", Color: nui.Info}, Variant: nui.Outline}
+	}
+	direction := ui.LeftToRight
+	if cfg.Bool("rtl") {
+		direction = ui.RightToLeft
+	}
+	ui.Column(c.Key("direction")).Direction(direction).Disabled(cfg.Bool("disabled")).Children(func() { nui.Carousel(c.Key("carousel"), t, &s.Carousel, items, o) })
+	nui.Button(c.Key("restore"), t, "Restore slides", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { s.Hidden = [3]bool{}; s.Carousel.Index = 0 })
+	ui.Textf(c, "Index: %d · Changes: %d · Paused: %t", s.Carousel.Index, s.Changes, s.Carousel.Paused)
 }
 func (s *carouselExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *carouselExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -1032,17 +2392,32 @@ func (s *carouselExample) Configure(cfg showcase.Config) error { return nil }
 func (s *carouselExample) Dispose()                            {}
 
 type marqueeExample struct {
-	Live    showcase.Runtime
-	Marquee nui.MarqueeState
+	Live       showcase.Runtime
+	Marquee    nui.MarqueeState
+	Generation int
 }
 
 func (s *marqueeExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Marquee(c.Key("marquee"), t, &s.Marquee, showcase.Options(cfg, "MarqueeOptions", nui.MarqueeOptions{Label: "Technologies", Height: 100, Speed: float32(cfg.Number("speed")), PauseOnHover: true, Reverse: cfg.Bool("reverse"), Active: cfg.OptionalBool("active")}, c, t, &s.Live), func() {
-		for _, name := range []string{"Go", "MyGo", "NuxtUI", "WASM"} {
-			nui.Badge(c.Key(name), t, name, nui.BadgeOptions{Variant: nui.Soft, Size: nui.LG})
-		}
+	ui.Row(c).Wrap().Gap(8).Children(func() {
+		nui.Button(c, t, "Pause / resume", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { s.Marquee.Paused = !s.Marquee.Paused })
+		nui.Button(c, t, "Replace content", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { s.Generation++ })
 	})
+	direction := ui.LeftToRight
+	if cfg.Bool("rtl") {
+		direction = ui.RightToLeft
+	}
+	var styles nui.Styles
+	if cfg.Bool("styled") {
+		styles = nui.Styles{nui.Body: {Background: nui.Set(t.Elevated), PaddingX: nui.Set(float32(12)), PaddingY: nui.Set(float32(8)), Radius: nui.Set(float32(8)), Gap: nui.Set(float32(12))}}
+	}
+	ui.Column(c.Key("direction")).Direction(direction).Disabled(cfg.Bool("disabled")).Children(func() {
+		nui.Marquee(c.Key("marquee"), t, &s.Marquee, showcase.Options(cfg, "MarqueeOptions", nui.MarqueeOptions{Label: "Technologies", Height: 160, Speed: float32(cfg.Number("speed")), Repeat: nui.Set(int(cfg.Number("repeat"))), Orientation: showcase.Select(cfg, "orientation", map[string]nui.Orientation{"horizontal": nui.Horizontal, "vertical": nui.Vertical}), PauseOnHover: cfg.Bool("hover"), Reverse: cfg.Bool("reverse"), Overlay: nui.Set(cfg.Bool("overlay")), Active: nui.Set(cfg.Bool("active")), ContentKey: fmt.Sprint(s.Generation), Decoration: nui.Decoration{UI: styles}}, c, t, &s.Live), func() {
+			nui.Badge(c.Key("release"), t, fmt.Sprintf("Release %d", s.Generation), nui.BadgeOptions{Variant: nui.Soft, Size: nui.LG})
+			nui.Badge(c.Key("go"), t, "Go / MyGo", nui.BadgeOptions{Variant: nui.Outline, Size: nui.LG})
+		})
+	})
+	ui.Textf(c, "Paused: %t · Content: %d", s.Marquee.Paused, s.Generation)
 }
 func (s *marqueeExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *marqueeExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -1050,13 +2425,62 @@ func (s *marqueeExample) Configure(cfg showcase.Config) error { return nil }
 func (s *marqueeExample) Dispose()                            {}
 
 type splitterExample struct {
-	Live  showcase.Runtime
-	Ratio float32
+	Live                  showcase.Runtime
+	Ratio, InnerRatio     float32
+	Draft, Notes          string
+	Changes, InnerChanges int
 }
 
 func (s *splitterExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.Splitter(c.Key("split"), t, &s.Ratio, showcase.Options(cfg, "SplitterOptions", nui.SplitterOptions{Percent: true, Vertical: cfg.Bool("vertical"), Disabled: cfg.Bool("disabled"), Min: nui.Set(float32(15)), Max: nui.Set(float32(85))}, c, t, &s.Live), func() { ui.Text(c, "Files").Padding(16) }, func() { ui.Text(c, "Editor").Padding(16) }).Height(240)
+	ui.Row(c).Wrap().Gap(8).Children(func() {
+		nui.Button(c, t, "External maximum", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { s.Ratio = 70 })
+		nui.Button(c, t, "Reset splitter", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { s.Ratio = 40; s.InnerRatio = 55; s.Changes = 0; s.InnerChanges = 0 })
+	})
+	direction := ui.LeftToRight
+	if cfg.Bool("rtl") {
+		direction = ui.RightToLeft
+	}
+	var styles nui.Styles
+	if cfg.Bool("styled") {
+		styles = nui.Styles{nui.SeparatorSlot: {Background: nui.Set(t.Accented)}, nui.Indicator: {Background: nui.Set(t.Primary)}, nui.Leading: {Background: nui.Set(t.Elevated)}}
+	}
+	ui.Column(c.Key("direction")).Direction(direction).Disabled(cfg.Bool("parentDisabled")).Children(func() {
+		nui.Splitter(c.Key("split"), t, &s.Ratio, showcase.Options(cfg, "SplitterOptions", nui.SplitterOptions{Label: "Panel divider", Percent: true, Orientation: showcase.Select(cfg, "orientation", map[string]nui.Orientation{"horizontal": nui.Horizontal, "vertical": nui.Vertical}), Disabled: cfg.Bool("disabled"), Min: nui.Set(float32(30)), Max: nui.Set(float32(70)), KeyboardResizeBy: nui.Set(float32(cfg.Number("step"))), Decoration: nui.Decoration{UI: styles}, OnChange: func(float32) { s.Changes++ }}, c, t, &s.Live), func() {
+			ui.Column(c).Fill().Padding(12).Gap(8).Children(func() {
+				ui.Text(c, "Files")
+				nui.Input(c.Key("draft"), t, &s.Draft, nui.InputOptions{Label: "Pane draft"})
+			})
+		}, func() {
+			preview := func() {
+				ui.Column(c).Fill().Padding(12).Gap(8).Children(func() { ui.Text(c, "Preview"); ui.Text(c, s.Draft) })
+			}
+			if !cfg.Bool("nested") {
+				preview()
+				return
+			}
+			var inner nui.SplitterOptions
+			inner.Label = "Nested panel divider"
+			inner.Percent = true
+			inner.Vertical = showcase.Select(cfg, "orientation", map[string]nui.Orientation{"horizontal": nui.Horizontal, "vertical": nui.Vertical}) != nui.Vertical
+			inner.Disabled = cfg.Bool("disabled")
+			inner.Min = nui.Set(float32(30))
+			inner.Max = nui.Set(float32(70))
+			inner.KeyboardResizeBy = nui.Set(float32(cfg.Number("step")))
+			inner.UI = styles
+			inner.OnChange = func(float32) { s.InnerChanges++ }
+			nui.Splitter(c.Key("nested"), t, &s.InnerRatio, inner, preview, func() {
+				ui.Column(c).Fill().Padding(12).Gap(8).Children(func() {
+					ui.Text(c, "Notes")
+					nui.Input(c.Key("notes"), t, &s.Notes, nui.InputOptions{Label: "Pane notes"})
+				})
+			}).Fill()
+		}).Height(280).Border(1, t.Border)
+	})
+	ui.Textf(c, "Value: %.0f · Changes: %d", s.Ratio, s.Changes)
+	if cfg.Bool("nested") {
+		ui.Textf(c, "Nested value: %.0f · Changes: %d", s.InnerRatio, s.InnerChanges)
+	}
 }
 func (s *splitterExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *splitterExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -1064,17 +2488,28 @@ func (s *splitterExample) Configure(cfg showcase.Config) error { return nil }
 func (s *splitterExample) Dispose()                            {}
 
 type sidebarExample struct {
-	Live           showcase.Runtime
-	Collapsed      bool
-	Sidebar        nui.SidebarState
-	Navigation     nui.NavigationState
-	Active, Result string
+	Live                  showcase.Runtime
+	Collapsed             bool
+	Sidebar               nui.SidebarState
+	Navigation            nui.NavigationState
+	Active, Result, Draft string
+	Actions               int
 }
 
 func (s *sidebarExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
+	var headerActions func(*ui.Context, nui.Theme, nui.SidebarScope)
+	var styles nui.Styles
+	if cfg.Bool("actions") {
+		headerActions = func(c *ui.Context, t nui.Theme, scope nui.SidebarScope) {
+			nui.Button(c, t, "", nui.ButtonOptions{Leading: lucide.RefreshCw(), AccessibleLabel: "Sidebar header action", Variant: nui.Ghost, Color: nui.Neutral, Square: true}).OnClick(func() { s.Actions++; s.Result = fmt.Sprintf("Header actions: %d", s.Actions) })
+		}
+	}
+	if cfg.Bool("styled") {
+		styles = nui.Styles{nui.Description: {Foreground: nui.Set(t.Primary)}, nui.Actions: {Background: nui.Set(t.Elevated), Radius: nui.Set(float32(6))}, nui.Body: {Background: nui.Set(t.Elevated)}}
+	}
 	options := showcase.Options(cfg, "SidebarOptions", nui.SidebarOptions{
-		Title: cfg.String("label"), State: &s.Sidebar, Resizable: cfg.Bool("resizable"), Collapsible: cfg.OptionalBool("collapsible"),
+		Title: cfg.String("label"), Description: cfg.String("description"), Actions: headerActions, Decoration: nui.Decoration{UI: styles}, State: &s.Sidebar, Resizable: cfg.Bool("resizable"), Collapsible: cfg.OptionalBool("collapsible"),
 		Width: nui.Set(float32(cfg.Number("width"))), MinWidth: nui.Set(float32(160)), MaxWidth: nui.Set(float32(360)),
 		Side: nui.Set(showcase.Select(cfg, "side", map[string]nui.Side{"left": nui.SideLeft, "right": nui.SideRight})), Breakpoint: nui.Set(float32(cfg.Number("breakpoint"))), Mode: showcase.Select(cfg, "mode", map[string]nui.SidebarMode{"slideover": nui.SidebarSlideover, "modal": nui.SidebarModal, "drawer": nui.SidebarDrawer}), NavigationKey: s.Active,
 		FooterContent: func(c *ui.Context, t nui.Theme, scope nui.SidebarScope) {
@@ -1096,11 +2531,18 @@ func (s *sidebarExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 			nui.Button(c.Key("reset-width"), t, "Reset width", nui.ButtonOptions{Variant: nui.Outline, Color: nui.Neutral}).OnClick(func() { s.Sidebar.Width = nui.Optional[float32]{}; s.Result = "Configured width restored" })
 		})
 	}
-	ui.Row(c.Key("layout")).FillWidth().Height(360).MinWidth(0).MinHeight(0).Border(1, t.Border).Radius(t.Radius).Children(func() {
+	direction := ui.LeftToRight
+	if cfg.Bool("rtl") {
+		direction = ui.RightToLeft
+	}
+	ui.Row(c.Key("layout")).Direction(direction).FillWidth().Height(360).MinWidth(0).MinHeight(0).Border(1, t.Border).Radius(t.Radius).Children(func() {
 		if right {
 			workspace()
 		}
 		nui.Sidebar(c.Key("sidebar"), t, &s.Collapsed, options, func(c *ui.Context, t nui.Theme, collapsed bool) {
+			if !collapsed {
+				nui.Input(c.Key("draft"), t, &s.Draft, nui.InputOptions{Label: "Sidebar draft"})
+			}
 			placement := nui.RightStart
 			if right != (c.Direction() == ui.RightToLeft) {
 				placement = nui.LeftStart
@@ -1121,26 +2563,73 @@ func (s *sidebarExample) SetWindow(window *mygo.Window)       { s.Live.Window = 
 func (s *sidebarExample) Configure(cfg showcase.Config) error { return nil }
 func (s *sidebarExample) Dispose()                            {}
 
-type headerExample struct{ Live showcase.Runtime }
+type headerExample struct {
+	Live        showcase.Runtime
+	Draft, Page string
+	Sidebar     nui.SidebarState
+	Collapsed   bool
+	MenuTrigger ui.Handle
+}
 
 func (s *headerExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.HeaderLayout(c.Key("header"), t, showcase.Options(cfg, "HeaderOptions", nui.HeaderOptions{Title: cfg.String("label"), Description: "Native components, familiar design", Actions: func(c *ui.Context, t nui.Theme) {
-		nui.Button(c.Key("new"), t, "New project", nui.ButtonOptions{Leading: lucide.Plus()})
-	}}, c, t, &s.Live))
+	direction := ui.LeftToRight
+	if cfg.Bool("rtl") {
+		direction = ui.RightToLeft
+	}
+	var styles nui.Styles
+	if cfg.Bool("styled") {
+		styles = nui.Styles{nui.Leading: {Background: nui.Set(t.Accented), PaddingX: nui.Set(float32(8))}, nui.Actions: {Background: nui.Set(t.Elevated), PaddingX: nui.Set(float32(12)), PaddingY: nui.Set(float32(8)), Radius: nui.Set(float32(6))}}
+	}
+	ui.Column(c.Key("layout")).Direction(direction).MinWidth(0).Children(func() {
+		var leadingContent func(*ui.Context, nui.Theme)
+		if cfg.Bool("leading") {
+			leadingContent = func(c *ui.Context, t nui.Theme) { ui.Icon(c, lucide.Folder()).Size(24, 24) }
+		}
+		options := showcase.Options(cfg, "HeaderOptions", nui.HeaderOptions{Leading: leadingContent, Title: cfg.String("label"), Description: cfg.String("description"), Decoration: nui.Decoration{UI: styles}, Actions: func(c *ui.Context, t nui.Theme) {
+			nui.Input(c.Key("draft"), t, &s.Draft, nui.InputOptions{Label: "Header draft", Placeholder: "Keep an action draft"}).Width(150)
+			nui.Button(c.Key("menu"), t, "", nui.ButtonOptions{Leading: lucide.Menu(), AccessibleLabel: "Open composed header menu", Variant: nui.Ghost, Color: nui.Neutral, Square: true}).Bind(&s.MenuTrigger).OnClick(func() { s.Sidebar.Open = true })
+		}}, c, t, &s.Live)
+		nui.HeaderLayout(c.Key("header"), t, options)
+		ui.Row(c.Key("content")).Height(190).MinWidth(0).Children(func() {
+			nui.Sidebar(c.Key("menu-sidebar"), t, &s.Collapsed, nui.SidebarOptions{Title: "Header navigation", Description: "Composed with Sidebar", State: &s.Sidebar, Toggle: nui.Set(false), Breakpoint: nui.Set(float32(2000)), NavigationKey: s.Page, ReturnFocus: &s.MenuTrigger}, func(c *ui.Context, t nui.Theme, compact bool) {
+				for _, target := range []string{"overview", "settings"} {
+					nui.Button(c.Key(target), t, "Header menu "+target, nui.ButtonOptions{Variant: nui.Ghost}).OnClick(func() { s.Page = target })
+				}
+			})
+			ui.Text(c, "Header page: "+s.Page).Padding(16)
+		})
+	})
+	ui.Text(c, "Header draft: "+s.Draft)
 }
 func (s *headerExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *headerExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
 func (s *headerExample) Configure(cfg showcase.Config) error { return nil }
 func (s *headerExample) Dispose()                            {}
 
-type footerExample struct{ Live showcase.Runtime }
+type footerExample struct {
+	Live    showcase.Runtime
+	Actions int
+	Last    string
+}
 
 func (s *footerExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.FooterLayout(c.Key("footer"), t, showcase.Options(cfg, "FooterOptions", nui.FooterOptions{Text: cfg.String("label"), Actions: func(c *ui.Context, t nui.Theme) {
-		nui.Button(c.Key("help"), t, "Help", nui.ButtonOptions{Variant: nui.LinkVariant})
-	}}, c, t, &s.Live))
+	direction := ui.LeftToRight
+	if cfg.Bool("rtl") {
+		direction = ui.RightToLeft
+	}
+	var styles nui.Styles
+	if cfg.Bool("styled") {
+		styles = nui.Styles{nui.Actions: {PaddingX: nui.Set(float32(12)), PaddingY: nui.Set(float32(8)), Background: nui.Set(t.Elevated), Radius: nui.Set(float32(6)), Gap: nui.Set(float32(12))}}
+	}
+	ui.Column(c.Key("layout")).Direction(direction).MinWidth(0).Children(func() {
+		nui.FooterLayout(c.Key("footer"), t, showcase.Options(cfg, "FooterOptions", nui.FooterOptions{Text: cfg.String("label"), Decoration: nui.Decoration{UI: styles}, Actions: func(c *ui.Context, t nui.Theme) {
+			nui.Button(c.Key("review"), t, "Review", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { s.Actions++; s.Last = "Review selected" })
+			nui.Button(c.Key("help"), t, "Help", nui.ButtonOptions{Variant: nui.Ghost}).OnClick(func() { s.Actions++; s.Last = "Help selected" })
+		}}, c, t, &s.Live))
+	})
+	ui.Textf(c, "Actions: %d · %s", s.Actions, s.Last)
 }
 func (s *footerExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *footerExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -1148,14 +2637,35 @@ func (s *footerExample) Configure(cfg showcase.Config) error { return nil }
 func (s *footerExample) Dispose()                            {}
 
 type footer_columnsExample struct {
-	Live   showcase.Runtime
-	Active string
+	Live                 showcase.Runtime
+	Active               string
+	Selects, Navigations int
 }
 
 func (s *footer_columnsExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	nui.FooterColumns(c.Key("footer"), t, showcase.Options(cfg, "FooterColumnsItems", []nui.FooterColumn{{ID: "product", Title: "Product", Items: []nui.NavigationItem{{ID: "components", Label: "Components"}, {ID: "examples", Label: "Examples"}}}, {ID: "resources", Title: "Resources", Items: []nui.NavigationItem{{ID: "guide", Label: "Guide"}, {ID: "source", Label: "Source"}}}}, c, t, &s.Live), showcase.Options(cfg, "FooterColumnsOptions", nui.FooterColumnsOptions{MinColumnWidth: float32(cfg.Number("width")), OnNavigate: func(id string) { s.Active = id }}, c, t, &s.Live))
-	ui.Text(c, s.Active)
+	direction := ui.LeftToRight
+	if cfg.Bool("rtl") {
+		direction = ui.RightToLeft
+	}
+	var styles, itemStyles nui.Styles
+	if cfg.Bool("styled") {
+		styles = nui.Styles{nui.Body: {Background: nui.Set(t.Elevated), PaddingX: nui.Set(float32(12)), PaddingY: nui.Set(float32(12)), Radius: nui.Set(float32(8))}, nui.Item: {Gap: nui.Set(float32(10))}}
+		itemStyles = nui.Styles{nui.ItemLabelSlot: {Foreground: nui.Set(t.Error)}}
+	}
+	onSelect := func(e *nui.NavigationEvent) {
+		s.Selects++
+		if cfg.Bool("cancel") {
+			e.PreventDefault()
+		}
+	}
+	ui.Column(c.Key("direction")).Direction(direction).MinWidth(0).Children(func() {
+		nui.FooterColumns(c.Key("footer"), t, showcase.Options(cfg, "FooterColumnsItems", []nui.FooterColumn{
+			{ID: "product", Title: "Product", Items: []nui.NavigationItem{{ID: "components", Label: "Components", Icon: lucide.Layers(), Active: s.Active == "components", OnSelect: onSelect}, {ID: "examples", Label: "Examples", Active: s.Active == "examples", OnSelect: onSelect, Decoration: nui.Decoration{UI: itemStyles}}}},
+			{ID: "resources", Title: "Resources", Items: []nui.NavigationItem{{ID: "guide", Label: "完整组件说明与使用指南", Active: s.Active == "guide", OnSelect: onSelect}, {ID: "unavailable", Label: "Unavailable", Disabled: true, OnSelect: onSelect}}},
+		}, c, t, &s.Live), showcase.Options(cfg, "FooterColumnsOptions", nui.FooterColumnsOptions{MinColumnWidth: float32(cfg.Number("width")), Decoration: nui.Decoration{UI: styles}, OnNavigate: func(id string) { s.Active = id; s.Navigations++ }}, c, t, &s.Live))
+	})
+	ui.Textf(c, "Active: %s · Selects: %d · Navigations: %d", s.Active, s.Selects, s.Navigations)
 }
 func (s *footer_columnsExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *footer_columnsExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -1171,6 +2681,7 @@ func New(id string) (Example, error) {
 		return s, nil
 	case "container":
 		s := &containerExample{}
+		s.Draft = "A persistent draft"
 		return s, nil
 	case "main":
 		s := &mainExample{}
@@ -1189,6 +2700,7 @@ func New(id string) (Example, error) {
 		return s, nil
 	case "card":
 		s := &cardExample{}
+		s.Draft = "Persistent draft"
 		return s, nil
 	case "alert":
 		s := &alertExample{}
@@ -1204,6 +2716,7 @@ func New(id string) (Example, error) {
 		return s, nil
 	case "separator":
 		s := &separatorExample{}
+		s.Draft = "Persistent draft"
 		return s, nil
 	case "kbd":
 		s := &kbdExample{}
@@ -1262,6 +2775,7 @@ func New(id string) (Example, error) {
 		return s, nil
 	case "popover":
 		s := &popoverExample{}
+		s.Draft = "Editable content"
 		return s, nil
 	case "scroll-area":
 		s := &scroll_areaExample{}
@@ -1286,16 +2800,21 @@ func New(id string) (Example, error) {
 		return s, nil
 	case "tabs":
 		s := &tabsExample{}
-		s.Value = "overview"
+		s.Draft = "Retained tab draft"
 		return s, nil
 	case "collapsible":
 		s := &collapsibleExample{}
+		s.Open = true
+		s.Draft = "Retained disclosure draft"
 		return s, nil
 	case "accordion":
 		s := &accordionExample{}
+		s.Open = []string{"install"}
+		s.Draft = "Retained accordion draft"
 		return s, nil
 	case "breadcrumb":
 		s := &breadcrumbExample{}
+		s.Active = "No selection"
 		return s, nil
 	case "pagination":
 		s := &paginationExample{}
@@ -1304,6 +2823,7 @@ func New(id string) (Example, error) {
 	case "stepper":
 		s := &stepperExample{}
 		s.Step = "details"
+		s.Draft = "Retained step draft"
 		return s, nil
 	case "timeline":
 		s := &timelineExample{}
@@ -1324,7 +2844,7 @@ func New(id string) (Example, error) {
 		return s, nil
 	case "input-tags":
 		s := &input_tagsExample{}
-		s.Values = []string{"Go", "Desktop"}
+		s.Values = []string{"go", "vue"}
 		return s, nil
 	case "pin-input":
 		s := &pin_inputExample{}
@@ -1338,54 +2858,101 @@ func New(id string) (Example, error) {
 		return s, nil
 	case "select-menu":
 		s := &select_menuExample{}
+		s.Status = "No request"
 		return s, nil
 	case "calendar":
 		s := &calendarExample{}
-		s.Calendar.Month = nui.Date{Year: 2026, Month: time.November, Day: 1}
+		s.Value.Start = nui.Set(nui.Date{Year: 2024, Month: time.February, Day: 15})
+		s.Calendar.Month = nui.Date{Year: 2024, Month: time.February, Day: 1}
 		return s, nil
 	case "input-date":
 		s := &input_dateExample{}
-		s.Value = nui.Set(nui.Date{Year: 2026, Month: time.November, Day: 2})
+		s.Value = nui.Set(nui.Date{Year: 2024, Month: time.February, Day: 15})
 		return s, nil
 	case "input-time":
 		s := &input_timeExample{}
-		s.Value = nui.Set(nui.ClockTime{Hour: 9, Minute: 30})
+		s.Value = nui.Set(nui.ClockTime{Hour: 11, Minute: 55, Second: 42})
 		return s, nil
 	case "color-picker":
 		s := &color_pickerExample{}
-		s.Value = ui.Hex("#22c55e")
+		s.Value = ui.Hex("#11223344")
+		s.Last = s.Value
 		return s, nil
 	case "table":
 		s := &tableExample{}
 		s.Table.SetRows([]string{"NuxtUI Go", "MyGo", "Documentation"}, func(v string) string { return v })
+		s.Activated = "None"
 		return s, nil
 	case "tree":
 		s := &treeExample{}
-		s.Tree.SetNodes([]nui.TreeNode{{ID: "src", Label: "src", DefaultExpanded: true, Children: []nui.TreeNode{{ID: "main", Label: "main.go", Icon: lucide.FileCode()}, {ID: "theme", Label: "theme.go", Icon: lucide.FileCode()}, {ID: "components", Label: "components", DefaultExpanded: true, Children: []nui.TreeNode{{ID: "button-file", Label: "button.go", Icon: lucide.FileCode()}, {ID: "input-file", Label: "input.go", Icon: lucide.FileCode()}}}, {ID: "locked", Label: "generated.go (disabled)", Disabled: true}}}, {ID: "docs", Label: "docs", Children: []nui.TreeNode{{ID: "readme", Label: "README.md", Icon: lucide.FileText()}}}})
+		s.Tree.SetNodes([]nui.TreeNode{
+			{ID: "src", Label: "src", DefaultExpanded: true, Children: []nui.TreeNode{
+				{ID: "main", Label: "main.go", Icon: lucide.FileCode(), Decoration: nui.Decoration{UI: nui.Styles{nui.Label: {Weight: nui.Set(600)}}}},
+				{ID: "theme", Label: "theme.go", Icon: lucide.FileCode()},
+				{ID: "components", Label: "components", DefaultExpanded: true, Children: []nui.TreeNode{{ID: "button-file", Label: "button.go", Icon: lucide.FileCode()}, {ID: "input-file", Label: "input.go", Icon: lucide.FileCode()}}},
+				{ID: "locked", Label: "generated.go (disabled)", Disabled: true},
+			}},
+			{ID: "docs", Label: "docs", Children: []nui.TreeNode{{ID: "readme", Label: "README.md", Icon: lucide.FileText()}}},
+			{ID: "remote", Label: "Remote files", Lazy: true},
+		})
+		s.Result = "Ready"
 		return s, nil
 	case "command-palette":
 		s := &command_paletteExample{}
-		s.Commands.SetIndex(nui.NewCommandIndex([]nui.CommandAction{{ID: "new", Label: "Create project", Icon: lucide.Plus()}, {ID: "settings", Label: "Open settings", Icon: lucide.Settings()}, {ID: "search", Label: "Search workspace", Icon: lucide.Search()}}))
+		s.Index = nui.NewCommandIndex([]nui.CommandAction{
+			{ID: "create", Label: "Create document", Prefix: "File", Suffix: "Local", Description: "Start a blank invoice", Group: "Files", Keywords: "new", Icon: lucide.FilePlus(), Kbds: []string{"Ctrl", "N"}},
+			{ID: "appearance", Label: "Appearance options", Placeholder: "Choose a theme…", Group: "Preferences", Children: []nui.CommandAction{{ID: "light", Label: "Light workspace", Icon: lucide.Sun()}, {ID: "dark", Label: "Dark workspace", Icon: lucide.Moon()}}},
+			{ID: "profile", Label: "Personal workspace", Description: "Your account and documents", Group: "Files", Avatar: &nui.AvatarOptions{Text: "LC", Alt: "Lin Chen"}, Decoration: nui.Decoration{UI: nui.Styles{nui.ItemLabelSlot: {Weight: nui.Set(600)}}}},
+			{ID: "status", Label: "Service status", Group: "Status", Chip: &nui.ChipOptions{Color: nui.Success}},
+			{ID: "sync", Label: "Background sync", Group: "Status", Loading: true, Disabled: true},
+			{ID: "protected", Label: "Protected command", Group: "Actions", OnSelectEvent: func(e *nui.CommandEvent) {
+				if s.Protect {
+					e.PreventDefault()
+					s.Status = "Activation prevented"
+				}
+			}},
+		})
+		s.Commands.SetIndex(s.Index)
+		s.Status = "Ready"
 		return s, nil
 	case "navigation-menu":
 		s := &navigation_menuExample{}
 		s.Active = "home"
+		s.Result = "Ready"
+		s.Items = []nui.NavigationItem{
+			{ID: "home", Label: "Overview", Icon: lucide.House(), Group: "Workspace", Badge: "4"},
+			{ID: "projects", Label: "Projects", Icon: lucide.Folder(), Chip: &nui.ChipOptions{Color: nui.Success, Inset: true}},
+			{ID: "settings", Label: "Settings", Icon: lucide.Settings(), DefaultOpen: true, Children: []nui.NavigationItem{
+				{ID: "members", Label: "Members", Description: "Invite people and assign permissions", Avatar: &nui.AvatarOptions{Text: "LC", Alt: "Lin Chen"}},
+				{ID: "protected", Label: "Protected destination", Icon: lucide.Lock(), OnSelect: func(e *nui.NavigationEvent) {
+					if s.Protect {
+						e.PreventDefault()
+						s.Result = "Navigation prevented"
+					}
+				}},
+				{ID: "disabled", Label: "Unavailable destination", Disabled: true},
+			}},
+			{ID: "help-label", Label: "Help section", LabelOnly: true},
+			{ID: "help", Label: "Help center", Icon: lucide.Info(), Tooltip: nui.Set(true), Children: []nui.NavigationItem{{ID: "quickstart", Label: "Quickstart guide"}, {ID: "releases", Label: "Release notes"}}, Decoration: nui.Decoration{UI: nui.Styles{nui.ItemLabelSlot: {Weight: nui.Set(600)}}}},
+		}
 		return s, nil
 	case "drawer":
 		s := &drawerExample{}
+		s.Draft = "Review build"
 		return s, nil
 	case "file-upload":
 		s := &file_uploadExample{}
-		s.Files.Files = []nui.UploadFile{{ID: "readme", Name: "README.md", Size: 2048, Status: nui.UploadDone}, {ID: "design", Name: "design.png", Size: 184320, Status: nui.UploadReady}}
+		s.Files.Files = []nui.UploadFile{{ID: "readme", Path: "sample/README.md", Name: "README.md", Size: 2048, Status: nui.UploadDone, Avatar: &nui.AvatarOptions{Text: "MD", Color: nui.Info}}, {ID: "design", Path: "sample/design.png", Name: "design.png", Size: 184320, Status: nui.UploadReady}}
 		return s, nil
 	case "chart":
 		s := &chartExample{}
-		if err := s.Chart.SetCategories([]string{"Mon", "Tue", "Wed", "Thu", "Fri"}, []nui.ChartSeries{{ID: "views", Label: "Views", Values: []float64{25, 42, 35, 65, 80}, Color: nui.Primary}, {ID: "visits", Label: "Visits", Values: []float64{15, 24, 20, 45, 55}, Color: nui.Info}}); err != nil {
+		if err := s.Chart.SetCategories([]string{"Mon", "Tue", "Wed", "Thu", "Fri"}, []nui.ChartSeries{{ID: "views", Label: "Views", Values: []float64{25, 42, 35, 65, 80}}, {ID: "visits", Label: "Visits", Values: []float64{15, 24, 20, 45, 55}}}); err != nil {
 			panic(err)
 		}
-		if err := s.Slices.SetSlices([]nui.ChartSlice{{ID: "go", Label: "Go", Value: 55, Color: nui.Primary}, {ID: "web", Label: "Web", Value: 30, Color: nui.Info}, {ID: "docs", Label: "Docs", Value: 15, Color: nui.Warning}}); err != nil {
+		if err := s.Slices.SetSlices([]nui.ChartSlice{{ID: "go", Label: "Go", Value: 55}, {ID: "web", Label: "Web", Value: 30}, {ID: "docs", Label: "Docs", Value: 15}}); err != nil {
 			panic(err)
 		}
+		s.Last = "No activation"
 		return s, nil
 	case "carousel":
 		s := &carouselExample{}
@@ -1396,20 +2963,27 @@ func New(id string) (Example, error) {
 	case "splitter":
 		s := &splitterExample{}
 		s.Ratio = 40
+		s.InnerRatio = 55
+		s.Draft = "Editable panel"
+		s.Notes = "Independent notes"
 		return s, nil
 	case "sidebar":
 		s := &sidebarExample{}
 		s.Active = "overview"
 		s.Result = "Drag the sidebar edge to resize."
+		s.Draft = "Persistent sidebar draft"
 		return s, nil
 	case "header":
 		s := &headerExample{}
+		s.Page = "overview"
 		return s, nil
 	case "footer":
 		s := &footerExample{}
+		s.Last = "No action"
 		return s, nil
 	case "footer-columns":
 		s := &footer_columnsExample{}
+		s.Active = "components"
 		return s, nil
 	}
 	return nil, fmt.Errorf("unknown example %s", id)

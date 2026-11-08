@@ -1,40 +1,119 @@
-# 更新日志
+# Changelog
 
-## 未发布
+## Unreleased
 
-视觉与交互对齐 Nuxt UI v4.12.0。
+Visual and interaction parity with Nuxt UI v4.12.0.
 
-### 迁移说明
+### Migration notes
 
-- `StepperOptions.Linear` 改为 `Optional[bool]`，默认 true。原布尔值需用 `nui.Set(...)` 包装；需要非线性导航时显式设置 `nui.Set(false)`。
-- `InputTimeOptions.TwelveHour` 改为 `Optional[bool]`，默认随语言和区域格式。原布尔值需用 `nui.Set(...)` 包装；需要固定 24 小时制时设置 `nui.Set(false)`。
-- FileUpload 文件大小文案改用 `fileSize`，参数 `size` 改为已格式化的字符串。覆盖过旧键 `fileSummary` 的应用需同步迁移。
-- Pagination 英文可访问名称改为 `First page`、`Previous page`、`Next page`、`Last page`；按名称定位的测试或自动化脚本需更新。
+- Sidebar adds Description and Actions, and now provides the actual parts and region spacing for both the desktop and overlay layouts. An empty header no longer takes up space, and when content being edited is removed because the width becomes zero or the layout crosses a breakpoint, focus returns to an available entry point. The vertical padding of the body and footer is now 16 DIP.
+- HeaderLayout adds style entry points for the leading content and the title text container. Stable region identities preserve editors in Actions, and an empty title creates no heading node. The default gap inside the Header and Footer action areas is 6 DIP, and Footer's Actions options now apply to a separate container.
+- FooterColumns supports Active, per-item OnSelect/PreventDefault, and per-item styles, and links use the native Link role. The column gap is now 32 DIP. The preferred minimum column width drives wrapping and is constrained by the available space, and columns are top-aligned. The Gallery, website, and bilingual examples are updated.
+- Splitter's Disabled now locks only the divider; to disable the pane content, disable the parent container. The visible divider takes 1 DIP, and an 8 DIP drag area overlaps the pane edges, which fixes gaps where nested dividers meet. Adds Orientation, Label, KeyboardResizeBy, and divider style parts; fixes duplicate notifications at the bounds; supports Home and End; and reports the accessible range in the bound value's unit.
+- Marquee adds Repeat and the Body style part. When unset, content is still repeated 4 times; an explicit 0 builds no content. Motion stops when a parent is disabled, and the offset is normalized to the content cycle. The Gallery, website options, and bilingual examples are updated for both changes.
+- Carousel fixes unintended wrapping when dragging with Wrap=true, lost focus after removing the current slide, and the centering of fixed-size arrows. Adds previous/next button and icon options, WatchDrag, per-item styles, and parts. StopOnInteraction now defaults to true, so manual navigation pauses autoplay; set it to false explicitly to keep automatic resumption. Timer and drag notifications are now sent after the build, and Disabled and focus on a control pause autoplay. The Gallery and website are updated.
+- Chart's default height is now 300 DIP, and when Legend is unset the legend appears only with more than one series or slice. Donuts default to a 24 DIP thickness, and an explicit DonutInnerRadius keeps precedence. Adds axis, data point, tooltip, center content, color, and selection notification options; fixes RTL coordinates and color cycling; and documents that charts are drawn with MyGo and where they differ from the TanStack Charts reference.
+- FileUpload supports wildcards, comma-separated lists, and compound extensions. With Dropzone off, no drop target is registered, and a disabled parent container also discards late selection results. OnChange reports only actual queue changes, and OnReject is new. After a deletion or cancellation, focus returns to the selection entry point. Adds icon, preview accessory, and delete button options, Highlight, list position, and style parts, while keeping the native multi-file queue. The Gallery, website options, bilingual descriptions, and copyable programs are updated.
+- Drawer no longer shows a close button by default. Passing Close options enables it implicitly, and CloseButton=true restores the old behavior. OnSnap fires only when the index actually changes, and drags blocked by Dismissible=false now fire OnClosePrevent. Adds Handle and Inset, a visible handle bar, and a single scrolling container. Fixes the footer being clipped at the lowest height, and Sidebar's drawer mode keeps a fixed footer and close entry. Close thresholds must be finite and non-negative, and 0 uses the default. The Gallery, website, and bilingual descriptions are updated.
+- NavigationMenu now defaults to Primary / Soft (pill); use Color=Neutral to keep neutral text. Adds LinkVariant, an active indicator line, and per-item accessories and styles. Compact applies only to vertical menus, and horizontal arrow keys stop at the ends. Adds cancelable navigation, a public Expanded state, initial and sibling expansion controls, and notifications. Fixes focus restoration and RTL indentation. The Gallery, website, and bilingual descriptions are updated. Compact tooltips and popovers stay on by default, as in the native implementation.
+- CommandPalette's default search now also matches descriptions and suffixes, and results from the same group are shown together. Old requests are now canceled correctly when the limit changes, the palette is closed and reopened, the user returns from a child level, or the palette is disabled. Adds delay, input, and icon options, command accessories, cancelable execution, and keeping the palette open. Fixes returning focus and the scope of the Root style. The default limit is still 200. After replacing a custom Search closure, call Refresh. The Gallery, website, and bilingual descriptions are updated.
+- Tree's indeterminate state now follows Multiple, BubbleSelect, and PropagateSelect. When a selection callback replaces the model, the earlier click no longer expands the new node. Adds OnExpandedChange, node styles, and leading and trailing content builders. Fixes type-ahead search, the Neutral focus color, and name inheritance. Loaded empty branches no longer get a folder icon and arrow automatically; set Icon explicitly for a fixed look. The Gallery, website, and bilingual descriptions are updated.
+- Clearing Table's sort restores the input order of the latest SetRows, which is also kept for rows that compare as equal. List.SortBy now actually performs multi-column sorting, and removing a column or turning off its sorting removes its sort entries. Call InvalidateSort when external conditions that a comparator depends on change; use ManualSorting when you sort the data yourself. Adds separate sort and selection notifications, row activation, caption and loading content, and per-column styles. The Gallery now uses this project's components, and the website and bilingual descriptions are updated.
+- ColorPicker's default width changes from a fixed 280 DIP to MD's 168 DIP, and five sizes are added. OnChange calls are merged over 50 ms by default while the bound color still updates immediately; for a notification on every change, set `Throttle: nui.Set(time.Duration(0))`. Re-entering the same channel value no longer notifies, RGBA form drafts are tracked as one field, and editing an actual channel rebuilds the sRGB color. In RTL, the native color panel is fixed to LTR, which fixes slider input and drawing directions disagreeing; the RGBA fields still follow the page direction.
+- Clearing both ends of InputDateRange now sends a single range notification, and OnRangeChange is new; Calendar.OnChange remains for compatibility. Range input now enforces all of Calendar's range limits. In 12-hour mode, InputTime now correctly crosses noon and midnight when the hour is incremented or decremented. Segmented date and time inputs add an avatar, a trailing loading indicator, Neutral highlighting, steps, and a reference value. Time inputs add bounds, an unavailable predicate, granularity, and optional step snapping.
+- By default, selecting the same date again in Calendar now deselects it; set PreventDeselect=true to keep the old behavior. Home and End now go to the week boundaries, and the year navigation and heading view switch are shown by default. WeekStart still defaults to Sunday.
+- With its search field hidden, SelectMenu still filters by the retained query; to show your app's results directly, set ExternalFilter or IgnoreFilter. The clear button always clears the query, and ResetModelValueOnClear controls only the selected value. Root, Leading, Label, and Trailing styles no longer apply to popup options; use the corresponding Item parts. The default search field no longer adds a search icon.
+- The first increment or decrement of an empty InputNumber now uses the starting value, and StepSnapping and FocusOnChange now default to true; turn them off explicitly to restore free stepping or keep focus on the buttons. InputTags' Backspace now selects a tag before deleting it, and Style.root now refers to the whole field.
+- Form's LoadingAuto defaults to true, so inner controls are disabled automatically after BeginAsync; to allow editing while waiting, set `nui.Set(false)`. A successful submit clears Dirty for the current fields, and Reset uses the current model from the next build as the new baseline.
+- Breadcrumb now runs the last item's OnSelect; leave the callback empty if the item only shows the current location. Banner's container padding is now configured through Body. Stepper's step list is configured through List, and Root contains the list and the new body.
+- DropdownMenu and ContextMenu arrow keys now stop at the first and last items by default; set MenuOptions.Loop=true to restore wrapping. UI.Trailing now applies to the row-end container, and the check icon can be configured separately through Indicator.
+- ToastOptions.UI.Actions now configures the action container; put individual button styles in ButtonOptions.UI of each Actions item. If you use the old Action string and customize its button style, switch to a single-item Actions list.
+- InputMenu's OpenOnClick now defaults to false, matching the upstream prop; to open on click, set `nui.Set(true)` explicitly. SearchSelect keeps its old open-on-click behavior.
+- `StepperOptions.Linear` is now an `Optional[bool]` that defaults to true. Wrap existing bool values in `nui.Set(...)`; for non-linear navigation, set `nui.Set(false)` explicitly.
+- `InputTimeOptions.TwelveHour` is now an `Optional[bool]` that defaults to the language and locale format. Wrap existing bool values in `nui.Set(...)`; for a fixed 24-hour clock, set `nui.Set(false)`.
+- FileUpload's file size message now uses `fileSize`, and its `size` parameter is now a formatted string. Apps that overrode the old `fileSummary` key need to migrate.
+- Pagination's English accessible names are now `First page`, `Previous page`, `Next page`, and `Last page`. Update tests or automation scripts that locate controls by name.
 
-### 新增与增强
+### Added and improved
 
-- Sidebar 保留名称和调用签名，支持拖动与键盘调宽、双击复位、宽度记忆、左右布局及 RTL；默认宽度由 224 改为 256。
-- Sidebar 新增可选状态、感知收起状态的内容插槽，以及窄窗口 Slideover / Modal / Drawer 模式和导航切换自动关闭；默认关闭调宽与响应式断点。
-- 紧凑 NavigationMenu 支持 Tooltip 和侧向子菜单，选中子项时高亮祖先，并保留展开模式的分组状态。
+- Calendar adds read-only mode, color, style, and size options, month and year controls, day/month/year navigation, multi-month layout, week numbers, weekday formats, a variable number of weeks, and content builders. Fixes keyboard bounds, skipping disabled dates, the look of selected ranges, change notifications for actual changes, and the controlled month. Adds unavailable dates, a maximum range length, fixed endpoints, and preview rules. The Gallery, website, and bilingual descriptions are updated.
+- Listbox supports instance size and color, Highlight, filtering and loading states, a selected icon, structural rows, avatars, dots, per-item styles, and cancelable selection. On initialization and when the value changes from outside, a selected item is highlighted first. Listbox and SelectMenu search now ignores case and diacritics when matching and ranking.
+- SelectMenu adds trigger accessories, clear button and search field options, focus selection, and query and open/close notifications. Fixes Enter in the search field not selecting directly and trigger styles affecting options. The Gallery, website, API, and bilingual descriptions add examples of filtering, deselection, clearing, and a simulated remote request.
+- InputRating adds the Indicator, IconSlot, and EmptyIconSlot style parts, and fixes the Neutral focus color and the read-only cursor. The Gallery and website show hover, icons, styles, and callback counts.
+- InputNumber supports a starting value, step snapping, increment and decrement button options, the mouse wheel, and press-and-hold repeat, and fixes decimal precision and orientation bounds. InputTags supports inline wrapping, keyboard tag selection, a delete icon, value conversion and display, and per-item events. PinInput adds Highlight, separator styles, and spacing calculations, and fixes the Neutral focus color and long placeholder text. The Gallery, website options, and bilingual descriptions are updated.
+- Form supports LoadingAuto, OnError, and methods to read, replace, and clear errors. Fixes duplicate async submissions, delayed execution of requests made while disabled, missing global errors, and Reset using old values as its baseline. The submit and cancel examples in the Gallery, website, and copyable programs are updated.
+- Breadcrumb adds color, a separator icon, avatars, an active state, and item styles, and fixes last-item actions, focus on static items, and truncated separators. Pagination supports control icons and finer-grained part styles.
+- Stepper supports per-item UI and a body for the current step, and restores focus after removal or switching. Timeline adds date and container parts, and fixes the date line height, body spacing, and the equal-width horizontal layout. Both fix the Neutral background.
+- Banner supports close options, an internal closed state, and actions on the whole banner, and fixes responsive alignment, the width-limited container, and part identity. ErrorView supports turning off the default action, button options, and a status code part, and fixes the title, icon, empty content, and spacing in narrow windows. The related Gallery, website, and bilingual descriptions are updated.
+- Collapsible and Accordion use Theme.Motion.Reduce. Content that is closing stops receiving input immediately, and toggling KeepMounted keeps editor state. Accordion's global Disabled now disables only the headers. Adds global and per-item TrailingIcon, per-item UI, and the Header part; removes the empty space for empty bodies; and restores focus after the focused item is closed from outside or removed. The Gallery, website options, and bilingual descriptions are updated.
+- Tabs supports avatars, badges, per-item UI, a Content switch, and the Indicator part. Fixes automatic mode responding to arrow keys for the wrong axis, the line height of text-only tabs, the Neutral indicator color, and vertical alignment. Focus returns to the tab after the focused panel is switched or removed, and Tab can move into the content. Reordering, layout changes, and KeepMounted keep existing editing state. The Gallery, website options, and bilingual descriptions are updated.
+- ContextMenu now opens 2 DIP to the right of the anchor point by default. Fixes repeated right-clicks closing the menu by mistake, a stale pointer position affecting a controlled reopen, the menu moving with the target's layout, and disabling the menu also disabling the target's own actions. Keyboard positioning uses the committed bounds of a persistent Handle. The Gallery and website add positioning and target action examples.
+- DropdownMenu and ContextMenu support sizes XS–XL, avatars, loading and check icons, item UI, selection actions that keep the menu open, check and root open/close notifications, and per-level position and submenu options. Adds filtering for root menus and submenus, and fixes description row alignment, shortcut size and spacing, closing from outside, and focus in empty menus. The Gallery, website options, bilingual descriptions, and copyable programs are updated; ContextMenu filtering is a native extension.
+- Toast supports Avatar, CloseOptions, CloseIcon, ProgressOptions, and stable action IDs. Fixes the order at the top, the RTL position, empty titles, horizontal alignment, action spacing, the viewport width constraint, the countdown with reduced motion, and the disabled state inherited from the source field. The website and copyable programs add ToastViewport, and the Gallery, nested option editors, and bilingual descriptions are updated.
+- Slideover supports Inset; on every side, its size is limited to the window after subtracting the margin. Fixes custom overlay colors not taking part in the fade. Empty bodies still keep the default padding, and the automatic height for top and bottom panels matches upstream. The Gallery, website, and notes about inherited fields that do not apply are updated.
+- Modal supports Close/CloseIcon, Transition, and OnClosePrevent. Fixes the jump at the end of the overlay animation, the empty header, inheritance of panel text and spacing, clipping of content at rounded corners, and keeps body editing state after the header changes or Fullscreen is toggled. The shared region and close options also apply to Slideover and Drawer.
+- Tooltip supports an optional DelayDuration, and an explicit 0 shows it immediately. Fixes shortcut spacing, Panel.Gap, and closing on an outside press, and also appends shortcuts to the anchor's accessible description. The Gallery and website provide delay, width, controlled open, and shortcut-only examples.
+- Popover passes the panel's final text style and content spacing directly to its content. Fixes incorrect focus on close after the anchor changes or after a controlled open, and the entrance replaying when motion is re-enabled. The local native theme stays isolated.
+- InputMenu supports a controlled Open, Loop, HighlightOnHover, ResetModelValueOnClear, and selection, tag deletion, and clear icons. Adds clearing multiple selection from an empty draft, filling in autocomplete text, and showing a selected value set from outside. Focus returns to the input after a tag is deleted with the keyboard, and the no-results message is no longer shown when all suggestions are disabled.
+- Select and SelectMultiple support trigger icons, an avatar, a loading position and icon, Highlight, SelectedIcon, and a persistent Open state, and add prefix navigation. The Gallery, website options, and bilingual usage are updated.
+- Button supports an optional leading avatar, sizes it by default from the button size, and keeps the precedence of icons and the loading state.
+- Badge supports a leading avatar. A badge with empty text now uses equal padding on all sides, and an MD icon-only badge is now 24 DIP wide instead of 32.
+- Alert supports an avatar, which takes precedence over the icon, Close button options, and CloseIcon, and provides the Body and Actions style parts.
+- AvatarGroup supports the Item part, which styles both ordinary and overflow avatars and can adjust or remove the outer separating ring.
+- ProgressGroup supports item icons, local UI, and a custom legend Build, and keeps the legend's control state when items are reordered or the orientation changes.
+- Empty supports an avatar and the Header, Leading, and Body content builders, and adds header, body, action area, and footer part styles.
+- User supports an avatar chip, Orientation, Leading and Body content, and part styles, and keeps the state of custom content when the avatar or orientation changes.
+- CheckboxTri supports IndeterminateIcon. With the indicator hidden, Checkbox shows an explicit icon above the label, and supports the Leading part style.
+- CheckboxGroup and RadioGroup support item icons and the Loop option, and keep selection and item identity when reordered.
+- Sidebar keeps its name and signature, and supports resizing by dragging and keyboard, double-click to reset, remembering the width, left and right placement, and RTL. The default width changes from 224 to 256.
+- Sidebar adds optional state, content slots that know whether the sidebar is collapsed, Slideover/Modal/Drawer modes for narrow windows, and closing automatically on navigation. Resizing and the responsive breakpoint are off by default.
+- Compact NavigationMenu supports tooltips and side submenus, highlights ancestors when a child is selected, and keeps group state from the expanded mode.
 
-### 默认行为变化
+### Default behavior changes
 
-- InputTags 默认仅以逗号分隔；需要恢复原分隔规则时设置 `Separators: ",;\n"`。
-- FileUpload 的交互式 UploadArea 整体可聚焦，Enter / Space 打开选择器；Choose 按钮仅在 UploadButton 或 `Interactive: nui.Set(false)` 时显示。
-- Marquee 默认启用两端渐隐，内容重复 4 份，短内容也会滚动；内容 builder 每次构建调用 4 次。
-- InputRating 方向键到首尾停止，启用 Clearable 时支持键盘清除评分；CheckboxGroup 达到 Max 后，未选项仍可聚焦。
-- User 未配置头像时不再生成首字母头像；Carousel 页码计数改为可访问值，不再直接显示。
-- 空状态文案统一为 `noData` / `noMatch`，兼容旧文案键的应用覆盖。
+- ScrollArea clips its content to Root's rounded corners, which fixes content covering the corners. The Gallery and website add orientation, scrollbar, and position controls.
+- Select option icons align with the first line of the description, and multiple selection skips separators for empty labels. Fixes the Neutral focus color, explicit names, trigger focus after closing, and the behavior of Dismissible=false in single selection. Popover's internal theme container no longer covers the panel's background, border, and rounded corners.
+- Container's default horizontal padding is 16, 24, or 32 DIP depending on the window width, with breakpoints at 640 and 1024 DIP. An explicit Padding keeps the old behavior.
+- InputTags splits only on commas by default; to restore the old separators, set `Separators: ",;\n"`.
+- The whole interactive UploadArea in FileUpload is focusable, and Enter or Space opens the picker. The Choose button appears only with UploadButton or `Interactive: nui.Set(false)`.
+- Marquee fades at both ends by default, repeats its content 4 times, and scrolls even short content. By default, the content builder is called 4 times per build; adjust this with Repeat.
+- InputRating's arrow keys stop at the first and last values, and with Clearable the keyboard can clear the rating. When CheckboxGroup reaches Max, unchecked items can still receive focus.
+- CheckboxGroup is now a single Tab stop where arrow keys only move focus and do not wrap by default; RadioGroup wraps by default. In both group types, arrow keys follow the horizontal or vertical layout, and Loop can change the wrapping explicitly.
+- User no longer generates an initials avatar when no avatar is configured. Carousel's page counter is now an accessible value and is no longer shown on screen.
+- Empty-state messages are unified as `noData` and `noMatch`, and apps that override the old message keys keep working.
 
-### 修复与样式调整
+### Fixes and style adjustments
 
-- 修复 PinInput 连续输入、粘贴和光标显示，完善焦点与错误态；修复 FieldGroup 尺寸继承、圆角和 RangeSlider 的 FormField 关联。
-- 修复 SelectMenu 创建行混入多选结果、SelectMultiple 图标重复，以及 Select / InputMenu 已选项高亮异常。
-- 修复部件样式、自定义透明度和主题覆盖问题，完善 RTL 下的图标、圆角和边框方向。
-- 统一输入、菜单、表单、弹层与导航的尺寸、间距、配色和圆角；Tooltip 长文本改为单行截断；完善弹层与进度动画，并遵循减少动态效果设置。
+- Fixes Slider and RangeSlider colors for Neutral and field errors, dual-thumb part colors, floating-point noise with fractional steps, and drag commits after a parent is disabled. Fixes the check for very small minimum distances.
+- Slider adds a localized default name and keeps the precedence of explicit names. With custom track padding, the value tooltip follows the actual thumb position.
+- Fixes extra spacing and a standalone asterisk in FormField without a label, and baseline alignment of horizontal text; adds Header and Body region styles. FormField text now uses Nuxt's line heights (16/16/20/20/24 DIP for XS–XL), so its layout no longer depends on the platform font's metrics. Changing the label, orientation, or error message keeps editing state.
+- Input and Textarea add a leading avatar and a trailing loading indicator, and fix the loading icon color, the Neutral focus color, and Highlight with the None variant. The Gallery, website options, and bilingual descriptions are updated.
+- Fixes OnChange firing after MaxLength rejects an input entirely. Clarifies where Password, OnSubmit, and MaxRows apply in Textarea.
+- Fixes choice cards showing both an outer frame focus ring and an inner indicator focus ring. Corrects the option descriptions and examples for fields shared by Checkbox and Switch, and by radio and checkbox groups.
+- Fixes choice card states overriding custom root styles, and Highlight emphasizing the wrong part.
+- Fixes choice card hover and focus borders, the background of indeterminate cards, indicator corner radius overrides, and spacing between labels and descriptions.
+- Fixes vertical choice cards on the website cutting off the change counter, and corrects the scope of the theme contrast notes.
+- Fixes Card padding in narrow windows and the missing top margin when only a description is present.
+- Fixes body inputs in Card losing focus and selection when the header is removed.
+- Fixes Alert actions losing focus after the leading content or orientation changes, incorrect action area spacing with an empty body, and Actions styles not taking effect.
+- Avatar bitmaps fill the root container's size, and the Body image part style is now available.
+- Chip text width is computed from the merged Indicator font style and horizontal padding, so custom text is not clipped.
+- Chip's Neutral background uses InvertedBackground, which fixes custom themes incorrectly reusing Highlighted.
+- Fixes Separator's default avatar size, avatar Leading styles, focus retention when the content position changes, and wrapping of long vertical labels.
+- Kbd adds symbol mappings for command and win. Fixes the Neutral/Solid backgrounds of Button, Badge, Alert, and Kbd ignoring InvertedBackground.
+- Fixes Skeleton's custom-drawn background ignoring the final corner radius; corner radii set through Style and on the returned element now both take effect.
+- Progress's Neutral fill uses InvertedBackground. The indeterminate indicator is now half the track's length, matching upstream's default carousel animation.
+- Fixes ProgressGroup's Neutral segment and dot colors, and legend font size, icons, and dots not changing with Size. Segments are now native elements with corresponding part styles.
+- Fixes Empty's responsive padding, region width and alignment, focus retention after content changes, and loading icon color overrides. The default title has level-2 heading semantics.
+- Fixes spacing caused by an empty User name, and adds text emphasis and avatar scaling for activatable Users.
+- Fixes Button, Progress, InputRating, and User briefly returning to an old color, progress, or scale when animation resumes.
+- Fixes consecutive typing, pasting, and cursor display in PinInput, and improves its focus and error states. Fixes size inheritance and corner rounding in FieldGroup, and RangeSlider's association with FormField.
+- Fixes SelectMenu's create row mixing into multiple selection results, duplicate icons in SelectMultiple, and incorrect highlighting of selected items in Select and InputMenu.
+- Fixes part styles, custom opacity, and theme overrides, and improves the direction of icons, rounded corners, and borders in RTL.
+- Unifies sizes, spacing, colors, and corner radii across inputs, menus, forms, overlays, and navigation. Long Tooltip text is now truncated to one line. Overlay and progress animations are improved and respect the reduced motion setting.
 
-### 依赖
+### Dependencies
 
-- MyGo 升级至 `v0.7.4` 正式版。
+- Upgrades MyGo to the `v0.7.4` release.
 
-安装与示例见 [README](README.md)，API 与默认值见 [组件指南](docs/README.md)，平台差异见 [兼容性与已知限制](docs/compatibility.md)。
+See the [README](README.md) for installation and examples, the [component guide](docs/README.md) for APIs and defaults, and [Compatibility and known limitations](docs/compatibility.md) for platform differences.

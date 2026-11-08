@@ -16,12 +16,39 @@ func TestSidebarDescriptionsDoNotInheritAccordionMeaning(t *testing.T) {
 				description = f.Description
 			}
 		}
-		key := "Collapsible"
-		if name == "SidebarOptions" {
-			key = "SidebarOptions.Collapsible"
-		}
+		key := name + ".Collapsible"
 		if description.EN == "" || description != e.notes[key] {
 			t.Fatalf("%s has the wrong collapse description: %+v", name, description)
+		}
+	}
+}
+
+func TestChoiceAPITablesUseTheDeclaredAlias(t *testing.T) {
+	e := extract("../../..")
+	for _, tc := range []struct{ owner, field string }{
+		{"CheckboxOptions", "Loading"},
+		{"CheckboxTriOptions", "Loading"},
+		{"SwitchOptions", "Loading"},
+		{"CheckboxOptions", "UncheckedIcon"},
+		{"SwitchOptions", "UncheckedIcon"},
+		{"CheckboxGroupOptions", "Max"},
+		{"RadioGroupOptions", "Max"},
+		{"CheckboxOptions", "Variant"},
+		{"CheckboxGroupOptions", "Variant"},
+	} {
+		fields := e.fields(e.types[tc.owner], map[string]bool{}, tc.owner)
+		found := false
+		for _, f := range fields {
+			if f.Name == tc.field {
+				found = true
+				want := e.notes[tc.owner+"."+tc.field]
+				if want.EN == "" || want.ZH == "" || f.Description != want {
+					t.Errorf("%s.%s lost its component-specific meaning: %+v", tc.owner, tc.field, f.Description)
+				}
+			}
+		}
+		if !found {
+			t.Errorf("%s.%s missing from API table", tc.owner, tc.field)
 		}
 	}
 }

@@ -19,6 +19,7 @@ type TreeNode struct {
 	DefaultExpanded bool
 	OnSelect        func(*TreeEvent)
 	OnToggle        func(*TreeEvent)
+	Decoration
 }
 
 // TreeEvent describes the state before an interaction. A node handler overrides
@@ -76,6 +77,7 @@ type TreeState struct {
 	selected       map[string]bool
 	partial        map[string]bool
 	summaryDirty   bool
+	partialMode    uint8
 	keyboard       bool
 }
 
@@ -285,8 +287,16 @@ func (s *TreeState) Rows() int           { return len(s.rows) }
 func (s *TreeState) Item(row int) string { return s.rows[row].id }
 func (s *TreeState) Depth(row int) int   { return s.rows[row].depth }
 
-func (s *TreeState) selectionSummary() {
-	changed := s.summaryDirty || len(s.selected) != s.Selection.Len()
+func (s *TreeState) selectionSummary(o TreeOptions) {
+	var mode uint8
+	if o.Multiple {
+		if o.BubbleSelect {
+			mode = 1
+		} else if o.PropagateSelect {
+			mode = 2
+		}
+	}
+	changed := s.summaryDirty || s.partialMode != mode || len(s.selected) != s.Selection.Len()
 	if !changed {
 		for id := range s.Selection.All() {
 			if !s.selected[id] {
@@ -299,6 +309,7 @@ func (s *TreeState) selectionSummary() {
 		return
 	}
 	s.summaryDirty = false
+	s.partialMode = mode
 	if s.selected == nil {
 		s.selected, s.partial = map[string]bool{}, map[string]bool{}
 	}
@@ -319,7 +330,9 @@ func (s *TreeState) selectionSummary() {
 			total += a
 			chosen += b
 		}
-		s.partial[id] = (chosen > 0 || s.Selection.Has(id)) && chosen < total
+		// Bubbling describes mixed descendants; propagation describes an
+		// explicitly selected parent whose descendants are not all selected.
+		s.partial[id] = (mode == 1 && chosen > 0 || mode == 2 && s.Selection.Has(id)) && chosen < total
 		if s.Selection.Has(id) {
 			chosen++
 		}

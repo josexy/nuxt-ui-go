@@ -43,11 +43,15 @@ func TestEveryPublicOptionsFieldHasAnEditor(t *testing.T) {
 			typ := optionTypes["nui."+name]
 			found := false
 			for _, binding := range bindings {
-				if binding.typ == typ {
+				if configurationContainsType(binding.typ, typ, map[reflect.Type]bool{}) {
 					found = true
+					editors := binding.Fields
+					if binding.typ != typ {
+						editors = schemas[goType(typ)].Fields
+					}
 					for _, field := range publicFields(typ) {
 						matched := false
-						for _, editor := range binding.Fields {
+						for _, editor := range editors {
 							if editor.Name == field.Name && editor.Type == goType(field.Type) {
 								matched = true
 								if _, ok := schemas[editor.Type]; !ok {
@@ -75,6 +79,29 @@ func TestEveryPublicOptionsFieldHasAnEditor(t *testing.T) {
 			}
 		}
 	}
+}
+
+// Related Options types can be edited through a bound object's pointer, list
+// or nested object; they do not need a separate function argument binding.
+func configurationContainsType(root, target reflect.Type, seen map[reflect.Type]bool) bool {
+	if root == target {
+		return true
+	}
+	if root == nil || seen[root] {
+		return false
+	}
+	seen[root] = true
+	switch root.Kind() {
+	case reflect.Pointer, reflect.Array, reflect.Slice, reflect.Map:
+		return configurationContainsType(root.Elem(), target, seen)
+	case reflect.Struct:
+		for _, field := range publicFields(root) {
+			if configurationContainsType(field.Type, target, seen) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func TestWorkerEventsAndCallbackResults(t *testing.T) {
@@ -186,6 +213,13 @@ func TestInvalidFieldsDoNotReachComponentBuild(t *testing.T) {
 	for _, options := range []map[string]any{{"Unknown": map[string]any{}}, {"InputOptions": map[string]any{"Unknown": true}}, {"InputOptions": map[string]any{"Variant": "nui.Solid"}}, {"InputOptions": map[string]any{"UI": map[string]any{"root": map[string]any{"Opacity": float64(2)}}}}} {
 		if _, err := demo.Normalize(Config{Options: options}); err == nil {
 			t.Errorf("accepted invalid fields: %v", options)
+		}
+	}
+	table, _ := Find("table")
+	for _, manual := range []bool{false, true} {
+		_, err := table.Normalize(Config{Options: map[string]any{"TableItems": []any{map[string]any{"ID": "manual", "Title": "Manual", "Sortable": true}}, "TableOptions": map[string]any{"ManualSorting": manual}}})
+		if (err == nil) != manual {
+			t.Fatalf("manual sorting=%v: %v", manual, err)
 		}
 	}
 }

@@ -18,7 +18,7 @@ func (a *State) View(c *ui.Context) {
 		nui.Toast(c, t, notice)
 	}
 	a.pendingToasts = nil
-	nui.ToastViewport(c, t, nui.ToastViewportOptions{})
+	nui.ToastViewport(c, t, a.toastViewport)
 	ui.Column(c).Fill().Children(func() {
 		ui.Row(c.Key("gallery-toolbar")).FillWidth().Padding(12, 20).Gap(10).Wrap().AlignItems(ui.Center).BorderWidth(0, 0, 1, 0).BorderColor(t.Border).Children(func() {
 			width, _ := c.Size()

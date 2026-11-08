@@ -244,6 +244,9 @@ func TestSidebarControlledSlotsAndZeroWidth(t *testing.T) {
 	if _, ok := tt.Find("Search"); ok {
 		t.Fatal("zero-width sidebar still builds content")
 	}
+	if !tt.Focused("Resize sidebar") {
+		t.Fatal("collapsing to zero discarded editor focus instead of moving it to the remaining resize handle")
+	}
 	collapsed, toggle, collapsible = false, false, false
 	tt.Frame()
 	if _, ok := tt.Find("Toggle sidebar"); ok {
@@ -255,6 +258,40 @@ func TestSidebarControlledSlotsAndZeroWidth(t *testing.T) {
 	if collapsed || state.Width.Value != 160 {
 		t.Fatal("non-collapsible resize should stop at minimum")
 	}
+	t.Run("header regions", func(t *testing.T) {
+		collapsed, showHeader := false, false
+		actions := 0
+		p := ui.NewTester(func(c *ui.Context) {
+			th := nui.App(c, nui.AppConfig{})
+			o := nui.SidebarOptions{Toggle: nui.Set(false), Decoration: nui.Decoration{Style: func(slot nui.Slot, e ui.Element) {
+				if slot == nui.Root {
+					e.Label("Sidebar frame")
+				}
+			}}}
+			if showHeader {
+				o.Description = "Workspace tools"
+				o.Actions = func(c *ui.Context, t nui.Theme, scope nui.SidebarScope) {
+					nui.Button(c, t, "Sidebar refresh", nui.ButtonOptions{}).OnClick(func() { actions++ })
+				}
+			}
+			ui.Row(c).Fill().Children(func() {
+				nui.Sidebar(c, th, &collapsed, o, func(c *ui.Context, t nui.Theme, compact bool) { ui.Text(c, "Sidebar body") })
+			})
+		}, 400, 300)
+		root, body := bounds(t, p, "Sidebar frame"), bounds(t, p, "Sidebar body")
+		if body.Y-root.Y != 16 {
+			t.Fatalf("empty sidebar retained a header gap: root=%v body=%v", root, body)
+		}
+		showHeader = true
+		p.Frame()
+		if !p.HasText("Workspace tools") {
+			t.Fatal("sidebar description is missing")
+		}
+		click(t, p, "Sidebar refresh")
+		if actions != 1 {
+			t.Fatal("sidebar header action did not run")
+		}
+	})
 }
 
 func TestSidebarResponsiveModes(t *testing.T) {

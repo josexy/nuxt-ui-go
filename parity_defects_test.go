@@ -311,6 +311,8 @@ func TestPinInputShowsFormFieldError(t *testing.T) {
 
 func TestBreadcrumbAndFooterColumnsShowItemIcons(t *testing.T) {
 	icons := false
+	cancel := true
+	selected, navigated := 0, 0
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		var icon *ui.SVG
@@ -319,7 +321,12 @@ func TestBreadcrumbAndFooterColumnsShowItemIcons(t *testing.T) {
 		}
 		ui.Column(c).Padding(16).Gap(16).AlignItems(ui.Start).Children(func() {
 			nui.Breadcrumb(c, th, []nui.BreadcrumbItem{{ID: "home", Label: "Home", OnSelect: func() {}}, {ID: "here", Label: "Here", Icon: icon}}, nui.BreadcrumbOptions{})
-			nui.FooterColumns(c, th, []nui.FooterColumn{{ID: "docs", Title: "Docs", Items: []nui.NavigationItem{{ID: "start", Label: "Start", Icon: icon}}}}, nui.FooterColumnsOptions{})
+			nui.FooterColumns(c, th, []nui.FooterColumn{{ID: "docs", Title: "Docs", Items: []nui.NavigationItem{{ID: "start", Label: "Start", Icon: icon, OnSelect: func(e *nui.NavigationEvent) {
+				selected++
+				if cancel {
+					e.PreventDefault()
+				}
+			}}}}}, nui.FooterColumnsOptions{OnNavigate: func(string) { navigated++ }})
 		})
 	}, 500, 200)
 	// Footer items fill their column, so compare the item's pixels instead of its width.
@@ -340,6 +347,15 @@ func TestBreadcrumbAndFooterColumnsShowItemIcons(t *testing.T) {
 	}
 	if slices.Equal(region(bounds(t, tt, "Start")), start) {
 		t.Fatal("footer item icon missing")
+	}
+	click(t, tt, "Start")
+	if selected != 1 || navigated != 0 {
+		t.Fatalf("footer link cancellation: selects=%d navigations=%d", selected, navigated)
+	}
+	cancel = false
+	tt.Key(0, ui.KeyEnter)
+	if selected != 2 || navigated != 1 {
+		t.Fatalf("footer link activation: selects=%d navigations=%d", selected, navigated)
 	}
 }
 
@@ -365,9 +381,9 @@ func TestEmptyCardAndBadgeParts(t *testing.T) {
 	if got := bounds(t, tt, "After card").Y - 20; got != header {
 		t.Fatalf("card without body is %v DIP tall, want its %v DIP header", got, header)
 	}
-	// Padding 8 + 16 DIP icon + 8, without a gap for the missing label.
-	if got := bounds(t, tt, "After badge").X - 20; got != 32 {
-		t.Fatalf("icon-only badge is %v DIP wide, want 32", got)
+	// Automatic square padding: 4 + 16 DIP icon + 4, with no label gap.
+	if got := bounds(t, tt, "After badge").X - 20; got != 24 {
+		t.Fatalf("icon-only badge is %v DIP wide, want 24", got)
 	}
 	footer = true
 	tt.Frame()
