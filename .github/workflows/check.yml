@@ -26,8 +26,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y \
             libpangocairo-1.0-0 fonts-dejavu-core fonts-noto-cjk
-      - name: Check Bash scripts
-        # ShellCheck is preinstalled on the GitHub-hosted Ubuntu image.
-        run: shellcheck scripts/*.sh
+      - name: Check native test script
+        # verify.py parses every script; this also loads test-native.py, which needs a desktop to run.
+        run: python3 scripts/test-native.py --help
       - name: Format, behavior, lifecycle, generated sources and cross builds
-        run: bash scripts/verify.sh
+        run: python3 scripts/verify.py
