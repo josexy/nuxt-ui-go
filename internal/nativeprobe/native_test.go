@@ -1737,7 +1737,7 @@ func (c *client) checkToastParity() {
 func TestNativeGallery(t *testing.T) {
 	socket := os.Getenv("NUI_AUTOMATION_SOCKET")
 	if socket == "" {
-		t.Skip("run scripts/test-native.ps1 on Windows or bash scripts/test-native.sh on Linux")
+		t.Skip("run task test:native, or python3 scripts/test-native.py")
 	}
 	var conn net.Conn
 	var err error

@@ -3,6 +3,11 @@ version: "3"
 env:
   CGO_ENABLED: "0"
 
+vars:
+  # Python 3.9 or later. Windows installs it as python; python3 there can be the
+  # Microsoft Store alias. Override with, for example, `task verify PYTHON=py`.
+  PYTHON: '{{if eq OS "windows"}}python{{else}}python3{{end}}'
+
 tasks:
   default:
     desc: Lists available development tasks
@@ -12,33 +17,21 @@ tasks:
 
   verify:
     desc: Checks formatting, tests, lifecycle, generated sources and cross builds
-    summary: Runs the repository verification script for Windows or Linux, including all examples.
-    platforms: [windows, linux]
+    summary: Runs scripts/verify.py with Python, including all examples.
     cmds:
-      - cmd: pwsh -NoLogo -NoProfile -File ./scripts/verify.ps1
-        platforms: [windows]
-      - cmd: bash scripts/verify.sh
-        platforms: [linux]
+      - "{{.PYTHON}} scripts/verify.py"
 
   test:native:
     desc: Runs native Gallery interaction tests in a desktop session
     summary: Opens native test windows and writes screenshots and logs to .work/native/.
-    platforms: [windows, linux]
     cmds:
-      - cmd: pwsh -NoLogo -NoProfile -File ./scripts/test-native.ps1
-        platforms: [windows]
-      - cmd: bash scripts/test-native.sh
-        platforms: [linux]
+      - "{{.PYTHON}} scripts/test-native.py"
 
   test:native:smoke:
     desc: Checks the first frame of a hidden native window
     summary: Requires a desktop session and checks rendering without running the interaction suite.
-    platforms: [windows, linux]
     cmds:
-      - cmd: pwsh -NoLogo -NoProfile -File ./scripts/test-native.ps1 -HiddenSmoke
-        platforms: [windows]
-      - cmd: bash scripts/test-native.sh --hidden-smoke
-        platforms: [linux]
+      - "{{.PYTHON}} scripts/test-native.py --hidden-smoke"
 
   website:dev:
     desc: Runs the bilingual component website and builds its Go previews

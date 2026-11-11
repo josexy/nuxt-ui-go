@@ -64,7 +64,7 @@ See the [README](README.md) for installation and complete examples, and [docs/co
 
 ## Formatting and verification
 
-Run commands through [Taskfile.yml](Taskfile.yml). Formatting needs goimports, and linting needs golangci-lint v2. The system packages that Linux checks need are listed in the [CI configuration](.github/workflows/check.yml).
+Run commands through [Taskfile.yml](Taskfile.yml). The scripts behind `task verify` and the native test tasks need Python 3.9 or later, formatting needs goimports, and linting needs golangci-lint v2. The system packages that Linux checks need are listed in the [CI configuration](.github/workflows/check.yml).
 
 | Command | Purpose |
 | --- | --- |
@@ -88,7 +88,7 @@ Which checks to run depends on the change:
 - **UI behavior:** Prefer `ui.NewTester` for UI regression tests, and cover the relevant focus, input, shortcut, and unmount/rebuild behavior.
 - **Layout or platform interaction:** Also inspect the rendered output and the native behavior on the platform. A first-frame check alone does not validate interactions.
 - **Shared state or concurrency:** Add race checks when the environment supports them.
-- **Scripts:** `task verify` and the native test tasks run on Windows and Linux; CI runs on Linux. Account for case-sensitive paths and Bash/PowerShell differences, keep `.sh` files in LF line endings, and run `shellcheck scripts/*.sh`.
+- **Scripts:** The scripts in `scripts/` are written in Python so one copy runs on Windows, Linux, and macOS; CI runs on Linux. Use only the standard library and keep them compatible with Python 3.9. Account for case-sensitive paths, `.exe` suffixes, Unix socket path limits, and signal differences; pass commands as argument lists instead of shell strings; and keep `.py` files in LF line endings. `task verify` parses every script with the Python 3.9 grammar; also run `python3 scripts/test-native.py --help`.
 - **Documentation or comments only:** Check links, commands, examples, and consistency with the configuration. Full test runs and native windows are not needed.
 
 Formatters and automatic fixes can touch many files. Review the diff and keep only changes relevant to the task; do not rewrite unrelated code.
