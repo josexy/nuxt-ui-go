@@ -109,6 +109,10 @@ Run these commands from the **repository root**. First set `CGO_ENABLED` to `0`:
 
 The component website covers 73 components and layouts in English and Chinese, with live Go/WASM previews, option editors, and complete Go programs you can copy. To run it locally, install the dependencies as described in [Local development](website/README.md#local-development) and run `task website:dev`. The same document explains static builds and GitHub Pages publishing.
 
+## Agent skill
+
+Coding agents can use the [nuxt-ui-go skill](.agents/skills/nuxt-ui-go/SKILL.md). It has one reference per component with exact Go signatures, options, pitfalls and a runnable example, plus app patterns. Agents that read `.agents/skills/` find it in this repository automatically. To use it in your own app, copy the `.agents/skills/nuxt-ui-go` folder into the directory where your agent loads skills.
+
 ## Contributing
 
 Install [Task](https://taskfile.dev/docs/installation), then run `task` in the repository root to list the available commands. `task verify` runs the Windows or Linux verification script, which checks formatting, tests, lifecycle rules, and cross-platform builds.
