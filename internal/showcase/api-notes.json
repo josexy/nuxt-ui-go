@@ -3868,8 +3868,8 @@
     "en": "Notifies once when user input changes the selected set, with stable IDs sorted lexically. External selection and SetRows pruning remain silent."
   },
   "TableOptions.OnActivate": {
-    "zh": "Enter 或双击激活行，返回稳定 ID。没有绑定 List.Selected 时自动使用组件内部活动行，它跟随记录：排序后仍是同一记录，记录被 SetRows 移除后没有活动行，Enter 不触发。不同于 Nuxt 的单击 select。",
-    "en": "Activates a row on Enter or double-click and returns its stable ID. Uses an internal active row when List.Selected is unset; it follows its record across sorting, and when SetRows removes the record nothing is active and Enter does nothing. This differs from Nuxt’s single-click select."
+    "zh": "Enter 或双击激活行，返回稳定 ID。没有绑定 List.Selected 时自动使用组件内部活动行，它跟随记录：排序或构建前连续调用 SetRows 后仍是同一记录，记录被 SetRows 移除后没有活动行，Enter 不触发。不同于 Nuxt 的单击 select。",
+    "en": "Activates a row on Enter or double-click and returns its stable ID. Uses an internal active row when List.Selected is unset; it follows its record across sorting and consecutive SetRows calls before a build, and when SetRows removes the record nothing is active and Enter does nothing. This differs from Nuxt’s single-click select."
   },
   "TableOptions.OnChange": {
     "zh": "原生表格的综合变化通知：用户排序、改变选择，以及完成一次列移动、调整列宽或双击列边适应内容时各通知一次；拖动中、回到原位或固定列不通知。可在此保存 List.Columns；需要分类时使用专用回调。",

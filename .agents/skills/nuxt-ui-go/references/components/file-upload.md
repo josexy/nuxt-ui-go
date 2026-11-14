@@ -17,7 +17,7 @@ FileUploadState holds a queue; the application implements transfers through Begi
 
 ## Things to know
 
-Choose returns simulated metadata: no native dialog, file content reads or uploads. Go keeps a queue; Dialog.Multiple controls one native dialog selection and Rules.MaxFiles limits accepted files in the queue. Position affects UploadArea / UploadList only. The native grid retains names, status and progress, unlike Nuxt’s image grid. The reading message and State.Error are polite statuses, read once when they appear and again when their text changes; clearing reads nothing.
+Choose returns simulated metadata: no native dialog, file content reads or uploads. Go keeps a queue; Dialog.Multiple controls one native dialog selection and Rules.MaxFiles limits accepted files in the queue. Position affects UploadArea / UploadList only. The native grid retains names, status and progress, unlike Nuxt’s image grid. The reading message and State.Error use persistent polite status regions; empty regions take no layout space. Adding or changing an exposed message reads it once. Clearing, unchanged rebuilds and hidden updates are silent. Mounting or exposing an existing message makes it accessible without announcing a change.
 
 ## API
 
@@ -197,7 +197,7 @@ By default, the selection action calls `mygo.Dialog.Open` in the background and 
 
 MIME types are derived only from the extension; file contents are not read. Accept checks selected and dropped files but is not converted into native Dialog.Filters automatically. If your business needs a trustworthy file type, validate the content yourself. Dropzone=false registers no drop target, and Interactive=false keeps a separate selection button. When Choose returns an empty result, the selection was canceled; when it returns an error, State.Error is set and the file queue is unchanged.
 
-The "reading file information" message and State.Error are polite status regions with stable identities. Each is read once when it appears and again only when its text changes; clearing it, and rebuilding without a change, read nothing. Per-file errors in the list are not live regions.
+The "reading file information" message and State.Error use persistent polite status regions. Regions without text take no layout space. While the component is exposed to assistive technology, adding or changing a message reads it once; clearing it and unchanged rebuilds read nothing. Hidden parents, including inactive kept-mounted tab panels and AccessHidden containers, suppress announcements. Mounting or exposing a region with an existing message makes it accessible without announcing it as a change. Per-file errors in the list are not live regions.
 
 ##### Start, cancel, and retry uploads
 
@@ -259,7 +259,7 @@ Clicking an interactive UploadArea, or pressing Enter or Space on it, opens the 
 
 #### Accessibility and motion (excerpt)
 
-Since MyGo v0.9.0, `ui.RoleStatus` is a polite, atomic live region. The library's own progress, error, empty, and loading messages keep stable identities: such a status is read once when its text changes and is silent when it first appears, clears, or rebuilds unchanged. Alert and Banner take their identity from the key the app gives them. CommandPalette and FileUpload also announce their progress and error messages once when they appear. Chart announces keyboard selection once and never reads pointer hover. Alert and Banner read their new title and description once when either changes. These rules are checked headlessly with `Tester.UseScreenReader`; what VoiceOver, NVDA, Narrator, and Orca actually say has not been verified.
+Since MyGo v0.9.0, `ui.RoleStatus` is a polite, atomic live region. The library's own progress, error, empty, and loading messages keep stable identities: such a status is read once when its text changes and is silent when it first appears, clears, or rebuilds unchanged. Alert and Banner take their identity from the key the app gives them. CommandPalette also announces its progress and error messages once when they appear. FileUpload keeps empty status regions mounted, so adding a message to an exposed region is read once; hidden updates are silent, and mounting or exposing an existing message does not announce it as a change. Chart announces keyboard selection once and never reads pointer hover. Alert and Banner read their new title and description once when either changes. These rules are checked headlessly with `Tester.UseScreenReader`; what VoiceOver, NVDA, Narrator, and Orca actually say has not been verified.
 
 ## Complete example
 

@@ -191,6 +191,39 @@ func TestTableActiveRowFollowsItsRecord(t *testing.T) {
 	}
 }
 
+func TestTableActiveRowSurvivesBatchedSnapshots(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		last []tableFile
+		want []string
+	}{
+		{"remove another record", []tableFile{tableFiles[1], tableFiles[2]}, []string{"b"}},
+		{"remove the active record", []tableFile{tableFiles[0], tableFiles[2]}, nil},
+		{"clear all records", nil, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			h := newTableHarness(t)
+			click(t, h.Tester, "Beta")
+			before := h.counts
+			key := func(f tableFile) string { return f.ID }
+			// No build separates these snapshots: the chosen record moves
+			// before a later update removes a record from its old position.
+			h.state.SetRows([]tableFile{tableFiles[1], tableFiles[0], tableFiles[2]}, key)
+			h.state.SetRows(tc.last, key)
+			h.Frame()
+			h.Frame()
+			h.expect("external snapshots", before)
+			if h.state.Selection.Has("b") != (len(tc.want) > 0) {
+				t.Fatal("selection did not follow Beta's membership")
+			}
+			h.Key(0, ui.KeyEnter)
+			if !slices.Equal(h.activated, tc.want) {
+				t.Fatalf("Enter activated %q, want %q", h.activated, tc.want)
+			}
+		})
+	}
+}
+
 // The documented way to keep a column layout: save List.Columns from
 // OnChange, and restore it before the first build.
 func TestTableColumnLayoutPersistsThroughOnChange(t *testing.T) {

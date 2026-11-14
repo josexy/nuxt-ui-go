@@ -240,7 +240,7 @@ By default, the selection action calls `mygo.Dialog.Open` in the background and 
 
 MIME types are derived only from the extension; file contents are not read. Accept checks selected and dropped files but is not converted into native Dialog.Filters automatically. If your business needs a trustworthy file type, validate the content yourself. Dropzone=false registers no drop target, and Interactive=false keeps a separate selection button. When Choose returns an empty result, the selection was canceled; when it returns an error, State.Error is set and the file queue is unchanged.
 
-The "reading file information" message and State.Error are polite status regions with stable identities. Each is read once when it appears and again only when its text changes; clearing it, and rebuilding without a change, read nothing. Per-file errors in the list are not live regions.
+The "reading file information" message and State.Error use persistent polite status regions. Regions without text take no layout space. While the component is exposed to assistive technology, adding or changing a message reads it once; clearing it and unchanged rebuilds read nothing. Hidden parents, including inactive kept-mounted tab panels and AccessHidden containers, suppress announcements. Mounting or exposing a region with an existing message makes it accessible without announcing it as a change. Per-file errors in the list are not live regions.
 
 ### Start, cancel, and retry uploads
 

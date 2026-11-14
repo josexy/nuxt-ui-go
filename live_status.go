@@ -11,7 +11,20 @@ func statusText(c *ui.Context, key, text string) ui.Element {
 	return ui.Text(c.Key(key), text).Role(ui.RoleStatus)
 }
 
-// shownMessages remembers which transient messages a component instance
+// persistentStatusText keeps an empty live region in the accessibility tree
+// without taking layout space. Adding a message is then a native status change,
+// so MyGo filters hidden/inaccessible parents before deciding what to read.
+// A newly mounted or newly exposed region keeps native status semantics: its
+// existing text is accessible, but is not announced as a change.
+func persistentStatusText(c *ui.Context, key, text string) ui.Element {
+	e := statusText(c, key, text)
+	if text == "" {
+		e.Absolute().Size(0, 0).IgnoreInput(true)
+	}
+	return e
+}
+
+// shownMessages remembers which transient messages a command palette
 // showed in its last build: its progress message and its error.
 type shownMessages struct{ progress, err bool }
 

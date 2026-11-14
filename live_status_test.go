@@ -187,6 +187,67 @@ func TestFileUploadMessagesAreReadOnceWhenTheyAppear(t *testing.T) {
 	r.expectSilent("reading finished without files")
 }
 
+func TestFileUploadHiddenMessagesStaySilent(t *testing.T) {
+	for _, kind := range []string{"kept-mounted tab", "access-hidden parent"} {
+		t.Run(kind, func(t *testing.T) {
+			visible := false
+			var state nui.FileUploadState
+			t.Cleanup(state.Dispose)
+			r := newReaderTester(t, func(c *ui.Context) {
+				th := nui.App(c, nui.AppConfig{})
+				build := func(c *ui.Context, th nui.Theme) {
+					nui.FileUpload(c.Key("files"), th, &state, nui.FileUploadOptions{Label: "Files"})
+				}
+				if kind == "kept-mounted tab" {
+					value := "home"
+					if visible {
+						value = "upload"
+					}
+					nui.Tabs(c.Key("tabs"), th, &value, []nui.TabItem{
+						{ID: "home", Label: "Home", Content: func(c *ui.Context, _ nui.Theme) { ui.Text(c, "Home content") }},
+						{ID: "upload", Label: "Upload", Content: build},
+					}, nui.TabsOptions{KeepMounted: true})
+				} else {
+					ui.Column(c.Key("parent")).AccessHidden(!visible).Children(func() { build(c, th) })
+				}
+			}, 700, 500)
+
+			state.Error = "Upload failed"
+			for range 3 {
+				r.Frame()
+			}
+			if _, ok := r.AccessByRole(ui.RoleStatus, state.Error); ok {
+				t.Fatal("the hidden error is accessible")
+			}
+			r.expectSilent("an error appearing in a hidden parent")
+			visible = true
+			r.Frame()
+			r.role(ui.RoleStatus, state.Error)
+			r.expectSilent("exposing an existing status")
+			state.Error = "Upload quota reached"
+			r.Frame()
+			r.expectRead("a visible error changes", state.Error)
+			state.Error = ""
+			r.Frame()
+			r.expectSilent("clearing the error")
+			// The parent hides in the same frame as the error appears;
+			// last-frame geometric visibility cannot guard this case.
+			visible, state.Error = false, "Retry failed"
+			r.Frame()
+			r.expectSilent("an error appearing as its parent hides")
+			state.Error = ""
+			r.Frame()
+			visible = true
+			r.Frame()
+			state.Error = "Network unavailable"
+			r.Frame()
+			r.expectRead("a new error after showing again", state.Error)
+			r.Frame()
+			r.expectSilent("unchanged visible error")
+		})
+	}
+}
+
 func TestEmptyStatusesKeepTheirIdentity(t *testing.T) {
 	t.Run("SelectMenu message changes while shown", func(t *testing.T) {
 		var values []string

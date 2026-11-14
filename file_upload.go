@@ -371,7 +371,6 @@ func FileUpload(c *ui.Context, t Theme, s *FileUploadState, o FileUploadOptions)
 	}
 	root := ui.Column(c).MinWidth(0).Disabled(o.Disabled)
 	o.Disabled = root.IsDisabled()
-	shown := ui.Local(root, "nui-upload-status", func() shownMessages { return shownMessages{} })
 	if o.Disabled && s.pending.Loading {
 		s.pending.Cancel()
 		s.mailbox = nil
@@ -542,13 +541,12 @@ func FileUpload(c *ui.Context, t Theme, s *FileUploadState, o FileUploadOptions)
 		if o.Style != nil {
 			o.Style(Body, zone)
 		}
-		reading := message(c, "readingFiles")
-		if announceShown(c, &shown.progress, s.Pending(), reading) {
-			statusText(c, "status-reading", reading).TextColor(t.Muted)
+		reading := ""
+		if s.Pending() {
+			reading = message(c, "readingFiles")
 		}
-		if announceShown(c, &shown.err, s.Error != "", s.Error) {
-			statusText(c, "status-error", s.Error).TextColor(t.Error)
-		}
+		persistentStatusText(c, "status-reading", reading).TextColor(t.Muted)
+		persistentStatusText(c, "status-error", s.Error).TextColor(t.Error)
 		if !inside {
 			fileUploadList(c, t, s, o)
 		}
