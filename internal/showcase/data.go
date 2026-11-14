@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	nui "github.com/josexy/nuxt-ui-go"
+	nui "github.com/josexy/nuxt-ui-go/ui"
 )
 
 func (d Demo) dataBindings() []Binding {

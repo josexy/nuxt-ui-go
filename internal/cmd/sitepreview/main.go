@@ -7,9 +7,9 @@ import (
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
-	nui "github.com/josexy/nuxt-ui-go"
 	"github.com/josexy/nuxt-ui-go/internal/showcase"
 	"github.com/josexy/nuxt-ui-go/internal/showcase/preview"
+	nui "github.com/josexy/nuxt-ui-go/ui"
 )
 
 type app struct {

@@ -13,6 +13,7 @@
 
 ### Migration notes
 
+- **Component import path.** The `nui` package moved to `github.com/josexy/nuxt-ui-go/ui`. Update existing imports and run `go mod tidy`.
 - **Landmarks.** Main, HeaderLayout and FooterLayout now expose `ui.RoleMain`, `ui.RoleBanner` and `ui.RoleContentInfo`, and a window should have at most one of each. An app that builds a nested or extra instance, such as a Header inside a card or a preview, opts it out in the same build with `.Role(ui.RoleGroup)` on the returned element; layout, styles, focus and children stay the same.
 - **Tab panel names.** Tabs panels are now named after their tab's Label instead of "{name} content" (`contentNamed`). Tests or automation that find a panel by its old name should find it by its tab's label, or by the `ui.RoleTabPanel` role, since the tab now has the same name. An app that overrides `nuxtui.contentNamed` in its catalog keeps its own panel name.
 - **Table OnChange on column gestures.** `TableOptions.OnChange` now also fires after the user moves, resizes or fits a column. Apps that treat every OnChange as a data or selection change should use OnSortChange and OnSelectionChange for those, and can save `TableState.List.Columns` from OnChange.

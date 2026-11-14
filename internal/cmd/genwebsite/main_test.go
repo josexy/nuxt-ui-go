@@ -6,6 +6,16 @@ import (
 	"github.com/josexy/nuxt-ui-go/internal/showcase"
 )
 
+func TestAPISourcePathsAreRepositoryRelative(t *testing.T) {
+	e := extract("../../..")
+	for _, name := range []string{"Button", "ButtonOptions"} {
+		entry := e.declarations[name]
+		if entry.File != "ui/button.go" || entry.Line <= 0 {
+			t.Errorf("%s source location = %q:%d, want ui/button.go and a positive line", name, entry.File, entry.Line)
+		}
+	}
+}
+
 func TestSidebarDescriptionsDoNotInheritAccordionMeaning(t *testing.T) {
 	e := extract("../../..")
 	for _, name := range []string{"SidebarOptions", "AccordionOptions"} {

@@ -79,7 +79,7 @@ options := nui.ModalOptions{
 
 ## Component catalog
 
-The catalog lists 73 components and layout concepts by name. To see a full function signature, run `go doc` in the repository, for example `go doc . Input`.
+The catalog lists 73 components and layout concepts by name. To see a full function signature from the repository root, run `go doc ./ui Input`.
 
 ### Themes and basic components
 

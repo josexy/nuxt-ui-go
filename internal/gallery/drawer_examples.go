@@ -2,7 +2,7 @@ package gallery
 
 import (
 	"github.com/egoist/mygo/ui"
-	nui "github.com/josexy/nuxt-ui-go"
+	nui "github.com/josexy/nuxt-ui-go/ui"
 )
 
 func addDrawerContract(p *componentPage) {

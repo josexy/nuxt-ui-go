@@ -2,10 +2,10 @@ package gallery
 
 import (
 	"github.com/egoist/mygo/ui"
-	nui "github.com/josexy/nuxt-ui-go"
 	"github.com/josexy/nuxt-ui-go/icons/lucide"
 	"github.com/josexy/nuxt-ui-go/internal/databrowser"
 	"github.com/josexy/nuxt-ui-go/internal/settings"
+	nui "github.com/josexy/nuxt-ui-go/ui"
 )
 
 func (a *State) View(c *ui.Context) {

@@ -18,10 +18,10 @@ You need **Go 1.27.3 or later** and a desktop graphics session. Build with `CGO_
 mkdir nuxt-ui-demo
 cd nuxt-ui-demo
 go mod init example.com/nuxt-ui-demo
-go get github.com/josexy/nuxt-ui-go@latest
+go get github.com/josexy/nuxt-ui-go/ui@latest
 ```
 
-The module path is `github.com/josexy/nuxt-ui-go` and the package name is `nui`. The Go and MyGo versions this repository uses are listed in [go.mod](go.mod).
+Import the `nui` package from `github.com/josexy/nuxt-ui-go/ui`. The module path and the required Go and MyGo versions are listed in [go.mod](go.mod).
 
 ### 2. Create main.go
 
@@ -35,7 +35,7 @@ import (
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
-	nui "github.com/josexy/nuxt-ui-go"
+	nui "github.com/josexy/nuxt-ui-go/ui"
 )
 
 func main() {
@@ -114,6 +114,8 @@ The component website covers 73 components and layouts in English and Chinese, w
 Coding agents can use the [nuxt-ui-go skill](.agents/skills/nuxt-ui-go/SKILL.md). It has one reference per component with exact Go signatures, options, pitfalls and a runnable example, plus app patterns. Agents that read `.agents/skills/` find it in this repository automatically. To use it in your own app, copy the `.agents/skills/nuxt-ui-go` folder into the directory where your agent loads skills.
 
 ## Contributing
+
+Component sources, tests, and embedded translations live in [ui/](ui/).
 
 Install [Task](https://taskfile.dev/docs/installation) and Python 3.9 or later, then run `task` in the repository root to list the available commands. `task verify` runs the [verification script](scripts/verify.py), which checks formatting, tests, lifecycle rules, generated sources, and cross-platform builds. The scripts need only the Python standard library, not Bash or PowerShell, so every platform runs the same commands.
 

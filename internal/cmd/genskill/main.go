@@ -1,6 +1,6 @@
 // Genskill regenerates the component references of the nuxt-ui-go agent skill
-// (.agents/skills/nuxt-ui-go/references/components/*.md) from the root
-// package's Go API, internal/showcase/catalog.json and docs/*.md. The output
+// (.agents/skills/nuxt-ui-go/references/components/*.md) from the Go API in
+// ui/, internal/showcase/catalog.json and docs/*.md. The output
 // is self-contained: it names no repository paths, so the skill folder can be
 // copied into any project.
 //
@@ -195,7 +195,8 @@ func newGenerator(root, skillDir string) (*generator, error) {
 	g := &generator{root: root, skill: skillDir, fset: token.NewFileSet(), funcs: map[string]*doc.Func{}, types: map[string]*doc.Type{},
 		typeFns: map[string]string{}, owner: map[string][]string{}, allName: map[string]string{}, consts: map[string]string{},
 		covered: map[string]bool{}, demos: showcase.Catalog(), include: map[string][]string{}}
-	entries, err := os.ReadDir(root)
+	sourceDir := filepath.Join(root, "ui")
+	entries, err := os.ReadDir(sourceDir)
 	if err != nil {
 		return nil, err
 	}
@@ -208,13 +209,13 @@ func newGenerator(root, skillDir string) (*generator, error) {
 		if strings.HasSuffix(name, "_test.go") {
 			continue
 		}
-		f, err := parser.ParseFile(g.fset, filepath.Join(root, name), nil, parser.ParseComments)
+		f, err := parser.ParseFile(g.fset, filepath.Join(sourceDir, name), nil, parser.ParseComments)
 		if err != nil {
 			return nil, err
 		}
 		files = append(files, f)
 	}
-	g.pkg, err = doc.NewFromFiles(g.fset, files, modulePath)
+	g.pkg, err = doc.NewFromFiles(g.fset, files, modulePath+"/ui")
 	if err != nil {
 		return nil, err
 	}

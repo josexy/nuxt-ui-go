@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	nui "github.com/josexy/nuxt-ui-go"
+	nui "github.com/josexy/nuxt-ui-go/ui"
 )
 
 func TestPopoverDurationUnitsMatchPreviewAndSource(t *testing.T) {

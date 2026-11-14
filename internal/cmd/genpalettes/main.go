@@ -3,9 +3,11 @@ package main
 
 import (
 	"crypto/sha256"
+	"flag"
 	"fmt"
 	"go/format"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -15,13 +17,15 @@ var primaryNames = []string{"red", "orange", "amber", "yellow", "lime", "green",
 var neutralNames = []string{"slate", "gray", "zinc", "neutral", "stone", "taupe", "mauve", "mist", "olive"}
 
 func main() {
-	if err := generate(); err != nil {
+	root := flag.String("root", ".", "repository root")
+	flag.Parse()
+	if err := generate(*root); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
-func generate() error {
-	data, err := os.ReadFile("third_party/tailwind/theme.css")
+func generate(root string) error {
+	data, err := os.ReadFile(filepath.Join(root, "third_party", "tailwind", "theme.css"))
 	if err != nil {
 		return err
 	}
@@ -72,5 +76,5 @@ func generate() error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile("palette_gen.go", formatted, 0644)
+	return os.WriteFile(filepath.Join(root, "ui", "palette_gen.go"), formatted, 0644)
 }

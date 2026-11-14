@@ -16,8 +16,8 @@ import (
 	"slices"
 	"strings"
 
-	nui "github.com/josexy/nuxt-ui-go"
 	"github.com/josexy/nuxt-ui-go/internal/showcase"
+	nui "github.com/josexy/nuxt-ui-go/ui"
 )
 
 type field struct {
@@ -111,7 +111,7 @@ func (e *extractor) fields(expr ast.Expr, seen map[string]bool, owner string) []
 }
 func extract(root string) *extractor {
 	e := &extractor{set: token.NewFileSet(), types: map[string]ast.Expr{}, declarations: map[string]api{}, notes: showcase.APINotes()}
-	files, err := filepath.Glob(filepath.Join(root, "*.go"))
+	files, err := filepath.Glob(filepath.Join(root, "ui", "*.go"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -123,6 +123,11 @@ func extract(root string) *extractor {
 		if err != nil {
 			log.Fatal(err)
 		}
+		relativePath, err := filepath.Rel(root, path)
+		if err != nil {
+			log.Fatal(err)
+		}
+		file := filepath.ToSlash(relativePath)
 		ast.FileExports(f)
 		for _, decl := range f.Decls {
 			switch d := decl.(type) {
@@ -134,12 +139,12 @@ func extract(root string) *extractor {
 				copyDecl := *d
 				copyDecl.Body = nil
 				copyDecl.Doc = nil
-				e.declarations[d.Name.Name] = api{Name: d.Name.Name, Signature: e.print(&copyDecl), File: filepath.Base(path), Line: e.set.Position(d.Pos()).Line}
+				e.declarations[d.Name.Name] = api{Name: d.Name.Name, Signature: e.print(&copyDecl), File: file, Line: e.set.Position(d.Pos()).Line}
 			case *ast.GenDecl:
 				for _, spec := range d.Specs {
 					if t, ok := spec.(*ast.TypeSpec); ok && t.Name.IsExported() {
 						e.types[t.Name.Name] = t.Type
-						e.declarations[t.Name.Name] = api{Name: t.Name.Name, Signature: "type " + e.print(t), File: filepath.Base(path), Line: e.set.Position(t.Pos()).Line}
+						e.declarations[t.Name.Name] = api{Name: t.Name.Name, Signature: "type " + e.print(t), File: file, Line: e.set.Position(t.Pos()).Line}
 					}
 				}
 			}

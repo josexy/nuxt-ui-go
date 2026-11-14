@@ -18,7 +18,7 @@ import (
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
-	nui "github.com/josexy/nuxt-ui-go"
+	nui "github.com/josexy/nuxt-ui-go/ui"
 )
 
 type enumValue struct {
@@ -68,8 +68,8 @@ type Binding struct {
 }
 
 func goType(t reflect.Type) string {
-	if t.PkgPath() == "github.com/josexy/nuxt-ui-go" {
-		return "nui." + strings.NewReplacer("github.com/josexy/nuxt-ui-go.", "nui.", "github.com/egoist/mygo/ui.", "ui.").Replace(t.Name())
+	if t.PkgPath() == nuiPackagePath {
+		return "nui." + strings.NewReplacer(nuiPackagePath+".", "nui.", "github.com/egoist/mygo/ui.", "ui.").Replace(t.Name())
 	}
 	if t.Name() != "" {
 		return t.String()
@@ -103,7 +103,7 @@ func goType(t reflect.Type) string {
 }
 
 func optional(t reflect.Type) bool {
-	return t.Kind() == reflect.Struct && strings.HasPrefix(t.Name(), "Optional[") && t.PkgPath() == "github.com/josexy/nuxt-ui-go"
+	return t.Kind() == reflect.Struct && strings.HasPrefix(t.Name(), "Optional[") && t.PkgPath() == nuiPackagePath
 }
 
 func publicFields(t reflect.Type) []reflect.StructField {

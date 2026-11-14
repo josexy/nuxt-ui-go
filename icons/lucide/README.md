@@ -7,7 +7,7 @@ This package includes all **2,015 SVGs** from the [icons directory at a pinned L
 ```go
 import (
     "github.com/egoist/mygo/ui"
-    nui "github.com/josexy/nuxt-ui-go"
+    nui "github.com/josexy/nuxt-ui-go/ui"
     "github.com/josexy/nuxt-ui-go/icons/lucide"
 )
 

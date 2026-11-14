@@ -52,7 +52,7 @@ Each component's `description` briefly states its purpose. `guide` is Markdown w
 
 `internal/cmd/genshowcase` generates the configuration types and the enum registry from the source code and examples. `fields.go` walks every public Options type and nested field, and `values.go` and `functions.go` generate both the preview values and the public Go code. A field coverage test detects anything missing. Data setup runs only when the data configuration changes, so drawing does not keep resetting it.
 
-`internal/showcase/api-notes.json` holds bilingual descriptions of API fields. `internal/cmd/genwebsite` extracts public functions, Options, and embedded fields from the root package source. The API tables distinguish Go zero values from the component's actual default behavior, and never guess an effective default from the type.
+`internal/showcase/api-notes.json` holds bilingual descriptions of API fields. `internal/cmd/genwebsite` extracts public functions, Options, and embedded fields from the component sources in `ui/`. The API tables distinguish Go zero values from the component's actual default behavior, and never guess an effective default from the type.
 
 To add an example:
 

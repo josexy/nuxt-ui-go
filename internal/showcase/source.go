@@ -12,11 +12,13 @@ import (
 	"strings"
 )
 
+const nuiPackagePath = "github.com/josexy/nuxt-ui-go/ui"
+
 var imports = map[string]string{
 	"fmt": "fmt", "time": "time", "strings": "strings", "slices": "slices", "cmp": "cmp", "context": "context", "log": "log",
 	"base64": "encoding/base64", "errors": "errors",
 	"mygo": "github.com/egoist/mygo", "ui": "github.com/egoist/mygo/ui",
-	"nui": "github.com/josexy/nuxt-ui-go", "lucide": "github.com/josexy/nuxt-ui-go/icons/lucide",
+	"nui": nuiPackagePath, "lucide": "github.com/josexy/nuxt-ui-go/icons/lucide",
 	"showcase": "github.com/josexy/nuxt-ui-go/internal/showcase",
 }
 

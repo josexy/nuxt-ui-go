@@ -1,6 +1,6 @@
 ---
 name: nuxt-ui-go
-description: Use NuxtUI Go (github.com/josexy/nuxt-ui-go, Go package `nui`), a native MyGo component library styled after Nuxt UI v4. Use it whenever Go code calls or should call `nui.*` components (Button, Input, Select, SelectMenu, InputMenu, Modal, Toast, DropdownMenu, Tabs, Form, Table, Tree, Calendar, Sidebar, CommandPalette, Chart, FileUpload, …), when building screens, forms, dialogs or data views in a MyGo desktop app with this library, when choosing between similar components, and when theming or styling parts. It has one reference per component (73) with exact Go signatures, Options and state types, pitfalls and a runnable example. Use it even for small component tasks, because the Go API differs from Nuxt UI's Vue props and slots in ways memory gets wrong.
+description: Use NuxtUI Go (github.com/josexy/nuxt-ui-go/ui, Go package `nui`), a native MyGo component library styled after Nuxt UI v4. Use it whenever Go code calls or should call `nui.*` components (Button, Input, Select, SelectMenu, InputMenu, Modal, Toast, DropdownMenu, Tabs, Form, Table, Tree, Calendar, Sidebar, CommandPalette, Chart, FileUpload, …), when building screens, forms, dialogs or data views in a MyGo desktop app with this library, when choosing between similar components, and when theming or styling parts. It has one reference per component (73) with exact Go signatures, Options and state types, pitfalls and a runnable example. Use it even for small component tasks, because the Go API differs from Nuxt UI's Vue props and slots in ways memory gets wrong.
 ---
 
 # NuxtUI Go components
@@ -22,8 +22,8 @@ NuxtUI Go is a native Go library built on MyGo (`github.com/egoist/mygo`). It bo
 
 ## Setup and versions
 
-- Add the library with `go get github.com/josexy/nuxt-ui-go@latest`, import it as `nui "github.com/josexy/nuxt-ui-go"` together with `github.com/egoist/mygo` and `github.com/egoist/mygo/ui`, and build and run with `CGO_ENABLED=0`. A desktop graphics session is required to open windows.
-- Each reference has a **Version** line naming the nuxt-ui-go and MyGo versions it describes. If the app's `go.mod` pins other versions, confirm signatures and defaults with `go doc github.com/josexy/nuxt-ui-go <Name>` before relying on them. When a reference and `go doc` disagree, `go doc` wins.
+- Add the library with `go get github.com/josexy/nuxt-ui-go/ui@latest`, import it as `nui "github.com/josexy/nuxt-ui-go/ui"` together with `github.com/egoist/mygo` and `github.com/egoist/mygo/ui`, and build and run with `CGO_ENABLED=0`. A desktop graphics session is required to open windows.
+- Each reference has a **Version** line naming the nuxt-ui-go and MyGo versions it describes. If the app's `go.mod` pins other versions, confirm signatures and defaults with `go doc github.com/josexy/nuxt-ui-go/ui <Name>` before relying on them. When a reference and `go doc` disagree, `go doc` wins.
 
 ## Rules that prevent most bugs
 

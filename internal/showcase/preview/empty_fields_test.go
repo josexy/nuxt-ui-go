@@ -3,7 +3,7 @@ package preview
 import (
 	"testing"
 
-	nui "github.com/josexy/nuxt-ui-go"
+	nui "github.com/josexy/nuxt-ui-go/ui"
 )
 
 func TestEmptyPreviewBuildersAvatarAndActions(t *testing.T) {

@@ -4,7 +4,7 @@ Guidance for coding agents working anywhere in this repository. Instructions in 
 
 ## Project overview
 
-NuxtUI Go is a native Go component library built on MyGo, styled after Nuxt UI v4. The module path is `github.com/josexy/nuxt-ui-go` and the root package is `nui`. [go.mod](go.mod) is the source of truth for the required Go toolchain, the MyGo version, and other dependencies.
+NuxtUI Go is a native Go component library built on MyGo, styled after Nuxt UI v4. The module path is `github.com/josexy/nuxt-ui-go` and the `nui` package is imported from `github.com/josexy/nuxt-ui-go/ui`. [go.mod](go.mod) is the source of truth for the required Go toolchain, the MyGo version, and other dependencies.
 
 Build and test with `CGO_ENABLED=0`. Taskfile commands already set it; set it yourself when you run `go` directly.
 
@@ -12,13 +12,13 @@ Read only the files relevant to the task; you do not need to scan the whole repo
 
 | Location | Contents |
 | --- | --- |
-| Root Go files and their `*_test.go` files | Public components, themes, state models, and regression tests |
+| [ui/](ui/) | Public components, themes, state models, and regression tests |
 | [docs/](docs/README.md) | Component APIs, options, internationalization, and compatibility |
 | [website/](website/README.md) | Bilingual component website, option editors, and live WASM previews |
 | [internal/showcase/](internal/showcase/) | Website examples, API descriptions, configuration, and Go preview tests |
 | [examples/](examples/) | Runnable minimal app, Gallery, settings app, and data browser |
 | [internal/](internal/) | Example implementations, generators, and native test tools; not public API |
-| [locales/](locales/) | English and Simplified Chinese component messages |
+| [ui/locales/](ui/locales/) | Embedded English and Simplified Chinese component messages |
 | [icons/lucide/](icons/lucide/README.md), [third_party/](third_party/) | Icon assets, generator inputs, and third-party licenses |
 | [Taskfile.yml](Taskfile.yml), [scripts/](scripts/), [.github/workflows/](.github/workflows/) | Development commands and automated checks |
 | [.agents/skills/](.agents/skills/) | Agent skills, including [nuxt-ui-go](.agents/skills/nuxt-ui-go/SKILL.md) (per-component references for using the components) |
@@ -53,7 +53,7 @@ See the [README](README.md) for installation and complete examples, and [docs/co
 - Use the existing `Optional[T]` and `Set` APIs to distinguish an unset value from an explicit `false` or `0`.
 - Express sizes in DIP, and account for text scaling, light and dark themes, writing direction, and reduced motion.
 - When changing a control, check mouse and keyboard behavior, read-only and disabled states, controlled state, callback counts, and stable identity. Layout changes must not lose focus, drafts, or selections.
-- Add every built-in message to both [locales/en.json](locales/en.json) and [locales/zh-Hans.json](locales/zh-Hans.json), keeping ICU parameter names and types identical. Text that an app passes in explicitly belongs to the app; the library does not translate it. See [docs/i18n.md](docs/i18n.md) for how the library catalog and app overrides work.
+- Add every built-in message to both [ui/locales/en.json](ui/locales/en.json) and [ui/locales/zh-Hans.json](ui/locales/zh-Hans.json), keeping ICU parameter names and types identical. Text that an app passes in explicitly belongs to the app; the library does not translate it. See [docs/i18n.md](docs/i18n.md) for how the library catalog and app overrides work.
 - Document differences from Nuxt UI based on the actual native API. Looking the same does not mean behaving the same or being equally accessible. When verification is incomplete, describe platform limitations accurately rather than claiming support.
 
 ## Website synchronization
@@ -101,7 +101,7 @@ Never edit generated files by hand. Change the generator or its pinned inputs, t
 
 | Generated files | Generator |
 | --- | --- |
-| `palette_gen.go` | `internal/cmd/genpalettes` |
+| `ui/palette_gen.go` | `internal/cmd/genpalettes` |
 | Go files in `icons/lucide/` marked `Code generated` | `internal/cmd/genicons` |
 | `internal/showcase/field_types_gen.go`, `internal/showcase/preview/generated.go` | `internal/cmd/genshowcase`, also run by `pnpm --dir website prepare:site` |
 | `.agents/skills/nuxt-ui-go/references/components/*.md` | `internal/cmd/genskill` (`go run ./internal/cmd/genskill`); not part of `go generate` or `task verify`, so run it with `-check` after changing a component's API, docs or catalog entry |

@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/egoist/mygo/ui"
-	nui "github.com/josexy/nuxt-ui-go"
 	"github.com/josexy/nuxt-ui-go/internal/showcase"
+	nui "github.com/josexy/nuxt-ui-go/ui"
 )
 
 func TestEveryExampleBuildsAndRebuilds(t *testing.T) {

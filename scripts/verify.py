@@ -62,7 +62,7 @@ def check_python_scripts() -> None:
 
 def check_gofmt() -> None:
     files = [p for p in ROOT.glob("*.go") if p.is_file()]
-    for directory in ("icons", "internal", "examples"):
+    for directory in ("ui", "icons", "internal", "examples"):
         files.extend(p for p in (ROOT / directory).rglob("*.go") if p.is_file())
     names = sorted(str(p.relative_to(ROOT)) for p in files)
     for offset in range(0, len(names), GOFMT_BATCH):
@@ -74,7 +74,7 @@ def check_gofmt() -> None:
 def generated_fingerprint() -> dict[str, str]:
     # Key by file name as well as content, so additions and removals also fail.
     files = [p for p in (ROOT / "icons" / "lucide").glob("*.go") if p.is_file()]
-    palette = ROOT / "palette_gen.go"
+    palette = ROOT / "ui" / "palette_gen.go"
     if palette.is_file():
         files.append(palette)
     return {

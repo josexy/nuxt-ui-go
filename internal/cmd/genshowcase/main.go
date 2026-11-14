@@ -25,7 +25,7 @@ func main() {
 	flag.Parse()
 	types := map[string]*ast.TypeSpec{}
 	var files []*ast.File
-	paths, err := filepath.Glob(filepath.Join(*root, "*.go"))
+	paths, err := filepath.Glob(filepath.Join(*root, "ui", "*.go"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -120,7 +120,7 @@ import (
  "time"
 
  "github.com/egoist/mygo/ui"
- nui "github.com/josexy/nuxt-ui-go"
+ nui "github.com/josexy/nuxt-ui-go/ui"
 )
 
 var optionTypes = map[string]reflect.Type{

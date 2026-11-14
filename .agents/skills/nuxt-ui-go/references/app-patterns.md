@@ -6,7 +6,7 @@ Contents: 1 Window and startup · 2 Model, view and state ownership · 3 Identit
 
 ## 1. Window and startup
 
-Add the library with `go get github.com/josexy/nuxt-ui-go@latest` and build and run with `CGO_ENABLED=0`.
+Add the library with `go get github.com/josexy/nuxt-ui-go/ui@latest` and build and run with `CGO_ENABLED=0`.
 
 ```go
 package main
@@ -16,7 +16,7 @@ import (
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
-	nui "github.com/josexy/nuxt-ui-go"
+	nui "github.com/josexy/nuxt-ui-go/ui"
 	"github.com/josexy/nuxt-ui-go/icons/lucide"
 )
 

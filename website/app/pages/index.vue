@@ -22,7 +22,7 @@ useSeoMeta({ title: () => `${t('overview')} · NuxtUI Go`, description: () => t(
     </div>
     <section class="install-panel">
       <h2>{{ t('quickStart') }}</h2>
-      <pre><code>go get github.com/josexy/nuxt-ui-go</code></pre>
+      <pre><code>go get github.com/josexy/nuxt-ui-go/ui</code></pre>
       <p>{{ t('installNote') }}</p>
     </section>
     <section
