@@ -26,10 +26,16 @@ type tableRecord[T any] struct {
 	ordinal int
 }
 type TableState[T any] struct {
-	List                      ui.ListState
-	Selection                 ui.Selection[string]
-	Sort                      ui.SortOrder
-	rows                      []tableRecord[T]
+	List      ui.ListState
+	Selection ui.Selection[string]
+	Sort      ui.SortOrder
+	rows      []tableRecord[T]
+	// pendingIDs validates a snapshot before changing rows. ids is the last
+	// validated membership set; unchanged IDs can reuse it without rebuilding.
+	pendingIDs                []string
+	ids                       map[string]bool
+	idsCapacity               int
+	idsValid                  bool
 	applied                   []ui.SortOrder
 	revision, sortedRevision  uint64
 	inputOrder, manualApplied bool
@@ -44,21 +50,82 @@ func (s *TableState[T]) SetRows(rows []T, key func(T) string) {
 	if key == nil {
 		panic("nui: Table requires row IDs")
 	}
-	seen := map[string]bool{}
-	next := make([]tableRecord[T], len(rows))
+	n := len(rows)
+	// Retain working storage across updates, but release large snapshots after
+	// a substantial shrink. Empty snapshots release all row storage.
+	limit := max(64, 4*n)
+	keys := s.pendingIDs
+	if n == 0 {
+		keys = nil
+	} else if cap(keys) > limit {
+		keys = make([]string, n)
+	} else {
+		keys = slices.Grow(keys[:0], n)[:n]
+	}
+	committed := false
+	defer func() {
+		clear(keys)
+		if committed {
+			s.pendingIDs = keys
+		} else {
+			// A bad ID or a panicking key function must leave the visible
+			// snapshot intact and must not retain values from the failed one.
+			s.pendingIDs = nil
+			if !s.idsValid {
+				s.ids, s.idsCapacity = nil, 0
+			}
+		}
+	}()
+	unchanged := n == len(s.rows)
 	for i, v := range rows {
 		id := key(v)
-		checkID(seen, id, "Table rows")
-		next[i] = tableRecord[T]{id, v, i}
+		if i < len(s.rows) && id == s.rows[i].id {
+			// Keep the existing string when a key function formats the same
+			// ID again. The caller's temporary can then be collected.
+			id = s.rows[i].id
+		} else {
+			unchanged = false
+		}
+		keys[i] = id
 	}
-	s.rows = next
+	if !unchanged || !s.idsValid {
+		s.idsValid = false
+		if n == 0 {
+			s.ids, s.idsCapacity = nil, 0
+		} else if s.ids == nil || s.idsCapacity < n || s.idsCapacity > limit {
+			capacity := n
+			if s.idsCapacity < n {
+				capacity = max(n, 2*s.idsCapacity)
+			}
+			s.ids, s.idsCapacity = make(map[string]bool, capacity), capacity
+		} else {
+			clear(s.ids)
+		}
+		for _, id := range keys {
+			checkID(s.ids, id, "Table rows")
+		}
+	}
+	// No callbacks or validation remain: it is now safe to overwrite records.
+	if n == 0 {
+		s.rows = nil
+	} else if cap(s.rows) > limit {
+		s.rows = make([]tableRecord[T], n)
+	} else {
+		clear(s.rows[min(n, len(s.rows)):])
+		s.rows = slices.Grow(s.rows[:0], n)[:n]
+	}
+	for i, v := range rows {
+		s.rows[i] = tableRecord[T]{keys[i], v, i}
+	}
+	s.idsValid = true
 	s.revision++
 	s.inputOrder = true
 	for id := range s.Selection.All() {
-		if !seen[id] {
+		if !s.ids[id] {
 			s.Selection.Remove(id)
 		}
 	}
+	committed = true
 }
 func (s *TableState[T]) Len() int           { return len(s.rows) }
 func (s *TableState[T]) Row(i int) T        { return s.rows[i].value }
