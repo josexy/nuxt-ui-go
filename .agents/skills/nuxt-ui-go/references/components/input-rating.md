@@ -71,7 +71,7 @@ InputRating binds an `*int`. Max defaults to 5, and 0 means not rated. Only whol
 | Space | Sets an empty rating to 1. With Clearable, resets the current rating to 0 |
 | Enter | Not handled |
 
-Arrow keys never lower the rating from 1 to 0; clearing requires Clearable. The keyboard focus ring is on the current star, or on the first star when there is no rating. A read-only rating can still receive focus with Tab, but ignores keys that would change it.
+Arrow keys never lower the rating from 1 to 0; clearing requires Clearable. The keyboard focus ring is on the current star, or on the first star when there is no rating. A read-only rating can still receive focus with Tab, but ignores keys that would change it. Assistive technology sees the rating as a slider with its value, reported read-only while ReadOnly is set, so screen readers neither set nor step it.
 
 Stars are 12/16/20/24/28 DIP for sizes XS to XL, 2 DIP apart, and the component is as wide as its content. When interactive, the hovered star scales to 1.1×. With Hoverable on, hovering only previews the rating; the preview stays while the pointer crosses gaps between stars and is canceled when the pointer leaves or the rating is cleared. When FormField has an error, filled stars and the focus ring use the Error color.
 

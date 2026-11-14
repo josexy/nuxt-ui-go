@@ -598,7 +598,7 @@ func menuPanel(c *ui.Context, t Theme, panel, anchor ui.Element, s *MenuState, i
 			if o.Filter && *query != "" {
 				text = message(c, "noMatch")
 			}
-			empty := ui.Text(c, text).TextAlign(ui.Center).Role(ui.RoleStatus)
+			empty := statusText(c, "empty", text).TextAlign(ui.Center)
 			finish(t, id, EmptySlot, empty, optionEmptyStyle(t, size), o.Decoration)
 		}
 	})

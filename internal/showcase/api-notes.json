@@ -1315,6 +1315,14 @@
     "zh": "Granularity 未设置时显示秒；隐藏后仍保留原秒值。",
     "en": "Shows seconds when Granularity is unset; hidden seconds retain their value."
   },
+  "InputDateOptions.ReadOnly": {
+    "zh": "允许聚焦和复制，禁止修改；每个日期段向辅助技术报告只读，读屏软件不能设置或步进。",
+    "en": "Allows focus and copying but no edits. Each date segment reports read-only, so assistive technology cannot set or step it."
+  },
+  "InputTimeOptions.ReadOnly": {
+    "zh": "允许聚焦和复制，禁止修改；每个时间段向辅助技术报告只读，读屏软件不能设置或步进。",
+    "en": "Allows focus and copying but no edits. Each time segment reports read-only, so assistive technology cannot set or step it."
+  },
   "InputDateOptions.Placeholder": {
     "zh": "不适用于分段输入；各段占位符使用组件语言目录中的 Placeholder 键。",
     "en": "Not used by segmented inputs; segment placeholders come from the component locale catalog."
@@ -2244,8 +2252,8 @@
     "en": "Empty generates an ID. The same ID replaces content/configuration and resets the timeout without calling the previous OnClose. Pass the returned ID to CloseToast."
   },
   "ToastOptions.Timeout": {
-    "zh": "默认 5 秒：0 使用默认值，负值常驻。与 Nuxt UI duration=0 表示常驻不同。悬停，或窗口有焦点时通知内的焦点，会暂停整个队列；窗口在后台或隐藏时计时继续。",
-    "en": "Zero uses the five-second default; negative values persist. This differs from Nuxt UI duration=0. Hover, or focus in the viewport while the window has focus, pauses the whole queue; it keeps running while the window is in the background or hidden."
+    "zh": "默认 5 秒：0 使用默认值，负值常驻。与 Nuxt UI duration=0 表示常驻不同。悬停，或窗口有焦点时通知内的焦点，会暂停整个队列；窗口在后台或隐藏时计时继续。窗口不可见时不绘制帧，期间到时的通知在窗口再次显示的那一帧关闭并调用 OnClose，不会显示。",
+    "en": "Zero uses the five-second default; negative values persist. This differs from Nuxt UI duration=0. Hover, or focus in the viewport while the window has focus, pauses the whole queue; it keeps running while the window is in the background or hidden. A window out of sight draws no frames, so a toast that expires meanwhile closes, running OnClose, on the frame the window shows again, without showing."
   },
   "ToastOptions.Avatar": {
     "zh": "可选头像，优先于 Icon。未设置 Size 时直径 44 DIP，显式尺寸沿用 Avatar。发布时复制配置及 UI。",
@@ -2580,16 +2588,16 @@
     "en": "Styles Root, List, Trigger, Leading, Label, Trailing, Indicator and Body. Indicator is rendered only for the active item."
   },
   "TabsOptions.Style": {
-    "zh": "同步配置当前构建部件，不保留元素。正文使用可聚焦的原生 group，当前没有独立 tabpanel 角色。",
-    "en": "Synchronously styles current-build parts; do not retain elements. Panels use focusable native groups rather than a dedicated tabpanel role."
+    "zh": "同步配置当前构建部件，不保留元素。正文是以标签 Label 命名的可聚焦 tabpanel，标签用 Controls 指向它。",
+    "en": "Synchronously styles current-build parts; do not retain elements. Panels are focusable tab panels named after their tab’s Label, which points at them with Controls."
   },
   "TabItem.ID": {
     "zh": "必需的稳定业务 ID，在同一 Tabs 内唯一；用于选择和重排身份，不使用位置索引。",
     "en": "Required stable business ID, unique within Tabs; identifies selection and state across reorder."
   },
   "TabItem.Label": {
-    "zh": "显示文字及标签的无障碍名称；建议始终提供，图标和徽标不自动替代名称。",
-    "en": "Visible text and accessible tab name. Supply it explicitly; icons and badges do not replace the name."
+    "zh": "显示文字及标签的无障碍名称，也用作其正文面板的名称；建议始终提供，图标和徽标不自动替代名称。",
+    "en": "Visible text and accessible name of the tab and of its panel. Supply it explicitly; icons and badges do not replace the name."
   },
   "TabItem.Icon": {
     "zh": "可选前导图标，优先于 Avatar；尺寸随 TabsOptions.Size。",
@@ -3328,8 +3336,8 @@
     "en": "Blocks pointer and keyboard edits and inherits field and ancestor disabled state."
   },
   "InputRatingOptions.ReadOnly": {
-    "zh": "阻止修改和悬停预览，保持正常颜色、默认光标及 Tab 焦点。网页只读评分则禁用内部 radio 项。",
-    "en": "Blocks edits and hover preview while retaining normal colors, the default cursor and Tab focus. Web read-only ratings disable their radio items."
+    "zh": "阻止修改和悬停预览，保持正常颜色、默认光标及 Tab 焦点，并向辅助技术报告只读滑块，读屏软件不能设置或步进其值。网页只读评分则禁用内部 radio 项。",
+    "en": "Blocks edits and hover preview while retaining normal colors, the default cursor and Tab focus, and reports a read-only slider that assistive technology cannot set or step. Web read-only ratings disable their radio items."
   },
   "InputRatingOptions.Color": {
     "zh": "默认 Primary。Neutral 图标使用 Highlighted，焦点外圈使用 InvertedBackground；字段错误优先使用 Error。",
@@ -3532,8 +3540,8 @@
     "en": "Defaults to Solid. Supports Solid, Outline, Soft and Subtle for selected dates."
   },
   "CalendarOptions.ReadOnly": {
-    "zh": "保留日期和导航视图的浏览、焦点及翻页，阻止用户改值；外部模型仍可更新。",
-    "en": "Retain browsing, focus and paging in all views while preventing user value changes. External updates still apply."
+    "zh": "保留日期和导航视图的浏览、焦点及翻页，阻止用户改值；外部模型仍可更新。日期、月份和年份网格及其单元格会向辅助技术报告只读；真实读屏软件对该网格的表现尚未验证。",
+    "en": "Retain browsing, focus and paging in all views while preventing user value changes. External updates still apply. The day, month and year grids and their cells report read-only to assistive technology; real screen-reader behavior of the grid is unverified."
   },
   "CalendarOptions.PreventDeselect": {
     "zh": "默认 false；重复选择同一单日或未完成范围的起点可取消。true 保留原值，不重复通知 OnChange。",
@@ -3860,12 +3868,12 @@
     "en": "Notifies once when user input changes the selected set, with stable IDs sorted lexically. External selection and SetRows pruning remain silent."
   },
   "TableOptions.OnActivate": {
-    "zh": "Enter 或双击激活行，返回稳定 ID。没有绑定 List.Selected 时自动使用组件内部活动行。不同于 Nuxt 的单击 select。",
-    "en": "Activates a row on Enter or double-click and returns its stable ID. Uses an internal active row when List.Selected is unset. This differs from Nuxt’s single-click select."
+    "zh": "Enter 或双击激活行，返回稳定 ID。没有绑定 List.Selected 时自动使用组件内部活动行，它跟随记录：排序或构建前连续调用 SetRows 后仍是同一记录，记录被 SetRows 移除后没有活动行，Enter 不触发。不同于 Nuxt 的单击 select。",
+    "en": "Activates a row on Enter or double-click and returns its stable ID. Uses an internal active row when List.Selected is unset; it follows its record across sorting and consecutive SetRows calls before a build, and when SetRows removes the record nothing is active and Enter does nothing. This differs from Nuxt’s single-click select."
   },
   "TableOptions.OnChange": {
-    "zh": "保留原生表格的综合变化通知，可能包含选择、排序或列布局等；需要分类时使用专用回调。",
-    "en": "Retains native combined change notifications, which may cover selection, sorting or column layout. Use dedicated callbacks for specific model changes."
+    "zh": "原生表格的综合变化通知：用户排序、改变选择，以及完成一次列移动、调整列宽或双击列边适应内容时各通知一次；拖动中、回到原位或固定列不通知。可在此保存 List.Columns；需要分类时使用专用回调。",
+    "en": "Native combined change notification: once per user sort, selection change, and finished column move, resize or double-click fit. Drags in progress, drags back to the start and Fixed columns do not notify. Save List.Columns here; use dedicated callbacks for specific model changes."
   },
   "TableOptions.UI": {
     "zh": "公开 root、caption、body、panel、item、label、empty、loading、indicator 和 separator。SeparatorSlot.Background 控制 1 物理像素的表头分隔线；item/label 是单元格内容，原生表头和整行不是独立部件。",
@@ -3916,8 +3924,8 @@
     "en": "Defaults to 320 DIP with internally virtualized scrolling."
   },
   "TreeOptions.EmptyText": {
-    "zh": "根列表为空时显示；空值使用当前语言的默认消息。",
-    "en": "Displayed when the root list is empty; an empty value uses the localized default."
+    "zh": "根列表为空时作为状态显示，首次出现时不朗读；空值使用当前语言的默认消息。",
+    "en": "Shown as a status when the root list is empty, not read when it first appears; an empty value uses the localized default."
   },
   "TreeOptions.Color": {
     "zh": "默认 Primary；选中项使用该颜色，Neutral 使用 Highlighted，焦点轮廓使用 InvertedBackground。",
@@ -4568,8 +4576,8 @@
     "en": "Accessible chart name; defaults to series/slice labels, then the localized chart name."
   },
   "ChartOptions.Description": {
-    "zh": "供辅助技术读取的较长说明，不替代动态数据状态文字。",
-    "en": "Longer accessible description, separate from the dynamic value status."
+    "zh": "供辅助技术读取的较长说明，与显示当前选择值的说明行无关。",
+    "en": "Longer accessible description, separate from the line showing the selected value."
   },
   "ChartOptions.Height": {
     "zh": "默认 300 DIP；正值优先，否则可由 AspectRatio 计算。坐标区采用此高度，图例、标题和状态文字另占空间。",
@@ -4612,8 +4620,8 @@
     "en": "When unset, shows only for more than one series/slice, including hidden and zero-value items. Explicit true/false takes precedence."
   },
   "ChartOptions.Tooltip": {
-    "zh": "默认 true；显示当前焦点值的文本提示。false 不取消焦点、状态文字或选择通知。",
-    "en": "Defaults to true; shows a text tooltip for focused values. False preserves focus, status text and selection events."
+    "zh": "默认 true；显示当前焦点值的文本提示。false 不取消焦点、说明行、键盘选择朗读或选择通知。",
+    "en": "Defaults to true; shows a text tooltip for focused values. False preserves focus, the description line, keyboard announcements and selection events."
   },
   "ChartOptions.TooltipOptions": {
     "zh": "提示配置；默认 TopCenter、偏移 12、无延时。Open 指针如需设置必须持久保存。",
@@ -4852,8 +4860,8 @@
     "en": "Replaces the default title and description; desktop Toggle and Actions remain component-owned. Takes precedence over legacy Header."
   },
   "HeaderOptions.Title": {
-    "zh": "标题，默认空；非空时显示原生一级标题。不会自动链接到网页首页。",
-    "en": "Title, empty by default; nonempty content becomes a native level-one heading. No home-page link is created."
+    "zh": "标题，默认空；非空时在横幅地标内显示原生一级标题。不会自动链接到网页首页。",
+    "en": "Title, empty by default; nonempty content becomes a native level-one heading inside the banner landmark. No home-page link is created."
   },
   "HeaderOptions.Description": {
     "zh": "原生扩展说明文字，默认空。",

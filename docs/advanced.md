@@ -77,6 +77,8 @@ To use your own search service, provide `Search(ctx, ticket, query, parent)`. Yo
 
 This component is a native modal command launcher. It does not provide Vue's embedded multi-select model, route fields, or Fuse-specific options.
 
+The searching message and a result error are polite status regions with stable identities. Each is read once when it appears and again only when its text changes; clearing it, and rebuilding without a change, read nothing. The empty-results message is a status too, but it is not read when it first appears.
+
 The query field is affected by the [IME cancel issue](compatibility.md#canceling-ime-composition), and the full screen reader experience has not been verified.
 
 ## NavigationMenu and Sidebar
@@ -238,6 +240,8 @@ By default, the selection action calls `mygo.Dialog.Open` in the background and 
 
 MIME types are derived only from the extension; file contents are not read. Accept checks selected and dropped files but is not converted into native Dialog.Filters automatically. If your business needs a trustworthy file type, validate the content yourself. Dropzone=false registers no drop target, and Interactive=false keeps a separate selection button. When Choose returns an empty result, the selection was canceled; when it returns an error, State.Error is set and the file queue is unchanged.
 
+The "reading file information" message and State.Error use persistent polite status regions. Regions without text take no layout space. While the component is exposed to assistive technology, adding or changing a message reads it once; clearing it and unchanged rebuilds read nothing. Hidden parents, including inactive kept-mounted tab panels and AccessHidden containers, suppress announcements. Mounting or exposing a region with an existing message makes it accessible without announcing it as a change. Per-file errors in the list are not live regions.
+
 ### Start, cancel, and retry uploads
 
 ```go
@@ -325,7 +329,7 @@ The default series colors are, in order, Primary, blue, violet, amber, rose, and
 
 FormatX, FormatY, and FormatTime set the formatting. Numbers are formatted with Go by default, not with browser Intl number formatting. XAxis and YAxis default to true and control each axis's ticks and title; Grid independently controls the horizontal grid lines. XLabel is centered below the chart, and YLabel is shown horizontally above it. In RTL, the X axis data and ticks are reversed, the Y axis moves to the right, and physical arrow keys and pointer positions are mapped accordingly.
 
-Height defaults to 300 DIP, and a positive value takes precedence; otherwise, a positive AspectRatio computes the height from the actual width. A positive Width fixes the width; otherwise, the chart follows its parent and uses 640 before the first measurement. Height applies to the plot area; the legend, axis titles, and status text take extra space. All sizes must be finite. BarPadding, SlicePadding, LineWidth, and PointSize remain as native geometry options. Points defaults to false; when on, line charts show the sampled data points. PointSize does not affect the separate focus marker.
+Height defaults to 300 DIP, and a positive value takes precedence; otherwise, a positive AspectRatio computes the height from the actual width. A positive Width fixes the width; otherwise, the chart follows its parent and uses 640 before the first measurement. Height applies to the plot area; the legend, axis titles, and the description line take extra space. All sizes must be finite. BarPadding, SlicePadding, LineWidth, and PointSize remain as native geometry options. Points defaults to false; when on, line charts show the sampled data points. PointSize does not affect the separate focus marker.
 
 A donut's Thickness defaults to 24 DIP. An explicit DonutInnerRadius can still be given as a ratio and takes precedence over Thickness; it is clamped to 0–0.95. Thickness is clamped to non-negative values, and 0 makes the inner and outer edges meet. Center synchronously builds content in the center of the plot area without intercepting the pointer; the callback must not keep Elements or Contexts.
 
@@ -335,9 +339,11 @@ When Legend is unset, the legend appears only if there is more than one series o
 
 InteractiveLegend=false only displays the legend, and Legend=false hides it entirely. Hiding a series recomputes the axes and stacking, and hiding a slice recomputes the visible proportions. Visibility is kept by ID across updates and reordering, and is cleared when an ID is removed. Even when everything is hidden, the legend stays so the user can restore items.
 
-Cartesian charts support pointing at the nearest X with the mouse, and Left, Right, Home, End, and Escape; Home and End go to the logical first and last data points. The status text at the bottom and the Tooltip show the raw values, and Tooltip=false hides only the tooltip. TooltipOptions configures settings such as position; the default is TopCenter with a 12 DIP offset and no delay. Pie and donut charts support pointing at slices and arrow keys, and show percentages of the visible total. The donut's center does not respond to slice pointing. Selection on dense data always looks up the raw values.
+Cartesian charts support pointing at the nearest X with the mouse, and Left, Right, Home, End, and Escape; Home and End go to the logical first and last data points. The description line at the bottom and the Tooltip show the raw values, and Tooltip=false hides only the tooltip. TooltipOptions configures settings such as position; the default is TopCenter with a 12 DIP offset and no delay. Pie and donut charts support pointing at slices and arrow keys, and show percentages of the visible total. The donut's center does not respond to slice pointing. Selection on dense data always looks up the raw values.
 
 OnFocusChange fires when the pointer or keyboard changes the focused row or slice; repeated keys at the bounds do not fire it again. Clicking or pressing Enter/Space fires OnSelect, and activating again can fire it again. ChartSelection.Index is the raw X row or slice index, or -1 for no focus; SliceID is used only by radial charts. Go works in whole X rows and has no separate per-series point, focusGroupChange object, or DOM event from the web engine. The chart uses focusable group semantics, and native assistive technology can still read the center text and the empty state.
+
+The plot area reports the focused row or slice as its value. A selection moved with the keyboard is announced once, with the row's values or the slice's label, value, and percentage. Selection that follows the pointer is not announced, and the description line is plain text rather than a live region, so hovering never reads aloud. The empty-state message is a status that is not read when it first appears.
 
 ### Animation
 
@@ -395,7 +401,7 @@ Root styles the container, and Body styles each copy. Body.Gap changes only the 
 
 ### Stopping animation when hidden
 
-Neither component builds the view on every frame, and neither uses timer goroutines: Carousel autoplay asks for one build per interval, and Marquee moves its content in frames that only repaint, building about once a second. Visibility is what showed in the previous frame within the window and the scroll containers and clips around the component, so content scrolled out of a ScrollArea, clipped away, or kept mounted in a hidden panel (Tabs or Collapsible with KeepMounted) stops by itself, as it does in a minimized or covered window. Set Active=false for content your app hides by other means, such as covering it with another element, or stop building the component.
+Neither component builds the view on every frame, and neither uses timer goroutines: Carousel autoplay asks for one build per interval, and Marquee moves its content in frames that only repaint, building about once a second. Visibility is what showed in the previous frame within the window and the scroll containers and clips around the component, so content scrolled out of a ScrollArea, clipped away, or kept mounted in a hidden panel (Tabs or Collapsible with KeepMounted) stops by itself. While a window is out of sight, MyGo draws no frames for it, so both stand still and continue from where the clock puts them when it shows again. Since MyGo v0.9.0 that covers a hidden, minimized, other-Space, or fully covered window on macOS and a minimized window on Windows and on Linux under X11. A window covered by other windows on Windows or Linux, or any window under Wayland, keeps drawing, and Marquee keeps moving there. Set Active=false for content your app hides by other means, such as covering it with another element, or stop building the component.
 
 After unmounting, no more frames are requested and no paused time accumulates.
 
@@ -420,6 +426,8 @@ HeaderLayout is a native app header with Title, the native-extension Description
 HeaderLayout does not create a home link, web sticky positioning, a breakpoint menu, or a route listener. The Gallery and website examples combine a menu button in Actions with Sidebar, and manage opening, closing on navigation, and focus through a persistent SidebarState, NavigationKey, and ReturnFocus. The examples use a 2000 DIP breakpoint so the menu is easy to try at common preview widths; this is not a HeaderOptions default. Header's Body part refers to the title text container, which differs from the web Header's menu body slot.
 
 FooterLayout shows a description with Text and builds actions with Actions. Root, Label, and Actions style the whole footer, the text, and the action container. The default horizontal and vertical padding is 20 and 12 DIP, the gap between regions is 12 DIP, the gap inside the action area is 6 DIP, and there is no top border. Text and actions can wrap within the available width, and action styles are not mistakenly applied to individual buttons.
+
+HeaderLayout is the window's banner landmark (`ui.RoleBanner`) and FooterLayout its content-information landmark (`ui.RoleContentInfo`), as Nuxt UI's `<header>` and `<footer>`; the header's title stays a level-1 heading inside the banner. A window has at most one of each. When you build another Header or Footer inside the page, as a preview or inside a card, replace its role on the returned element in the same build, for example `nui.HeaderLayout(c, t, o).Role(ui.RoleGroup)`; its layout, styles, focus, and children stay the same.
 
 Both functions support text scaling, RTL, and composition with native layouts. They do not change the system title bar and do not provide web DOM element types or every slot. Your app composes multi-region footers, extra content above or below, and breakpoint-specific arrangements. In Go, Header and Footer are already part constants, so the functions are named HeaderLayout and FooterLayout.
 

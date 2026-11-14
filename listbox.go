@@ -328,7 +328,7 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 		s.Query = *query
 		activity.searchChanged = false
 		if o.Loading {
-			listboxLoading(c.Key("loading"), t, config.Size, o)
+			listboxLoading(c, t, config.Size, o)
 		} else if len(items) == 0 {
 			text := o.EmptyText
 			if text == "" {
@@ -339,7 +339,7 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 				text = emptyMessage(c, key, "noResults")
 			}
 			pad := t.spacing([5]float32{12, 16, 24, 28, 32}[sizeIndex(config.Size)])
-			finish(t, ComponentListbox, EmptySlot, ui.Text(c, text).Role(ui.RoleStatus).TextAlign(ui.Center), PartStyle{Foreground: Set(t.Muted), FontSize: Set(m.Font), LineHeight: Set(m.Line / m.Font), PaddingX: Set(m.Pad), PaddingY: Set(pad)}, o.Decoration)
+			finish(t, ComponentListbox, EmptySlot, statusText(c, "empty", text).TextAlign(ui.Center), PartStyle{Foreground: Set(t.Muted), FontSize: Set(m.Font), LineHeight: Set(m.Line / m.Font), PaddingX: Set(m.Pad), PaddingY: Set(pad)}, o.Decoration)
 		}
 		itemWidth := o.ItemWidth
 		if itemWidth <= 0 {
@@ -916,17 +916,17 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 			if !o.ExternalFilter && !o.IgnoreFilter && *query != "" {
 				filtered = s.filter(*query, o.FilterFields)
 			}
-			status := func(text string, color ui.Color) {
-				e := ui.Text(c, text).Role(ui.RoleStatus).TextColor(color).Shrink(0)
+			status := func(key, text string, color ui.Color) {
+				e := statusText(c, key, text).TextColor(color).Shrink(0)
 				optionItemStyle(t, m, false).apply(e)
 				e.TextColor(color)
 				used += m.Line + 2*m.Pad
 			}
 			if o.Loading {
-				status(message(c, "loading"), t.Muted)
+				status("status-loading", message(c, "loading"), t.Muted)
 			}
 			if o.Error != "" {
-				status(o.Error, t.Error)
+				status("status-error", o.Error, t.Error)
 			}
 			opts := o.ListboxOptions
 			opts.Decoration = selectMenuListDecoration(t, o)

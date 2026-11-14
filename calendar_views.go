@@ -72,7 +72,7 @@ func calendarPicker(c *ui.Context, t Theme, s *CalendarState, o CalendarOptions,
 		changeMonth(date, active)
 		setView(view - 1)
 	}
-	grid := ui.Column(c.Key("grid")).Focusable().FocusRing(false).Bind(&s.Handle).Role(ui.RoleTable).Label(o.Label).ReadOnly(o.ReadOnly).InputMethod(false)
+	grid := ui.Column(c.Key("grid")).Focusable().FocusRing(false).Bind(&s.Handle).Role(ui.RoleGrid).Label(o.Label).ReadOnly(o.ReadOnly).InputMethod(false)
 	bindField(c, grid, t)
 	finish(t, ComponentCalendar, GridSlot, grid, PartStyle{Gap: Set(m.gap)}, o.Decoration)
 	direction := 1
@@ -155,7 +155,7 @@ func calendarPicker(c *ui.Context, t Theme, s *CalendarState, o CalendarOptions,
 					if view == CalendarYearView {
 						unavailable = o.IsYearUnavailable
 					}
-					cell := ui.Box(c.Key(date)).Width(m.column*7/4 - t.spacing(4)).Height(m.cell).Margin(t.spacing(2)).MinWidth(0).Center().Role(ui.RoleCell).Label(strings.TrimSpace(o.Label + " " + name)).Disabled(!enabled).OnClick(func() { choose(date) })
+					cell := ui.Box(c.Key(date)).Width(m.column*7/4 - t.spacing(4)).Height(m.cell).Margin(t.spacing(2)).MinWidth(0).Center().Role(ui.RoleCell).Label(strings.TrimSpace(o.Label + " " + name)).ReadOnly(o.ReadOnly).Disabled(!enabled).OnClick(func() { choose(date) })
 					style := calendarCellStyle(t, config, false, false, cell.Hovered() && enabled && !disabled, isToday, false, active && grid.FocusVisible())
 					style.Radius = Set(t.radius(6))
 					if !enabled {

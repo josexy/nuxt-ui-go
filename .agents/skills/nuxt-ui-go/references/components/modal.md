@@ -133,6 +133,25 @@ The Modal panel has an 8 DIP corner radius, and the overlay uses the Elevated co
 | --- | --- |
 | Modal / Slideover | CloseButton controls whether the close button appears; Close and CloseIcon configure it. Transition=false skips the transition. OnClosePrevent reports close attempts blocked by Dismissible=false |
 
+### Inputs, selection, and fields
+
+#### State, themes, and events › Focus and callbacks (excerpt)
+
+Since MyGo v0.9.0, focus moved by the keyboard or by a component scrolls the scroll containers around the newly focused control as little as needed to show it, as the web's `element.focus()` does. This covers roving focus in Tabs and menus, Form focusing its first invalid field, and focus returning to a trigger when Modal or DropdownMenu closes. A target that is already fully visible does not scroll. A control that a component keeps focused across builds does not undo the user's scrolling, and a pointer press focuses a control where it is without scrolling. To move focus from app code without scrolling, pass `ui.FocusOptions` to the element's Focus:
+
+```go
+cell := ui.Box(c.Key(id)).Focusable()
+if app.restoreFocus == id {
+	cell.Focus(ui.FocusOptions{PreventScroll: true})
+}
+```
+
+### Compatibility and known limitations
+
+#### Accessibility and motion (excerpt)
+
+Programmatic focus scrolls the newly focused control into view as little as needed, as described in Focus and callbacks. `ui.Element.Focus` accepts `ui.FocusOptions{PreventScroll: true}`, but MyGo v0.9.0's `ui.Handle.Focus` takes no options, so focus moved through a persistent Handle, such as a Modal's or Sidebar's ReturnFocus, always reveals a target that is not fully visible.
+
 ## Complete example
 
 A runnable program. App state lives in `example`, outside the view, and the view only builds UI.

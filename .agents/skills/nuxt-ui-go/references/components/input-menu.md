@@ -201,6 +201,10 @@ ResetModelValueOnClear controls only the clear button and defaults to true; fals
 
 ### Forms, dates, and data components
 
+#### Listbox, SelectMenu, and async search › Listbox: a selectable list shown inline (excerpt)
+
+The empty message and the loading indicator are polite status regions with stable identities, as are the empty messages of Select, InputMenu, SelectMenu, and filtered DropdownMenu and ContextMenu, and SelectMenu's loading and error rows. A status is not read when it first appears. If its text changes while it stays shown, for example from "No data" to "No matching data" as the user types, the new text is read once; rebuilding without a change reads nothing.
+
 #### Listbox, SelectMenu, and async search › QueryState: reject stale search results (excerpt)
 
 QueryState[T] can serve as the app data source for SelectMenu or InputMenu. Your app sends requests; QueryState handles cancellation tokens, the loading state, and checking whether a result is still valid.

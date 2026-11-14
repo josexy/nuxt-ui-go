@@ -36,7 +36,15 @@ From the library documentation. Links point to other component references in thi
 
 | Component | Purpose and main options | Parts |
 | --- | --- | --- |
-| Main | A flexible main content area with a minimum width and height of 0. Wrap it in `ui.Scroll` if it needs to scroll | Global Root; the returned element can be configured further |
+| Main | A flexible main content area with a minimum width and height of 0, exposed as the window's main landmark (`ui.RoleMain`), as Nuxt UI's `<main>`. Wrap it in `ui.Scroll` if it needs to scroll. A window has one main landmark: for a nested or preview instance, replace the role on the returned element, `nui.Main(c, t, body).Role(ui.RoleGroup)`, which keeps its layout | Global Root; the returned element can be configured further |
+
+### Compatibility and known limitations
+
+#### Feature scope › Layout and navigation (excerpt)
+
+| Area | Current behavior and limits |
+| --- | --- |
+| Main / Header / Footer landmarks | Main, HeaderLayout, and FooterLayout are the main, banner, and content-information landmarks, as Nuxt UI's `<main>`, `<header>`, and `<footer>`. A window should have at most one of each, so opt nested instances out with `.Role(ui.RoleGroup)` on the returned element. NavigationMenu and Sidebar have no navigation or complementary landmark role yet |
 
 ## Complete example
 

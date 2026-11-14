@@ -314,6 +314,7 @@ func CommandPalette(c *ui.Context, t Theme, s *CommandPaletteState, o CommandPal
 	fields := commandFieldMask(o.FilterFields)
 	config := selected(defaults(t, ComponentCommandPalette, ComponentTheme{Size: MD}), ComponentTheme{Size: o.Size})
 	identity := ui.Local(host, "command", func() byte { return 0 })
+	shown := ui.Local(host, "nui-command-status", func() shownMessages { return shownMessages{} })
 	if !disabled && !o.DisableShortcut {
 		key, mods := o.ShortcutKey, o.ShortcutMods
 		if key == ui.KeyUnknown {
@@ -341,6 +342,8 @@ func CommandPalette(c *ui.Context, t Theme, s *CommandPaletteState, o CommandPal
 			s.Close()
 		}
 		s.wasOpen = false
+		// Messages showing again in a reopened palette are news again.
+		*shown = shownMessages{}
 		// Keep the modal host mounted for its explicit ReturnFocus transition.
 		ModalWithOptions(c.Key(identity), t, &s.Open, o.Modal, nil)
 		return host
@@ -463,11 +466,12 @@ func CommandPalette(c *ui.Context, t Theme, s *CommandPaletteState, o CommandPal
 	}
 	panel := ModalWithOptions(c.Key(identity), t, &s.Open, mo, func(t Theme) {
 		commandInput(c, t, s, o, title, disabled, config.Size, activate)
-		if s.Results.Loading || s.waiting {
-			ui.Text(c, message(c, "searching")).Role(ui.RoleStatus).TextColor(t.Muted)
+		searching := message(c, "searching")
+		if announceShown(c, &shown.progress, s.Results.Loading || s.waiting, searching) {
+			statusText(c, "status-searching", searching).TextColor(t.Muted)
 		}
-		if s.Results.Error != "" {
-			ui.Text(c, s.Results.Error).Role(ui.RoleStatus).TextColor(t.Error)
+		if announceShown(c, &shown.err, s.Results.Error != "", s.Results.Error) {
+			statusText(c, "status-error", s.Results.Error).TextColor(t.Error)
 		}
 		commandRows(c, t, s, o, title, disabled, config.Size, activate)
 	})

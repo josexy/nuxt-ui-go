@@ -188,7 +188,7 @@ Choose a component by purpose. The part names below can be used in `UI`; parts t
 | --- | --- | --- |
 | App / Theme | `AppConfig` manages light/dark mode; `Theme` holds colors, sizes, and component defaults | Configured per component |
 | Container | Centers content and limits its width. `MaxWidth` and `Padding` are `Optional[float32]` | Root |
-| Main | A flexible main content area with a minimum width and height of 0. Wrap it in `ui.Scroll` if it needs to scroll | Global Root; the returned element can be configured further |
+| Main | A flexible main content area with a minimum width and height of 0, exposed as the window's main landmark (`ui.RoleMain`), as Nuxt UI's `<main>`. Wrap it in `ui.Scroll` if it needs to scroll. A window has one main landmark: for a nested or preview instance, replace the role on the returned element, `nui.Main(c, t, body).Role(ui.RoleGroup)`, which keeps its layout | Global Root; the returned element can be configured further |
 | Icon | Displays a `*ui.SVG` with a size, color, and Label. Without a Label, it is decorative | Root |
 | Button | A button with colors, variants, sizes, icons, an avatar, and loading and disabled states | Root, Label, Leading, Trailing |
 | Link | Opens a URL or runs app navigation. Supports Active, Color, and Disabled | Root, Label |

@@ -239,3 +239,31 @@ func TestToastDoesNotRetainSourceFieldDisabledState(t *testing.T) {
 		t.Fatal("source field disabled the toast close action")
 	}
 }
+
+// A window out of sight draws no frames: a toast whose time runs out
+// meanwhile closes, running OnClose, as the window shows again.
+func TestToastExpiringOutOfSightClosesWhenShown(t *testing.T) {
+	closed := 0
+	tt := ui.NewTester(func(c *ui.Context) {
+		th := nui.App(c, nui.AppConfig{})
+		nui.Button(c.Key("notify"), th, "Notify", nui.ButtonOptions{}).OnClick(func() {
+			nui.Toast(c, th, nui.ToastOptions{Title: "Saved", Timeout: time.Second, OnClose: func() { closed++ }})
+		})
+		nui.ToastViewport(c.Key("toasts"), th, nui.ToastViewportOptions{})
+	}, 500, 350)
+	click(t, tt, "Notify")
+	tt.Move(0, 0)
+	if !tt.HasText("Saved") {
+		t.Fatal("the toast did not show")
+	}
+	tt.SetWindowHidden(true)
+	tt.Advance(3 * time.Second)
+	if closed != 0 {
+		t.Fatalf("OnClose ran %d times while the window was out of sight", closed)
+	}
+	tt.SetWindowHidden(false)
+	tt.Frame()
+	if closed != 1 || tt.HasText("Saved") {
+		t.Fatalf("after showing again: OnClose %d times, texts %q", closed, tt.Texts())
+	}
+}

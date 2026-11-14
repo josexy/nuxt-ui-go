@@ -509,7 +509,9 @@ type HeaderOptions struct {
 
 // HeaderLayout is the Header component; Header remains the public slot constant.
 func HeaderLayout(c *ui.Context, t Theme, o HeaderOptions) ui.Element {
-	root := ui.Row(c).Wrap().MinWidth(0).MinHeight(t.spacing(64)).AlignItems(ui.Center).BorderWidth(0, 0, 1, 0).BorderColor(t.Border)
+	// The window's banner landmark, as Nuxt UI's <header>. A nested instance
+	// opts out by replacing the role on the returned element.
+	root := ui.Row(c).Wrap().MinWidth(0).MinHeight(t.spacing(64)).AlignItems(ui.Center).BorderWidth(0, 0, 1, 0).BorderColor(t.Border).Role(ui.RoleBanner)
 	finish(t, ComponentHeader, Root, root, PartStyle{PaddingX: Set(t.spacing(24)), PaddingY: Set(t.spacing(8)), Gap: Set(t.spacing(12)), Background: Set(t.Background)}, o.Decoration)
 	root.Children(func() {
 		if o.Leading != nil {
@@ -543,7 +545,9 @@ type FooterOptions struct {
 }
 
 func FooterLayout(c *ui.Context, t Theme, o FooterOptions) ui.Element {
-	root := ui.Row(c).Wrap().MinWidth(0).AlignItems(ui.Center)
+	// The window's content-information landmark, as Nuxt UI's <footer>. A
+	// nested instance opts out by replacing the role on the returned element.
+	root := ui.Row(c).Wrap().MinWidth(0).AlignItems(ui.Center).Role(ui.RoleContentInfo)
 	finish(t, ComponentFooter, Root, root, PartStyle{PaddingX: Set(t.spacing(20)), PaddingY: Set(t.spacing(12)), Gap: Set(t.spacing(12)), Foreground: Set(t.Muted)}, o.Decoration)
 	root.Children(func() {
 		finish(t, ComponentFooter, Label, ui.Text(c.Key("text"), o.Text).Grow(1).MinWidth(0), PartStyle{}, o.Decoration)

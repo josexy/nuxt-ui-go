@@ -105,6 +105,7 @@ func (s *TableState[T]) SetRows(rows []T, key func(T) string) {
 			checkID(s.ids, id, "Table rows")
 		}
 	}
+	activeID := s.activeRowID()
 	// No callbacks or validation remain: it is now safe to overwrite records.
 	if n == 0 {
 		s.rows = nil
@@ -125,11 +126,31 @@ func (s *TableState[T]) SetRows(rows []T, key func(T) string) {
 			s.Selection.Remove(id)
 		}
 	}
+	s.restoreActiveRow(activeID)
 	committed = true
 }
 func (s *TableState[T]) Len() int           { return len(s.rows) }
 func (s *TableState[T]) Row(i int) T        { return s.rows[i].value }
 func (s *TableState[T]) RowID(i int) string { return s.rows[i].id }
+
+// Keep the internally owned cursor aligned with every snapshot and sort,
+// including several updates before MyGo builds the table again. App-owned
+// Selected bindings retain MyGo's own cursor semantics.
+func (s *TableState[T]) activeRowID() string {
+	if s.List.Selected == &s.active && s.active >= 0 && s.active < len(s.rows) {
+		return s.rows[s.active].id
+	}
+	return ""
+}
+
+func (s *TableState[T]) restoreActiveRow(id string) {
+	if id != "" {
+		index := slices.IndexFunc(s.rows, func(row tableRecord[T]) bool { return row.id == id })
+		// Choose also clears MyGo's last-frame key: the wrapper has already
+		// reconciled this index with the new order, even if it is unchanged.
+		s.List.Choose(index)
+	}
+}
 
 // InvalidateSort requests one new sort after a comparator's captured inputs
 // change. SetRows already invalidates sorting when the row data changes.
@@ -164,6 +185,7 @@ func (s *TableState[T]) sort(columns []TableColumn[T], manual bool) {
 	if slices.Equal(s.applied, valid) && s.sortedRevision == s.revision && s.manualApplied == manual {
 		return
 	}
+	defer s.restoreActiveRow(s.activeRowID())
 	s.applied = slices.Clone(valid)
 	s.sortedRevision = s.revision
 	s.manualApplied = manual

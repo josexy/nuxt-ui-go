@@ -33,7 +33,9 @@ func Container(c *ui.Context, t Theme, opts ContainerOptions, children func()) u
 	return e
 }
 func Main(c *ui.Context, t Theme, children func()) ui.Element {
-	e := ui.Column(c).Grow(1).MinWidth(0).MinHeight(0)
+	// The window's main landmark, as Nuxt UI's <main>. A nested instance opts
+	// out by replacing the role on the returned element.
+	e := ui.Column(c).Grow(1).MinWidth(0).MinHeight(0).Role(ui.RoleMain)
 	finish(t, ComponentMain, Root, e, PartStyle{Foreground: Set(t.Text), Font: Set(t.Font), FontSize: Set(t.text(14)), LineHeight: Set(float32(20.0 / 14))}, Decoration{})
 	if children != nil {
 		e.Children(children)

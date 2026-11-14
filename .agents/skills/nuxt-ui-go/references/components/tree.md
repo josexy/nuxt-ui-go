@@ -190,7 +190,7 @@ A node with Lazy=true and Children=nil calls `OnLoad(id, ticket)` once when it i
 
 A failed load shows Retry. Collapsing the node or an ancestor with SetExpanded, replacing the data, retrying, or calling Close all invalidate the old ticket. A true result from CompleteLoad only means the result was accepted; it may still contain an error.
 
-When SetNodes replaces the data, it removes selected and expanded IDs that no longer exist. An empty root list shows EmptyText.
+When SetNodes replaces the data, it removes selected and expanded IDs that no longer exist. An empty root list shows EmptyText as a status, which assistive technology can reach but which is not read when it first appears. A node's "Loading…" text while it loads is a status with a stable identity too.
 
 ##### Migrating from the old Outline wrapper
 

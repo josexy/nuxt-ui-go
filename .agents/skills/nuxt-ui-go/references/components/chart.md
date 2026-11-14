@@ -19,7 +19,7 @@ Grid lines paint one device pixel; data series LineWidth remains in DIPs.
 
 ## Things to know
 
-Based on Nuxt UI 4.12.0 with TanStack Charts; Go uses MyGo and retains scatter/pie charts, ordered numeric/time axes and interactive legends. ChartSelection identifies an X row or slice, not raw Web engine point/group objects. YLabel is horizontal above the plot. Explicit DonutInnerRadius overrides Thickness. Height covers the plot and axes; legends, titles and status text use additional space.
+Based on Nuxt UI 4.12.0 with TanStack Charts; Go uses MyGo and retains scatter/pie charts, ordered numeric/time axes and interactive legends. ChartSelection identifies an X row or slice, not raw Web engine point/group objects. YLabel is horizontal above the plot. Explicit DonutInnerRadius overrides Thickness. Height covers the plot and axes; legends, titles and the description line use additional space. The description line is plain text, not a live region: keyboard selection is announced once, and pointer hover is not read aloud.
 
 ## API
 
@@ -234,7 +234,7 @@ The default series colors are, in order, Primary, blue, violet, amber, rose, and
 
 FormatX, FormatY, and FormatTime set the formatting. Numbers are formatted with Go by default, not with browser Intl number formatting. XAxis and YAxis default to true and control each axis's ticks and title; Grid independently controls the horizontal grid lines. XLabel is centered below the chart, and YLabel is shown horizontally above it. In RTL, the X axis data and ticks are reversed, the Y axis moves to the right, and physical arrow keys and pointer positions are mapped accordingly.
 
-Height defaults to 300 DIP, and a positive value takes precedence; otherwise, a positive AspectRatio computes the height from the actual width. A positive Width fixes the width; otherwise, the chart follows its parent and uses 640 before the first measurement. Height applies to the plot area; the legend, axis titles, and status text take extra space. All sizes must be finite. BarPadding, SlicePadding, LineWidth, and PointSize remain as native geometry options. Points defaults to false; when on, line charts show the sampled data points. PointSize does not affect the separate focus marker.
+Height defaults to 300 DIP, and a positive value takes precedence; otherwise, a positive AspectRatio computes the height from the actual width. A positive Width fixes the width; otherwise, the chart follows its parent and uses 640 before the first measurement. Height applies to the plot area; the legend, axis titles, and the description line take extra space. All sizes must be finite. BarPadding, SlicePadding, LineWidth, and PointSize remain as native geometry options. Points defaults to false; when on, line charts show the sampled data points. PointSize does not affect the separate focus marker.
 
 A donut's Thickness defaults to 24 DIP. An explicit DonutInnerRadius can still be given as a ratio and takes precedence over Thickness; it is clamped to 0–0.95. Thickness is clamped to non-negative values, and 0 makes the inner and outer edges meet. Center synchronously builds content in the center of the plot area without intercepting the pointer; the callback must not keep Elements or Contexts.
 
@@ -244,9 +244,11 @@ When Legend is unset, the legend appears only if there is more than one series o
 
 InteractiveLegend=false only displays the legend, and Legend=false hides it entirely. Hiding a series recomputes the axes and stacking, and hiding a slice recomputes the visible proportions. Visibility is kept by ID across updates and reordering, and is cleared when an ID is removed. Even when everything is hidden, the legend stays so the user can restore items.
 
-Cartesian charts support pointing at the nearest X with the mouse, and Left, Right, Home, End, and Escape; Home and End go to the logical first and last data points. The status text at the bottom and the Tooltip show the raw values, and Tooltip=false hides only the tooltip. TooltipOptions configures settings such as position; the default is TopCenter with a 12 DIP offset and no delay. Pie and donut charts support pointing at slices and arrow keys, and show percentages of the visible total. The donut's center does not respond to slice pointing. Selection on dense data always looks up the raw values.
+Cartesian charts support pointing at the nearest X with the mouse, and Left, Right, Home, End, and Escape; Home and End go to the logical first and last data points. The description line at the bottom and the Tooltip show the raw values, and Tooltip=false hides only the tooltip. TooltipOptions configures settings such as position; the default is TopCenter with a 12 DIP offset and no delay. Pie and donut charts support pointing at slices and arrow keys, and show percentages of the visible total. The donut's center does not respond to slice pointing. Selection on dense data always looks up the raw values.
 
 OnFocusChange fires when the pointer or keyboard changes the focused row or slice; repeated keys at the bounds do not fire it again. Clicking or pressing Enter/Space fires OnSelect, and activating again can fire it again. ChartSelection.Index is the raw X row or slice index, or -1 for no focus; SliceID is used only by radial charts. Go works in whole X rows and has no separate per-series point, focusGroupChange object, or DOM event from the web engine. The chart uses focusable group semantics, and native assistive technology can still read the center text and the empty state.
+
+The plot area reports the focused row or slice as its value. A selection moved with the keyboard is announced once, with the row's values or the slice's label, value, and percentage. Selection that follows the pointer is not announced, and the description line is plain text rather than a live region, so hovering never reads aloud. The empty-state message is a status that is not read when it first appears.
 
 ##### Animation
 
@@ -277,6 +279,10 @@ The chart is modeled on the TanStack Charts used by Nuxt UI 4.12.0, but Go actua
 | Area | Supported | Not provided, or left to the app |
 | --- | --- | --- |
 | Chart | Six native chart types; category, value, and time axes; stacking; interactive legends; axis and tooltip options; RTL; row and sector selection notifications | Modeled on TanStack Charts. No arbitrary definitions, standalone web point/group objects, dual Y axes, logarithmic axes, or brush zoom. See Chart |
+
+#### Accessibility and motion (excerpt)
+
+Since MyGo v0.9.0, `ui.RoleStatus` is a polite, atomic live region. The library's own progress, error, empty, and loading messages keep stable identities: such a status is read once when its text changes and is silent when it first appears, clears, or rebuilds unchanged. Alert and Banner take their identity from the key the app gives them. CommandPalette also announces its progress and error messages once when they appear. FileUpload keeps empty status regions mounted, so adding a message to an exposed region is read once; hidden updates are silent, and mounting or exposing an existing message does not announce it as a change. Chart announces keyboard selection once and never reads pointer hover. Alert and Banner read their new title and description once when either changes. These rules are checked headlessly with `Tester.UseScreenReader`; what VoiceOver, NVDA, Narrator, and Orca actually say has not been verified.
 
 ## Complete example
 

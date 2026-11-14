@@ -57,6 +57,17 @@ func emptyMessage(c *ui.Context, key, legacy string) string {
 	return message(c, key)
 }
 
+// tabPanelName names a tab panel after its tab, as ARIA's Tabs pattern
+// does, unless the application overrides "contentNamed", the "{name}
+// content" name panels had before, which it keeps.
+func tabPanelName(c *ui.Context, label string) string {
+	bundled := strings.TrimSpace(bundledMessages().Format(c.Locale(), "contentNamed", map[string]any{"name": label}))
+	if text := namedMessage(c, "contentNamed", label); text != bundled {
+		return text
+	}
+	return label
+}
+
 func message(c *ui.Context, key string) string {
 	return componentMessages().Format(c.Locale(), key, nil)
 }

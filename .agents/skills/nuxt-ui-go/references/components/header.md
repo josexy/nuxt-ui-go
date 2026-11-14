@@ -17,7 +17,7 @@ HeaderLayout renders Title, native Description, Leading and Actions. Leading, Bo
 
 ## Things to know
 
-HeaderLayout is a native application header. Its title defaults to empty; it does not create a home link, sticky positioning or a mobile menu automatically. Mode, menu, open and route auto-close are not HeaderOptions; the composed Sidebar owns menu state.
+HeaderLayout is a native application header and the window’s banner landmark (ui.RoleBanner); a window has at most one, so call .Role(ui.RoleGroup) on the returned element for nested instances. Its title defaults to empty; it does not create a home link, sticky positioning or a mobile menu automatically. Mode, menu, open and route auto-close are not HeaderOptions; the composed Sidebar owns menu state.
 
 ## API
 
@@ -53,6 +53,8 @@ HeaderLayout is a native app header with Title, the native-extension Description
 HeaderLayout does not create a home link, web sticky positioning, a breakpoint menu, or a route listener. Header's Body part refers to the title text container, which differs from the web Header's menu body slot.
 
 FooterLayout shows a description with Text and builds actions with Actions. Root, Label, and Actions style the whole footer, the text, and the action container. The default horizontal and vertical padding is 20 and 12 DIP, the gap between regions is 12 DIP, the gap inside the action area is 6 DIP, and there is no top border. Text and actions can wrap within the available width, and action styles are not mistakenly applied to individual buttons.
+
+HeaderLayout is the window's banner landmark (`ui.RoleBanner`) and FooterLayout its content-information landmark (`ui.RoleContentInfo`), as Nuxt UI's `<header>` and `<footer>`; the header's title stays a level-1 heading inside the banner. A window has at most one of each. When you build another Header or Footer inside the page, as a preview or inside a card, replace its role on the returned element in the same build, for example `nui.HeaderLayout(c, t, o).Role(ui.RoleGroup)`; its layout, styles, focus, and children stay the same.
 
 Both functions support text scaling, RTL, and composition with native layouts. They do not change the system title bar and do not provide web DOM element types or every slot. Your app composes multi-region footers, extra content above or below, and breakpoint-specific arrangements. In Go, Header and Footer are already part constants, so the functions are named HeaderLayout and FooterLayout.
 

@@ -541,12 +541,12 @@ func FileUpload(c *ui.Context, t Theme, s *FileUploadState, o FileUploadOptions)
 		if o.Style != nil {
 			o.Style(Body, zone)
 		}
+		reading := ""
 		if s.Pending() {
-			ui.Text(c, message(c, "readingFiles")).Role(ui.RoleStatus).TextColor(t.Muted)
+			reading = message(c, "readingFiles")
 		}
-		if s.Error != "" {
-			ui.Text(c, s.Error).Role(ui.RoleStatus).TextColor(t.Error)
-		}
+		persistentStatusText(c, "status-reading", reading).TextColor(t.Muted)
+		persistentStatusText(c, "status-error", s.Error).TextColor(t.Error)
 		if !inside {
 			fileUploadList(c, t, s, o)
 		}
