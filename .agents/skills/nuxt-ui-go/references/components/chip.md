@@ -5,7 +5,7 @@
 Add a count or status marker to the corner of other content.
 
 - Category: Themes and basic components
-- Version: nuxt-ui-go v0.0.2 (MyGo v0.8.3)
+- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Chip`
 - Types: `ChipOptions`
 - Theme key: `nui.ComponentChip` (for `Theme.WithComponent`)

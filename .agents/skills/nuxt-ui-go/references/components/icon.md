@@ -5,7 +5,7 @@
 Display a Lucide vector icon.
 
 - Category: Themes and basic components
-- Version: nuxt-ui-go v0.0.2 (MyGo v0.8.3)
+- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Icon`
 - Types: `IconOptions`
 - Theme key: `nui.ComponentIcon` (for `Theme.WithComponent`)
@@ -58,7 +58,7 @@ Empty's default padding is 16, 24, or 32 DIP depending on the window width, with
 
 #### Components and parts › Indicators, separators, and loading (excerpt)
 
-Separator's `Size` maps XS–XL to line widths of 1–5 DIP. `Type` is one of the Solid, Dashed, and Dotted constants, and `Position` is Center, Start, or End. Content precedence is `Content → Label → Icon → Avatar`. The default label is 14 DIP, the icon 20 DIP, and the avatar 20 DIP; an explicit Avatar.Size takes precedence. Leading refers to the icon or avatar root. Vertical labels can wrap. A vertical separator is 48 DIP tall by default, which you can change on the returned element; give long labels and interactive content enough height. The content container keeps its identity when the position or orientation changes, but controls inside it still need stable keys.
+Separator's `Size` maps XS–XL to line widths of 1–5 DIP. Painting rounds the width to whole device pixels before aligning its position, so equal widths remain equal at fractional DPI and UI zoom. Dashed and dotted segments use whole-pixel lengths and gaps; the last segment may be shorter. Card section dividers and default menu/Listbox separators paint one device pixel while preserving DIP layout spacing. `Type` is one of the Solid, Dashed, and Dotted constants, and `Position` is Center, Start, or End. Content precedence is `Content → Label → Icon → Avatar`. The default label is 14 DIP, the icon 20 DIP, and the avatar 20 DIP; an explicit Avatar.Size takes precedence. Leading refers to the icon or avatar root. Vertical labels can wrap. A vertical separator is 48 DIP tall by default, which you can change on the returned element; give long labels and interactive content enough height. The content container keeps its identity when the position or orientation changes, but controls inside it still need stable keys.
 
 #### Components and parts › Buttons and links (excerpt)
 

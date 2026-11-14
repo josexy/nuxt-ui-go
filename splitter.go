@@ -219,7 +219,7 @@ func Splitter(c *ui.Context, t Theme, value *float32, o SplitterOptions, first, 
 					} else {
 						line.HeightPercent(100).Width(1)
 					}
-					finish(t, ComponentSplitter, Indicator, line, PartStyle{Background: Set(lineColor)}, o.Decoration)
+					finishLine(t, ComponentSplitter, Indicator, line, PartStyle{Background: Set(lineColor)}, o.Decoration, !vert, false, 0)
 				})
 				focused := divider.FocusVisible()
 				hit.DrawOver(func(p *ui.Painter, r ui.Rect) {

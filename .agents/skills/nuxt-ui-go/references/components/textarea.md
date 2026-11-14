@@ -5,7 +5,7 @@
 Edit multiple lines and optionally grow with the content.
 
 - Category: Inputs and selection
-- Version: nuxt-ui-go v0.0.2 (MyGo v0.8.3)
+- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Textarea`
 - Types: `TextareaOptions`
 - Theme key: `nui.ComponentTextarea` (for `Theme.WithComponent`)

@@ -5,7 +5,7 @@
 Display activities or milestones in sequence.
 
 - Category: Overlays and navigation
-- Version: nuxt-ui-go v0.0.2 (MyGo v0.8.3)
+- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Timeline`
 - Types: `TimelineOptions`, `TimelineItem`
 - Theme key: `nui.ComponentTimeline` (for `Theme.WithComponent`)
@@ -14,6 +14,8 @@ Display activities or milestones in sequence.
 ## Usage
 
 Timeline is vertical by default. Current is an optional zero-based index, overridden by a non-empty CurrentID. Reverse changes progress interpretation without reordering items. Time is an application-formatted string, styled independently through DateSlot.
+
+Connectors retain their 2 DIP width, rounded consistently to whole device pixels when painted.
 
 ## Things to know
 

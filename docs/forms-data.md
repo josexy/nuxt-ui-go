@@ -516,12 +516,12 @@ A loaded empty branch keeps its expansion state but does not get the default fol
 | PinInput | Root, Item, Label, SeparatorSlot |
 | InputRating | Root, Item, Indicator, IconSlot, EmptyIconSlot |
 | Calendar | Root, Header, HeadingSlot, Body, GridSlot, GridRowSlot, WeekDaySlot, WeekNumberSlot, Item |
-| Table | Root, CaptionSlot, Body, Panel, Item, Label, EmptySlot, LoadingSlot, Indicator |
+| Table | Root, CaptionSlot, Body, Panel, Item, Label, EmptySlot, LoadingSlot, Indicator, SeparatorSlot |
 | Tree | Root, List, Item, Leading, Label, Trailing, Indicator, EmptySlot |
 | ColorPicker | Root, Panel, Body, Item, Label |
 | RangeSlider | Root, plus Indicator.Background and Thumb.Background |
 
-InputNumber's and InputTags' `UI` support every part in the table, while the embedded `InputOptions.Style` still receives only the Root, Editor, Leading, and Trailing nodes. Configure InputNumber's button callbacks through IncrementOptions and DecrementOptions. Table's internal native regions and ColorPicker's unexposed internal parts use the Native theme. RangeSlider draws its track and thumbs from the Theme and Color; apart from Indicator.Background and Thumb.Background, other Indicator and Thumb fields have no effect. Parts that are not exposed cannot be changed by writing their names yourself. For the precedence of global WithComponent settings and instance UI/Style, see [Style overrides](foundations.md#style-overrides).
+InputNumber's and InputTags' `UI` support every part in the table, while the embedded `InputOptions.Style` still receives only the Root, Editor, Leading, and Trailing nodes. Configure InputNumber's button callbacks through IncrementOptions and DecrementOptions. Table's header divider paints one device pixel and takes its stroke color from `UI[SeparatorSlot].Background` (default BorderAccented). Its replacement covers MyGo's one-DIP divider using the theme background or an opaque Root/Body/Panel UI background; custom translucent surfaces or raw Style background changes should provide their own SeparatorSlot material. Table's other internal native regions and ColorPicker's unexposed internal parts use the Native theme. RangeSlider draws its track and thumbs from the Theme and Color; apart from Indicator.Background and Thumb.Background, other Indicator and Thumb fields have no effect. Parts that are not exposed cannot be changed by writing their names yourself. For the precedence of global WithComponent settings and instance UI/Style, see [Style overrides](foundations.md#style-overrides).
 
 ## Examples
 

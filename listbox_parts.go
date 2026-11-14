@@ -31,7 +31,7 @@ func listboxStructure(c *ui.Context, t Theme, size Size, item ListboxItem, width
 	} else {
 		part = ui.Column(c).Padding(t.spacing(4), 0)
 		part.Children(func() {
-			finish(t, ComponentListbox, SeparatorSlot, ui.Box(c).FillWidth().Height(1), PartStyle{Background: Set(t.Border)}, d)
+			finishLine(t, ComponentListbox, SeparatorSlot, ui.Box(c.Key("line")).FillWidth().Height(1), PartStyle{Background: Set(t.Border)}, d, false, true, 0)
 		})
 	}
 	if horizontal {

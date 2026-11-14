@@ -5,7 +5,7 @@
 Display a keyboard shortcut as key labels.
 
 - Category: Themes and basic components
-- Version: nuxt-ui-go v0.0.2 (MyGo v0.8.3)
+- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Kbd`, `FormatKey`
 - Types: `KbdOptions`
 - Theme key: `nui.ComponentKbd` (for `Theme.WithComponent`)

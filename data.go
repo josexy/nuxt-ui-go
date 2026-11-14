@@ -293,6 +293,7 @@ func Table[T any](c *ui.Context, t Theme, s *TableState[T], columns []TableColum
 					}
 				})
 			}).Fill().Label(o.Label).Description(o.Caption)
+			tableHeaderDivider(c, t, table, theme.Space(8), o.Decoration)
 			finish(t, ComponentTable, Panel, table, PartStyle{}, o.Decoration)
 			// Changed distinguishes a native input notice from external model edits.
 			// The mounted snapshot survives notice/rebuild passes without holding Parts.

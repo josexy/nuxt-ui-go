@@ -221,7 +221,15 @@ func Tabs(c *ui.Context, t Theme, value *string, items []TabItem, o TabsOptions)
 								style.Background = Optional[ui.Color]{}
 							}
 						}
-						finish(t, ComponentTabs, Indicator, indicator, style, decoration)
+						if o.Underline {
+							edge := 1
+							if o.Vertical && c.Direction() != ui.RightToLeft {
+								edge = -1
+							}
+							finishLine(t, ComponentTabs, Indicator, indicator, style, decoration, o.Vertical, false, edge)
+						} else {
+							finish(t, ComponentTabs, Indicator, indicator, style, decoration)
+						}
 					}
 					if it.Icon != nil {
 						finish(t, ComponentTabs, Leading, ui.Icon(c.Key("leading"), it.Icon).Size(metrics.Icon, metrics.Icon).Shrink(0), PartStyle{}, decoration)
@@ -724,7 +732,7 @@ func Stepper(c *ui.Context, t Theme, value *string, items []StepItem, o StepperO
 								if it.Disabled || o.Disabled {
 									opacity = .75
 								}
-								finish(t, ComponentStepper, SeparatorSlot, separator, PartStyle{Background: Set(color), Radius: Set(float32(999)), Opacity: Set(opacity)}, d)
+								finishLine(t, ComponentStepper, SeparatorSlot, separator, PartStyle{Background: Set(color), Radius: Set(float32(999)), Opacity: Set(opacity)}, d, o.Vertical, false, 0)
 							})
 						}
 					})
@@ -881,7 +889,7 @@ func Timeline(c *ui.Context, t Theme, items []TimelineItem, o TimelineOptions) u
 						if completed || (o.Reverse && active) {
 							bg = accent
 						}
-						finish(t, ComponentTimeline, SeparatorSlot, separator, PartStyle{Background: Set(bg)}, d)
+						finishLine(t, ComponentTimeline, SeparatorSlot, separator, PartStyle{Background: Set(bg)}, d, !o.Horizontal, false, 0)
 					}
 				})
 				body := ui.Column(c.Key("body")).Grow(1).MinWidth(0)

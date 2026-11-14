@@ -5,7 +5,7 @@
 Resize two panels by dragging their divider.
 
 - Category: Advanced interaction and layout
-- Version: nuxt-ui-go v0.0.2 (MyGo v0.8.3)
+- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Splitter`
 - Types: `SplitterOptions`
 - Theme key: `nui.ComponentSplitter` (for `Theme.WithComponent`)
@@ -14,6 +14,8 @@ Resize two panels by dragging their divider.
 ## Usage
 
 Splitter binds the first pane size as float32 in DIP, or a percentage with Percent=true. Orientation or Vertical selects the axis. Min, Max and explicit KeyboardResizeBy use the bound unit; the unset keyboard step moves ten DIPs.
+
+The visible 1 DIP stroke rounds to whole device pixels; the 8 DIP drag target is unchanged.
 
 ## Things to know
 

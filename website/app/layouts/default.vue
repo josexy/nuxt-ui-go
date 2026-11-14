@@ -154,6 +154,6 @@ async function changeLanguage() {
   </div>
   <footer class="site-footer">
     <span>{{ t('footer') }}</span
-    ><span>MyGo 0.8.3</span>
+    ><span>MyGo 0.9.0</span>
   </footer>
 </template>

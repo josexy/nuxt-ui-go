@@ -427,7 +427,7 @@ func treeGuides(c *ui.Context, t Theme, depth int, indent float32, decoration De
 			if rtl {
 				x = r.X + r.W - offset - width
 			}
-			p.Fill(ui.Rect{X: x, Y: r.Y, W: width, H: r.H}, color, 0)
+			p.Fill(lineRect(ui.Rect{X: x, Y: r.Y, W: width, H: r.H}, p.Scale(), true, false, 0), color, 0)
 		}
 	})
 	style.apply(guide)

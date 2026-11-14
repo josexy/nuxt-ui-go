@@ -5,7 +5,7 @@
 Edit hours, minutes and seconds in 12- or 24-hour format.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.0.2 (MyGo v0.8.3)
+- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
 - Functions: `InputTime`
 - Types: `InputTimeOptions`
 - Theme key: `nui.ComponentInputTime` (for `Theme.WithComponent`)

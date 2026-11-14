@@ -5,7 +5,7 @@
 Enter a verification code or other fixed-length text.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.0.2 (MyGo v0.8.3)
+- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
 - Functions: `PinInput`
 - Types: `PinInputOptions`
 - Theme key: `nui.ComponentPinInput` (for `Theme.WithComponent`)
@@ -14,6 +14,8 @@ Enter a verification code or other fixed-length text.
 ## Usage
 
 PinInput binds a string and uses one real editor, with a single Tab stop. It defaults to five text cells; Numeric retains ASCII digits only. Completion fires when a user change reaches the required length.
+
+The 1 DIP caret aligns to whole device pixels and keeps the same thickness across cells.
 
 ## Things to know
 

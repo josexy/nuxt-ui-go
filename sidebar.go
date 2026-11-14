@@ -375,7 +375,12 @@ func sidebarResize(c *ui.Context, t Theme, m *sidebarMemory, s *SidebarState, co
 	handle.Children(func() {
 		// The handle is placed from inside the root's one-DIP edge border, so
 		// mirror the line with it to draw over that border, not beside it.
-		line := ui.Box(c).Absolute().Top(0).Bottom(0).Width(1).Background(color).IgnoreInput(true)
+		edge := 1
+		if right {
+			edge = -1
+		}
+		line := ui.Box(c.Key("line")).Absolute().Top(0).Bottom(0).Width(1).IgnoreInput(true).
+			Material(lineMaterial{color: color, vertical: true, edge: edge})
 		if right {
 			line.Left(3)
 		} else {

@@ -5,7 +5,7 @@
 Separate content with a line, label or icon.
 
 - Category: Themes and basic components
-- Version: nuxt-ui-go v0.0.2 (MyGo v0.8.3)
+- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Separator`
 - Types: `SeparatorOptions`
 - Theme key: `nui.ComponentSeparator` (for `Theme.WithComponent`)
@@ -14,6 +14,8 @@ Separate content with a line, label or icon.
 ## Usage
 
 Use Orientation for a horizontal or vertical line and Label to insert text. Size adjusts line thickness and Color sets its color. The container and component dimensions determine its length.
+
+XS–XL retain 1–5 DIP widths, rounded to whole device pixels when painted. Dash lengths and gaps also align to pixels. Set stroke colors with Indicator.Background.
 
 ## Things to know
 
@@ -79,9 +81,9 @@ From the library documentation. Links point to other component references in thi
 | --- | --- | --- |
 | Separator | A horizontal or vertical line that can contain text, an icon, an avatar, or custom content | Root, Body, Label, Leading, Indicator |
 
-Separator's `Size` maps XS–XL to line widths of 1–5 DIP. `Type` is one of the Solid, Dashed, and Dotted constants, and `Position` is Center, Start, or End. Content precedence is `Content → Label → Icon → Avatar`. The default label is 14 DIP, the icon 20 DIP, and the avatar 20 DIP; an explicit Avatar.Size takes precedence. Leading refers to the icon or avatar root. Vertical labels can wrap. A vertical separator is 48 DIP tall by default, which you can change on the returned element; give long labels and interactive content enough height. The content container keeps its identity when the position or orientation changes, but controls inside it still need stable keys.
+Separator's `Size` maps XS–XL to line widths of 1–5 DIP. Painting rounds the width to whole device pixels before aligning its position, so equal widths remain equal at fractional DPI and UI zoom. Dashed and dotted segments use whole-pixel lengths and gaps; the last segment may be shorter. Card section dividers and default menu/Listbox separators paint one device pixel while preserving DIP layout spacing. `Type` is one of the Solid, Dashed, and Dotted constants, and `Position` is Center, Start, or End. Content precedence is `Content → Label → Icon → Avatar`. The default label is 14 DIP, the icon 20 DIP, and the avatar 20 DIP; an explicit Avatar.Size takes precedence. Leading refers to the icon or avatar root. Vertical labels can wrap. A vertical separator is 48 DIP tall by default, which you can change on the returned element; give long labels and interactive content enough height. The content container keeps its identity when the position or orientation changes, but controls inside it still need stable keys.
 
-Separator currently draws a decorative line and leaves the accessibility of its text and interactive content to that content. MyGo has no static separator role, so this is not equivalent to upstream `decorative=false`, and the library does not add a Decorative option that would have no effect. Set the stroke color of dashed and dotted lines with `UI[Indicator].Background`; a Background set in the final Style changes only the element's background.
+Separator currently draws a decorative line and leaves the accessibility of its text and interactive content to that content. MyGo has no static separator role, so this is not equivalent to upstream `decorative=false`, and the library does not add a Decorative option that would have no effect. Set every stroke type's color with `UI[Indicator].Background`. The final Style can replace the stroke with its own Background or Material; that replacement owns pixel alignment.
 
 ### Forms, dates, and data components
 
@@ -99,6 +101,7 @@ A runnable program. App state lives in `example`, outside the view, and the view
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/egoist/mygo"
@@ -115,6 +118,17 @@ func (s *example) view(c *ui.Context, t nui.Theme) {
 		part.Width(180).Height(160)
 	}
 	ui.Text(c, "Draft: "+s.Draft)
+	ui.Text(c, "Pixel alignment comparison")
+	comparison := options
+	comparison.Label = ""
+	comparison.Content = nil
+	comparison.Icon = nil
+	comparison.Avatar = nil
+	comparison.Vertical = false
+	comparison.Orientation = nui.Horizontal
+	for i := range 3 {
+		ui.Column(c.Key(fmt.Sprintf("comparison-%d", i))).PaddingY(float32(i)*.3 + 2).Children(func() { nui.Separator(c, t, comparison) })
+	}
 }
 
 func main() {

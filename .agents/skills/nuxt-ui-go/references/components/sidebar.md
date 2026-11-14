@@ -5,7 +5,7 @@
 Add a collapsible, resizable application sidebar.
 
 - Category: Advanced interaction and layout
-- Version: nuxt-ui-go v0.0.2 (MyGo v0.8.3)
+- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Sidebar`
 - Types: `SidebarOptions`, `SidebarState`, `SidebarScope`
 - Theme key: `nui.ComponentSidebar` (for `Theme.WithComponent`)
@@ -14,6 +14,8 @@ Add a collapsible, resizable application sidebar.
 ## Usage
 
 Sidebar provides a title, description, header actions, scrollable body and footer. Keep collapsed in application state and use SidebarState for width and the narrow-window menu. Actions appear while expanded or mobile; HeaderContent replaces the default title and description.
+
+The resize highlight aligns to the same physical edge as the sidebar border, avoiding adjacent lines at fractional scales.
 
 ## Things to know
 

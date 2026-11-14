@@ -5,7 +5,7 @@
 Show actions for content on right-click.
 
 - Category: Overlays and navigation
-- Version: nuxt-ui-go v0.0.2 (MyGo v0.8.3)
+- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
 - Functions: `ContextMenu`
 - Types: `MenuOptions`, `MenuItem`, `MenuContentOptions`
 - Theme key: `nui.ComponentContextMenu` (for `Theme.WithComponent`)
@@ -14,6 +14,8 @@ Show actions for content on right-click.
 ## Usage
 
 Keep an independent MenuState for each trigger and stable, unique item IDs. Right-click the target or use the Menu key or Shift+F10. MenuOptions controls size, icons, navigation and filtering. Configure individual submenus through MenuItem.Content.
+
+Default dividers in menus and submenus paint one device pixel; a larger Separator theme Size retains its DIP width.
 
 ## Things to know
 

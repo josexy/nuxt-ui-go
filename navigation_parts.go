@@ -171,7 +171,15 @@ func navigationButton(c *ui.Context, t Theme, it NavigationItem, o NavigationOpt
 			} else {
 				indicator.Height(1).Bottom(-t.spacing(8)).Start(t.spacing(10)).End(t.spacing(10))
 			}
-			finishNavigationPart(t, Indicator, indicator, PartStyle{}, o.Decoration, it.Decoration)
+			style := mergeStyle(PartStyle{Background: Set(ink)}, t.components[ComponentNavigationMenu].UI[Indicator])
+			style = mergeStyle(mergeStyle(style, o.UI[Indicator]), it.UI[Indicator])
+			styleLine(indicator, style, o.Vertical, false, 0)
+			if o.Style != nil {
+				o.Style(Indicator, indicator)
+			}
+			if it.Style != nil {
+				it.Style(Indicator, indicator)
+			}
 		}
 	})
 	return b

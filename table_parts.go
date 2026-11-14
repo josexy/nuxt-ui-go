@@ -24,6 +24,36 @@ type tableEvents struct {
 	initialized bool
 }
 
+// MyGo 0.9.0 does not expose its header divider as a part. Cover its full
+// one-DIP rectangle before painting the replacement; simply drawing a hairline
+// on top leaves a second native-colored pixel at fractional scales.
+func tableHeaderDivider(c *ui.Context, t Theme, table ui.Element, headerHeight float32, d Decoration) {
+	background := t.Background
+	for _, slot := range []Slot{Root, Body, Panel} {
+		style := mergeStyle(t.components[ComponentTable].UI[slot], d.UI[slot])
+		if style.Background.Set && style.Background.Value.A == 255 {
+			background = style.Background.Value
+		}
+	}
+	table.Children(func() {
+		line := ui.Box(c.Key("header-divider")).Absolute().Top(headerHeight).Left(0).Right(0).Height(1).PassThrough()
+		style := mergeStyle(PartStyle{Background: Set(t.BorderAccented)}, t.components[ComponentTable].UI[SeparatorSlot])
+		style = mergeStyle(style, d.UI[SeparatorSlot])
+		style.apply(line)
+		line.Material(tableDividerMaterial{background: background, color: style.Background.Value})
+		if d.Style != nil {
+			d.Style(SeparatorSlot, line)
+		}
+	})
+}
+
+type tableDividerMaterial struct{ background, color ui.Color }
+
+func (m tableDividerMaterial) PaintMaterial(p *ui.Painter, r ui.Rect, _ [4]float32) {
+	p.Fill(r, m.background, 0)
+	p.Fill(lineRect(r, p.Scale(), false, true, -1), m.color, 0)
+}
+
 // tableSelectionDiffers reports whether selection holds other IDs than keys,
 // which hold no duplicates: it reads the selection without copying it.
 func tableSelectionDiffers(keys []string, selection *ui.Selection[string]) bool {

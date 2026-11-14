@@ -5,7 +5,7 @@
 Display data as lines, bars, areas or slices.
 
 - Category: Advanced interaction and layout
-- Version: nuxt-ui-go v0.0.2 (MyGo v0.8.3)
+- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Chart`
 - Types: `ChartOptions`, `ChartSelection`
 - Theme key: `nui.ComponentChart` (for `Theme.WithComponent`)
@@ -14,6 +14,8 @@ Display data as lines, bars, areas or slices.
 ## Usage
 
 Keep ChartState persistent and update it with SetCategories, SetData, SetTimeData or SetSlices. Automatic legends appear only for multiple series or slices. Height defaults to 300; AspectRatio applies when height is unset.
+
+Grid lines paint one device pixel; data series LineWidth remains in DIPs.
 
 ## Things to know
 

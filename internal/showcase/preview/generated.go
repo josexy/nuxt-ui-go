@@ -316,6 +316,17 @@ func (s *separatorExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config)
 		part.Width(180).Height(160)
 	}
 	ui.Text(c, "Draft: "+s.Draft)
+	ui.Text(c, "Pixel alignment comparison")
+	comparison := options
+	comparison.Label = ""
+	comparison.Content = nil
+	comparison.Icon = nil
+	comparison.Avatar = nil
+	comparison.Vertical = false
+	comparison.Orientation = nui.Horizontal
+	for i := range 3 {
+		ui.Column(c.Key(fmt.Sprintf("comparison-%d", i))).PaddingY(float32(i)*.3 + 2).Children(func() { nui.Separator(c, t, comparison) })
+	}
 }
 func (s *separatorExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *separatorExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }

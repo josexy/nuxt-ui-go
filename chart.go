@@ -163,7 +163,7 @@ func Chart(c *ui.Context, t Theme, s *ChartState, o ChartOptions) ui.Element {
 				}
 				if !chartRadial(o.Kind) && !p.scene.empty && valueOr(o.Grid, true) {
 					for _, tick := range ticks {
-						painter.Line(r.X, plot.Y(r, tick.At), r.X+r.W, plot.Y(r, tick.At), 1, t.BorderMuted)
+						painter.Fill(lineRect(ui.Rect{X: r.X, Y: plot.Y(r, tick.At) - .5, W: r.W, H: 1}, painter.Scale(), false, true, 0), t.BorderMuted, 0)
 					}
 				}
 				layers, active := animation.layers(painter.Now())

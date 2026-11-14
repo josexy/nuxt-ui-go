@@ -5,7 +5,7 @@
 Search in an input and select from its suggestions.
 
 - Category: Inputs and selection
-- Version: nuxt-ui-go v0.0.2 (MyGo v0.8.3)
+- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
 - Functions: `InputMenu`, `SearchSelect`
 - Types: `InputMenuOptions`
 - Theme key: `nui.ComponentInputMenu` (for `Theme.WithComponent`)

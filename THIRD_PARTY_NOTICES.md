@@ -20,6 +20,6 @@ MIT License, Copyright (c) Tailwind Labs, Inc. The full license is in [tailwindc
 
 ## MyGo
 
-Native layout, input, text, drawing, focus, selection, and overlay capabilities come from [egoist/mygo](https://github.com/egoist/mygo/tree/402a3cf8eb35590078695ac402df40bf5c255506) as a Go module dependency. See [go.mod](go.mod) and [go.sum](go.sum) for the exact version and transitive dependencies, each of which keeps its own license.
+Native layout, input, text, drawing, focus, selection, and overlay capabilities come from [egoist/mygo v0.9.0](https://github.com/egoist/mygo/tree/v0.9.0) as a Go module dependency. See [go.mod](go.mod) and [go.sum](go.sum) for the exact version and transitive dependencies, each of which keeps its own license.
 
 This project's own code is released under the [MIT License](LICENSE), copyright NuxtUI Go contributors. The third-party materials above keep their own copyright and license notices, and this project's license does not replace them.

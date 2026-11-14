@@ -87,7 +87,7 @@ func Card(c *ui.Context, t Theme, opts CardOptions, body func()) ui.Element {
 		sections := 0
 		divide := func() {
 			if sections > 0 && config.Variant != Solid {
-				ui.Box(c.Key(sections)).Height(1).Background(t.Border)
+				ui.Box(c.Key(sections)).Height(1).Material(lineMaterial{color: t.Border, hairline: true})
 			}
 			sections++
 		}
@@ -171,6 +171,10 @@ type SeparatorOptions struct {
 }
 
 func Separator(c *ui.Context, t Theme, opts SeparatorOptions) ui.Element {
+	return separator(c, t, opts, false)
+}
+
+func separator(c *ui.Context, t Theme, opts SeparatorOptions, hairline bool) ui.Element {
 	if opts.Position > SeparatorEnd || opts.Type > SeparatorDotted {
 		panic("nui: invalid separator position or type")
 	}
@@ -199,31 +203,8 @@ func Separator(c *ui.Context, t Theme, opts SeparatorOptions) ui.Element {
 			}
 			style := mergeStyle(PartStyle{Background: Set(color)}, t.components[ComponentSeparator].UI[Indicator])
 			style = mergeStyle(style, opts.UI[Indicator])
-			if opts.Type != SeparatorSolid {
-				stroke := style.Background.Value
-				style.Background = Set(ui.Transparent)
-				l.Draw(func(p *ui.Painter, r ui.Rect) {
-					length, width := r.W, r.H
-					if vert {
-						length, width = r.H, r.W
-					}
-					if width <= 0 {
-						return
-					}
-					dash, radius := width*3, float32(0)
-					if opts.Type == SeparatorDotted {
-						dash, radius = width, width/2
-					}
-					for at := float32(0); at < length; at += dash + width*2 {
-						segment := ui.Rect{X: r.X + at, Y: r.Y, W: min(dash, length-at), H: width}
-						if vert {
-							segment = ui.Rect{X: r.X, Y: r.Y + at, W: width, H: min(dash, length-at)}
-						}
-						p.Fill(segment, stroke, radius)
-					}
-				})
-			}
 			style.apply(l)
+			l.Material(lineMaterial{color: style.Background.Value, vertical: vert, hairline: hairline && config.Size == XS, pattern: opts.Type})
 			if opts.Style != nil {
 				opts.Style(Indicator, l)
 			}

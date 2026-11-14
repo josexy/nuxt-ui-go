@@ -5,7 +5,7 @@
 Show a short explanation on hover or keyboard focus.
 
 - Category: Overlays and navigation
-- Version: nuxt-ui-go v0.0.2 (MyGo v0.8.3)
+- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Tooltip`
 - Types: `TooltipOptions`
 - Theme key: `nui.ComponentTooltip` (for `Theme.WithComponent`)

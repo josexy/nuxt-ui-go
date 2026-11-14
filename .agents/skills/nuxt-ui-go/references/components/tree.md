@@ -5,7 +5,7 @@
 Expand hierarchical data and select its nodes.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.0.2 (MyGo v0.8.3)
+- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Tree`
 - Types: `TreeOptions`, `TreeNode`, `TreeState`, `TreeEvent`, `TreeItemState`
 - Theme key: `nui.ComponentTree` (for `Theme.WithComponent`)
@@ -14,6 +14,8 @@ Expand hierarchical data and select its nodes.
 ## Usage
 
 SetNodes indexes nodes by stable, unique IDs. Selection stores selection, Outline.Open stores expansion, and Active is the keyboard highlight. Call SetNodes only when data changes. OnSelect/OnToggle can cancel, while OnChange/OnExpandedChange report actual selection and expansion changes.
+
+Indent guides round Indicator.BorderWidth from DIPs to whole device pixels; an explicit zero hides them.
 
 ## Things to know
 

@@ -262,6 +262,11 @@ func newGenerator(root, skillDir string) (*generator, error) {
 		if e.IsDir() || !strings.HasSuffix(e.Name(), ".md") || e.Name() == "README.md" {
 			continue
 		}
+		// Historical investigation notes link to application checkouts and old
+		// implementations; they are not part of the standalone usage reference.
+		if e.Name() == "dip-line-rendering.md" {
+			continue
+		}
 		data, err := os.ReadFile(filepath.Join(docDir, e.Name()))
 		if err != nil {
 			return nil, err

@@ -5,7 +5,7 @@
 Switch between related content panels.
 
 - Category: Overlays and navigation
-- Version: nuxt-ui-go v0.0.2 (MyGo v0.8.3)
+- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Tabs`
 - Types: `TabsOptions`, `TabItem`
 - Theme key: `nui.ComponentTabs` (for `Theme.WithComponent`)
@@ -14,6 +14,8 @@ Switch between related content panels.
 ## Usage
 
 Stable TabItem IDs identify both selection and widget state. Build panels with Content, and configure labels using Avatar, Badge, BadgeOptions and UI. TabsOptions.Content=false omits panels; KeepMounted controls local state in inactive panels.
+
+Underline widths round from DIPs to whole device pixels and align with the list border edge.
 
 ## Things to know
 

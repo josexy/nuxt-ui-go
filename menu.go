@@ -425,7 +425,7 @@ func menuPanel(c *ui.Context, t Theme, panel, anchor ui.Element, s *MenuState, i
 				d = decorate(it, d)
 			}
 			if it.Kind == MenuSeparator {
-				finish(t, id, SeparatorSlot, Separator(c.Key(it.ID), t, SeparatorOptions{}).Margin(t.spacing(4), 0), PartStyle{}, d)
+				finish(t, id, SeparatorSlot, separator(c.Key(it.ID), t, SeparatorOptions{}, true).Margin(t.spacing(4), 0), PartStyle{}, d)
 				continue
 			}
 			if it.Kind == MenuLabel {

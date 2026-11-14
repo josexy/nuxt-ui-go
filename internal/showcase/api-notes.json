@@ -1612,8 +1612,8 @@
     "en": "Shown when Content is nil; precedes icon and avatar. Single-line horizontally, wrapping within constrained widths vertically."
   },
   "SeparatorOptions.UI": {
-    "zh": "部件为 Root、Body、Label、Leading、Indicator；虚线和点线的笔画颜色使用 Indicator.Background。",
-    "en": "Parts: Root, Body, Label, Leading and Indicator. Indicator.Background controls dashed and dotted strokes."
+    "zh": "部件为 Root、Body、Label、Leading、Indicator；所有线型通过 Indicator.Background 设置笔画颜色，最终 Style 的 Background/Material 可替换默认线条绘制。",
+    "en": "Parts: Root, Body, Label, Leading and Indicator. Indicator.Background colors every stroke type; a final Style Background/Material replaces the default stroke painting."
   },
   "ButtonOptions.Color": {
     "zh": "选择主色、成功、警告等用途的颜色。未指定时采用主题或组件默认颜色。 Neutral / Solid 使用 InvertedBackground 背景和 Inverted 文字。",
@@ -3868,8 +3868,8 @@
     "en": "Retains native combined change notifications, which may cover selection, sorting or column layout. Use dedicated callbacks for specific model changes."
   },
   "TableOptions.UI": {
-    "zh": "公开 root、caption、body、panel、item、label、empty、loading、indicator。item/label 是单元格内容，不能独立修改原生表头或整行。",
-    "en": "Exposes root, caption, body, panel, item, label, empty, loading and indicator. item/label style cell contents; native headers and whole rows are not separate parts."
+    "zh": "公开 root、caption、body、panel、item、label、empty、loading、indicator 和 separator。SeparatorSlot.Background 控制 1 物理像素的表头分隔线；item/label 是单元格内容，原生表头和整行不是独立部件。",
+    "en": "Exposes root, caption, body, panel, item, label, empty, loading, indicator and separator. SeparatorSlot.Background colors the one-device-pixel header divider; item/label style cell contents, and native headers and whole rows are not separate parts."
   },
   "TableOptions.Style": {
     "zh": "当前构建的同步部件回调，在 UI 之后运行，不保存 Element。列的 Style 最后应用于其 item/label。",

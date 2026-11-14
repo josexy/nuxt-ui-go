@@ -566,7 +566,7 @@ func PinInput(c *ui.Context, t Theme, value *string, s *PinState, o PinInputOpti
 						const blink = 530 * time.Millisecond
 						phase := p.Now().Sub(since)
 						if !motion || (phase/blink)%2 == 0 {
-							p.Fill(ui.Rect{X: r.X + (r.W+textWidth)/2, Y: r.Y + (r.H-height)/2, W: 1, H: height}, t.Highlighted, 0)
+							p.Fill(lineRect(ui.Rect{X: r.X + (r.W+textWidth)/2, Y: r.Y + (r.H-height)/2, W: 1, H: height}, p.Scale(), true, false, 0), t.Highlighted, 0)
 						}
 						if motion && phase < 30*time.Second {
 							p.After(blink - phase%blink)

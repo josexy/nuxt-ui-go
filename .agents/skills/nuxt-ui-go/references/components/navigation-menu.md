@@ -5,7 +5,7 @@
 Provide primary navigation and nested destinations.
 
 - Category: Advanced interaction and layout
-- Version: nuxt-ui-go v0.0.2 (MyGo v0.8.3)
+- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
 - Functions: `NavigationMenu`
 - Types: `NavigationOptions`, `NavigationItem`, `NavigationState`, `NavigationEvent`
 - Theme key: `nui.ComponentNavigationMenu` (for `Theme.WithComponent`)
@@ -14,6 +14,8 @@ Provide primary navigation and nested destinations.
 ## Usage
 
 Keep the current destination in an active ID and vertical expansion in NavigationState.Expanded. OnNavigate switches pages, OnSelect can cancel leaf navigation, and OnExpandedChange reports user expansion changes. The component does not resolve URLs; parents open their children.
+
+Active indicator widths round from DIPs to whole device pixels so moving selection does not vary thickness.
 
 ## Things to know
 
