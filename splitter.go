@@ -191,7 +191,8 @@ func Splitter(c *ui.Context, t Theme, value *float32, o SplitterOptions, first, 
 					state.ignoreDrag = held
 					held = false
 				}
-				if held && !divider.IsDisabled() {
+				enabled := !divider.IsDisabled()
+				if held && enabled {
 					divider.Focus()
 					delta := dx
 					if vert {
@@ -208,8 +209,9 @@ func Splitter(c *ui.Context, t Theme, value *float32, o SplitterOptions, first, 
 						})
 					}
 				}
+				focused := enabled && divider.FocusVisible()
 				lineColor := t.Border
-				if !divider.IsDisabled() && (held || hit.Hovered() || divider.Focused()) {
+				if enabled && (held || hit.Hovered() || focused) {
 					lineColor = t.Primary
 				}
 				hit.Children(func() {
@@ -221,7 +223,6 @@ func Splitter(c *ui.Context, t Theme, value *float32, o SplitterOptions, first, 
 					}
 					finishLine(t, ComponentSplitter, Indicator, line, PartStyle{Background: Set(lineColor)}, o.Decoration, !vert, false, 0)
 				})
-				focused := divider.FocusVisible()
 				hit.DrawOver(func(p *ui.Painter, r ui.Rect) {
 					if focused {
 						p.FocusRing(r, [4]float32{})

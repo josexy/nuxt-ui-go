@@ -62,6 +62,8 @@ Min and Max use the same unit as the bound value. The default lower bound is 0, 
 
 When KeyboardResizeBy is unset, each key press moves 10 DIP scaled by the theme. An explicit value uses the bound value's unit, and 0 turns off arrow-key resizing. Home and End go to the reachable bounds of the range. Disabled locks only the divider, and the panes stay editable; to disable the whole subtree, disable the parent container.
 
+The divider highlights on hover or during a drag. Once the drag ends and the pointer is outside the hit area, the highlight clears and the divider still accepts keyboard shortcuts. Tabbing to the divider shows its focus ring.
+
 Both panes keep a native minimum size of 40 DIP; in DIP mode, the first pane can explicitly be set smaller. When space runs out, the layout shrinks but the model value is kept, so a model value of 0 does not mean a collapsed pane. The layout reserves only 1 DIP for the divider line, and an 8 DIP drag area overlaps the pane edges without pushing the panes apart; when nested, horizontal and vertical lines meet without gaps. Root, Leading, Trailing, SeparatorSlot, and Indicator style the container, the two panes, the drag area, and the center line. The accessible Range and Step use the bound value's unit and the configured constraints rather than always using the underlying DIP.
 
 Two panes and nesting are supported. Multi-pane coordination, collapsible snapping, autosave, and layout serialization are not. Your app manages the persistent model, and layout and orientation changes keep input state in the panes.
