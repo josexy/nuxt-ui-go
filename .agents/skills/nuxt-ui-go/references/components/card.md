@@ -5,7 +5,7 @@
 Group a title, description and related content in a card.
 
 - Category: Themes and basic components
-- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
 - Functions: `Card`
 - Types: `CardOptions`
 - Theme key: `nui.ComponentCard` (for `Theme.WithComponent`)

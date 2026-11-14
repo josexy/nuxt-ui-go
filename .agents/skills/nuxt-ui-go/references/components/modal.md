@@ -5,7 +5,7 @@
 Complete an edit or confirmation in a modal dialog.
 
 - Category: Overlays and navigation
-- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
 - Functions: `Modal`, `ModalWithOptions`
 - Types: `ModalOptions`
 - Theme key: `nui.ComponentModal` (for `Theme.WithComponent`)

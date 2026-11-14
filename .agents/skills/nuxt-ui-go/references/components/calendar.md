@@ -5,7 +5,7 @@
 Choose a date or a date range from a calendar.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
 - Functions: `Calendar`
 - Types: `CalendarOptions`
 - Theme key: `nui.ComponentCalendar` (for `Theme.WithComponent`)

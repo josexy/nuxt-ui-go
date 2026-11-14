@@ -5,7 +5,7 @@
 Place the main application content in the available space.
 
 - Category: Themes and basic components
-- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
 - Functions: `Main`
 - Theme key: `nui.ComponentMain` (for `Theme.WithComponent`)
 - Sections: Usage · Things to know · API · Documentation excerpts · Complete example

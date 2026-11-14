@@ -5,7 +5,7 @@
 Explain an empty state and offer a next action.
 
 - Category: Themes and basic components
-- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
 - Functions: `Empty`
 - Types: `EmptyOptions`
 - Theme key: `nui.ComponentEmpty` (for `Theme.WithComponent`)

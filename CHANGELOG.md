@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.1.0 - 2026-11-14
 
 - Upgrade MyGo runtime and tools to v0.9.0.
 - Align separators, table headers, card/listbox dividers, resize and navigation indicators, chart grids, tree guides, connectors and PIN carets to device pixels at fractional DPI and UI zoom. Layout remains in DIPs. Decorative dividers use one device pixel; sized strokes retain their rounded DIP widths.

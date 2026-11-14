@@ -5,7 +5,7 @@
 Apply a window theme and share it with its components.
 
 - Category: Themes and basic components
-- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
 - Functions: `App`, `DefaultApp`, `Window`, `Themed`, `SupportedLocales`
 - Types: `AppConfig`
 - Sections: Usage · Things to know · API · Documentation excerpts · Complete example

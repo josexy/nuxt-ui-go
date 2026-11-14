@@ -5,7 +5,7 @@
 Display data as lines, bars, areas or slices.
 
 - Category: Advanced interaction and layout
-- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
 - Functions: `Chart`
 - Types: `ChartOptions`, `ChartSelection`
 - Theme key: `nui.ComponentChart` (for `Theme.WithComponent`)

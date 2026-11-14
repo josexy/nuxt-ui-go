@@ -5,7 +5,7 @@
 Edit one line of text with read-only, clear and loading options.
 
 - Category: Inputs and selection
-- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
 - Functions: `Input`
 - Types: `InputOptions`
 - Theme key: `nui.ComponentInput` (for `Theme.WithComponent`)

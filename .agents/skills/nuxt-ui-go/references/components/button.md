@@ -5,7 +5,7 @@
 Run an action with support for icons, loading and disabled states.
 
 - Category: Themes and basic components
-- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
 - Functions: `Button`
 - Types: `ButtonOptions`
 - Theme key: `nui.ComponentButton` (for `Theme.WithComponent`)

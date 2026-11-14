@@ -5,7 +5,7 @@
 Adjust a value or range by dragging sliders.
 
 - Category: Inputs and selection
-- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
 - Functions: `Slider`, `RangeSlider`
 - Types: `SliderOptions`, `RangeSliderOptions`
 - Theme key: `nui.ComponentSlider` (for `Theme.WithComponent`)

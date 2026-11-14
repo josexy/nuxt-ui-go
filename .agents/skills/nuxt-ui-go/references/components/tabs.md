@@ -5,7 +5,7 @@
 Switch between related content panels.
 
 - Category: Overlays and navigation
-- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
 - Functions: `Tabs`
 - Types: `TabsOptions`, `TabItem`
 - Theme key: `nui.ComponentTabs` (for `Theme.WithComponent`)

@@ -5,7 +5,7 @@
 Enter a number or adjust it by a fixed increment.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
 - Functions: `InputNumber`, `ParseNumber`
 - Types: `InputNumberOptions`
 - Theme key: `nui.ComponentInputNumber` (for `Theme.WithComponent`)

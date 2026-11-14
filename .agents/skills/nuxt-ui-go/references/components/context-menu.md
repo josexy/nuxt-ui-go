@@ -5,7 +5,7 @@
 Show actions for content on right-click.
 
 - Category: Overlays and navigation
-- Version: nuxt-ui-go v0.0.2 plus unreleased changes (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
 - Functions: `ContextMenu`
 - Types: `MenuOptions`, `MenuItem`, `MenuContentOptions`
 - Theme key: `nui.ComponentContextMenu` (for `Theme.WithComponent`)
