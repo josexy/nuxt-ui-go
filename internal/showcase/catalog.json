@@ -291,8 +291,8 @@
       "en": "### Basic usage\n\nBuild the main page content in the `Main` callback and combine it with HeaderLayout, Sidebar and FooterLayout. The callback runs again as the UI updates, so keep application data outside the view function.\n\n### Try the preview\n\n1. Change the title on the card in the main content area.\n2. Open the complete example to see Main used with a window theme."
     },
     "note": {
-      "zh": "Main 提供布局，不会自动增加滚动条。内容需要滚动时，再组合 ScrollArea 或 MyGo 的 Scroll。",
-      "en": "Main provides layout without scrolling. Add ScrollArea or MyGo Scroll when content needs to scroll."
+      "zh": "Main 提供布局，不会自动增加滚动条。内容需要滚动时，再组合 ScrollArea 或 MyGo 的 Scroll。Main 是窗口的主要内容地标（ui.RoleMain），一个窗口只应有一个；嵌套或预览实例可在返回的元素上调用 .Role(ui.RoleGroup) 取消地标，布局不变。",
+      "en": "Main provides layout without scrolling. Add ScrollArea or MyGo Scroll when content needs to scroll. Main is the window’s main landmark (ui.RoleMain), and a window should have one; call .Role(ui.RoleGroup) on the returned element to opt a nested or preview instance out without changing its layout."
     },
     "symbols": ["Main"],
     "types": [],
@@ -6067,8 +6067,8 @@
       "en": "### Basic usage\n\nStable TabItem IDs identify both selection and widget state. Build panels with Content, and configure labels using Avatar, Badge, BadgeOptions and UI. TabsOptions.Content=false omits panels; KeepMounted controls local state in inactive panels.\n\nUnderline widths round from DIPs to whole device pixels and align with the list border edge.\n\n### Try the preview\n\n1. Enable avatars, badges and indicator styling, then change size or underline style. Badge text 0 is displayed, and Icon takes priority over Avatar.\n2. Automatic mode activates with the orientation’s arrow keys. Manual mode moves focus; use Enter or Space to activate.\n3. Edit Tab draft and enable KeepMounted to retain undo across switches. Reverse tabs to check stable identity. Remove the active item in the data editor or toggle Overview disabled; fallback selection does not increase Changes."
     },
     "note": {
-      "zh": "空值、缺失或禁用的选中 ID 会回退到首个可用项，不通知 OnChange；全部禁用时保留业务 ID。Content=false 会卸载所有面板，即使 KeepMounted=true。徽标默认 SM / Neutral / Outline，实际高度取决于字体。面板使用可聚焦的原生 group；没有完整的 Web tabpanel 关系或跨项滑动指示器动画。",
-      "en": "Empty, missing or disabled selection falls back to the first enabled item without OnChange. An all-disabled list preserves the business ID. Content=false unmounts all panels even with KeepMounted=true. Badges default to SM / Neutral / Outline, with height depending on font metrics. Panels are focusable native groups; full Web tabpanel relationships and sliding indicator animation are not provided."
+      "zh": "空值、缺失或禁用的选中 ID 会回退到首个可用项，不通知 OnChange；全部禁用时保留业务 ID。Content=false 会卸载所有面板，即使 KeepMounted=true。徽标默认 SM / Neutral / Outline，实际高度取决于字体。面板是可聚焦的标签面板（ui.RoleTabPanel），以所属标签的 Label 命名，标签通过 Controls 指向已构建的面板；没有跨项滑动指示器动画。",
+      "en": "Empty, missing or disabled selection falls back to the first enabled item without OnChange. An all-disabled list preserves the business ID. Content=false unmounts all panels even with KeepMounted=true. Badges default to SM / Neutral / Outline, with height depending on font metrics. Panels are focusable tab panels (ui.RoleTabPanel) named after their tab’s Label, and each tab points at its built panel with Controls. Sliding indicator animation is not provided."
     },
     "symbols": ["Tabs"],
     "types": ["TabsOptions", "TabItem"],
@@ -10199,8 +10199,8 @@
       "en": "### Basic usage\n\nBuild an immutable index with NewCommandIndex and assign it to persistent CommandPaletteState. Call SetIndex when data changes. Keep rendering CommandPalette while closed so shortcuts and return focus work. OnSelect receives executed IDs; OnSelectEvent can cancel first.\n\n### Try the preview\n\n1. Click Open commands and search invoice or Local to highlight descriptions and suffixes. File commands remain in one group.\n2. Open Appearance options to see its placeholder; press Backspace with an empty search to go back.\n3. Protected command cancels by default. Disable protection and keep the palette open to execute repeatedly and inspect the count.\n4. Enable manual search, enter two queries, then use Try stale result to reject the old ticket and Complete search to deliver the current result.\n5. Change delay, size, input, icons, RTL and theme to inspect layout and keyboard behavior."
     },
     "note": {
-      "zh": "本组件是原生命令启动器，默认执行后关闭，始终使用虚拟列表；不提供 Vue 的嵌入式多选模型或路由属性。默认搜索 label、description、suffix、keywords，最多显示 200 条；FilterFields / IgnoreFilter 仅控制内置搜索，自定义 Search 负责筛选。SearchDelay 只延迟查询编辑，旧请求立即取消。更换同类 Search 回调后调用 Refresh，离开视图或关闭窗口时调用 Close。此预览关闭默认快捷键。",
-      "en": "This native command launcher closes after execution by default and always virtualizes results. Embedded Vue multiple selection and routing props are not provided. Built-in search covers label, description, suffix and keywords, with up to 200 results. FilterFields/IgnoreFilter affect only built-in search; custom Search handles filtering. SearchDelay delays query edits while canceling old requests immediately. Call Refresh after replacing a custom Search callback, and Close on unmount or window close. This preview disables the default shortcut."
+      "zh": "本组件是原生命令启动器，默认执行后关闭，始终使用虚拟列表；不提供 Vue 的嵌入式多选模型或路由属性。默认搜索 label、description、suffix、keywords，最多显示 200 条；FilterFields / IgnoreFilter 仅控制内置搜索，自定义 Search 负责筛选。SearchDelay 只延迟查询编辑，旧请求立即取消。更换同类 Search 回调后调用 Refresh，离开视图或关闭窗口时调用 Close。“搜索中”和错误提示是礼貌状态区域，出现时朗读一次，文字变化时再朗读，清除或无变化的重建不朗读。此预览关闭默认快捷键。",
+      "en": "This native command launcher closes after execution by default and always virtualizes results. Embedded Vue multiple selection and routing props are not provided. Built-in search covers label, description, suffix and keywords, with up to 200 results. FilterFields/IgnoreFilter affect only built-in search; custom Search handles filtering. SearchDelay delays query edits while canceling old requests immediately. Call Refresh after replacing a custom Search callback, and Close on unmount or window close. The searching message and errors are polite statuses, read once when they appear and again when their text changes; clearing or an unchanged rebuild reads nothing. This preview disables the default shortcut."
     },
     "symbols": ["CommandPalette"],
     "types": [
@@ -10659,8 +10659,8 @@
       "en": "### Basic usage\n\nFileUploadState holds a queue; the application implements transfers through Begin / Report. Rules checks type, size and count, retaining rejected rows with reasons. OnChange reports user selections or removals that change the queue; OnReject reports newly rejected files.\n\n### Try the preview\n\n1. Click Project files to add simulated metadata and inspect Changes and Rejected. Selecting the same files again does not notify.\n2. Set the selection result to cancel or error and choose again; neither changes the queue.\n3. Remove a file to return focus to the picker. Change the layout and list position while retaining the data.\n4. FileImage hides only the supplied preview accessory; Preview hides the whole list. Try the icon, highlight and custom part settings."
     },
     "note": {
-      "zh": "示例的 Choose 返回模拟元数据，不打开原生文件选择框、不读取文件内容，也不上传文件。Go 保留多文件队列；Dialog.Multiple 仅控制原生对话框单次多选，Rules.MaxFiles 控制已接受文件总数。列表位置只影响 UploadArea / UploadList；网格保留文件名、状态与进度，和 Nuxt 的图片网格布局不同。应用负责预览图片、文件流与传输，并在隐藏或卸载时调用 Dispose。",
-      "en": "Choose returns simulated metadata: no native dialog, file content reads or uploads. Go keeps a queue; Dialog.Multiple controls one native dialog selection and Rules.MaxFiles limits accepted files in the queue. Position affects UploadArea / UploadList only. The native grid retains names, status and progress, unlike Nuxt’s image grid. The application owns preview images, streams and transfers and calls Dispose on hiding or unmounting."
+      "zh": "示例的 Choose 返回模拟元数据，不打开原生文件选择框、不读取文件内容，也不上传文件。Go 保留多文件队列；Dialog.Multiple 仅控制原生对话框单次多选，Rules.MaxFiles 控制已接受文件总数。列表位置只影响 UploadArea / UploadList；网格保留文件名、状态与进度，和 Nuxt 的图片网格布局不同。应用负责预览图片、文件流与传输，并在隐藏或卸载时调用 Dispose。读取文件信息提示和 State.Error 是礼貌状态区域，出现时朗读一次，文字变化时再朗读，清除时不朗读。",
+      "en": "Choose returns simulated metadata: no native dialog, file content reads or uploads. Go keeps a queue; Dialog.Multiple controls one native dialog selection and Rules.MaxFiles limits accepted files in the queue. Position affects UploadArea / UploadList only. The native grid retains names, status and progress, unlike Nuxt’s image grid. The application owns preview images, streams and transfers and calls Dispose on hiding or unmounting. The reading message and State.Error are polite statuses, read once when they appear and again when their text changes; clearing reads nothing."
     },
     "symbols": ["FileUpload"],
     "types": ["FileUploadOptions"],
@@ -10938,8 +10938,8 @@
       "en": "### Basic usage\n\nKeep ChartState persistent and update it with SetCategories, SetData, SetTimeData or SetSlices. Automatic legends appear only for multiple series or slices. Height defaults to 300; AspectRatio applies when height is unset.\n\nGrid lines paint one device pixel; data series LineWidth remains in DIPs.\n\n### Try the preview\n\n1. Focus the chart, inspect values with arrows and Home/End, then activate with Enter/Space and inspect notification counts.\n2. Hide Views or Visits, then reorder series in the data editor; visibility follows IDs.\n3. Keep one series in the data editor to hide the automatic legend, or explicitly enable Legend.\n4. Try axes, points, tooltips, colors, RTL and chart types. Donuts support Thickness and center content.\n5. Empty and restore the series in the data editor to check the localized empty state and keyboard interaction."
     },
     "note": {
-      "zh": "参考 Nuxt UI 4.12.0 的 TanStack Charts；Go 使用 MyGo 绘制，保留散点图、饼图、有序数值/时间轴及交互图例。ChartSelection 标识整行 X 或一个扇区，不提供 Web 引擎的原始 point/group 对象。YLabel 在图表上方横向显示；圆环显式 DonutInnerRadius 优先于 Thickness。高度包含坐标区，图例、轴标题和状态文字另占空间。",
-      "en": "Based on Nuxt UI 4.12.0 with TanStack Charts; Go uses MyGo and retains scatter/pie charts, ordered numeric/time axes and interactive legends. ChartSelection identifies an X row or slice, not raw Web engine point/group objects. YLabel is horizontal above the plot. Explicit DonutInnerRadius overrides Thickness. Height covers the plot and axes; legends, titles and status text use additional space."
+      "zh": "参考 Nuxt UI 4.12.0 的 TanStack Charts；Go 使用 MyGo 绘制，保留散点图、饼图、有序数值/时间轴及交互图例。ChartSelection 标识整行 X 或一个扇区，不提供 Web 引擎的原始 point/group 对象。YLabel 在图表上方横向显示；圆环显式 DonutInnerRadius 优先于 Thickness。高度包含坐标区，图例、轴标题和说明行另占空间。说明行是普通文字而非实时区域：键盘移动选择时朗读一次，指针悬停不朗读。",
+      "en": "Based on Nuxt UI 4.12.0 with TanStack Charts; Go uses MyGo and retains scatter/pie charts, ordered numeric/time axes and interactive legends. ChartSelection identifies an X row or slice, not raw Web engine point/group objects. YLabel is horizontal above the plot. Explicit DonutInnerRadius overrides Thickness. Height covers the plot and axes; legends, titles and the description line use additional space. The description line is plain text, not a live region: keyboard selection is announced once, and pointer hover is not read aloud."
     },
     "symbols": ["Chart"],
     "types": ["ChartOptions", "ChartSelection"],
@@ -11638,8 +11638,8 @@
       "en": "### Basic usage\n\nHeaderLayout renders Title, native Description, Leading and Actions. Leading, Body, Label, Description and Actions are actual style parts. Stable region identities retain action editors when leading content changes.\n\n### Try the preview\n\n1. Edit Header draft and toggle the leading icon or styles without losing the draft.\n2. Open the menu and choose Header menu settings. The page changes, the menu closes and focus returns to its opener.\n3. Compare RTL, long titles and wrapping."
     },
     "note": {
-      "zh": "HeaderLayout 是原生应用标题区，标题默认为空，不自动生成网页首页链接、粘性定位或移动菜单。本例用 Sidebar 组合菜单；断点 2000 DIP 用于在常见预览宽度下展示弹层。mode、menu、open 和路由自动关闭不属于 HeaderOptions，菜单状态由组合的 Sidebar 负责。",
-      "en": "HeaderLayout is a native application header. Its title defaults to empty; it does not create a home link, sticky positioning or a mobile menu automatically. This example composes Sidebar with a 2000-DIP breakpoint to show its overlay at normal preview widths. Mode, menu, open and route auto-close are not HeaderOptions; the composed Sidebar owns menu state."
+      "zh": "HeaderLayout 是原生应用标题区，也是窗口的横幅地标（ui.RoleBanner），一个窗口最多一个；嵌套实例可在返回的元素上调用 .Role(ui.RoleGroup) 取消地标。标题默认为空，不自动生成网页首页链接、粘性定位或移动菜单。本例用 Sidebar 组合菜单；断点 2000 DIP 用于在常见预览宽度下展示弹层。mode、menu、open 和路由自动关闭不属于 HeaderOptions，菜单状态由组合的 Sidebar 负责。",
+      "en": "HeaderLayout is a native application header and the window’s banner landmark (ui.RoleBanner); a window has at most one, so call .Role(ui.RoleGroup) on the returned element for nested instances. Its title defaults to empty; it does not create a home link, sticky positioning or a mobile menu automatically. This example composes Sidebar with a 2000-DIP breakpoint to show its overlay at normal preview widths. Mode, menu, open and route auto-close are not HeaderOptions; the composed Sidebar owns menu state."
     },
     "symbols": ["HeaderLayout"],
     "types": ["HeaderOptions"],
@@ -11708,8 +11708,8 @@
       "en": "### Basic usage\n\nFooterLayout uses Text for copy and Actions for controls. Root, Label and Actions style the container, text and action region. Actions use a six-DIP gap and wrap when needed.\n\n### Try the preview\n\n1. Activate Review and Help and inspect callback counts and results.\n2. Enable action styling to compare its background, padding and button gap.\n3. Enter longer text and switch RTL to inspect layout."
     },
     "note": {
-      "zh": "原生 API 使用 Text 和 Actions，不提供网页的 left/default/right/top/bottom 插槽或 UContainer 断点重排。需要多区页脚时可用原生布局组合。默认没有顶部边线，Root 内边距为水平 20、垂直 12 DIP。",
-      "en": "The native API uses Text and Actions rather than web left/default/right/top/bottom slots or UContainer breakpoint reordering. Compose additional regions with native layouts. The footer has no default top border and uses 20-DIP horizontal and 12-DIP vertical root padding."
+      "zh": "原生 API 使用 Text 和 Actions，不提供网页的 left/default/right/top/bottom 插槽或 UContainer 断点重排。需要多区页脚时可用原生布局组合。默认没有顶部边线，Root 内边距为水平 20、垂直 12 DIP。FooterLayout 是窗口的内容信息地标（ui.RoleContentInfo），一个窗口最多一个；嵌套实例可在返回的元素上调用 .Role(ui.RoleGroup) 取消地标。",
+      "en": "The native API uses Text and Actions rather than web left/default/right/top/bottom slots or UContainer breakpoint reordering. Compose additional regions with native layouts. The footer has no default top border and uses 20-DIP horizontal and 12-DIP vertical root padding. FooterLayout is the window’s content-information landmark (ui.RoleContentInfo); a window has at most one, so call .Role(ui.RoleGroup) on the returned element for nested instances."
     },
     "symbols": ["FooterLayout"],
     "types": ["FooterOptions"],

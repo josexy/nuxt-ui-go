@@ -50,7 +50,8 @@ func addLayoutContract(p *componentPage, id string) {
 				if leading {
 					o.Leading = func(c *ui.Context, t nui.Theme) { ui.Icon(c, lucide.Folder()).Size(24, 24) }
 				}
-				nui.HeaderLayout(c.Key("header"), t, o)
+				// Nested previews opt out of the landmark roles.
+				nui.HeaderLayout(c.Key("header"), t, o).Role(ui.RoleGroup)
 				ui.Row(c.Key("content")).Height(160).MinWidth(0).Children(func() {
 					nui.Sidebar(c.Key("menu-sidebar"), t, &collapsed, nui.SidebarOptions{Title: "Header navigation", Description: "Composed with Sidebar", State: &sidebar, Toggle: nui.Set(false), Breakpoint: nui.Set(float32(2000)), NavigationKey: page, ReturnFocus: &opener}, func(c *ui.Context, t nui.Theme, compact bool) {
 						for _, target := range []string{"overview", "settings"} {
@@ -62,7 +63,7 @@ func addLayoutContract(p *componentPage, id string) {
 			} else {
 				nui.FooterLayout(c.Key("footer"), t, nui.FooterOptions{Text: label, UI: styles, Actions: func(c *ui.Context, t nui.Theme) {
 					nui.Button(c, t, "Contract footer action", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { actions++ })
-				}})
+				}}).Role(ui.RoleGroup)
 			}
 		})
 		if id == "header" {

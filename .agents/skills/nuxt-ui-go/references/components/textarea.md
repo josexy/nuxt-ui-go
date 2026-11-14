@@ -128,6 +128,8 @@ FieldGroup rounds the outer corners of Input, Textarea, InputMenu, InputTags, Se
 
 #### Canceling IME composition (excerpt)
 
+MyGo v0.9.0, the pinned dependency, still has this known issue: **if you select text, start an IME composition, and then cancel it, the selected text is lost.** Undo restores it. Headless `ui.Tester` checks reproduce it with Input and Textarea, and will flag the change once MyGo keeps the selection.
+
 Affected inputs: Input, Textarea, InputMenu, InputTags, PinInput in text mode, the Listbox filter field, SelectMenu, the HEX field inside ColorPicker, and CommandPalette. If your app edits important text, test this flow with the IMEs on your target systems.
 
 ## Complete example

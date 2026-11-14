@@ -194,6 +194,8 @@ ReadOnly allows focusing, browsing, and paging but prevents the user from changi
 
 The month and year views use a four-column grid. Arrow keys move by column or row, and PageUp/PageDown move by year or by page of years. Choosing a cell returns to the next view down without changing the date value. This navigation also works in read-only mode.
 
+The day, month, and year views are exposed to assistive technology as grids (`ui.RoleGrid`), as Reka UI's `role="grid"`, named by Label. Rows hold grid cells named by Label and date, and the day view has weekday column headers. The active date is the grid's active descendant, and the chosen dates report selected. With ReadOnly, the grid and its cells report read-only while arrow keys still move the active date. What real screen readers say for this grid, and whether they switch to focus mode on it, has not been verified.
+
 WeekNumbers are computed from the explicit WeekStart. With Sunday, week 1 is the week containing January 1; with any other start day, it is the week containing January 4, so Monday gives ISO week numbers. This differs from Nuxt UI, which derives the week start and week numbers from the locale. Changing the language updates the heading, weekdays, and button names but does not change an explicit week setting.
 
 Month is normalized to the first of the month. When the selected start or end changes from outside, the view follows the valid date; clearing the selection keeps the current view. Changing the number of months keeps the active date visible, and at the end of the year 9999 only the remaining months are shown. Multiple months share one native keyboard focus and wrap to fit narrow containers.
@@ -205,6 +207,8 @@ Dates and ranges are always complete Gregorian dates. There is no discrete multi
 ##### Date and time styles and limits
 
 The date and time inputs share Input's five sizes, five variants, colors, avatar, icons, loading state, disabled and read-only states, and Clearable. A leading icon or leading spinner takes precedence over Avatar. LoadingTrailing controls the spinner position, and an explicit Leading keeps a leading spinner. With Neutral, focus and Highlight use the inverted background color, and Highlight also works with None. Shadow overrides on Root from the theme or the instance are kept, and Style runs last.
+
+Each date or time segment is a stepper for assistive technology, named by the field label and the unit, such as "Due month", with its displayed text as the value. With ReadOnly, every segment reports read-only, so screen readers neither set nor step it; editable segments do not.
 
 Root styles the frame, Editor sets the base style of the segment text, Segment styles placeholders, the focus background, and corner radius, and Leading and Trailing style the accessories. Style's editor is the first focusable segment in the current order and can bind a Handle. It is not a TextInputBase, so text selection APIs do not apply. Placeholder, Password, and MaxLength do not apply to segmented input; placeholder text comes from the language catalog.
 

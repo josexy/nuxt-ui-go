@@ -118,25 +118,27 @@ func (a *State) foundationPage(id string) *componentPage {
 			})
 		})
 	case "main":
+		// Previews nested in the Gallery page opt out of the landmark roles, so
+		// the window keeps at most one main, banner and content information.
 		add("body", "Simple body", "Main lets the body grow inside a bounded parent.", func(c *ui.Context, t nui.Theme) {
 			ui.Column(c).Height(140).FillWidth().Children(func() {
 				nui.Main(c, t, func() {
 					ui.Text(c, "Workspace content")
 					ui.Text(c, "A body can contain native controls and long text.").TextColor(t.Muted)
-				})
+				}).Role(ui.RoleGroup)
 			})
 		})
 		add("shell", "Header, Main and Footer", "The middle region owns scrolling; the header and footer stay visible.", func(c *ui.Context, t nui.Theme) {
 			ui.Column(c).Height(260).FillWidth().Children(func() {
-				nui.HeaderLayout(c, t, nui.HeaderOptions{Title: "Project"})
+				nui.HeaderLayout(c, t, nui.HeaderOptions{Title: "Project"}).Role(ui.RoleGroup)
 				nui.Main(c, t, func() {
 					ui.Scroll(c).Fill().Children(func() {
 						for i := range 12 {
 							ui.Textf(c, "Document section %d", i+1)
 						}
 					})
-				})
-				nui.FooterLayout(c, t, nui.FooterOptions{Text: "All changes saved"})
+				}).Role(ui.RoleGroup)
+				nui.FooterLayout(c, t, nui.FooterOptions{Text: "All changes saved"}).Role(ui.RoleGroup)
 			})
 		})
 		add("sidebar", "Long content beside a sidebar", "This static side panel belongs to this preview, independent of the Gallery directory.", func(c *ui.Context, t nui.Theme) {
@@ -148,7 +150,7 @@ func (a *State) foundationPage(id string) *componentPage {
 							ui.Textf(c, "Long body line %d · 原生布局", i+1)
 						}
 					})
-				})
+				}).Role(ui.RoleGroup)
 			})
 		})
 	case "icon":

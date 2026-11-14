@@ -111,7 +111,7 @@ In compact mode, Tooltip and the side Popover are on by default, as in the nativ
 
 #### Chart › Legends and data selection (excerpt)
 
-Cartesian charts support pointing at the nearest X with the mouse, and Left, Right, Home, End, and Escape; Home and End go to the logical first and last data points. The status text at the bottom and the Tooltip show the raw values, and Tooltip=false hides only the tooltip. TooltipOptions configures settings such as position; the default is TopCenter with a 12 DIP offset and no delay. Pie and donut charts support pointing at slices and arrow keys, and show percentages of the visible total. The donut's center does not respond to slice pointing. Selection on dense data always looks up the raw values.
+Cartesian charts support pointing at the nearest X with the mouse, and Left, Right, Home, End, and Escape; Home and End go to the logical first and last data points. The description line at the bottom and the Tooltip show the raw values, and Tooltip=false hides only the tooltip. TooltipOptions configures settings such as position; the default is TopCenter with a 12 DIP offset and no delay. Pie and donut charts support pointing at slices and arrow keys, and show percentages of the visible total. The donut's center does not respond to slice pointing. Selection on dense data always looks up the raw values.
 
 #### Splitter, HeaderLayout, FooterLayout, and FooterColumns › FooterColumns (excerpt)
 

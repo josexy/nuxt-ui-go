@@ -482,7 +482,9 @@ func Calendar(c *ui.Context, t Theme, value *DateSelection, s *CalendarState, o 
 				calendarPicker(c, t, s, o, config, today, disabled, changeMonth, setView)
 				return
 			}
-			grid := ui.Row(c.Key("grid")).Wrap().AlignItems(ui.Start).Focusable().FocusRing(false).Bind(&s.Handle).Role(ui.RoleTable).Label(o.Label).ReadOnly(o.ReadOnly).InputMethod(false)
+			// A grid, as Reka UI's CalendarGrid: its cells take the arrow keys
+			// and report read-only, which a table's cells do not.
+			grid := ui.Row(c.Key("grid")).Wrap().AlignItems(ui.Start).Focusable().FocusRing(false).Bind(&s.Handle).Role(ui.RoleGrid).Label(o.Label).ReadOnly(o.ReadOnly).InputMethod(false)
 			bindField(c, grid, t)
 			finish(t, ComponentCalendar, GridSlot, grid, PartStyle{Gap: Set(t.spacing(16))}, o.Decoration)
 			hover := ui.Local(grid, "hover-date", func() Date { return Date{} })
@@ -591,7 +593,7 @@ func Calendar(c *ui.Context, t Theme, value *DateSelection, s *CalendarState, o 
 									enabled := dateNavigable(date, o) && !unavailable && (!o.DisableOutsideDays || !outside) && calendarWithinRangeLimit(date, *value, o)
 									chosen := value.Start == Set(date) || o.Range && (value.End == Set(date) || value.Start.Set && value.End.Set && date.Compare(value.Start.Value) >= 0 && date.Compare(value.End.Value) <= 0)
 									between := o.Range && preview.Start.Set && preview.End.Set && date.Compare(preview.Start.Value) >= 0 && date.Compare(preview.End.Value) <= 0
-									cell := ui.Box(c.Key(date)).Size(m.cell, m.cell).Margin(t.spacing(2)).Center().Role(ui.RoleCell).Label(strings.TrimSpace(o.Label + " " + date.String())).Selected(chosen).Disabled(!enabled).OnClick(func() {
+									cell := ui.Box(c.Key(date)).Size(m.cell, m.cell).Margin(t.spacing(2)).Center().Role(ui.RoleCell).Label(strings.TrimSpace(o.Label + " " + date.String())).Selected(chosen).ReadOnly(o.ReadOnly).Disabled(!enabled).OnClick(func() {
 										*hover = Date{}
 										if o.ReadOnly {
 											move(date)

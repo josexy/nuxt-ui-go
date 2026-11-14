@@ -173,6 +173,20 @@ Clearing the sort restores the input order from the latest SetRows, which is als
 
 OnSortChange and OnSelectionChange report sort and selection changes caused by the user; outside model assignments and cleanup by SetRows do not trigger them. Selection notifications return stable IDs sorted as strings. OnActivate returns a row ID on Enter or double-click, and OnChange keeps the native combined notification. These semantics differ from Nuxt UI's select event on row click. List.Selected is an optional active-row index; when it is not bound, OnActivate uses an internal index. Still use IDs when acting on business data.
 
+OnChange fires once for each user change: a header click that sorts (with OnSortChange), a selection change (with OnSelectionChange), and, since MyGo v0.9.0, a finished column move, column resize, or double-click on a column edge that fits the column to its cells. A drag reports nothing until the pointer is released, and a drag that ends with the same order and widths, or a gesture on a Fixed column, reports nothing. Column gestures call neither OnSortChange nor OnSelectionChange, and rebuilding without user input calls no callback. Save the column layout from OnChange:
+
+```go
+nui.Table(c.Key("files"), t, &app.files, columns, nui.TableOptions{
+	Label: "Files",
+	OnChange: func() {
+		app.settings.Columns = app.files.List.Columns
+		app.saveSettings()
+	},
+})
+```
+
+Restore it by assigning the saved `ui.TableLayout` to `List.Columns` before the first build. The internal active row that OnActivate reads follows its record: after sorting, Enter activates the same record even though its row moved. When SetRows removes that record, no row is active and Enter does nothing until the user chooses another row.
+
 Table sets List.Key, Selection, Sort, and Label; do not override these bindings in your app. List.SortBy, Columns, Selected, KeepOffset, FollowEnd, HeaderMenu, CellMenu, and similar fields follow MyGo's rules. List.CellSelect is a native extension, and this wrapper has no RowHeader column. Full cell selection semantics differ from row selection notifications.
 
 ##### Filtering and scope

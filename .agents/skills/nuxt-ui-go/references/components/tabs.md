@@ -19,7 +19,7 @@ Underline widths round from DIPs to whole device pixels and align with the list 
 
 ## Things to know
 
-Empty, missing or disabled selection falls back to the first enabled item without OnChange. An all-disabled list preserves the business ID. Content=false unmounts all panels even with KeepMounted=true. Badges default to SM / Neutral / Outline, with height depending on font metrics. Panels are focusable native groups; full Web tabpanel relationships and sliding indicator animation are not provided.
+Empty, missing or disabled selection falls back to the first enabled item without OnChange. An all-disabled list preserves the business ID. Content=false unmounts all panels even with KeepMounted=true. Badges default to SM / Neutral / Outline, with height depending on font metrics. Panels are focusable tab panels (ui.RoleTabPanel) named after their tab’s Label, and each tab points at its built panel with Controls. Sliding indicator animation is not provided.
 
 ## API
 
@@ -92,7 +92,7 @@ List item IDs must be non-empty and unique, or the component panics. Tabs, Accor
 
 TabItem provides ID, Label, Icon, Avatar, Badge, BadgeOptions, Disabled, Content, and an item UI. Icon takes precedence over Avatar. The default avatar diameter is 16/16/20/20/24 DIP by size; an explicit Avatar.Size takes precedence. Badge is a string, and `"0"` is shown. It defaults to SM / Neutral / Outline and can be overridden with BadgeOptions. The body callbacks of Tabs and Accordion receive a Context and a Theme; Collapsible's body receives a Theme and uses the outer `c`.
 
-Tabs use Left/Right or Up/Down arrows depending on the orientation, wrapping around and skipping disabled items. In horizontal tabs, Left and Right swap in RTL, and keys for the other axis do not change the selection. If the current item is removed or disabled, the selection moves to the first available item. If no item is available, the business ID is kept but no content is shown. If the content that has focus is switched, hidden, or removed, focus returns to a valid tab. The content is a focusable native group, so Tab first enters the panel and then its inner controls; MyGo has no separate tabpanel role yet. In Accordion, ↑↓, Home, and End move between headers, and Tab keeps the normal order of headers and content.
+Tabs use Left/Right or Up/Down arrows depending on the orientation, wrapping around and skipping disabled items. In horizontal tabs, Left and Right swap in RTL, and keys for the other axis do not change the selection. If the current item is removed or disabled, the selection moves to the first available item. If no item is available, the business ID is kept but no content is shown. If the content that has focus is switched, hidden, or removed, focus returns to a valid tab. The content is a focusable tab panel (`ui.RoleTabPanel`) named after its tab's Label, and the tab points at it with `Controls`, as in ARIA's Tabs pattern, so Tab first enters the panel and then its inner controls. Hidden kept-mounted panels are left out of what assistive technology reads, and tabs whose panel is not built (no Content, or Content=false) control nothing. Earlier versions named the panel "{name} content"; an app that overrides the `nuxtui.contentNamed` message keeps its own panel name. In Accordion, ↑↓, Home, and End move between headers, and Tab keeps the normal order of headers and content.
 
 Tabs.OnChange receives the new ID, Collapsible.OnChange receives a bool, and Accordion.OnChange has no parameters; your app reads the ID list. The user-change callbacks do not fire when the app changes the value directly, when Tabs corrects an invalid ID, or when Accordion's single mode trims extra IDs.
 
@@ -154,7 +154,28 @@ The **Orientation** page demonstrates orientation switching.
 
 #### Carousel and Marquee › Stopping animation when hidden (excerpt)
 
-Neither component builds the view on every frame, and neither uses timer goroutines: Carousel autoplay asks for one build per interval, and Marquee moves its content in frames that only repaint, building about once a second. Visibility is what showed in the previous frame within the window and the scroll containers and clips around the component, so content scrolled out of a ScrollArea, clipped away, or kept mounted in a hidden panel (Tabs or Collapsible with KeepMounted) stops by itself, as it does in a minimized or covered window. Set Active=false for content your app hides by other means, such as covering it with another element, or stop building the component.
+Neither component builds the view on every frame, and neither uses timer goroutines: Carousel autoplay asks for one build per interval, and Marquee moves its content in frames that only repaint, building about once a second. Visibility is what showed in the previous frame within the window and the scroll containers and clips around the component, so content scrolled out of a ScrollArea, clipped away, or kept mounted in a hidden panel (Tabs or Collapsible with KeepMounted) stops by itself. While a window is out of sight, MyGo draws no frames for it, so both stand still and continue from where the clock puts them when it shows again. Since MyGo v0.9.0 that covers a hidden, minimized, other-Space, or fully covered window on macOS and a minimized window on Windows and on Linux under X11. A window covered by other windows on Windows or Linux, or any window under Wayland, keeps drawing, and Marquee keeps moving there. Set Active=false for content your app hides by other means, such as covering it with another element, or stop building the component.
+
+### Inputs, selection, and fields
+
+#### State, themes, and events › Focus and callbacks (excerpt)
+
+Since MyGo v0.9.0, focus moved by the keyboard or by a component scrolls the scroll containers around the newly focused control as little as needed to show it, as the web's `element.focus()` does. This covers roving focus in Tabs and menus, Form focusing its first invalid field, and focus returning to a trigger when Modal or DropdownMenu closes. A target that is already fully visible does not scroll. A control that a component keeps focused across builds does not undo the user's scrolling, and a pointer press focuses a control where it is without scrolling. To move focus from app code without scrolling, pass `ui.FocusOptions` to the element's Focus:
+
+```go
+cell := ui.Box(c.Key(id)).Focusable()
+if app.restoreFocus == id {
+	cell.Focus(ui.FocusOptions{PreventScroll: true})
+}
+```
+
+### Compatibility and known limitations
+
+#### Feature scope › Layout and navigation (excerpt)
+
+| Area | Current behavior and limits |
+| --- | --- |
+| Tabs | Panels are tab panels named after their tab and linked from it with `Controls`. Real screen-reader output for this relation has not been verified |
 
 ## Complete example
 

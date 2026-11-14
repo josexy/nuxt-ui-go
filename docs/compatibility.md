@@ -22,7 +22,7 @@ Check native file selection on each target system: cancellation, multiple select
 
 ## Canceling IME composition
 
-The current MyGo dependency has a known issue: **if you select text, start an IME composition, and then cancel it, the selected text may be lost.** Undo restores it.
+MyGo v0.9.0, the pinned dependency, still has this known issue: **if you select text, start an IME composition, and then cancel it, the selected text is lost.** Undo restores it. Headless `ui.Tester` checks reproduce it with Input and Textarea, and will flag the change once MyGo keeps the selection.
 
 Affected inputs: Input, Textarea, InputMenu, InputTags, PinInput in text mode, the Listbox filter field, SelectMenu, the HEX field inside ColorPicker, and CommandPalette. If your app edits important text, test this flow with the IMEs on your target systems.
 
@@ -59,14 +59,20 @@ Affected inputs: Input, Textarea, InputMenu, InputTags, PinInput in text mode, t
 | Carousel / Splitter | Carousel buttons, keyboard, and autoplay can loop, but dragging still stops at the ends. Active only gates autoplay. No full Embla plugin set or ARIA tablist. Splitter splits into exactly two panels |
 | NavigationMenu / Sidebar | Icon navigation, tooltips, child popovers, resizing, and switching to an overlay based on the window width in DIP. The app implements routing and persistence |
 | Layout switching | When Sidebar crosses a breakpoint, its controls are rebuilt but the app model is kept. If the content being edited is removed, focus returns to an available entry point. Local scroll position and selection inside controls are not carried over |
+| Main / Header / Footer landmarks | Main, HeaderLayout, and FooterLayout are the main, banner, and content-information landmarks, as Nuxt UI's `<main>`, `<header>`, and `<footer>`. A window should have at most one of each, so opt nested instances out with `.Role(ui.RoleGroup)` on the returned element. NavigationMenu and Sidebar have no navigation or complementary landmark role yet |
 | Header / Footer / FooterColumns | Native header and footer areas use builders. They do not include every web slot, routing, or sticky positioning. Combine the header menu from components such as Sidebar. FooterColumns supports Active, per-item cancellable navigation, and styles; other NavigationItem fields have their own applicability notes |
+| Tabs | Panels are tab panels named after their tab and linked from it with `Controls`. Real screen-reader output for this relation has not been verified |
 | Other Nuxt UI features | No web mega menu, CSS breakpoints, DOM slots, or NuxtLink compatibility layer. No full Page, Dashboard, AI Chat, Editor, Content, color mode, or LocaleSelect components; call the theme and language APIs directly instead |
 
 For each component's options, defaults, keyboard behavior, and style parts, the [component guide](README.md) is the reference.
 
 ## Accessibility and motion
 
-Components use MyGo's focus, keyboard, and native assistive technology semantics, and they respect the system theme and reduced motion preferences. The full screen reader experience has not been verified. Pay particular attention to these areas:
+Components use MyGo's focus, keyboard, and native assistive technology semantics, and they respect the system theme and reduced motion preferences. The full screen reader experience has not been verified.
+
+Since MyGo v0.9.0, `ui.RoleStatus` is a polite, atomic live region. The library's own progress, error, empty, and loading messages keep stable identities: such a status is read once when its text changes and is silent when it first appears, clears, or rebuilds unchanged. Alert and Banner take their identity from the key the app gives them. CommandPalette and FileUpload also announce their progress and error messages once when they appear. Chart announces keyboard selection once and never reads pointer hover. Alert and Banner read their new title and description once when either changes. These rules are checked headlessly with `Tester.UseScreenReader`; what VoiceOver, NVDA, Narrator, and Orca actually say has not been verified.
+
+Pay particular attention to these areas:
 
 | Area | Current limitation |
 | --- | --- |
@@ -75,5 +81,7 @@ Components use MyGo's focus, keyboard, and native assistive technology semantics
 | InputRating | Uses a single-focus slider role, which differs from the radio semantics used on the web |
 | Marquee | How repeated content is presented to screen readers still needs verification |
 | Tree | Provides Tree/TreeItem roles, levels, selection, and active item semantics. The current virtual list lacks the assistive technology expand/collapse actions built into `ui.Outline` |
+
+Programmatic focus scrolls the newly focused control into view as little as needed, as described in [Focus and callbacks](inputs.md#focus-and-callbacks). `ui.Element.Focus` accepts `ui.FocusOptions{PreventScroll: true}`, but MyGo v0.9.0's `ui.Handle.Focus` takes no options, so focus moved through a persistent Handle, such as a Modal's or Sidebar's ReturnFocus, always reveals a target that is not fully visible.
 
 When you supply custom content, keep the control names, focus, and interaction semantics intact. Check the contrast of custom colors separately. Mouse, keyboard, and Canvas WASM preview tests cover only those interactions; they do not replace screen reader testing on the target system.

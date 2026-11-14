@@ -140,8 +140,9 @@ func TestTabsPanelFocusControlledSelectionAndRemoval(t *testing.T) {
 	}, 500, 300)
 	click(t, tt, "First")
 	tt.Key(0, ui.KeyTab)
-	if !tt.Focused("First content") {
-		t.Fatal("Tab did not reach the content panel")
+	// The panel is named after its tab, so find it by role, not by name alone.
+	if panel, ok := tt.AccessByRole(ui.RoleTabPanel, "First"); !ok || !panel.Focused {
+		t.Fatalf("Tab did not reach the content panel: %+v", panel)
 	}
 	tt.Key(0, ui.KeyTab)
 	if !tt.Focused("Draft") {
@@ -245,7 +246,11 @@ func TestTabsVerticalCenterRTLAndRetainedDraftSelection(t *testing.T) {
 			}
 		}}).Width(440)
 	}, 500, 360)
-	list, panel := bounds(t, tt, "List"), bounds(t, tt, "First content")
+	first, ok := tt.AccessByRole(ui.RoleTabPanel, "First")
+	if !ok {
+		t.Fatal("missing the First tab panel")
+	}
+	list, panel := bounds(t, tt, "List"), first.Bounds
 	if list.Y+list.H/2 != panel.Y+panel.H/2 {
 		t.Fatalf("vertical regions not centered: list=%v panel=%v", list, panel)
 	}

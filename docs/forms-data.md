@@ -164,7 +164,7 @@ InputRating binds an `*int`. Max defaults to 5, and 0 means not rated. Only whol
 | Space | Sets an empty rating to 1. With Clearable, resets the current rating to 0 |
 | Enter | Not handled |
 
-Arrow keys never lower the rating from 1 to 0; clearing requires Clearable. The keyboard focus ring is on the current star, or on the first star when there is no rating. A read-only rating can still receive focus with Tab, but ignores keys that would change it.
+Arrow keys never lower the rating from 1 to 0; clearing requires Clearable. The keyboard focus ring is on the current star, or on the first star when there is no rating. A read-only rating can still receive focus with Tab, but ignores keys that would change it. Assistive technology sees the rating as a slider with its value, reported read-only while ReadOnly is set, so screen readers neither set nor step it.
 
 Stars are 12/16/20/24/28 DIP for sizes XS to XL, 2 DIP apart, and the component is as wide as its content. When interactive, the hovered star scales to 1.1×. With Hoverable on, hovering only previews the rating; the preview stays while the pointer crosses gaps between stars and is canceled when the pointer leaves or the rating is cleared. When FormField has an error, filled stars and the focus ring use the Error color.
 
@@ -205,6 +205,8 @@ Size and Color default to MD and Primary. Instance options take precedence over 
 Filter defaults to false. When enabled, configure the search input through FilterInput. SearchTerm takes a persistent string pointer; when unset, State.Query is used. FilterFields defaults to matching label only and also supports description, value/id, and group; an explicit empty list matches nothing for a non-empty query. Filtering ignores case and combining diacritical marks. Within each run of options between groups and structural rows, results are ordered by exact match, then prefix match, then substring match. Full locale collation rules are not implemented.
 
 With the filter field hidden, a retained query still applies; IgnoreFilter skips local filtering. Loading replaces the options with an icon and pauses list interaction, while the filter field stays editable. LoadingIcon overrides the icon, and the spinner stops with reduced motion.
+
+The empty message and the loading indicator are polite status regions with stable identities, as are the empty messages of Select, InputMenu, SelectMenu, and filtered DropdownMenu and ContextMenu, and SelectMenu's loading and error rows. A status is not read when it first appears. If its text changes while it stays shown, for example from "No data" to "No matching data" as the user types, the new text is read once; rebuilding without a change reads nothing.
 
 | Orientation or key | Behavior |
 | --- | --- |
@@ -314,6 +316,8 @@ ReadOnly allows focusing, browsing, and paging but prevents the user from changi
 
 The month and year views use a four-column grid. Arrow keys move by column or row, and PageUp/PageDown move by year or by page of years. Choosing a cell returns to the next view down without changing the date value. This navigation also works in read-only mode.
 
+The day, month, and year views are exposed to assistive technology as grids (`ui.RoleGrid`), as Reka UI's `role="grid"`, named by Label. Rows hold grid cells named by Label and date, and the day view has weekday column headers. The active date is the grid's active descendant, and the chosen dates report selected. With ReadOnly, the grid and its cells report read-only while arrow keys still move the active date. What real screen readers say for this grid, and whether they switch to focus mode on it, has not been verified.
+
 WeekNumbers are computed from the explicit WeekStart. With Sunday, week 1 is the week containing January 1; with any other start day, it is the week containing January 4, so Monday gives ISO week numbers. This differs from Nuxt UI, which derives the week start and week numbers from the locale. Changing the language updates the heading, weekdays, and button names but does not change an explicit week setting.
 
 Month is normalized to the first of the month. When the selected start or end changes from outside, the view follows the valid date; clearing the selection keeps the current view. Changing the number of months keeps the active date visible, and at the end of the year 9999 only the remaining months are shown. Multiple months share one native keyboard focus and wrap to fit narrow containers.
@@ -365,6 +369,8 @@ The Text and paste formats are `HH` and `HH:MM[:SS]`, with ` AM` or ` PM` append
 ### Date and time styles and limits
 
 The date and time inputs share Input's five sizes, five variants, colors, avatar, icons, loading state, disabled and read-only states, and Clearable. A leading icon or leading spinner takes precedence over Avatar. LoadingTrailing controls the spinner position, and an explicit Leading keeps a leading spinner. With Neutral, focus and Highlight use the inverted background color, and Highlight also works with None. Shadow overrides on Root from the theme or the instance are kept, and Style runs last.
+
+Each date or time segment is a stepper for assistive technology, named by the field label and the unit, such as "Due month", with its displayed text as the value. With ReadOnly, every segment reports read-only, so screen readers neither set nor step it; editable segments do not.
 
 Root styles the frame, Editor sets the base style of the segment text, Segment styles placeholders, the focus background, and corner radius, and Leading and Trailing style the accessories. Style's editor is the first focusable segment in the current order and can bind a Handle. It is not a TextInputBase, so text selection APIs do not apply. Placeholder, Password, and MaxLength do not apply to segmented input; placeholder text comes from the language catalog.
 
@@ -443,6 +449,20 @@ Clearing the sort restores the input order from the latest SetRows, which is als
 
 OnSortChange and OnSelectionChange report sort and selection changes caused by the user; outside model assignments and cleanup by SetRows do not trigger them. Selection notifications return stable IDs sorted as strings. OnActivate returns a row ID on Enter or double-click, and OnChange keeps the native combined notification. These semantics differ from Nuxt UI's select event on row click. List.Selected is an optional active-row index; when it is not bound, OnActivate uses an internal index. Still use IDs when acting on business data.
 
+OnChange fires once for each user change: a header click that sorts (with OnSortChange), a selection change (with OnSelectionChange), and, since MyGo v0.9.0, a finished column move, column resize, or double-click on a column edge that fits the column to its cells. A drag reports nothing until the pointer is released, and a drag that ends with the same order and widths, or a gesture on a Fixed column, reports nothing. Column gestures call neither OnSortChange nor OnSelectionChange, and rebuilding without user input calls no callback. Save the column layout from OnChange:
+
+```go
+nui.Table(c.Key("files"), t, &app.files, columns, nui.TableOptions{
+	Label: "Files",
+	OnChange: func() {
+		app.settings.Columns = app.files.List.Columns
+		app.saveSettings()
+	},
+})
+```
+
+Restore it by assigning the saved `ui.TableLayout` to `List.Columns` before the first build. The internal active row that OnActivate reads follows its record: after sorting, Enter activates the same record even though its row moved. When SetRows removes that record, no row is active and Enter does nothing until the user chooses another row.
+
 Table sets List.Key, Selection, Sort, and Label; do not override these bindings in your app. List.SortBy, Columns, Selected, KeepOffset, FollowEnd, HeaderMenu, CellMenu, and similar fields follow MyGo's rules. List.CellSelect is a native extension, and this wrapper has no RowHeader column. Full cell selection semantics differ from row selection notifications.
 
 ### Filtering and scope
@@ -483,7 +503,7 @@ A node with Lazy=true and Children=nil calls `OnLoad(id, ticket)` once when it i
 
 A failed load shows Retry. Collapsing the node or an ancestor with SetExpanded, replacing the data, retrying, or calling Close all invalidate the old ticket. A true result from CompleteLoad only means the result was accepted; it may still contain an error.
 
-When SetNodes replaces the data, it removes selected and expanded IDs that no longer exist. An empty root list shows EmptyText.
+When SetNodes replaces the data, it removes selected and expanded IDs that no longer exist. An empty root list shows EmptyText as a status, which assistive technology can reach but which is not read when it first appears. A node's "Loading…" text while it loads is a status with a stable identity too.
 
 ### Migrating from the old Outline wrapper
 

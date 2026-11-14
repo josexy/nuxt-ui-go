@@ -105,6 +105,14 @@ func (s *TableState[T]) SetRows(rows []T, key func(T) string) {
 			checkID(s.ids, id, "Table rows")
 		}
 	}
+	// The active row OnActivate reads follows its record through the list's
+	// key, but MyGo leaves a choice whose item the app took out of Selection
+	// to the app, as removing the row's ID below does. A record that left
+	// the rows is no longer active, rather than whichever record now sits at
+	// its index. s.rows still holds the shown order the index refers to.
+	if s.List.Selected == &s.active && s.active >= 0 && s.active < len(s.rows) && !s.ids[s.rows[s.active].id] {
+		s.active = -1
+	}
 	// No callbacks or validation remain: it is now safe to overwrite records.
 	if n == 0 {
 		s.rows = nil

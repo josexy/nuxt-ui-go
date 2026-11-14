@@ -45,6 +45,17 @@ An open Select panel inherits the disabled state of its trigger and ancestors; o
 
 MyGo processes queued input with the configuration from the previous build. `Changed` and `Submitted` report the input notifications received in the current build. `OnClick`, `OnChange`, and `OnSubmit` run after the build. Put business logic in these callbacks; `Build` and `Style` should only handle the current UI.
 
+Since MyGo v0.9.0, focus moved by the keyboard or by a component scrolls the scroll containers around the newly focused control as little as needed to show it, as the web's `element.focus()` does. This covers roving focus in Tabs and menus, Form focusing its first invalid field, and focus returning to a trigger when Modal or DropdownMenu closes. A target that is already fully visible does not scroll. A control that a component keeps focused across builds does not undo the user's scrolling, and a pointer press focuses a control where it is without scrolling. To move focus from app code without scrolling, pass `ui.FocusOptions` to the element's Focus:
+
+```go
+cell := ui.Box(c.Key(id)).Focusable()
+if app.restoreFocus == id {
+	cell.Focus(ui.FocusOptions{PreventScroll: true})
+}
+```
+
+`ui.Handle.Focus` takes no options in MyGo v0.9.0; see [Compatibility](compatibility.md#accessibility-and-motion).
+
 ## Input and Textarea
 
 ### Bind a string

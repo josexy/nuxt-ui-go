@@ -229,6 +229,12 @@ Menus are non-modal: an outside click closes the menu and still reaches its targ
 | --- | --- |
 | DropdownMenu / ContextMenu | Size defaults to MD and Loop to false. Filter and SearchTerm configure filtering; MenuItem.Content defines a submenu. Close=false keeps the menu open after a leaf item is selected. OnCheckedChange reports value changes and OnOpenChange reports open/close changes |
 
+### Forms, dates, and data components
+
+#### Listbox, SelectMenu, and async search › Listbox: a selectable list shown inline (excerpt)
+
+The empty message and the loading indicator are polite status regions with stable identities, as are the empty messages of Select, InputMenu, SelectMenu, and filtered DropdownMenu and ContextMenu, and SelectMenu's loading and error rows. A status is not read when it first appears. If its text changes while it stays shown, for example from "No data" to "No matching data" as the user types, the new text is read once; rebuilding without a change reads nothing.
+
 ### Inputs, selection, and fields
 
 #### Popover and ScrollArea › Popover: show content next to a control (excerpt)

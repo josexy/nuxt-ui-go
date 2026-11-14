@@ -323,17 +323,18 @@ func (a *State) advancedPage(id string) *componentPage {
 							o.Actions = action
 							o.Leading = func(c *ui.Context, t nui.Theme) { ui.Icon(c, lucide.FolderOpen()).Size(24, 24) }
 						}
-						nui.HeaderLayout(c, t, o)
-						nui.Main(c, t, func() { ui.Text(c, "Workspace body").Padding(20) }).MinHeight(100)
+						// Nested previews opt out of the landmark roles.
+						nui.HeaderLayout(c, t, o).Role(ui.RoleGroup)
+						nui.Main(c, t, func() { ui.Text(c, "Workspace body").Padding(20) }).MinHeight(100).Role(ui.RoleGroup)
 					case "footer":
 						nui.Main(c, t, func() {
 							ui.Text(c, "Review local changes before sharing. Long body content remains above the status and action area.").Padding(20)
-						}).MinHeight(100)
+						}).MinHeight(100).Role(ui.RoleGroup)
 						o := nui.FooterOptions{Text: "Local workspace · Ready"}
 						if kind != "simple" {
 							o.Actions = action
 						}
-						nui.FooterLayout(c, t, o)
+						nui.FooterLayout(c, t, o).Role(ui.RoleGroup)
 					case "footer-columns":
 						nui.FooterColumns(c, t, []nui.FooterColumn{{ID: "workspace", Title: "Workspace", Items: []nui.NavigationItem{{ID: "activity", Label: "Activity overview"}, {ID: "attachments", Label: "Attachment rules"}}}, {ID: "guide", Title: "Component guide", Items: []nui.NavigationItem{{ID: "commands", Label: "Command palette"}, {ID: "layout", Label: "Layout components"}, {ID: "disabled", Label: "Unavailable", Disabled: true}}}}, nui.FooterColumnsOptions{MinColumnWidth: 140, OnNavigate: func(id string) { clicks++; result = "Opened " + id }})
 					}

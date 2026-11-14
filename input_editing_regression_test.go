@@ -283,3 +283,33 @@ func TestInputRatingKeyboardDirection(t *testing.T) {
 		})
 	}
 }
+
+// Re-verifies the selected-text IME cancellation known issue against the
+// pinned MyGo (v0.9.0): docs/compatibility.md describes what this asserts.
+// When MyGo keeps the selection, this fails; update the docs with it.
+func TestIMECancelOverSelectionProbe(t *testing.T) {
+	for _, kind := range []string{"Input", "Textarea"} {
+		t.Run(kind, func(t *testing.T) {
+			value := "Draft"
+			tt := ui.NewTester(func(c *ui.Context) {
+				th := nui.App(c, nui.AppConfig{})
+				if kind == "Input" {
+					nui.Input(c.Key("field"), th, &value, nui.InputOptions{Label: "Field"})
+				} else {
+					nui.Textarea(c.Key("field"), th, &value, nui.TextareaOptions{Label: "Field"})
+				}
+			}, 400, 200)
+			click(t, tt, "Field")
+			tt.Key(ui.Ctrl, ui.KeyA)
+			tt.Compose("x", 1)
+			tt.Compose("", 0)
+			if value != "" {
+				t.Fatalf("canceling a composition over a selection now leaves %q: the known issue is gone, update docs/compatibility.md", value)
+			}
+			tt.Command("undo")
+			if value != "Draft" {
+				t.Fatalf("undo restored %q", value)
+			}
+		})
+	}
+}

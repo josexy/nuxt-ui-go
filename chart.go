@@ -179,7 +179,7 @@ func Chart(c *ui.Context, t Theme, s *ChartState, o ChartOptions) ui.Element {
 				if text == "" {
 					text = message(c, "noChartData")
 				}
-				finish(t, ComponentChart, EmptySlot, ui.Text(c, text).Absolute().Left(0).Top(8).Role(ui.RoleStatus), PartStyle{Foreground: Set(t.Muted)}, o.Decoration)
+				finish(t, ComponentChart, EmptySlot, statusText(c, "empty", text).Absolute().Left(0).Top(8), PartStyle{Foreground: Set(t.Muted)}, o.Decoration)
 			}
 			if description != "" && valueOr(o.Tooltip, true) {
 				tooltip := TooltipOptions{}
@@ -274,7 +274,9 @@ func Chart(c *ui.Context, t Theme, s *ChartState, o ChartOptions) ui.Element {
 			finish(t, ComponentChart, XAxisSlot, ui.Text(c.Key("x-title"), o.XLabel).AlignSelf(ui.Center), PartStyle{Foreground: Set(t.Muted), FontSize: Set(t.text(12))}, o.Decoration)
 		}
 		// Reserve a stable line so pointer selection does not resize the chart or legend.
-		finish(t, ComponentChart, Description, ui.Text(c, description).MinHeight(t.text(16)).Role(ui.RoleStatus), PartStyle{Foreground: Set(t.Text), FontSize: Set(t.text(12))}, o.Decoration)
+		// Plain text, not a live status: keyboard moves are announced once where
+		// they happen, and pointer hover is not read aloud.
+		finish(t, ComponentChart, Description, ui.Text(c, description).MinHeight(t.text(16)), PartStyle{Foreground: Set(t.Text), FontSize: Set(t.text(12))}, o.Decoration)
 		legendCount := len(s.series)
 		if chartRadial(o.Kind) {
 			legendCount = len(s.slices)

@@ -17,7 +17,7 @@ Build an immutable index with NewCommandIndex and assign it to persistent Comman
 
 ## Things to know
 
-This native command launcher closes after execution by default and always virtualizes results. Embedded Vue multiple selection and routing props are not provided. Built-in search covers label, description, suffix and keywords, with up to 200 results. FilterFields/IgnoreFilter affect only built-in search; custom Search handles filtering. SearchDelay delays query edits while canceling old requests immediately. Call Refresh after replacing a custom Search callback, and Close on unmount or window close.
+This native command launcher closes after execution by default and always virtualizes results. Embedded Vue multiple selection and routing props are not provided. Built-in search covers label, description, suffix and keywords, with up to 200 results. FilterFields/IgnoreFilter affect only built-in search; custom Search handles filtering. SearchDelay delays query edits while canceling old requests immediately. Call Refresh after replacing a custom Search callback, and Close on unmount or window close. The searching message and errors are polite statuses, read once when they appear and again when their text changes; clearing or an unchanged rebuild reads nothing.
 
 ## API
 
@@ -240,6 +240,8 @@ To use your own search service, provide `Search(ctx, ticket, query, parent)`. Yo
 
 This component is a native modal command launcher. It does not provide Vue's embedded multi-select model, route fields, or Fuse-specific options.
 
+The searching message and a result error are polite status regions with stable identities. Each is read once when it appears and again only when its text changes; clearing it, and rebuilding without a change, read nothing. The empty-results message is a status too, but it is not read when it first appears.
+
 The query field is affected by the IME cancel issue, and the full screen reader experience has not been verified.
 
 #### State and part index (excerpt)
@@ -259,6 +261,10 @@ Select, InputMenu, SelectMenu, Listbox, menus, and CommandPalette share the same
 #### Canceling IME composition (excerpt)
 
 Affected inputs: Input, Textarea, InputMenu, InputTags, PinInput in text mode, the Listbox filter field, SelectMenu, the HEX field inside ColorPicker, and CommandPalette. If your app edits important text, test this flow with the IMEs on your target systems.
+
+#### Accessibility and motion (excerpt)
+
+Since MyGo v0.9.0, `ui.RoleStatus` is a polite, atomic live region. The library's own progress, error, empty, and loading messages keep stable identities: such a status is read once when its text changes and is silent when it first appears, clears, or rebuilds unchanged. Alert and Banner take their identity from the key the app gives them. CommandPalette and FileUpload also announce their progress and error messages once when they appear. Chart announces keyboard selection once and never reads pointer hover. Alert and Banner read their new title and description once when either changes. These rules are checked headlessly with `Tester.UseScreenReader`; what VoiceOver, NVDA, Narrator, and Orca actually say has not been verified.
 
 ## Complete example
 

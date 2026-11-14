@@ -229,7 +229,24 @@ Menus are non-modal: an outside click closes the menu and still reaches its targ
 | --- | --- |
 | DropdownMenu / ContextMenu | Size defaults to MD and Loop to false. Filter and SearchTerm configure filtering; MenuItem.Content defines a submenu. Close=false keeps the menu open after a leaf item is selected. OnCheckedChange reports value changes and OnOpenChange reports open/close changes |
 
+### Forms, dates, and data components
+
+#### Listbox, SelectMenu, and async search › Listbox: a selectable list shown inline (excerpt)
+
+The empty message and the loading indicator are polite status regions with stable identities, as are the empty messages of Select, InputMenu, SelectMenu, and filtered DropdownMenu and ContextMenu, and SelectMenu's loading and error rows. A status is not read when it first appears. If its text changes while it stays shown, for example from "No data" to "No matching data" as the user types, the new text is read once; rebuilding without a change reads nothing.
+
 ### Inputs, selection, and fields
+
+#### State, themes, and events › Focus and callbacks (excerpt)
+
+Since MyGo v0.9.0, focus moved by the keyboard or by a component scrolls the scroll containers around the newly focused control as little as needed to show it, as the web's `element.focus()` does. This covers roving focus in Tabs and menus, Form focusing its first invalid field, and focus returning to a trigger when Modal or DropdownMenu closes. A target that is already fully visible does not scroll. A control that a component keeps focused across builds does not undo the user's scrolling, and a pointer press focuses a control where it is without scrolling. To move focus from app code without scrolling, pass `ui.FocusOptions` to the element's Focus:
+
+```go
+cell := ui.Box(c.Key(id)).Focusable()
+if app.restoreFocus == id {
+	cell.Focus(ui.FocusOptions{PreventScroll: true})
+}
+```
 
 #### Popover and ScrollArea › Popover: show content next to a control (excerpt)
 

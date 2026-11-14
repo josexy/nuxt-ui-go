@@ -43,7 +43,9 @@ func listboxLoading(c *ui.Context, t Theme, size Size, o ListboxOptions) {
 	m := optionRecipe(t, size)
 	style := PartStyle{Foreground: Set(t.Muted), PaddingY: Set(t.spacing([5]float32{12, 16, 24, 28, 32}[sizeIndex(size)]))}
 	style = mergeStyle(mergeStyle(style, t.components[ComponentListbox].UI[LoadingSlot]), o.UI[LoadingSlot])
-	root := ui.Column(c).FillWidth().Center().Shrink(0).Role(ui.RoleStatus).Label(message(c, "loading"))
+	// A fixed key keeps the status's identity while rows or an empty message
+	// come and go beside it.
+	root := ui.Column(c.Key("loading")).FillWidth().Center().Shrink(0).Role(ui.RoleStatus).Label(message(c, "loading"))
 	decorated(LoadingSlot, root, Styles{LoadingSlot: style}, o.Style)
 	root.Children(func() {
 		icon := o.LoadingIcon

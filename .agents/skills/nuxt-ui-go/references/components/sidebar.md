@@ -278,6 +278,10 @@ Clicking an interactive UploadArea, or pressing Enter or Space on it, opens the 
 | --- | --- |
 | NavigationMenu / Sidebar | Icon navigation, tooltips, child popovers, resizing, and switching to an overlay based on the window width in DIP. The app implements routing and persistence |
 
+#### Accessibility and motion (excerpt)
+
+Programmatic focus scrolls the newly focused control into view as little as needed, as described in Focus and callbacks. `ui.Element.Focus` accepts `ui.FocusOptions{PreventScroll: true}`, but MyGo v0.9.0's `ui.Handle.Focus` takes no options, so focus moved through a persistent Handle, such as a Modal's or Sidebar's ReturnFocus, always reveals a target that is not fully visible.
+
 ## Complete example
 
 A runnable program. App state lives in `example`, outside the view, and the view only builds UI.

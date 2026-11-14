@@ -165,6 +165,10 @@ Single and multiple Select both inherit Color, Variant, Size, and UI from Compon
 
 ### Forms, dates, and data components
 
+#### Listbox, SelectMenu, and async search › Listbox: a selectable list shown inline (excerpt)
+
+The empty message and the loading indicator are polite status regions with stable identities, as are the empty messages of Select, InputMenu, SelectMenu, and filtered DropdownMenu and ContextMenu, and SelectMenu's loading and error rows. A status is not read when it first appears. If its text changes while it stays shown, for example from "No data" to "No matching data" as the user types, the new text is read once; rebuilding without a change reads nothing.
+
 #### Calendar, InputDate, and InputTime › Calendar: pick a date by clicking (excerpt)
 
 Dates and ranges are always complete Gregorian dates. There is no discrete multi-date model and no separate whole-month or whole-year value model. The month and year navigation views do not implement Nuxt UI's `type="month"` or `type="year"`; manage those values with app controls such as Select or InputNumber. Other calendars, time zones, and browser DOM slots are outside this native model.

@@ -181,7 +181,7 @@ func Tree(c *ui.Context, t Theme, s *TreeState, o TreeOptions) ui.Element {
 			if text == "" {
 				text = emptyMessage(c, "noData", "noItems")
 			}
-			finish(t, ComponentTree, EmptySlot, ui.Text(c, text).Padding(12).Role(ui.RoleStatus), PartStyle{Foreground: Set(t.Muted)}, o.Decoration)
+			finish(t, ComponentTree, EmptySlot, statusText(c, "empty", text).Padding(12), PartStyle{Foreground: Set(t.Muted)}, o.Decoration)
 		}
 		// Interaction belongs to Tree. List supplies measured virtualization,
 		// stable row identities, scroll anchoring and persistent focus only.
@@ -370,7 +370,7 @@ func Tree(c *ui.Context, t Theme, s *TreeState, o TreeOptions) ui.Element {
 						finishTreeItem(t, Label, ui.Text(r.Context.Key("label"), n.node.Label).SingleLine().Grow(1).MinWidth(0), PartStyle{}, o.Decoration, n.node.Decoration)
 					}
 					if n.loading {
-						ui.Text(r.Context, message(c, "loading")).FontSize(t.text(12)).Role(ui.RoleStatus)
+						statusText(r.Context, "status-loading", message(c, "loading")).FontSize(t.text(12))
 					}
 					if n.err != "" {
 						Button(r.Context.Key("retry"), t, message(c, "retry"), ButtonOptions{AccessibleLabel: namedMessage(c, "retryNamed", n.node.Label), Variant: Ghost, Size: XS}).Description(n.err).OnClick(func() { s.Retry(id) })

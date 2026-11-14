@@ -110,6 +110,9 @@ func Tabs(c *ui.Context, t Theme, value *string, items []TabItem, o TabsOptions)
 		root.Row().AlignItems(ui.Center)
 	}
 	finish(t, ComponentTabs, Root, root, PartStyle{Gap: Set(t.spacing(8)), Font: Set(t.Font), FontSize: Set(t.text(t.FontSize)), Foreground: Set(t.Text)}, o.Decoration)
+	// This build's triggers, which point at the panels built after them.
+	// Elements expire with the build, so the map never leaves this call.
+	triggers := make(map[string]ui.Element, len(items))
 	root.Children(func() {
 		parts := ui.TabsBase(c, &index, len(enabled))
 		list := parts.List.MinWidth(0).Label(o.Label)
@@ -175,6 +178,7 @@ func Tabs(c *ui.Context, t Theme, value *string, items []TabItem, o TabsOptions)
 				}
 				active := index == slices.Index(enabled, it.ID) && !it.Disabled
 				trigger.Label(it.Label).MinWidth(0).AlignItems(ui.Center).FocusRing(true).Bind(memory.triggers[it.ID])
+				triggers[it.ID] = trigger
 				background := ui.Transparent
 				foreground := t.Muted
 				indicatorColor := t.color(config.Color)
@@ -267,7 +271,7 @@ func Tabs(c *ui.Context, t Theme, value *string, items []TabItem, o TabsOptions)
 			if !valueOr(o.Content, true) || it.Content == nil || (!active && !o.KeepMounted) {
 				continue
 			}
-			body := ui.Column(c.Key("content:" + it.ID)).MinWidth(0).Role(ui.RoleGroup).Label(namedMessage(c, "contentNamed", it.Label)).Focusable().FocusRing(true).Hidden(!active).Bind(memory.bodies[it.ID])
+			body := ui.Column(c.Key("content:" + it.ID)).MinWidth(0).Role(ui.RoleTabPanel).Label(tabPanelName(c, it.Label)).Focusable().FocusRing(true).Hidden(!active).Bind(memory.bodies[it.ID])
 			if o.Vertical {
 				body.Grow(1)
 			} else {
@@ -277,6 +281,7 @@ func Tabs(c *ui.Context, t Theme, value *string, items []TabItem, o TabsOptions)
 			decoration.UI = mergeStyles(o.UI, it.UI)
 			finish(t, ComponentTabs, Body, body, PartStyle{Gap: Set(t.spacing(12)), Radius: Set(t.radius(6))}, decoration)
 			body.Children(func() { it.Content(c, t) })
+			triggers[it.ID].Controls(body)
 		}
 	})
 	if restore && len(enabled) > 0 {
