@@ -523,6 +523,7 @@ func FileUpload(c *ui.Context, t Theme, s *FileUploadState, o FileUploadOptions)
 			zone.AlignItems(ui.Start)
 		}
 		zoneStyle := mergeStyle(mergeStyle(base, t.components[ComponentFileUpload].UI[Body]), o.UI[Body])
+		t.fadeColors(c, zone)
 		if w := zoneStyle.BorderWidth.Value; w > 0 {
 			zone.BorderWidth(w).BorderColor(zoneStyle.BorderColor.Value)
 			if o.Variant == UploadArea && valueOr(o.Dropzone, true) {

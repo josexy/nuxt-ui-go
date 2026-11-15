@@ -8,12 +8,12 @@
       "en": "Apply a window theme and share it with its components."
     },
     "guide": {
-      "zh": "### 基本用法\n\n在视图函数开头调用 `nui.App(c, config)`，再把返回的主题传给按钮、卡片等组件。`config` 保存明暗模式和色板，应在创建窗口时初始化。页面中的完整示例包含窗口创建和语言设置。\n\n### 在预览中试一试\n\n1. 修改按钮文字和颜色，观察卡片中的按钮。\n2. 切换页面右上角的明暗模式，查看同一组组件的配色。",
-      "en": "### Basic usage\n\nCall `nui.App(c, config)` at the start of the view and pass its theme to buttons, cards and other components. Initialize `config` when creating the window to keep appearance and palette choices. The complete example includes window and language setup.\n\n### Try the preview\n\n1. Change the button text and color inside the card.\n2. Switch the site appearance to compare light and dark colors."
+      "zh": "### 基本用法\n\n在视图函数开头调用 `nui.App(c, config)`，再把返回的主题传给按钮、卡片等组件。`config` 保存明暗模式和色板，应在创建窗口时初始化。页面中的完整示例包含窗口创建和语言设置。\n\n### 在预览中试一试\n\n1. 修改按钮文字和颜色，观察卡片中的按钮。\n2. 切换页面右上角的明暗模式，查看同一组组件的配色。\n3. 打开“关闭动画”，再切换开关：滑块立即到位，按钮悬停颜色也立即变化。",
+      "en": "### Basic usage\n\nCall `nui.App(c, config)` at the start of the view and pass its theme to buttons, cards and other components. Initialize `config` when creating the window to keep appearance and palette choices. The complete example includes window and language setup.\n\n### Try the preview\n\n1. Change the button text and color inside the card.\n2. Switch the site appearance to compare light and dark colors.\n3. Turn on Disable animations and toggle the switch: the thumb moves at once, and the button's hover colors change at once."
     },
     "note": {
-      "zh": "App 只配置当前窗口的主题。创建窗口仍需调用 `mygo.NewWindow`。语言通过 `mygo.App.SetLocale` 设置，作用于整个应用；AppConfig 不提供单窗口语言参数。",
-      "en": "App configures the current window theme. Create the window with `mygo.NewWindow`. Set the application language with `mygo.App.SetLocale`; AppConfig does not provide a per-window locale."
+      "zh": "App 只配置当前窗口的主题。创建窗口仍需调用 `mygo.NewWindow`。语言通过 `mygo.App.SetLocale` 设置，作用于整个应用；AppConfig 不提供单窗口语言参数。`AppConfig.DisableAnimations` 关闭明暗两套主题中 nui 组件的全部动画；系统的减少动态效果偏好只停止移动、缩放和旋转，淡入淡出、颜色过渡和加载动画仍会播放。预览用主题的 `Motion.Disabled` 演示同样的效果。",
+      "en": "App configures the current window theme. Create the window with `mygo.NewWindow`. Set the application language with `mygo.App.SetLocale`; AppConfig does not provide a per-window locale. `AppConfig.DisableAnimations` turns off all nui component animation in both the light and dark themes; the system's reduced-motion preference stops only movement, scaling and rotation, while fades, color transitions and loading indicators keep playing. The preview shows the same effect with the theme's `Motion.Disabled`."
     },
     "symbols": ["App", "DefaultApp"],
     "types": ["AppConfig"],
@@ -70,11 +70,20 @@
             "go": "nui.Neutral"
           }
         ]
+      },
+      {
+        "key": "disableAnimations",
+        "label": {
+          "zh": "关闭动画",
+          "en": "Disable animations"
+        },
+        "kind": "boolean",
+        "default": false
       }
     ],
-    "state": "",
+    "state": "Notify bool",
     "setup": "",
-    "body": "nui.Card(c.Key(\"card\"), t, nui.CardOptions{Title: \"NuxtUI Go\", Description: \"Window theme and component defaults\"}, func() { nui.Button(c.Key(\"save\"), t, {{label}}, nui.ButtonOptions{AccessibleLabel: cmp.Or({{label}}, \"Example action\"), Color: {{color}}}) })",
+    "body": "if {{disableAnimations}} { t.Motion.Disabled = true }\nnui.Card(c.Key(\"card\"), t, nui.CardOptions{Title: \"NuxtUI Go\", Description: \"Window theme and component defaults\"}, func() {\n\tnui.Button(c.Key(\"save\"), t, {{label}}, nui.ButtonOptions{AccessibleLabel: cmp.Or({{label}}, \"Example action\"), Color: {{color}}})\n\tnui.Switch(c.Key(\"notify\"), t, &s.Notify, nui.SwitchOptions{Label: \"Notifications\"})\n})",
     "height": 360
   },
   {
@@ -389,8 +398,8 @@
       "en": "Run an action with support for icons, loading and disabled states."
     },
     "guide": {
-      "zh": "### 基本用法\n\n用 `Button` 设置文字和外观，通过 `.OnClick(...)` 处理点击。点击次数等业务数据放在视图函数外；Loading 和 Disabled 都会阻止用户激活按钮。\n\n### 在预览中试一试\n\n1. 点击按钮，查看下方计数增加。\n2. 更换图标、颜色或尺寸，确认已有计数仍然保留。\n3. 开启加载或禁用，再点击按钮，查看计数是否停止变化。\n4. 开启前导头像，再选择前导图标或进入加载状态，观察显示优先级。尾部加载图标会保留头像。\n\n启用减少动态效果后改变颜色，再关闭此开关，按钮保持当前颜色。系统减少动态效果设置仍有优先权。",
-      "en": "### Basic usage\n\nSet button text and appearance with `Button`, then handle activation with `.OnClick(...)`. Keep values such as a click count outside the view function. Loading and Disabled both prevent activation.\n\n### Try the preview\n\n1. Click the button and watch the count below it increase.\n2. Change its icon, color or size and confirm the count is retained.\n3. Enable loading or disabled, then click again to check that the count stays the same.\n4. Enable the avatar, then choose a leading icon or turn loading on to compare precedence. A trailing loader keeps the avatar visible.\n\nEnable reduced motion, change the color, then disable the toggle. The button keeps its current color. System reduced-motion preferences still take precedence."
+      "zh": "### 基本用法\n\n用 `Button` 设置文字和外观，通过 `.OnClick(...)` 处理点击。点击次数等业务数据放在视图函数外；Loading 和 Disabled 都会阻止用户激活按钮。\n\n### 在预览中试一试\n\n1. 点击按钮，查看下方计数增加。\n2. 更换图标、颜色或尺寸，确认已有计数仍然保留。\n3. 开启加载或禁用，再点击按钮，查看计数是否停止变化。\n4. 开启前导头像，再选择前导图标或进入加载状态，观察显示优先级。尾部加载图标会保留头像。\n\n启用减少动态效果后改变颜色：背景仍会渐变，加载图标仍会旋转，与系统偏好的效果相同。再关闭此开关，按钮保持当前颜色。",
+      "en": "### Basic usage\n\nSet button text and appearance with `Button`, then handle activation with `.OnClick(...)`. Keep values such as a click count outside the view function. Loading and Disabled both prevent activation.\n\n### Try the preview\n\n1. Click the button and watch the count below it increase.\n2. Change its icon, color or size and confirm the count is retained.\n3. Enable loading or disabled, then click again to check that the count stays the same.\n4. Enable the avatar, then choose a leading icon or turn loading on to compare precedence. A trailing loader keeps the avatar visible.\n\nEnable reduced motion and change the color: the background still fades and the loader keeps turning, as under the system preference. Disable the toggle again; the button keeps its current color."
     },
     "note": {
       "zh": "仅显示图标或头像的按钮必须设置 `AccessibleLabel`。前导图标或前导加载图标优先于 Avatar。加载图标的颜色使用 `UI[Leading].Foreground` 或 `UI[Trailing].Foreground` 配置，Style 中的 TextColor 不改变其绘制颜色。重置示例会清除点击计数。 将 Color 设为 Neutral、Variant 设为 Solid 后，可用自定义背景开关查看 InvertedBackground 的效果；这只修改示例的局部主题。",
@@ -2040,8 +2049,8 @@
       "en": "### Basic usage\n\nWidth and Height are native Go dimensions. Unset values default to 160×16 DIP; default height follows text scaling. Explicit zero remains zero. Call FillWidth on the returned element to use the parent width. The application decides when to show the placeholder.\n\n### Try the preview\n\n1. Adjust dimensions and radius, or set a dimension to zero.\n2. Enable square corners to verify that Style Radius(0) overrides the UI radius.\n3. Disable animation, then restore the unset value to compare a static placeholder with the default pulse."
     },
     "note": {
-      "zh": "动画只改变占位背景的透明度。系统或主题启用减少动态效果时保持静止；移出可见区域或卸载后不再请求动画帧。背景颜色通过 UI.Root.Background 配置；Style.Background 只设置底层表面，不会替换自绘脉冲颜色。原生 status 角色不等同于 Web 的 aria-busy / alert 通知。",
-      "en": "Animation changes the placeholder background opacity. System or theme reduced motion keeps it still; leaving the visible area or unmounting stops animation frames. Set the pulse color with UI.Root.Background; Style.Background sets the underlying surface without replacing the drawn pulse color. The native status role does not reproduce Web aria-busy / alert announcements."
+      "zh": "动画只改变占位背景的透明度。减少动态效果时仍会脉冲，与 Nuxt UI 的 animate-pulse 一致；Animate=false 或关闭动画时保持静止。移出可见区域或卸载后不再请求动画帧。背景颜色通过 UI.Root.Background 配置；Style.Background 只设置底层表面，不会替换自绘脉冲颜色。原生 status 角色不等同于 Web 的 aria-busy / alert 通知。",
+      "en": "Animation changes the placeholder background opacity. The pulse continues under reduced motion, as Nuxt UI's animate-pulse does; Animate=false or turning animations off keeps it still. Leaving the visible area or unmounting stops animation frames. Set the pulse color with UI.Root.Background; Style.Background sets the underlying surface without replacing the drawn pulse color. The native status role does not reproduce Web aria-busy / alert announcements."
     },
     "symbols": ["Skeleton"],
     "types": ["SkeletonOptions"],
@@ -2112,12 +2121,12 @@
       "en": "Show completed progress or indicate that work is ongoing."
     },
     "guide": {
-      "zh": "### 基本用法\n\n传入完成量，Max 默认为 100。数值先限制在 0 到 Max，视觉百分比四舍五入到整数；Indeterminate 为 true 时忽略完成量，显示半条轨道长的移动指示器。返回元素的 Value 可以提供工作单位等可访问值说明，屏幕上需要百分比文字时由应用组合 Text。\n\n### 在预览中试一试\n\n1. 修改完成量与最大值，比较填充比例。\n2. 切换方向和反向填充；水平布局还会遵循文字方向。\n3. 选择 Neutral 并启用自定义中性背景，比较深浅主题。\n4. 启用进度未知，开关动画。减少动态效果时，指示器静止在中间。\n\n关闭动画后修改进度，再开启动画，填充保持当前值。",
-      "en": "### Basic usage\n\nPass the completed amount; Max defaults to 100. Values are clamped to 0–Max and visual percentages are rounded to integers. Indeterminate ignores the amount and displays a moving half-track indicator. Use Value on the returned element for accessible work-unit text; compose a Text element when an on-screen percentage is needed.\n\n### Try the preview\n\n1. Change the amount and maximum to compare proportions.\n2. Change orientation and inversion; horizontal progress also follows text direction.\n3. Select Neutral and enable the custom neutral background in both themes.\n4. Enable indeterminate progress and toggle animation. Reduced motion keeps the indicator centered.\n\nDisable animation, change the amount, then enable animation; the fill retains its current value."
+      "zh": "### 基本用法\n\n传入完成量，Max 默认为 100。数值先限制在 0 到 Max，视觉百分比四舍五入到整数；Indeterminate 为 true 时忽略完成量，显示半条轨道长的移动指示器。返回元素的 Value 可以提供工作单位等可访问值说明，屏幕上需要百分比文字时由应用组合 Text。\n\n### 在预览中试一试\n\n1. 修改完成量与最大值，比较填充比例。\n2. 切换方向和反向填充；水平布局还会遵循文字方向。\n3. 选择 Neutral 并启用自定义中性背景，比较深浅主题。\n4. 启用进度未知，选择动画预设并开关动画。减少动态效果时，指示器铺满轨道并脉冲；关闭动画时静止在中间。\n\n关闭动画后修改进度，再开启动画，填充保持当前值。",
+      "en": "### Basic usage\n\nPass the completed amount; Max defaults to 100. Values are clamped to 0–Max and visual percentages are rounded to integers. Indeterminate ignores the amount and displays a moving half-track indicator. Use Value on the returned element for accessible work-unit text; compose a Text element when an on-screen percentage is needed.\n\n### Try the preview\n\n1. Change the amount and maximum to compare proportions.\n2. Change orientation and inversion; horizontal progress also follows text direction.\n3. Select Neutral and enable the custom neutral background in both themes.\n4. Enable indeterminate progress, choose an animation preset and toggle animation. Under reduced motion the indicator pulses across the whole track; with animation off it stays still in the center.\n\nDisable animation, change the amount, then enable animation; the fill retains its current value."
     },
     "note": {
-      "zh": "显式 Max 必须是有限正数，否则会 panic；非有限完成量按 0 处理。未知进度使用两秒轮播，未提供其他 CSS 动画预设或步骤数组。自定义中性背景只影响 Neutral；Indicator.Background 可直接指定填充色。示例不会启动真实任务。",
-      "en": "An explicit Max must be finite and positive or the component panics. Non-finite amounts become zero. Unknown progress uses a two-second carousel; other CSS animation presets and step arrays are not provided. The custom background affects Neutral only; Indicator.Background directly sets the fill color. This example does not start a task."
+      "zh": "显式 Max 必须是有限正数，否则会 panic；非有限完成量按 0 处理。未知进度使用 Nuxt 的四种两秒动画预设之一（Animation），与 Table 的加载条共用；超出范围的预设会 panic。未提供步骤数组。自定义中性背景只影响 Neutral；Indicator.Background 可直接指定填充色。示例不会启动真实任务。",
+      "en": "An explicit Max must be finite and positive or the component panics. Non-finite amounts become zero. Unknown progress uses one of Nuxt's four two-second presets (Animation), shared with Table's loading bar; an out-of-range preset panics. Step arrays are not provided. The custom background affects Neutral only; Indicator.Background directly sets the fill color. This example does not start a task."
     },
     "symbols": ["Progress"],
     "types": ["ProgressOptions"],
@@ -2243,6 +2252,34 @@
         ]
       },
       {
+        "key": "animation",
+        "label": {
+          "zh": "动画预设",
+          "en": "Animation"
+        },
+        "kind": "select",
+        "default": "carousel",
+        "goType": "nui.LoadingAnimation",
+        "choices": [
+          {
+            "value": "carousel",
+            "go": "nui.LoadingCarousel"
+          },
+          {
+            "value": "carousel-inverse",
+            "go": "nui.LoadingCarouselInverse"
+          },
+          {
+            "value": "swing",
+            "go": "nui.LoadingSwing"
+          },
+          {
+            "value": "elastic",
+            "go": "nui.LoadingElastic"
+          }
+        ]
+      },
+      {
         "key": "max",
         "label": {
           "zh": "最大值",
@@ -2283,7 +2320,7 @@
     ],
     "state": "",
     "setup": "",
-    "body": "if {{customNeutral}} { t.InvertedBackground = ui.Hex(\"#7e22ce\"); if t.Dark { t.InvertedBackground = ui.Hex(\"#c084fc\") } }\nnui.Progress(c.Key(\"progress\"), t, {{value}}, nui.ProgressOptions{Label: \"Progress\", Color: {{color}}, Size: {{size}}, Max: nui.Set(float64({{max}})), Indeterminate: {{indeterminate}}, Orientation: {{orientation}}, Inverted: {{inverted}}, Animate: {{animate}}})",
+    "body": "if {{customNeutral}} { t.InvertedBackground = ui.Hex(\"#7e22ce\"); if t.Dark { t.InvertedBackground = ui.Hex(\"#c084fc\") } }\nnui.Progress(c.Key(\"progress\"), t, {{value}}, nui.ProgressOptions{Label: \"Progress\", Color: {{color}}, Size: {{size}}, Max: nui.Set(float64({{max}})), Indeterminate: {{indeterminate}}, Orientation: {{orientation}}, Inverted: {{inverted}}, Animate: {{animate}}, Animation: {{animation}}})",
     "height": 210
   },
   {
@@ -2467,8 +2504,8 @@
       "en": "Explain an empty state and offer a next action."
     },
     "guide": {
-      "zh": "### 基本用法\n\nTitle 和 Description 说明空状态；可用 Icon 或 Avatar 展示前导内容，通过 Actions 和 Footer 添加操作与补充说明。Loading 默认使用旋转加载图标，主题或系统减少动态效果会停止旋转。\n\nHeader 替换整个默认页头，Leading 仅替换前导内容，Body 替换默认操作区。各区域按稳定标识构建，显示或隐藏页头不会替换操作区中的控件。默认内边距随窗口宽度采用 16 / 24 / 32 DIP。\n\n### 在预览中试一试\n\n1. 切换头像、加载和图标颜色，比较显示优先级。\n2. 点击 Create project，观察底部计数。\n3. 启用自定义正文后，改用 Complete custom body，计数继续累加。\n4. 启用自定义页头，观察标题与头像被替换。",
-      "en": "### Basic usage\n\nTitle and Description explain the empty state. Use Icon or Avatar for leading content, and Actions or Footer for controls and supporting content. Loading uses a spinning icon; theme or system reduced motion stops rotation.\n\nHeader replaces the default header, Leading replaces only its leading content, and Body replaces the default action area. Stable section identities preserve action controls when the header changes. Default padding follows window width at 16 / 24 / 32 DIP.\n\n### Try the preview\n\n1. Toggle avatar, loading and icon color to compare content priority.\n2. Click Create project and watch the footer count.\n3. Enable the custom body and use Complete custom body; the same count continues.\n4. Enable the custom header to replace the title and avatar."
+      "zh": "### 基本用法\n\nTitle 和 Description 说明空状态；可用 Icon 或 Avatar 展示前导内容，通过 Actions 和 Footer 添加操作与补充说明。Loading 默认使用旋转加载图标；减少动态效果时仍会旋转，关闭动画时停止。\n\nHeader 替换整个默认页头，Leading 仅替换前导内容，Body 替换默认操作区。各区域按稳定标识构建，显示或隐藏页头不会替换操作区中的控件。默认内边距随窗口宽度采用 16 / 24 / 32 DIP。\n\n### 在预览中试一试\n\n1. 切换头像、加载和图标颜色，比较显示优先级。\n2. 点击 Create project，观察底部计数。\n3. 启用自定义正文后，改用 Complete custom body，计数继续累加。\n4. 启用自定义页头，观察标题与头像被替换。",
+      "en": "### Basic usage\n\nTitle and Description explain the empty state. Use Icon or Avatar for leading content, and Actions or Footer for controls and supporting content. Loading uses a spinning icon; it keeps turning under reduced motion and stops when animations are off.\n\nHeader replaces the default header, Leading replaces only its leading content, and Body replaces the default action area. Stable section identities preserve action controls when the header changes. Default padding follows window width at 16 / 24 / 32 DIP.\n\n### Try the preview\n\n1. Toggle avatar, loading and icon color to compare content priority.\n2. Click Create project and watch the footer count.\n3. Enable the custom body and use Complete custom body; the same count continues.\n4. Enable the custom header to replace the title and avatar."
     },
     "note": {
       "zh": "按钮在示例中更新本地计数，不创建真实项目。Avatar.Image 优先于图标；显式 Avatar.Icon 优先于 Empty 的图标和加载图标。其他情况下 Loading 会替换普通图标或文字头像。默认标题提供二级标题语义；原生没有等价的 aria-busy 元数据。加载图标颜色请使用 UI.Leading.Foreground，Style 的晚期 TextColor 不改变已解析的自绘颜色。",
@@ -3685,8 +3722,8 @@
       "en": "### Basic usage\n\nSwitch binds a non-nil `*bool`. CheckedIcon and UncheckedIcon customize each state. Loading displays LoadingIcon, using the default loader when unset, and blocks toggling. Completing loading does not change the value.\n\n### Try the preview\n\n1. Enable custom icons, then toggle with the pointer and Space while watching Enabled and Changes.\n2. Enable loading and try the switch and Sync policy label. Neither changes the value or count. Disable loading to restore input.\n3. Toggle highlight to compare the track border. Icon, color and size changes do not increase the change count."
     },
     "note": {
-      "zh": "选择值由应用持久保存。Variant 和 Indicator 是 Go 原生扩展。滑块位置即时更新；加载图标遵循减少动态效果设置。FormField 提供必填标记，提交约束由表单校验规则处理。",
-      "en": "The application retains the selected value. Variant and Indicator are Go native extensions. The thumb updates immediately; the loader respects reduced motion. FormField provides the required marker, while form validators enforce submission rules."
+      "zh": "选择值由应用持久保存。Variant 和 Indicator 是 Go 原生扩展。滑块在 200 毫秒内滑动、轨道颜色渐变，减少动态效果时滑块立即到位；加载图标在减少动态效果时仍会旋转，关闭动画时停止。FormField 提供必填标记，提交约束由表单校验规则处理。",
+      "en": "The application retains the selected value. Variant and Indicator are Go native extensions. The thumb slides over 200 ms while the track fades, and moves at once under reduced motion; the loader keeps turning under reduced motion and stops when animations are off. FormField provides the required marker, while form validators enforce submission rules."
     },
     "symbols": ["Switch"],
     "types": ["SwitchOptions"],
@@ -4962,8 +4999,8 @@
       "en": "Open related content beside a button or other control."
     },
     "guide": {
-      "zh": "### 基本用法\n\n先创建锚点控件，再将它和持久打开状态传给 Popover。内容回调接收局部主题；普通文字继承最终 Panel 的字体、颜色和间距，原生控件仍使用局部主题。点击模式的开关动作由调用者绑定。\n\n### 在预览中试一试\n\n1. 点击 Open details，编辑 Popover draft；切换使用另一锚点，输入与选区保持。关闭后焦点回到当前锚点。\n2. 开启面板样式，观察普通文字、背景和内容间距。开启再关闭减少动态效果，已有弹层不会重新入场。\n3. 在全部参数中将 Mode 设为 PopoverHover，检查 OpenDelay / CloseDelay。延迟单位为毫秒。\n4. 修改 Placement、Width、Offset 或 Dismissible；Explicit false 阻止 Escape 和外部点击，Close 仍可关闭。",
-      "en": "### Basic usage\n\nCreate an anchor and pass it with persistent open state to Popover. The content callback receives the local theme. Plain text inherits final Panel typography, color and spacing while native widgets keep that theme. Bind click-mode toggling in the caller.\n\n### Try the preview\n\n1. Open the panel and edit Popover draft. Change the anchor while preserving input and selection; closing returns focus to the current anchor.\n2. Enable panel styling to inspect text, surface and spacing. Toggle reduced motion without replaying entry on the visible panel.\n3. Set Mode to PopoverHover under All fields and check the delays, measured in milliseconds.\n4. Change Placement, Width, Offset or Dismissible. Explicit false blocks Escape and outside dismissal; Close still works."
+      "zh": "### 基本用法\n\n先创建锚点控件，再将它和持久打开状态传给 Popover。内容回调接收局部主题；普通文字继承最终 Panel 的字体、颜色和间距，原生控件仍使用局部主题。点击模式的开关动作由调用者绑定。\n\n### 在预览中试一试\n\n1. 点击 Open details，编辑 Popover draft；切换使用另一锚点，输入与选区保持。关闭后焦点回到当前锚点。\n2. 开启面板样式，观察普通文字、背景和内容间距。开启再关闭减少动态效果，已有弹层不会重新入场。\n3. 在全部参数中将 Mode 设为 PopoverHover，检查 OpenDelay / CloseDelay。延迟单位为毫秒。\n4. 修改 Placement、Width、Offset 或 Dismissible；Explicit false 阻止 Escape 和外部点击，Close 仍可关闭。\n5. 弹层退出途中将组件主题设为 Motion.Disabled，会立即移除剩余退出效果，窗口中其他组件的动画不受影响。",
+      "en": "### Basic usage\n\nCreate an anchor and pass it with persistent open state to Popover. The content callback receives the local theme. Plain text inherits final Panel typography, color and spacing while native widgets keep that theme. Bind click-mode toggling in the caller.\n\n### Try the preview\n\n1. Open the panel and edit Popover draft. Change the anchor while preserving input and selection; closing returns focus to the current anchor.\n2. Enable panel styling to inspect text, surface and spacing. Toggle reduced motion without replaying entry on the visible panel.\n3. Set Mode to PopoverHover under All fields and check the delays, measured in milliseconds.\n4. Change Placement, Width, Offset or Dismissible. Explicit false blocks Escape and outside dismissal; Close still works.\n5. Switching the component theme to Motion.Disabled while the popup exits removes its remaining exit immediately, without stopping motion elsewhere in the window."
     },
     "note": {
       "zh": "示例明确设置 240 DIP 宽度。组件未设置 Width 时按内容布局；MaxHeight 默认 320 DIP，不自动加入滚动。MatchAnchor 设定最小宽度，Label 仅是辅助技术名称。实际窗口边界由 MyGo 处理，边缘留白为 4 DIP；上游 collisionPadding 默认 8 px。没有 modal、arrow、portal 和虚拟锚点参数。失焦到外部按钮时保留该目标的焦点，内容内关闭才返回当前锚点。",
@@ -5206,8 +5243,8 @@
       "en": "### Basic usage\n\nKeep a persistent open bool and call ModalWithOptions on every build, even while closed. Title and Description name the dialog, the content callback builds a scrolling body, and Footer builds actions.\n\n### Try the preview\n\n1. Edit Project name, Save, and reopen to check the retained draft.\n2. Compare Overlay, Transition and Fullscreen.\n3. Set Dismissible to No and press Escape: Prevented increases while the close button remains usable.\n4. Enable the custom close button or remove the header to inspect their layout.\n5. Enable a long body: the title and Save stay in place while the body scrolls."
     },
     "note": {
-      "zh": "Overlay=false 只隐藏遮罩，焦点仍限制在对话框内。CloseButton=false 隐藏关闭按钮；Dismissible=false 只阻止 Escape 和外部点击，并通知 OnClosePrevent。OnClose 只统计组件默认关闭动作，Save 由示例直接修改状态，不触发该通知。关闭立即卸载内容，没有退出动画或保持挂载选项；应用持久草稿保留。",
-      "en": "Overlay=false hides the backdrop while keeping modal focus containment. CloseButton=false hides the close button. Dismissible=false blocks Escape and outside clicks and calls OnClosePrevent. OnClose counts component dismissal only; Save changes application state directly. Closing unmounts immediately, with no exit animation or keep-mounted option; persistent application drafts remain."
+      "zh": "Overlay=false 只隐藏遮罩，焦点仍限制在对话框内。CloseButton=false 隐藏关闭按钮；Dismissible=false 只阻止 Escape 和外部点击，并通知 OnClosePrevent。OnClose 只统计组件默认关闭动作，Save 由示例直接修改状态，不触发该通知。关闭时面板与遮罩一起在 200 毫秒内淡出（不缩小），离开的副本不接收输入，焦点立即返回；没有保持挂载选项，应用持久草稿保留。",
+      "en": "Overlay=false hides the backdrop while keeping modal focus containment. CloseButton=false hides the close button. Dismissible=false blocks Escape and outside clicks and calls OnClosePrevent. OnClose counts component dismissal only; Save changes application state directly. Closing fades the panel and backdrop out together over 200 ms (no scale-out) through a copy that takes no input; focus returns at once. There is no keep-mounted option; persistent application drafts remain."
     },
     "symbols": ["Modal", "ModalWithOptions"],
     "types": ["ModalOptions"],
@@ -5308,12 +5345,12 @@
       "en": "Open a detail or editing panel from a window edge."
     },
     "guide": {
-      "zh": "### 基本用法\n\n用持久 bool 控制 Slideover，并在关闭期间继续调用。Side 选择物理边缘，Extent 控制对应轴尺寸；Inset 增加 16 DIP 边距和 8 DIP 圆角。顶部和底部未设置 Extent 时按内容高度布局，空正文也保留默认内边距。\n\n### 在预览中试一试\n\n1. 打开面板、编辑 Panel draft，再切换 Side 和 Inset，检查草稿保留。\n2. 比较未指定尺寸和显式尺寸；顶部或底部开启空正文，观察内容高度。\n3. 开启自定义遮罩，关闭面板时检查遮罩同步淡出。\n4. 关闭 Transition 后立即切换；Dismissible=false 时 Escape 只增加 Prevented 计数。",
-      "en": "### Basic usage\n\nKeep a persistent open bool and keep calling Slideover during closing. Side selects a physical edge and Extent sizes its axis. Inset adds a 16 DIP margin and 8 DIP corners. Top and bottom panels fit content without Extent; an empty body still retains its padding.\n\n### Try the preview\n\n1. Edit Panel draft, then change Side and Inset to check retained input.\n2. Compare automatic and explicit extents; try an empty top/bottom body.\n3. Enable a custom backdrop and check its exit fade.\n4. Disable Transition for immediate changes; Dismissible=false makes Escape increase only Prevented."
+      "zh": "### 基本用法\n\n用持久 bool 控制 Slideover，并在关闭期间继续调用。Side 选择物理边缘，Extent 控制对应轴尺寸；Inset 增加 16 DIP 边距和 8 DIP 圆角。顶部和底部未设置 Extent 时按内容高度布局，空正文也保留默认内边距。\n\n### 在预览中试一试\n\n1. 打开面板、编辑 Panel draft，再切换 Side 和 Inset，检查草稿保留。\n2. 比较未指定尺寸和显式尺寸；顶部或底部开启空正文，观察内容高度。\n3. 开启自定义遮罩，关闭面板时检查遮罩同步淡出。\n4. 关闭 Transition 后立即切换；Dismissible=false 时 Escape 只增加 Prevented 计数。\n5. 滚动长面板后关闭，并在退出途中重新打开：滚动位置和控件局部状态会保留到退出结束。",
+      "en": "### Basic usage\n\nKeep a persistent open bool and keep calling Slideover during closing. Side selects a physical edge and Extent sizes its axis. Inset adds a 16 DIP margin and 8 DIP corners. Top and bottom panels fit content without Extent; an empty body still retains its padding.\n\n### Try the preview\n\n1. Edit Panel draft, then change Side and Inset to check retained input.\n2. Compare automatic and explicit extents; try an empty top/bottom body.\n3. Enable a custom backdrop and check its exit fade.\n4. Disable Transition for immediate changes; Dismissible=false makes Escape increase only Prevented.\n5. Scroll a long panel, close it and reopen during its exit: the scroll position and local control state stay in place until the exit finishes."
     },
     "note": {
-      "zh": "Width、MaxHeight、Fullscreen 来自嵌入的 ModalOptions，不参与 Slideover 布局。退出期间仍限制焦点，并禁止面板操作，完成后才恢复焦点；没有保持挂载或非模态模式。左右默认宽 448 DIP，再受窗口可用空间限制；Go 不使用上游小屏全宽断点。",
-      "en": "Inherited Width, MaxHeight and Fullscreen do not affect Slideover layout. Exit retains modal focus and disables panel actions until unmount and focus restoration. Keep-mounted and non-modal modes are unavailable. Side panels default to 448 DIP within available space; Go does not apply the upstream small-screen full-width breakpoint."
+      "zh": "Width、MaxHeight、Fullscreen 来自嵌入的 ModalOptions，不参与 Slideover 布局。关闭时离开的面板不再接收输入，后方窗口立即可用，焦点立即返回，退出动画结束后面板卸载；没有保持挂载或非模态模式。左右默认宽 448 DIP，再受窗口可用空间限制；Go 不使用上游小屏全宽断点。",
+      "en": "Inherited Width, MaxHeight and Fullscreen do not affect Slideover layout. As it closes, the leaving panel takes no input, the window behind is live at once and focus returns immediately; the panel unmounts after its exit. Keep-mounted and non-modal modes are unavailable. Side panels default to 448 DIP within available space; Go does not apply the upstream small-screen full-width breakpoint."
     },
     "symbols": ["Slideover"],
     "types": ["SlideoverOptions"],
@@ -6067,8 +6104,8 @@
       "en": "### Basic usage\n\nStable TabItem IDs identify both selection and widget state. Build panels with Content, and configure labels using Avatar, Badge, BadgeOptions and UI. TabsOptions.Content=false omits panels; KeepMounted controls local state in inactive panels.\n\nUnderline widths round from DIPs to whole device pixels and align with the list border edge.\n\n### Try the preview\n\n1. Enable avatars, badges and indicator styling, then change size or underline style. Badge text 0 is displayed, and Icon takes priority over Avatar.\n2. Automatic mode activates with the orientation’s arrow keys. Manual mode moves focus; use Enter or Space to activate.\n3. Edit Tab draft and enable KeepMounted to retain undo across switches. Reverse tabs to check stable identity. Remove the active item in the data editor or toggle Overview disabled; fallback selection does not increase Changes."
     },
     "note": {
-      "zh": "空值、缺失或禁用的选中 ID 会回退到首个可用项，不通知 OnChange；全部禁用时保留业务 ID。Content=false 会卸载所有面板，即使 KeepMounted=true。徽标默认 SM / Neutral / Outline，实际高度取决于字体。面板是可聚焦的标签面板（ui.RoleTabPanel），以所属标签的 Label 命名，标签通过 Controls 指向已构建的面板；没有跨项滑动指示器动画。",
-      "en": "Empty, missing or disabled selection falls back to the first enabled item without OnChange. An all-disabled list preserves the business ID. Content=false unmounts all panels even with KeepMounted=true. Badges default to SM / Neutral / Outline, with height depending on font metrics. Panels are focusable tab panels (ui.RoleTabPanel) named after their tab’s Label, and each tab points at its built panel with Controls. Sliding indicator animation is not provided."
+      "zh": "空值、缺失或禁用的选中 ID 会回退到首个可用项，不通知 OnChange；全部禁用时保留业务 ID。Content=false 会卸载所有面板，即使 KeepMounted=true。徽标默认 SM / Neutral / Outline，实际高度取决于字体。面板是可聚焦的标签面板（ui.RoleTabPanel），以所属标签的 Label 命名，标签通过 Controls 指向已构建的面板。指示器在 200 毫秒内在标签之间滑动，标签文字颜色同步变化；减少动态效果时立即到位。",
+      "en": "Empty, missing or disabled selection falls back to the first enabled item without OnChange. An all-disabled list preserves the business ID. Content=false unmounts all panels even with KeepMounted=true. Badges default to SM / Neutral / Outline, with height depending on font metrics. Panels are focusable tab panels (ui.RoleTabPanel) named after their tab’s Label, and each tab points at its built panel with Controls. The indicator slides between triggers over 200 ms, with label colours in step; under reduced motion it moves at once."
     },
     "symbols": ["Tabs"],
     "types": ["TabsOptions", "TabItem"],
@@ -10556,12 +10593,12 @@
       "en": "Open a bottom panel and adjust its height with a handle."
     },
     "guide": {
-      "zh": "### 基本用法\n\n保存 DrawerState，用 Open 控制显示，Snap 选择停靠点。SnapPoints 是可用窗口高度的递增比例；Inset 会先扣除外边距。关闭状态也要继续调用 Drawer，以便退出动画和焦点恢复。Handle 控制独立手柄，CloseButton 默认 false。\n\n### 在预览中试一试\n\n1. 点击 Open drawer，编辑草稿；拖动手柄，或聚焦后用 Up/Down、Home/End 调整高度。\n2. 在首个或末个停靠点重复按 Home/End，Changes 不会继续增加。\n3. 关闭 Dismissible 后尝试 Escape、外部点击或向下拖动，查看 Prevented 次数；Done 仍可由应用直接关闭。\n4. 切换 Handle、Inset、关闭按钮和自定义指示条；将标题清空后，手柄与面板仍有本地化名称。\n5. 关闭并重新打开，检查草稿、停靠位置与返回焦点。",
-      "en": "### Basic usage\n\nKeep DrawerState persistent: Open controls visibility and Snap selects a stop. SnapPoints are ascending fractions of available window height; Inset subtracts the margins first. Render while closed for exit animation and return focus. Handle controls the independent handle; CloseButton defaults to false.\n\n### Try the preview\n\n1. Click Open drawer and edit the draft. Drag the handle or focus it and use Up/Down and Home/End.\n2. Repeat Home/End at a boundary; Changes does not increase again.\n3. Disable Dismissible and try Escape, an outside click or a closing drag; inspect Prevented. Done still closes directly from the application.\n4. Change Handle, Inset, close button and indicator styling. Clear the title to retain localized panel and handle names.\n5. Close and reopen to check the draft, snap index and return focus."
+      "zh": "### 基本用法\n\n保存 DrawerState，用 Open 控制显示，Snap 选择停靠点。SnapPoints 是可用窗口高度的递增比例；Inset 会先扣除外边距。关闭状态也要继续调用 Drawer，以便退出动画和焦点恢复。Handle 控制独立手柄，CloseButton 默认 false。\n\n### 在预览中试一试\n\n1. 点击 Open drawer，编辑草稿；拖动手柄，或聚焦后用 Up/Down、Home/End 调整高度。\n2. 在首个或末个停靠点重复按 Home/End，Changes 不会继续增加。\n3. 关闭 Dismissible 后尝试 Escape、外部点击或向下拖动，查看 Prevented 次数；Done 仍可由应用直接关闭。\n4. 切换 Handle、Inset、关闭按钮和自定义指示条；将标题清空后，手柄与面板仍有本地化名称。\n5. 关闭并重新打开，检查草稿、停靠位置与返回焦点。\n6. 切换吸附点后，在面板移动途中拖动手柄：从当前可见高度接续拖动，不跳到目标高度。",
+      "en": "### Basic usage\n\nKeep DrawerState persistent: Open controls visibility and Snap selects a stop. SnapPoints are ascending fractions of available window height; Inset subtracts the margins first. Render while closed for exit animation and return focus. Handle controls the independent handle; CloseButton defaults to false.\n\n### Try the preview\n\n1. Click Open drawer and edit the draft. Drag the handle or focus it and use Up/Down and Home/End.\n2. Repeat Home/End at a boundary; Changes does not increase again.\n3. Disable Dismissible and try Escape, an outside click or a closing drag; inspect Prevented. Done still closes directly from the application.\n4. Change Handle, Inset, close button and indicator styling. Clear the title to retain localized panel and handle names.\n5. Close and reopen to check the draft, snap index and return focus.\n6. Change a snap point and grab the handle while it is still moving. Dragging continues from the visible height without jumping to the target."
     },
     "note": {
-      "zh": "这是只能从底部打开、仅由手柄拖动的原生面板。SnapPoints 只接受 (0,1] 的比例，不接受 px 字符串；默认 0.5 / 0.85。吸附高度立即切换，出入场沿用 Slideover。DismissDistance / DismissVelocity 是原生关闭阈值，0 使用默认值；不等同于 Vaul 的 closeThreshold。Overlay=false 只隐藏背景，仍保留模态交互限制。Width、MaxHeight、Fullscreen 在本组件不生效。",
-      "en": "This native bottom sheet is dragged only by its handle. SnapPoints accepts fractions in (0,1], not px strings; defaults are 0.5/0.85. Snaps change immediately; entrance/exit use Slideover. DismissDistance/DismissVelocity are native thresholds with 0 selecting defaults, not Vaul closeThreshold equivalents. Overlay=false only hides the backdrop, retaining modal interaction rules. Width, MaxHeight and Fullscreen do not apply."
+      "zh": "这是只能从底部打开、仅由手柄拖动的原生面板。SnapPoints 只接受 (0,1] 的比例，不接受 px 字符串；默认 0.5 / 0.85。完整动态效果下吸附高度在 200 毫秒内过渡，减少动态效果时立即切换；出入场沿用 Slideover。DismissDistance / DismissVelocity 是原生关闭阈值，0 使用默认值；不等同于 Vaul 的 closeThreshold。Overlay=false 只隐藏背景，仍保留模态交互限制。Width、MaxHeight、Fullscreen 在本组件不生效。",
+      "en": "This native bottom sheet is dragged only by its handle. SnapPoints accepts fractions in (0,1], not px strings; defaults are 0.5/0.85. Snaps ease over 200 ms at full motion and change at once under reduced motion; entrance/exit use Slideover. DismissDistance/DismissVelocity are native thresholds with 0 selecting defaults, not Vaul closeThreshold equivalents. Overlay=false only hides the backdrop, retaining modal interaction rules. Width, MaxHeight and Fullscreen do not apply."
     },
     "symbols": ["Drawer"],
     "types": ["DrawerOptions", "DrawerState"],
@@ -11105,12 +11142,12 @@
       "en": "Drag or page through a set of cards."
     },
     "guide": {
-      "zh": "### 基本用法\n\n保存 CarouselState，以 Index 控制位置；每项使用稳定 ID 和同步 Build。Arrows、Dots 默认关闭，本例显式显示圆点。Wrap 只循环按钮、键盘和自动播放，拖拽仍有首末边界。\n\n### 在预览中试一试\n\n1. 用圆点、箭头或方向键切换，观察 Changes。\n2. 输入草稿后切换方向或布局；移除当前项，再恢复，草稿仍由应用保存。\n3. 开启循环并拖到末项，继续向后拖不会绕回首项；关闭 WatchDrag 后键盘仍可操作。\n4. 启用 Autoplay；StopOnInteraction 默认 true，箭头、键盘和完成拖动会暂停，可用 Play 恢复。圆点只定位，悬停与组件内焦点临时暂停播放。\n5. 查看自定义大小、图标、头像及圆点样式，切换 RTL 检查方向。",
-      "en": "### Basic usage\n\nKeep CarouselState persistent and control position through Index. Give items stable IDs and synchronous Build callbacks. Arrows and Dots default to false; this example explicitly shows dots. Wrap loops buttons, keys and autoplay while drags remain bounded.\n\n### Try the preview\n\n1. Navigate with dots, arrows or keys and inspect Changes.\n2. Edit a draft, change orientation, remove the current item and restore it; the application retains drafts.\n3. Enable wrapping and drag to the final slide; another forward drag stays there. Disable WatchDrag while retaining keyboard navigation.\n4. Enable Autoplay. StopOnInteraction defaults to true: arrows, keys and completed drags pause it; use Play to resume. Dots only seek; hover and focus within the component pause temporarily.\n5. Try custom button sizes, icons, an avatar and dot styling, then inspect RTL navigation."
+      "zh": "### 基本用法\n\n保存 CarouselState，以 Index 控制位置；每项使用稳定 ID 和同步 Build。Arrows、Dots 默认关闭，本例显式显示圆点。Wrap 只循环按钮、键盘和自动播放，拖拽仍有首末边界。\n\n### 在预览中试一试\n\n1. 用圆点、箭头或方向键切换，观察 Changes。\n2. 输入草稿后切换方向或布局；移除当前项，再恢复，草稿仍由应用保存。\n3. 开启循环并拖到末项，继续向后拖不会绕回首项；关闭 WatchDrag 后键盘仍可操作。\n4. 启用 Autoplay；StopOnInteraction 默认 true，箭头、键盘和完成拖动会暂停，可用 Play 恢复。圆点只定位，悬停与组件内焦点临时暂停播放。\n5. 查看自定义大小、图标、头像及圆点样式，切换 RTL 检查方向。\n6. 开启 Wrap 后，在末页点击 Next 或在首页点击 Previous：旧页会保留到新页滑入；跨页点击圆点时也不会先显示空白或错误的相邻页。",
+      "en": "### Basic usage\n\nKeep CarouselState persistent and control position through Index. Give items stable IDs and synchronous Build callbacks. Arrows and Dots default to false; this example explicitly shows dots. Wrap loops buttons, keys and autoplay while drags remain bounded.\n\n### Try the preview\n\n1. Navigate with dots, arrows or keys and inspect Changes.\n2. Edit a draft, change orientation, remove the current item and restore it; the application retains drafts.\n3. Enable wrapping and drag to the final slide; another forward drag stays there. Disable WatchDrag while retaining keyboard navigation.\n4. Enable Autoplay. StopOnInteraction defaults to true: arrows, keys and completed drags pause it; use Play to resume. Dots only seek; hover and focus within the component pause temporarily.\n5. Try custom button sizes, icons, an avatar and dot styling, then inspect RTL navigation.\n6. With Wrap enabled, use Next on the last page or Previous on the first. The outgoing page stays visible while the destination slides in; distant dot jumps preserve it too."
     },
     "note": {
-      "zh": "这是原生单页轮播，没有 Embla 的自由拖拽、滑动组、媒体查询、惯性持续时间或插件 API。Active 控制自动播放的外部活动状态，不会禁用手动操作；它与 Embla 的 active 含义不同。当前项及相邻项会执行 Build，相邻项禁用交互；在动作中启动业务任务。自动播放遵守窗口、可见性与减少动态效果设置。",
-      "en": "This native single-page carousel has no Embla drag-free, slide grouping, media query, physics duration or plugin API. Active gates external activity for autoplay and does not disable manual navigation, unlike Embla active. Build runs for the current item and its neighbors; neighbors are disabled. Start business work from actions. Autoplay respects window activity, visibility and reduced motion."
+      "zh": "页面沿切换方向在 200 毫秒内滑动，减少动态效果时立即切换；跨多页跳转时只滑过一页，不逐页滚动。这是原生单页轮播，没有 Embla 的自由拖拽、滑动组、媒体查询、惯性持续时间或插件 API。Active 控制自动播放的外部活动状态，不会禁用手动操作；它与 Embla 的 active 含义不同。当前项及相邻项会执行 Build，跳转期间还会保留旧项；非当前项禁用交互；在动作中启动业务任务。自动播放遵守窗口与可见性设置，在减少动态效果或关闭动画时停止。",
+      "en": "Pages slide over 200 ms in the direction of travel, and at once under reduced motion; a jump of several pages slides in across one page rather than scrolling through them. This native single-page carousel has no Embla drag-free, slide grouping, media query, physics duration or plugin API. Active gates external activity for autoplay and does not disable manual navigation, unlike Embla active. Build runs for the current item and its neighbors, retaining the outgoing item during a jump; non-current items are disabled. Start business work from actions. Autoplay respects window activity and visibility, and stops under reduced motion and when animations are off."
     },
     "symbols": ["Carousel"],
     "types": ["CarouselOptions", "CarouselItem", "CarouselState"],
@@ -11253,8 +11290,8 @@
       "en": "### Basic usage\n\nRepeat defaults to four copies; explicit zero builds no content and a single copy may leave an empty interval. Speed defaults to 32 DIP/s and Gap to 64 DIP. Keep the callback presentation-only; Body styles each content copy.\n\n### Try the preview\n\n1. Compare zero, one and four copies, then change orientation, RTL, reverse and edge fading.\n2. Use Pause / resume or focus the region and press Space. Enable pause on hover and move the pointer away to continue.\n3. Replace content to reset the phase. Disabling the parent stops motion."
     },
     "note": {
-      "zh": "Repeat 是内容回调的构建次数，不要在其中放输入框、按钮或业务副作用。焦点、暂停状态、Active=false、父级禁用、不可见（包括滚出或被裁剪出可见区域，以及保持挂载的隐藏面板）和减少动态效果都会停止运动。内容在只重绘的帧中移动，视图约每秒构建一次；MarqueeState.Offset 是最近一次构建时的位置。原生使用 DIP/s；上游 CSS 默认每周期 20 秒，两者单位不同。网站最多允许 100 份内容；重复内容的读屏表现仍需在目标辅助工具验证。",
-      "en": "Repeat is the callback count: avoid inputs, buttons and business side effects. Focus, pause, Active=false, disabled ancestors, invisibility (including being scrolled or clipped out of view, or a hidden kept-mounted panel) and reduced motion stop animation. The content moves in frames that only repaint, so the view builds about once a second, and MarqueeState.Offset is the phase as of the last build. Native speed uses DIP/s, while upstream CSS defaults to 20 seconds per cycle. The website permits up to 100 copies. Repeated content still requires target screen-reader validation."
+      "zh": "Repeat 是内容回调的构建次数，不要在其中放输入框、按钮或业务副作用。焦点、暂停状态、Active=false、父级禁用、不可见（包括滚出或被裁剪出可见区域，以及保持挂载的隐藏面板）、减少动态效果和关闭动画都会停止运动。内容在只重绘的帧中移动，视图约每秒构建一次；MarqueeState.Offset 是最近一次构建时的位置。原生使用 DIP/s；上游 CSS 默认每周期 20 秒，两者单位不同。网站最多允许 100 份内容；重复内容的读屏表现仍需在目标辅助工具验证。",
+      "en": "Repeat is the callback count: avoid inputs, buttons and business side effects. Focus, pause, Active=false, disabled ancestors, invisibility (including being scrolled or clipped out of view, or a hidden kept-mounted panel), reduced motion and turning animations off stop animation. The content moves in frames that only repaint, so the view builds about once a second, and MarqueeState.Offset is the phase as of the last build. Native speed uses DIP/s, while upstream CSS defaults to 20 seconds per cycle. The website permits up to 100 copies. Repeated content still requires target screen-reader validation."
     },
     "symbols": ["Marquee"],
     "types": ["MarqueeOptions"],
@@ -11484,8 +11521,8 @@
       "en": "### Basic usage\n\nSidebar provides a title, description, header actions, scrollable body and footer. Keep collapsed in application state and use SidebarState for width and the narrow-window menu. Actions appear while expanded or mobile; HeaderContent replaces the default title and description.\n\nThe resize highlight aligns to the same physical edge as the sidebar border, avoiding adjacent lines at fractional scales.\n\n### Try the preview\n\n1. Edit Sidebar draft and collapse/expand without losing the draft. Drag or double-click the edge to resize or reset.\n2. Activate the header action and compare region styling, RTL and sides.\n3. Set the breakpoint wider than the preview. Open the menu, choose a different page and check return focus. Compare Slideover, Modal and Drawer."
     },
     "note": {
-      "zh": "组件默认不启用断点和调宽；本例启用调宽并限制在 160–360 DIP，收起宽 64 DIP。桌面 collapsed 和窄窗口 Open 独立，默认图标宽度收起与上游 offcanvas 不同。直接赋值不发通知；跨断点重建保留应用模型，控件局部滚动和选择不会迁移。完全隐藏所有内部入口时应提供外部按钮及 ReturnFocus。原生没有 floating/inset 变体、点击折叠 rail 或任意 menu 配置对象。",
-      "en": "The component defaults to no breakpoint and no resizing; this example enables 160–360 DIP resizing and a 64-DIP compact width. Desktop collapsed and mobile Open are independent; native icon-width collapse differs from upstream offcanvas. External assignments are silent. Breakpoint remounts retain application models, but not widget-local scrolling or selections. Supply an external opener and ReturnFocus when hiding every internal control. Native floating/inset variants, a click-to-collapse rail and arbitrary menu option objects are not provided."
+      "zh": "组件默认不启用断点和调宽；本例启用调宽并限制在 160–360 DIP，收起宽 64 DIP。收起和展开时宽度在 200 毫秒内过渡（Transition），拖动调整时跟随指针。桌面 collapsed 和窄窗口 Open 独立，默认图标宽度收起与上游 offcanvas 不同。直接赋值不发通知；跨断点重建保留应用模型，控件局部滚动和选择不会迁移。完全隐藏所有内部入口时应提供外部按钮及 ReturnFocus。原生没有 floating/inset 变体、点击折叠 rail 或任意 menu 配置对象。",
+      "en": "The component defaults to no breakpoint and no resizing; this example enables 160–360 DIP resizing and a 64-DIP compact width. Desktop collapsed and mobile Open are independent; native icon-width collapse differs from upstream offcanvas. External assignments are silent. Breakpoint remounts retain application models, but not widget-local scrolling or selections. Supply an external opener and ReturnFocus when hiding every internal control. Collapsing animates the width over 200 ms (Transition); dragging follows the pointer. Native floating/inset variants, a click-to-collapse rail and arbitrary menu option objects are not provided."
     },
     "symbols": ["Sidebar"],
     "types": ["SidebarOptions", "SidebarState", "SidebarScope"],
@@ -11527,6 +11564,15 @@
         },
         "kind": "optionalBoolean",
         "default": true
+      },
+      {
+        "key": "transition",
+        "label": {
+          "zh": "宽度过渡",
+          "en": "Width transition"
+        },
+        "kind": "optionalBoolean",
+        "default": null
       },
       {
         "key": "side",
@@ -11622,7 +11668,7 @@
     ],
     "state": "Collapsed bool\nSidebar nui.SidebarState\nNavigation nui.NavigationState\nActive, Result, Draft string\nActions int",
     "setup": "s.Active=\"overview\"\ns.Result=\"Drag the sidebar edge to resize.\"\ns.Draft=\"Persistent sidebar draft\"",
-    "body": "var headerActions func(*ui.Context,nui.Theme,nui.SidebarScope)\nvar styles nui.Styles\nif {{actions}} {\n    headerActions=func(c *ui.Context,t nui.Theme,scope nui.SidebarScope){nui.Button(c,t,\"\",nui.ButtonOptions{Leading:lucide.RefreshCw(),AccessibleLabel:\"Sidebar header action\",Variant:nui.Ghost,Color:nui.Neutral,Square:true}).OnClick(func(){s.Actions++;s.Result=fmt.Sprintf(\"Header actions: %d\",s.Actions)})}\n}\nif {{styled}} {styles=nui.Styles{nui.Description:{Foreground:nui.Set(t.Primary)},nui.Actions:{Background:nui.Set(t.Elevated),Radius:nui.Set(float32(6))},nui.Body:{Background:nui.Set(t.Elevated)}}}\noptions := nui.SidebarOptions{\n    Title:{{label}}, Description:{{description}}, Actions:headerActions, Decoration:nui.Decoration{UI:styles}, State:&s.Sidebar, Resizable:{{resizable}}, Collapsible:{{collapsible}},\n    Width:nui.Set(float32({{width}})), MinWidth:nui.Set(float32(160)), MaxWidth:nui.Set(float32(360)),\n    Side:nui.Set({{side}}), Breakpoint:nui.Set(float32({{breakpoint}})), Mode:{{mode}}, NavigationKey:s.Active,\n    FooterContent:func(c *ui.Context,t nui.Theme,scope nui.SidebarScope){\n        label:=\"Account\"\n        if scope.Collapsed {label=\"\"}\n        nui.Button(c.Key(\"account\"),t,label,nui.ButtonOptions{Leading:lucide.User(),AccessibleLabel:\"Account\",Variant:nui.Ghost,Color:nui.Neutral,Block:true}).OnClick(func(){s.Active=\"account\";s.Result=\"Account selected\"})\n    },\n    OnResize:func(width float32){s.Result=fmt.Sprintf(\"Resized to %.0f DIP\",width)},\n}\nright:=options.Side.Set && options.Side.Value==nui.SideRight\nworkspace:=func(){\n    ui.Column(c.Key(\"workspace\")).Grow(1).MinWidth(0).Padding(20).Gap(12).Children(func(){\n        ui.Text(c,\"Workspace overview\").FontSize(20).FontWeight(600)\n        ui.Textf(c,\"Current page: %s\",s.Active)\n        ui.Textf(c,\"Collapsed: %t\",s.Collapsed).TextColor(t.Muted)\n        ui.Text(c,s.Result).TextColor(t.Muted)\n        nui.Button(c.Key(\"reset-width\"),t,\"Reset width\",nui.ButtonOptions{Variant:nui.Outline,Color:nui.Neutral}).OnClick(func(){s.Sidebar.Width=nui.Optional[float32]{};s.Result=\"Configured width restored\"})\n    })\n}\ndirection:=ui.LeftToRight\nif {{rtl}} {direction=ui.RightToLeft}\nui.Row(c.Key(\"layout\")).Direction(direction).FillWidth().Height(360).MinWidth(0).MinHeight(0).Border(1,t.Border).Radius(t.Radius).Children(func(){\n    if right {workspace()}\n    nui.Sidebar(c.Key(\"sidebar\"),t,&s.Collapsed,options,func(c *ui.Context,t nui.Theme,collapsed bool){\n        if !collapsed {nui.Input(c.Key(\"draft\"),t,&s.Draft,nui.InputOptions{Label:\"Sidebar draft\"})}\n        placement:=nui.RightStart\n        if right!=(c.Direction()==ui.RightToLeft) {placement=nui.LeftStart}\n        nui.NavigationMenu(c.Key(\"navigation\"),t,&s.Active,&s.Navigation,[]nui.NavigationItem{\n            {ID:\"overview\",Label:\"Overview\",Icon:lucide.LayoutDashboard()},\n            {ID:\"projects\",Label:\"Projects\",Icon:lucide.Folder()},\n            {ID:\"settings\",Label:\"Settings\",Icon:lucide.Settings(),Children:[]nui.NavigationItem{{ID:\"members\",Label:\"Members\"},{ID:\"permissions\",Label:\"Permissions\"}}},\n        },nui.NavigationOptions{Vertical:true,Compact:collapsed,PopupPlacement:nui.Set(placement)})\n    })\n    if !right {workspace()}\n})",
+    "body": "var headerActions func(*ui.Context,nui.Theme,nui.SidebarScope)\nvar styles nui.Styles\nif {{actions}} {\n    headerActions=func(c *ui.Context,t nui.Theme,scope nui.SidebarScope){nui.Button(c,t,\"\",nui.ButtonOptions{Leading:lucide.RefreshCw(),AccessibleLabel:\"Sidebar header action\",Variant:nui.Ghost,Color:nui.Neutral,Square:true}).OnClick(func(){s.Actions++;s.Result=fmt.Sprintf(\"Header actions: %d\",s.Actions)})}\n}\nif {{styled}} {styles=nui.Styles{nui.Description:{Foreground:nui.Set(t.Primary)},nui.Actions:{Background:nui.Set(t.Elevated),Radius:nui.Set(float32(6))},nui.Body:{Background:nui.Set(t.Elevated)}}}\noptions := nui.SidebarOptions{\n    Title:{{label}}, Description:{{description}}, Actions:headerActions, Decoration:nui.Decoration{UI:styles}, State:&s.Sidebar, Resizable:{{resizable}}, Collapsible:{{collapsible}}, Transition:{{transition}},\n    Width:nui.Set(float32({{width}})), MinWidth:nui.Set(float32(160)), MaxWidth:nui.Set(float32(360)),\n    Side:nui.Set({{side}}), Breakpoint:nui.Set(float32({{breakpoint}})), Mode:{{mode}}, NavigationKey:s.Active,\n    FooterContent:func(c *ui.Context,t nui.Theme,scope nui.SidebarScope){\n        label:=\"Account\"\n        if scope.Collapsed {label=\"\"}\n        nui.Button(c.Key(\"account\"),t,label,nui.ButtonOptions{Leading:lucide.User(),AccessibleLabel:\"Account\",Variant:nui.Ghost,Color:nui.Neutral,Block:true}).OnClick(func(){s.Active=\"account\";s.Result=\"Account selected\"})\n    },\n    OnResize:func(width float32){s.Result=fmt.Sprintf(\"Resized to %.0f DIP\",width)},\n}\nright:=options.Side.Set && options.Side.Value==nui.SideRight\nworkspace:=func(){\n    ui.Column(c.Key(\"workspace\")).Grow(1).MinWidth(0).Padding(20).Gap(12).Children(func(){\n        ui.Text(c,\"Workspace overview\").FontSize(20).FontWeight(600)\n        ui.Textf(c,\"Current page: %s\",s.Active)\n        ui.Textf(c,\"Collapsed: %t\",s.Collapsed).TextColor(t.Muted)\n        ui.Text(c,s.Result).TextColor(t.Muted)\n        nui.Button(c.Key(\"reset-width\"),t,\"Reset width\",nui.ButtonOptions{Variant:nui.Outline,Color:nui.Neutral}).OnClick(func(){s.Sidebar.Width=nui.Optional[float32]{};s.Result=\"Configured width restored\"})\n    })\n}\ndirection:=ui.LeftToRight\nif {{rtl}} {direction=ui.RightToLeft}\nui.Row(c.Key(\"layout\")).Direction(direction).FillWidth().Height(360).MinWidth(0).MinHeight(0).Border(1,t.Border).Radius(t.Radius).Children(func(){\n    if right {workspace()}\n    nui.Sidebar(c.Key(\"sidebar\"),t,&s.Collapsed,options,func(c *ui.Context,t nui.Theme,collapsed bool){\n        if !collapsed {nui.Input(c.Key(\"draft\"),t,&s.Draft,nui.InputOptions{Label:\"Sidebar draft\"})}\n        placement:=nui.RightStart\n        if right!=(c.Direction()==ui.RightToLeft) {placement=nui.LeftStart}\n        nui.NavigationMenu(c.Key(\"navigation\"),t,&s.Active,&s.Navigation,[]nui.NavigationItem{\n            {ID:\"overview\",Label:\"Overview\",Icon:lucide.LayoutDashboard()},\n            {ID:\"projects\",Label:\"Projects\",Icon:lucide.Folder()},\n            {ID:\"settings\",Label:\"Settings\",Icon:lucide.Settings(),Children:[]nui.NavigationItem{{ID:\"members\",Label:\"Members\"},{ID:\"permissions\",Label:\"Permissions\"}}},\n        },nui.NavigationOptions{Vertical:true,Compact:collapsed,PopupPlacement:nui.Set(placement)})\n    })\n    if !right {workspace()}\n})",
     "height": 520
   },
   {

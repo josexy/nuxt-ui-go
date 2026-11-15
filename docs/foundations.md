@@ -57,7 +57,7 @@ nui.Button(c.Key("save"), theme, "Save", nui.ButtonOptions{
 | `Radius` | Base corner radius of 6 DIP. Set it to 0 for square corners. Each component derives its radius from this base |
 | `ContainerWidth` | Maximum content width, 1280 DIP by default |
 | `Shadow` | `ShadowTokens{Color, Blur, OffsetY}`. Apply it to a part with `Shadow: nui.Set(theme.Shadow)`. Card has no outer shadow by default |
-| `Motion` | Background transitions take 150 ms by default, a loading spinner rotation takes 1 s, and a Skeleton pulse takes 2 s. `Reduce` turns animation off |
+| `Motion` | `Transition` is how long colour transitions take (150 ms by default; 0 or less makes colour changes immediate), `Spin` is a loading spinner's turn (1 s) and `Pulse` a Skeleton pulse (2 s). `Reduce` asks for reduced motion and `Disabled` turns animation off; see [Motion levels](#motion-levels) |
 
 Windows uses Segoe UI and Consolas by default; other platforms use system-ui and monospace. The library does not bundle fonts, and fonts and fallback fonts can affect the actual control height.
 
@@ -71,7 +71,23 @@ Windows uses Segoe UI and Consolas by default; other platforms use system-ui and
 | Backgrounds | `Background`, `MutedBackground`, `Elevated`, `Accented`, `InvertedBackground` |
 | Borders | `Border`, `BorderMuted`, `BorderAccented`, `BorderInverted` |
 
-If either the system or the theme enables reduced motion, animation is off; a component's `Animate: nui.Set(true)` cannot override it. High contrast mode strengthens text, borders, and focus indicators, and switches accent colors to shade 700 in light mode and 300 in dark mode.
+High contrast mode strengthens text, borders, and focus indicators, and switches accent colors to shade 700 in light mode and 300 in dark mode.
+
+### Motion levels
+
+Every component resolves one of three motion levels in each build, from the theme it receives:
+
+| Level | When | What animates |
+| --- | --- | --- |
+| Full | The default, for a zero `AppConfig` and for `Light()` and `Dark()` | Everything |
+| Reduced | `Motion.Reduce` is set, or the system asks for reduced motion | Nothing moves, scales, slides or rotates, and expanding content shows at once. Fades, colour transitions, loading spinners and the Skeleton pulse go on, as under Nuxt UI's and the system's reduced motion: a popup or Modal fades in without scaling |
+| Off | `Motion.Disabled` is set | Nothing animates, transitions, pulses or spins, and no component asks for frames to animate: a change shows in the frame that builds it |
+
+`AppConfig.DisableAnimations` sets `Motion.Disabled` in both the light and the dark theme, whatever the mode, for an app that turns animation off to save work or by the user's choice. It can change while the app runs: the next build uses the new level without remounting anything, so focus, drafts and selections stay, and an animation already playing settles at once. To turn motion off for part of a window, pass a theme with `Motion.Disabled` set to the components there, for example through `Themed`.
+
+A component's `Animate` or `Transition` option can only turn its own animation down. `nui.Set(false)` stops it at any level; `nui.Set(true)` cannot turn it on at Off, and at Reduced it plays the reduced form, such as a fade without scaling.
+
+The levels cover nui's own animation. MyGo's own motion, such as a scroll view's glide and the text caret's blink, follows the system preference only; to stop it as well, call `c.DisableAnimations()` in the view, which applies to that frame's values, transitions and poses.
 
 With high contrast mode on, the default palettes' Solid text colors pass a 4.5:1 contrast check. This does not hold in normal mode: for example, white text on the default light primary color has a contrast ratio of about 2.22:1. Verify custom palettes, other states, and the accessibility of your complete app separately.
 
@@ -229,7 +245,7 @@ Empty's default padding is 16, 24, or 32 DIP depending on the window width, with
 
 Header replaces the entire default header, Leading replaces only the leading content, and Body replaces the default Actions. Footer is shown separately. The action area and footer have stable identities, so changes to the header do not replace input controls inside them. The default title has level-2 heading semantics; for a custom Header, your app sets the semantics.
 
-Loading affects only the leading icon. It does not disable Actions or change an existing avatar image. Reduced motion stops the rotation. There is no native equivalent of aria-busy. Set the loading icon's color with UI.Leading.Foreground; a late TextColor from Style does not replace the resolved custom-drawn color. Style the avatar through Avatar.UI. The Leading part keeps its default meaning (the icon); with a custom Leading, it refers to that content's container.
+Loading affects only the leading icon. It does not disable Actions or change an existing avatar image. The icon keeps turning under reduced motion and stands still at the Off motion level. There is no native equivalent of aria-busy. Set the loading icon's color with UI.Leading.Foreground; a late TextColor from Style does not replace the resolved custom-drawn color. Style the avatar through Avatar.UI. The Leading part keeps its default meaning (the icon); with a custom Leading, it refers to that content's container.
 
 ### Indicators, separators, and loading
 
@@ -294,11 +310,11 @@ For the full list of names, the pinned commit, the import path, and the offline 
 
 **Skeleton**'s Width, Height, and Animate are native extensions. The default size is 160×16 DIP. The default height follows the text scale, but explicit sizes do not scale, and an explicit 0 stays 0. To fit the parent's width, call FillWidth on the returned element. Both Root.Radius and the final Style can set the corner radius, and the resulting radius clips the placeholder background and any attached content.
 
-The pulse changes only the opacity of the custom-drawn background; set its color with UI.Root.Background. Style.Background configures the underlying surface and cannot replace the resolved pulse color. Skeleton provides a localized loading name and a native status role, but not the full aria-busy/alert announcement semantics of the web. Your app decides when to show and hide placeholders and how to present the loaded result.
+The pulse changes only the opacity of the custom-drawn background, once per `Motion.Pulse`; it goes on under reduced motion, as Nuxt UI's `animate-pulse` does, and stops with `Animate: nui.Set(false)` or at the Off motion level. Set its color with UI.Root.Background. Style.Background configures the underlying surface and cannot replace the resolved pulse color. Skeleton provides a localized loading name and a native status role, but not the full aria-busy/alert announcement semantics of the web. Your app decides when to show and hide placeholders and how to present the loaded result.
 
 **Progress**'s Max defaults to 100. Explicitly setting it to a non-positive value, NaN, or Inf panics. A progress value of NaN or Inf is treated as 0 and then clamped to the range 0 to Max.
 
-Determinate progress fills to the rounded integer percentage, while assistive technology receives the exact amount completed. The indeterminate indicator is half the track's length and moves in a two-second cycle by default; with reduced motion or Animate=false, it stays still in the center. Internally, `Now=-1 < Min=0` represents unknown progress, with an "In progress" value or description. Windows UIA clamps the unknown value to the minimum; how screen readers announce it has not been verified.
+Determinate progress fills to the rounded integer percentage, while assistive technology receives the exact amount completed. The indeterminate indicator moves in a two-second cycle along one of Nuxt UI's presets, set with `Animation`: `LoadingCarousel` (the default, a half-length indicator sliding from the start to the end), `LoadingCarouselInverse`, `LoadingSwing` or `LoadingElastic`. The carousels run from the other end right to left and when Inverted, and all presets run along a vertical track; Table's loading bar uses the same presets. Under reduced motion the indicator spans the whole track and pulses its opacity instead, as Nuxt's `motion-reduce:animate-pulse`; with Animate=false or at the Off motion level it stays still, half the track's length, in the center. A determinate value moves to its new amount over 200 ms only at the Full motion level. An out-of-range Animation panics, as Table's LoadingAnimation does. Internally, `Now=-1 < Min=0` represents unknown progress, with an "In progress" value or description. Windows UIA clamps the unknown value to the minimum; how screen readers announce it has not been verified.
 
 Horizontal progress fills from the start of the text direction. Vertical progress is 160 DIP tall by default and fills from the top. `Inverted` reverses the fill direction. Both `Orientation` and `Vertical` control orientation. Neutral uses InvertedBackground. The Indicator's Background overrides the custom-drawn fill color; other Indicator fields have no effect. Root is the track, and its style does not change the indicator's fixed pill shape.
 
@@ -312,7 +328,7 @@ Each item's UI can configure Segment, Item, Leading, Label, and Trailing, overri
 
 Horizontal groups follow RTL. Orientation defaults to Horizontal; in vertical layout, a Height of 0 or less uses 160 DIP. Segments are static and the group exposes overall progress to assistive technology. There is no per-segment progress role, built-in status text, or segment click event. You can add actions or descriptions with the legend's Build; scheduling the underlying work remains up to your app.
 
-**When animations stop:** Continuous animations request the next frame only while a visible component actually draws. They stop when the component scrolls out of view, unmounts, has Animate turned off, or when reduced motion is enabled. Button's background transition follows `Motion.Transition/Reduce`, and `Animate: nui.Set(false)` controls the loading spinner; once a transition ends, no more frames are requested. Components do not use timer goroutines for animation.
+**When animations stop:** Continuous animations request the next frame only while a visible component actually draws. They stop when the component scrolls out of view, unmounts, has Animate turned off, or at the Off motion level; spinners and the Skeleton pulse go on under reduced motion. Button's colour transition follows `Motion.Transition` at Full and Reduced and is immediate at Off, and `Animate: nui.Set(false)` controls the loading spinner. Once a transition ends, no more frames are requested. Indeterminate Progress and Table's loading bar pulse under reduced motion. In MyGo v0.9.0 a colour transition builds the view in each frame while the colour moves (about ten builds for 150 ms), so an app with an expensive view can set `Motion.Transition` to 0 or turn animation off. Components do not use timer goroutines for animation.
 
 ## Limitations
 

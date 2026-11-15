@@ -5,7 +5,7 @@
 Choose multiple items from a visible set of options.
 
 - Category: Inputs and selection
-- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
 - Functions: `CheckboxGroup`
 - Types: `CheckboxGroupOptions`
 - Theme key: `nui.ComponentCheckboxGroup` (for `Theme.WithComponent`)
@@ -117,7 +117,7 @@ ChoiceTable on a single Checkbox and Variant/Indicator on Switch are Go-native e
 
 Both group types use ChoiceGroupOptions, which adds Horizontal, Loop, and a parameterless OnChange. Groups are vertical by default; Horizontal lets items wrap, except with ChoiceTable. Each option's Label and Description provide its text. In checkbox groups, Option.Icon replaces the check icon; in both group types with the indicator hidden, it appears above the label. Option.Build has no effect in choice groups; it is only used by Select and InputMenu.
 
-Checkbox and Switch toggle on click or Space. Each group is a single Tab stop. Use Left/Right arrows in horizontal layout and Up/Down arrows in vertical layout; Home and End go to the first and last items, and disabled items are skipped. In CheckboxGroup, arrow keys only move focus and Space toggles the item; in RadioGroup, moving also selects. Loop is an Optional[bool]: it defaults to false for checkbox groups and true for radio groups, and an explicit `nui.Set(false)` stops wrapping. State updates immediately; there is currently no toggle animation.
+Checkbox and Switch toggle on click or Space. Each group is a single Tab stop. Use Left/Right arrows in horizontal layout and Up/Down arrows in vertical layout; Home and End go to the first and last items, and disabled items are skipped. In CheckboxGroup, arrow keys only move focus and Space toggles the item; in RadioGroup, moving also selects. Loop is an Optional[bool]: it defaults to false for checkbox groups and true for radio groups, and an explicit `nui.Set(false)` stops wrapping. State updates immediately, and OnChange runs once per toggle. At the Full motion level the Switch's thumb slides to the other end over 200 ms, mirrored right to left, in frames that only paint, while the track fades to its new colour; under reduced motion the thumb moves at once and the track still fades, and at Off both change at once. A loading Switch still blocks toggling.
 
 A group's visible title can come from the enclosing FormField.Label. To use one icon for all checkboxes in a group, set the same SVG as Option.Icon on every option that has no icon of its own; items with their own icons keep them.
 
@@ -136,6 +136,12 @@ A group's visible title can come from the enclosing FormField.Label. To use one 
 | Checkbox / CheckboxGroup / RadioGroup | Variant is ChoiceList, ChoiceCard, or ChoiceTable. Indicator is IndicatorStart, IndicatorEnd, or IndicatorHidden. Highlight emphasizes the border or indicator, even when unchecked |
 
 Option.Icon works in CheckboxGroup and RadioGroup. With the indicator hidden, the icon appears above the item label; an ordinary Radio indicator is still a dot. Loop controls whether arrow keys wrap around; it defaults to false for checkbox groups and true for radio groups, and `nui.Set(false)` turns wrapping off. Both group types use a single Tab stop, with Left/Right arrows in horizontal layout and Up/Down arrows in vertical layout.
+
+### Forms, dates, and data components
+
+#### Lifecycle and themes (excerpt)
+
+InputNumber, InputDate, and InputTime share Input's sizes, five field variants, colors, read-only and disabled states, icons, and error settings. InputNumber, InputTags, PinInput cells, the SelectMenu trigger, Listbox and Tree rows, Calendar cells and card-variant CheckboxGroup items fade their background, border and focus ring over `Motion.Transition` (150 ms) at the Full and Reduced motion levels, as Nuxt UI's `transition-colors`; text colours change at once, and the Off motion level shows every change at once. InputDate and InputTime fields do not fade. Other components are configured through their own Options at the end of this page.
 
 ## Complete example
 

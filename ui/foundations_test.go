@@ -164,10 +164,10 @@ func TestButtonSizesDensityAndLoadingGeometry(t *testing.T) {
 func TestAnimationLifecycle(t *testing.T) {
 	for _, kind := range []string{"button", "skeleton", "progress", "empty", "input"} {
 		t.Run(kind, func(t *testing.T) {
-			shown, offscreen, enabled := true, false, true
+			shown, offscreen, enabled, off := true, false, true, false
 			text := ""
 			tt := ui.NewTester(func(c *ui.Context) {
-				theme := nui.App(c, nui.AppConfig{})
+				theme := nui.App(c, nui.AppConfig{DisableAnimations: off})
 				ui.Scroll(c).Fill().Children(func() {
 					if offscreen {
 						ui.Box(c).Height(600)
@@ -210,12 +210,22 @@ func TestAnimationLifecycle(t *testing.T) {
 			if tt.FramePending() {
 				t.Fatal("explicit false ignored")
 			}
+			// Spinners and pulses go on under reduced motion, as Nuxt's
+			// animate-spin and animate-pulse do; an indeterminate bar pulses
+			// in place.
 			enabled = true
 			tt.SetPreferences(ui.Preferences{ReduceMotion: true})
 			tt.Advance(300 * time.Millisecond)
-			if tt.FramePending() {
-				t.Fatal("reduced motion ignored")
+			if !tt.FramePending() {
+				t.Fatal("reduced motion stopped the animation")
 			}
+			off = true
+			tt.Frame()
+			tt.Advance(300 * time.Millisecond)
+			if tt.FramePending() {
+				t.Fatal("disabled animations ignored")
+			}
+			off = false
 			tt.SetPreferences(ui.Preferences{})
 			shown = false
 			tt.Frame()

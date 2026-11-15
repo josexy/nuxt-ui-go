@@ -548,19 +548,13 @@ func PinInput(c *ui.Context, t Theme, value *string, s *PinState, o PinInputOpti
 				if o.Highlight && !invalid {
 					recipe.BorderWidth, recipe.BorderColor = Set(float32(1)), Set(inputColor(t, config.Color))
 				}
-				if active && config.Variant != None {
-					color := config.Color
-					if invalid {
-						color = Error
-					}
-					e.Shadow(0, 0, 0, 3, inputFocusColor(t, color))
-				}
+				focusRing(e, active && config.Variant != None, inputFocusColor(t, focusRingColor(config.Color, invalid)))
 				if active && editing {
 					var textWidth float32
 					if i < len(characters) {
 						textWidth, _ = c.MeasureText(0, ui.Span{Text: v, Font: t.Font, Size: buttonMetrics(t, config.Size).Font})
 					}
-					since, motion := caretState.since, t.motion(c)
+					since, motion := caretState.since, t.fades(c)
 					height := buttonMetrics(t, config.Size).Line
 					e.DrawOver(func(p *ui.Painter, r ui.Rect) {
 						const blink = 530 * time.Millisecond
@@ -573,6 +567,7 @@ func PinInput(c *ui.Context, t Theme, value *string, s *PinState, o PinInputOpti
 						}
 					})
 				}
+				t.fadeColors(c, e)
 				finish(t, ComponentPinInput, Item, e, recipe, o.Decoration)
 			}
 		})
@@ -717,7 +712,7 @@ func InputRating(c *ui.Context, t Theme, value *int, o InputRatingOptions) ui.El
 			if interactive && e.Hovered() {
 				scale = 1.1
 			}
-			if t.motion(c) && t.Motion.Transition > 0 {
+			if t.moves(c) && t.Motion.Transition > 0 {
 				scale = e.AnimateWith("nui-rating-scale", scale, t.Motion.Transition, ui.EaseOut)
 			} else {
 				e.Jump("nui-rating-scale", scale)

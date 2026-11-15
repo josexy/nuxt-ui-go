@@ -617,7 +617,7 @@ func segmentedInput(c *ui.Context, t Theme, fields []segmentField, o InputOption
 		if loadingLeading {
 			part = Leading
 		}
-		drawLoadingSVG(loader, icon, mergeValue(styles[Root].Foreground, styles[part].Foreground).Value, t.motion(c), t.Motion.Spin)
+		drawLoadingSVG(loader, icon, mergeValue(styles[Root].Foreground, styles[part].Foreground).Value, t.fades(c), t.Motion.Spin)
 	}
 	for i, e := range segments {
 		styles[Editor].apply(e)

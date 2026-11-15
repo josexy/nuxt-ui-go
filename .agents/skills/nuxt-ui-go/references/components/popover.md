@@ -5,7 +5,7 @@
 Open related content beside a button or other control.
 
 - Category: Inputs and selection
-- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Popover`
 - Types: `PopoverOptions`
 - Theme key: `nui.ComponentPopover` (for `Theme.WithComponent`)
@@ -116,9 +116,9 @@ By default, a generic Popover has the theme background, a 1 DIP border, a 6 DIP 
 
 The Panel's font, text color, line height, and Gap apply directly to plain content. Native child controls keep using the local theme passed to them, and their own explicit text styles take precedence. Changing the anchor or panel size keeps the content's identity, drafts, and selection. If focus is inside the popover when it closes, focus returns to the current anchor; if it closes because the user clicked another control, that control keeps focus.
 
-The entrance animation respects reduced motion, and changing that preference while the popover is open does not replay it. Closing unmounts the popover immediately; there is no exit animation as in upstream. Collision handling uses MyGo's 4 DIP edge margin, while upstream defaults to 8 px. When there is no room on either side, a side placement can still overflow the window; constrain the content size or use a top or bottom placement.
+Under reduced motion the entrance fades in without scaling, and changing that preference while the popover is open does not replay it. Closing plays Nuxt UI's 100 ms scale-out and fade through a copy of the panel that takes no input and is hidden from assistive technology: focus returns at once, and a click on what was under the panel reaches it. Under reduced motion the exit only fades, and at the Off motion level the panel goes at once. Opening it again during the exit continues fully shown from where it was, without a second panel. Collision handling uses MyGo's 4 DIP edge margin, while upstream defaults to 8 px. When there is no room on either side, a side placement can still overflow the window; constrain the content size or use a top or bottom placement.
 
-On open, the panel fades in from 95% scale within 100 ms, scaling from the side nearest the anchor. With reduced motion, it appears immediately. Closing unmounts the panel at once and restores focus, with no exit animation. A selection list's own Panel override is applied last, and explicit padding in Popup.UI also takes effect.
+On open, the panel fades in from 95% scale within 100 ms, scaling from the side nearest the anchor. Under reduced motion it fades in without scaling, and at the Off motion level it appears at once. Closing restores focus at once and plays the same 100 ms scale-out and fade through a copy that takes no input (a fade under reduced motion, nothing at Off). A selection list's own Panel override is applied last, and explicit padding in Popup.UI also takes effect.
 
 ### Options and defaults
 
@@ -154,13 +154,9 @@ ShowCalendar defaults to false. When enabled, it adds a calendar button and a Po
 
 Tab focus is trapped inside the modal content, and an inner Select or Popover handles Escape first. By default, the first focusable control receives focus, usually the close button. To focus a field first, request that field's Handle in the action that opens the dialog. If the Header or Footer is very tall, your app must constrain the content size to leave room for the body.
 
-#### Modal and Slideover › Content, size, and appearance (excerpt)
-
-The Modal panel has an 8 DIP corner radius, and the overlay uses the Elevated color at 75% opacity. On open, the panel fades in from 95% scale over 200 ms while the overlay fades in with it. With Transition=false or reduced motion, it appears immediately. Like Popover, Modal closes immediately without an exit animation. There is no upstream full-overlay scrolling mode, non-modal switch, or keep-mounted option.
-
 #### Tooltip (excerpt)
 
-The tooltip hides when the pointer leaves, the trigger is clicked, the user presses outside, or Escape is pressed. It also closes when it is Disabled, when the anchor is invalid or disabled, or when both the text and Kbds are empty. It opens with a 100 ms scale-and-fade animation, appears immediately with reduced motion, and disappears immediately on close. A Go Tooltip does not receive pointer input or focus, and it has no upstream hoverable content, arrow, or arbitrary content slot. For multiline or clickable content, use Popover.
+The tooltip hides when the pointer leaves, the trigger is clicked, the user presses outside, or Escape is pressed. It also closes when it is Disabled, when the anchor is invalid or disabled, or when both the text and Kbds are empty. It opens with a 100 ms scale-and-fade animation and closes with the reverse, fading without scaling under reduced motion; at the Off motion level it appears and disappears at once. A Go Tooltip does not receive pointer input or focus, and it has no upstream hoverable content, arrow, or arbitrary content slot. For multiline or clickable content, use Popover.
 
 ## Complete example
 

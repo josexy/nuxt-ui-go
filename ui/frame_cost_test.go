@@ -51,7 +51,7 @@ func TestHiddenChartWaitsAndMeasuresWhenShown(t *testing.T) {
 		t.Fatalf("a chart in a hidden panel built the view %d times in 2s", n)
 	}
 	click(t, tt, "Kept")
-	tt.Advance(100 * time.Millisecond)
+	tt.Advance(300 * time.Millisecond) // the tabs' indicator and labels
 	plot := bounds(t, tt, "Revenue")
 	if plot.W < 390 || plot.H < plot.W/2-1 || plot.H > plot.W/2+1 {
 		t.Fatalf("shown chart kept its guessed size: %v", plot)
@@ -80,7 +80,7 @@ func TestHiddenHorizontalListboxWaitsAndShowsRows(t *testing.T) {
 		t.Fatalf("a horizontal listbox in a hidden panel built the view %d times in 2s", n)
 	}
 	click(t, tt, "Kept")
-	tt.Advance(100 * time.Millisecond)
+	tt.Advance(300 * time.Millisecond) // the tabs' indicator and labels
 	// The 360 DIP viewport shows three 120 DIP rows; the window's 1200 DIPs,
 	// guessed while it was hidden, would build ten and more.
 	if !tt.HasText("Item 00") || !tt.HasText("Item 02") || tt.HasText("Item 08") {
@@ -173,6 +173,7 @@ func TestFileUploadWaitsForItsChooserWithoutPolling(t *testing.T) {
 	if !state.Pending() {
 		t.Fatal("the chooser did not start")
 	}
+	tt.Advance(200 * time.Millisecond) // the drop area's hover fade, once
 	// A native file dialog stays open for as long as the user takes.
 	if n := buildsDuring(tt, &builds, 2*time.Second); n > 2 {
 		t.Fatalf("a pending chooser built the view %d times in 2s", n)
@@ -191,10 +192,10 @@ func TestCommandPaletteResultsArriveWithoutPolling(t *testing.T) {
 	state.Open = true
 	builds := 0
 	// Without motion or a caret, nothing but the search asks for frames.
-	tt := ui.NewTesterWith(func(c *ui.Context) {
+	tt := ui.NewTester(func(c *ui.Context) {
 		builds++
-		nui.CommandPalette(c, nui.App(c, nui.AppConfig{}), &state, nui.CommandPaletteOptions{SearchInput: nui.Set(false)})
-	}, 900, 700, ui.TesterOptions{Preferences: ui.Preferences{ReduceMotion: true}})
+		nui.CommandPalette(c, nui.App(c, nui.AppConfig{DisableAnimations: true}), &state, nui.CommandPaletteOptions{SearchInput: nui.Set(false)})
+	}, 900, 700)
 	awaitAdvancing(t, tt, func() bool { return !state.Searching() && len(state.Results.Items) > 0 })
 	if n := buildsDuring(tt, &builds, 2*time.Second); n > 2 {
 		t.Fatalf("an idle palette built the view %d times in 2s", n)
@@ -219,9 +220,9 @@ func TestCommandPaletteKeepsItsRowsBetweenFrames(t *testing.T) {
 	var state nui.CommandPaletteState
 	state.SetIndex(nui.NewCommandIndex(actions))
 	state.Open = true
-	tt := ui.NewTesterWith(func(c *ui.Context) {
-		nui.CommandPalette(c, nui.App(c, nui.AppConfig{}), &state, nui.CommandPaletteOptions{Limit: 1000, SearchInput: nui.Set(false)})
-	}, 900, 700, ui.TesterOptions{Preferences: ui.Preferences{ReduceMotion: true}})
+	tt := ui.NewTester(func(c *ui.Context) {
+		nui.CommandPalette(c, nui.App(c, nui.AppConfig{DisableAnimations: true}), &state, nui.CommandPaletteOptions{Limit: 1000, SearchInput: nui.Set(false)})
+	}, 900, 700)
 	awaitAdvancing(t, tt, func() bool { return !state.Searching() && len(state.Results.Items) == 1000 })
 	// Grouping and copying 1000 results again allocated megabytes a frame.
 	if b := bytesPerFrame(tt); b > 64<<10 {
@@ -370,5 +371,43 @@ func TestMarqueeOutOfItsScrollAreaWaits(t *testing.T) {
 	// The marquee lies below the area's 100 DIPs, though inside the window.
 	if n := buildsDuring(tt, &builds, 2*time.Second); n > 2 || tt.FramePending() {
 		t.Fatalf("a marquee scrolled out of view built %d times in 2s (pending=%v)", n, tt.FramePending())
+	}
+}
+
+// TestColorTransitionCost measures what a colour fade costs. In MyGo v0.9.0,
+// an ElementTransition with Colors rebuilds the view in every frame while the
+// colour moves (an AnimatePose moves in frames that only paint), and asks for
+// nothing once it arrives. The unify-component-motion design records this.
+func TestColorTransitionCost(t *testing.T) {
+	for _, fade := range []bool{false, true} {
+		builds := 0
+		tt := ui.NewTester(func(c *ui.Context) {
+			builds++
+			b := ui.Box(c).Key("probe").Size(100, 60).Background(ui.RGB(255, 255, 255)).Label("Probe")
+			if b.Hovered() {
+				b.Background(ui.RGB(0, 0, 0))
+			}
+			if fade {
+				b.Transition(ui.ElementTransition{Colors: true, Duration: 150 * time.Millisecond})
+			}
+		}, 200, 100)
+		tt.Move(50, 30)
+		during := buildsDuring(tt, &builds, 75*time.Millisecond)
+		mid := tt.Image().RGBAAt(50, 30)
+		during += buildsDuring(tt, &builds, 500*time.Millisecond)
+		end := tt.Image().RGBAAt(50, 30)
+		t.Logf("fade=%v: mid %v; %d builds in the 575 ms after the hover", fade, mid, during)
+		if end.R != 0 || tt.FramePending() {
+			t.Fatalf("fade=%v: did not settle: %v pending=%v", fade, end, tt.FramePending())
+		}
+		if fade && (mid.R == 0 || mid.R == 255 || during < 4) {
+			t.Fatalf("the fade's colour %v and %d builds no longer match the recorded cost", mid, during)
+		}
+		if !fade && during != 0 {
+			t.Fatalf("an instant hover built the view %d times after the hover", during)
+		}
+		if n := buildsDuring(tt, &builds, time.Second); n != 0 || tt.FramePending() {
+			t.Fatalf("fade=%v: a settled hover built the view %d times", fade, n)
+		}
 	}
 }

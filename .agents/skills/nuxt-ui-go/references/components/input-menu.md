@@ -5,7 +5,7 @@
 Search in an input and select from its suggestions.
 
 - Category: Inputs and selection
-- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
 - Functions: `InputMenu`, `SearchSelect`
 - Types: `InputMenuOptions`
 - Theme key: `nui.ComponentInputMenu` (for `Theme.WithComponent`)
@@ -96,6 +96,8 @@ From the library documentation. Links point to other component references in thi
 
 Input, Textarea, Select, and InputMenu support these variants:
 
+Input, Textarea, InputNumber, InputTags, PinInput cells, and the Select, SelectMenu and InputMenu triggers fade their background, border and focus ring over `Motion.Transition` (150 ms) when hover, focus or invalid state changes, as Nuxt UI's `transition-colors`. The fade also runs under reduced motion; `Motion.Transition = 0` or the Off motion level shows the change at once. Text and icon colours change at once.
+
 #### FormField and FieldGroup › FieldGroup: join several controls (excerpt)
 
 FieldGroup rounds the outer corners of Input, Textarea, InputMenu, InputTags, Select, SelectMultiple, SelectMenu, Button, and Badge. By default, adjacent borders overlap by 1 DIP and the items stretch to the same height. The outer corners follow the writing direction. Vertical stacks the items vertically.
@@ -157,7 +159,7 @@ Select, InputMenu, SelectMenu, Listbox, menus, and CommandPalette share the same
 | Font size / line height (DIP) | 12/16 | 12/16 | 14/20 | 14/20 | 16/24 |
 | Icon size (DIP) | 16 | 16 | 20 | 20 | 24 |
 
-Rows have a 6 DIP corner radius. A row highlighted by keyboard or pointer uses Elevated at 50% as its background and Highlighted for its text, and its leading icon changes from Dimmed to Text. Selected items are marked with a check mark at the end of the row, without an extra background.
+Rows have a 6 DIP corner radius. A row highlighted by keyboard or pointer uses Elevated at 50% as its background and Highlighted for its text, and its leading icon changes from Dimmed to Text. The background fades in and out over `Motion.Transition`, also under reduced motion, so moving the highlight cross-fades the two rows; the text colour changes at once. In virtual lists the fade is on each row's content, so it never moves rows, and a held arrow key highlights, scrolls and reports the same rows as with animations off. Selected items are marked with a check mark at the end of the row, without an extra background.
 
 The description appears on the line below the label, at the same font size, in the Muted color. Group headings are semibold and one size smaller than items. The empty state is centered and uses the Muted color.
 

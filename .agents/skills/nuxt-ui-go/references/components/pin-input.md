@@ -5,7 +5,7 @@
 Enter a verification code or other fixed-length text.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
 - Functions: `PinInput`
 - Types: `PinInputOptions`
 - Theme key: `nui.ComponentPinInput` (for `Theme.WithComponent`)
@@ -65,6 +65,10 @@ From the library documentation. Links point to other component references in thi
 
 ### Forms, dates, and data components
 
+#### Lifecycle and themes (excerpt)
+
+InputNumber, InputDate, and InputTime share Input's sizes, five field variants, colors, read-only and disabled states, icons, and error settings. InputNumber, InputTags, PinInput cells, the SelectMenu trigger, Listbox and Tree rows, Calendar cells and card-variant CheckboxGroup items fade their background, border and focus ring over `Motion.Transition` (150 ms) at the Full and Reduced motion levels, as Nuxt UI's `transition-colors`; text colours change at once, and the Off motion level shows every change at once. InputDate and InputTime fields do not fade. Other components are configured through their own Options at the end of this page.
+
 #### Numbers, tags, PINs, and ratings › PinInput
 
 PinInput binds a `*string` and keeps a separate PinState. It defaults to 5 text cells; for a six-digit verification code, use `PinInputOptions{Numeric: true, Length: 6}`. Length ranges from 1 to 32 and is counted in runes. Numeric accepts only ASCII digits.
@@ -83,7 +87,7 @@ PinInput uses one real editor behind several visual cells, so Tab enters it only
 
 Cells are 6 DIP apart, scaled by Density. The separator is a centered dot in the Dimmed color with equal space on both sides. The current cell shows a 3 DIP focus ring in the theme color at 25% opacity. In the error state it uses Error, in high contrast mode the ring is opaque, and None shows no ring.
 
-A focused empty cell hides its Placeholder and shows a blinking cursor. With reduced motion, the cursor stays solid; it is hidden when read-only, disabled, or unfocused. When FormField has an Error, every cell shows the error border. Text scaling and masking do not affect hit testing.
+A focused empty cell hides its Placeholder and shows a blinking cursor. It blinks under reduced motion too, as MyGo's own text caret does, and stays solid at the Off motion level; it is hidden when read-only, disabled, or unfocused. When FormField has an Error, every cell shows the error border. Text scaling and masking do not affect hit testing.
 
 #### Style part index (excerpt)
 
@@ -104,6 +108,12 @@ Text input in InputTags, PinInput in text mode, the Listbox filter field, Select
 | PinInput | Color, Variant, and Size set the appearance. `Separator: []int{3}` adds a group break after the third cell; the control still uses one editor and one Tab stop |
 
 InputNumber's StepSnapping, FocusOnChange, Increment, and Decrement default to true, and the mouse wheel is enabled by default. The first increment or decrement from an empty value uses StartingValue instead of adding an extra step. PinInput.Highlight defaults to false; SeparatorSlot and Root.Gap/Padding adjust the separator and spacing.
+
+### Inputs, selection, and fields
+
+#### State, themes, and events › Sizes, variants, and disabled state (excerpt)
+
+Input, Textarea, InputNumber, InputTags, PinInput cells, and the Select, SelectMenu and InputMenu triggers fade their background, border and focus ring over `Motion.Transition` (150 ms) when hover, focus or invalid state changes, as Nuxt UI's `transition-colors`. The fade also runs under reduced motion; `Motion.Transition = 0` or the Off motion level shows the change at once. Text and icon colours change at once.
 
 ### Compatibility and known limitations
 

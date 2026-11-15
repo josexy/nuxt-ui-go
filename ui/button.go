@@ -85,9 +85,7 @@ func button(c *ui.Context, t Theme, label string, opts ButtonOptions, chosen Opt
 		return Styles{Root: root}
 	})
 	m := buttonMetrics(t, config.Size)
-	if t.motion(c) && t.Motion.Transition > 0 {
-		e.Transition(ui.ElementTransition{Colors: true, Duration: t.Motion.Transition})
-	}
+	t.fadeColors(c, e)
 	styles[Root].apply(e)
 	if opts.Block {
 		e.FillWidth().Justify(ui.Center)
@@ -101,7 +99,7 @@ func button(c *ui.Context, t Theme, label string, opts ButtonOptions, chosen Opt
 		e.Shadow(0, 0, 0, 3, t.focusColor(config.Color))
 	}
 	var labelPart, leadingPart, trailingPart ui.Element
-	animated := t.motion(c)
+	animated := t.fades(c)
 	if opts.Animate.Set {
 		animated = animated && opts.Animate.Value
 	}

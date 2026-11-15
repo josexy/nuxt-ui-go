@@ -620,9 +620,8 @@ func Calendar(c *ui.Context, t Theme, value *DateSelection, s *CalendarState, o 
 									if date == s.Active && (!outside || months == 1) {
 										grid.ActiveDescendant(cell)
 									}
-									if focused {
-										cell.Shadow(0, 0, 0, 3, inputFocusColor(t, config.Color))
-									}
+									focusRing(cell, focused, inputFocusColor(t, config.Color))
+									t.fadeColors(c, cell)
 									finish(t, ComponentCalendar, Item, cell, style, o.Decoration)
 									cell.Children(func() {
 										if o.BuildDay != nil {

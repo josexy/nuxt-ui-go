@@ -30,7 +30,7 @@ func TestModalEmptyHeaderAndInheritedPanelText(t *testing.T) {
 	open := true
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
-		th.Motion.Reduce = true
+		th.Motion.Disabled = true
 		nui.ModalWithOptions(c, th, &open, nui.ModalOptions{CloseButton: nui.Set(false), UI: nui.Styles{nui.Panel: {Foreground: nui.Set(ui.RGB(255, 0, 255)), FontSize: nui.Set(float32(24)), LineHeight: nui.Set(float32(1.5))}}, Style: func(slot nui.Slot, e ui.Element) {
 			if slot == nui.Header {
 				e.Label("Empty header")

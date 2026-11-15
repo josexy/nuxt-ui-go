@@ -5,7 +5,7 @@
 Resize two panels by dragging their divider.
 
 - Category: Advanced interaction and layout
-- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Splitter`
 - Types: `SplitterOptions`
 - Theme key: `nui.ComponentSplitter` (for `Theme.WithComponent`)
@@ -80,7 +80,7 @@ Two panes and nesting are supported. Multi-pane coordination, collapsible snappi
 
 | Area | Current behavior and limits |
 | --- | --- |
-| Carousel / Splitter | Carousel buttons, keyboard, and autoplay can loop, but dragging still stops at the ends. Active only gates autoplay. No full Embla plugin set or ARIA tablist. Splitter splits into exactly two panels |
+| Carousel / Splitter | Carousel buttons, keyboard, and autoplay can loop, but dragging still stops at the ends. Pages slide over 200 ms; a jump of several pages slides in across one page instead of Embla's scroll through the pages between. Active only gates autoplay. No full Embla plugin set or ARIA tablist. Splitter splits into exactly two panels |
 
 ## Complete example
 

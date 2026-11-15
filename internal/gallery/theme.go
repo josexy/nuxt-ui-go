@@ -45,7 +45,9 @@ func (a *State) themeConfig() nui.AppConfig {
 	if a.Compact {
 		config.Light.Density, config.Dark.Density = .8, .8
 	}
-	config.Light.Motion.Reduce, config.Dark.Motion.Reduce = !a.Animations, !a.Animations
+	// Turning the Gallery's animations off is the app-wide switch, not
+	// reduced motion, which keeps fades and spinners.
+	config.DisableAnimations = !a.Animations
 	return config
 }
 
@@ -54,7 +56,7 @@ func paletteSwatch(c *ui.Context, t nui.Theme, name string) {
 	if p, ok := nui.PaletteByName(name); ok {
 		color = p.Shade(500)
 	}
-	ui.Box(c).Size(10, 10).Radius(5).Background(color).Shrink(0)
+	ui.Box(c.Key("palette-swatch")).Size(10, 10).Radius(5).Background(color).Shrink(0).AlignSelf(ui.Center)
 }
 
 func (a *State) paletteItems(primary bool) []nui.MenuItem {

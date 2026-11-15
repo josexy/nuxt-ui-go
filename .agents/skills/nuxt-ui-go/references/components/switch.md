@@ -5,7 +5,7 @@
 Turn a setting on or off.
 
 - Category: Inputs and selection
-- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Switch`
 - Types: `SwitchOptions`
 - Theme key: `nui.ComponentSwitch` (for `Theme.WithComponent`)
@@ -17,7 +17,7 @@ Switch binds a non-nil `*bool`. CheckedIcon and UncheckedIcon customize each sta
 
 ## Things to know
 
-The application retains the selected value. Variant and Indicator are Go native extensions. The thumb updates immediately; the loader respects reduced motion. FormField provides the required marker, while form validators enforce submission rules.
+The application retains the selected value. Variant and Indicator are Go native extensions. The thumb slides over 200 ms while the track fades, and moves at once under reduced motion; the loader keeps turning under reduced motion and stops when animations are off. FormField provides the required marker, while form validators enforce submission rules.
 
 ## API
 
@@ -106,7 +106,7 @@ ChoiceTable on a single Checkbox and Variant/Indicator on Switch are Go-native e
 
 Both group types use ChoiceGroupOptions, which adds Horizontal, Loop, and a parameterless OnChange. Groups are vertical by default; Horizontal lets items wrap, except with ChoiceTable. Each option's Label and Description provide its text. In checkbox groups, Option.Icon replaces the check icon; in both group types with the indicator hidden, it appears above the label. Option.Build has no effect in choice groups; it is only used by Select and InputMenu.
 
-Checkbox and Switch toggle on click or Space. Each group is a single Tab stop. Use Left/Right arrows in horizontal layout and Up/Down arrows in vertical layout; Home and End go to the first and last items, and disabled items are skipped. In CheckboxGroup, arrow keys only move focus and Space toggles the item; in RadioGroup, moving also selects. Loop is an Optional[bool]: it defaults to false for checkbox groups and true for radio groups, and an explicit `nui.Set(false)` stops wrapping. State updates immediately; there is currently no toggle animation.
+Checkbox and Switch toggle on click or Space. Each group is a single Tab stop. Use Left/Right arrows in horizontal layout and Up/Down arrows in vertical layout; Home and End go to the first and last items, and disabled items are skipped. In CheckboxGroup, arrow keys only move focus and Space toggles the item; in RadioGroup, moving also selects. Loop is an Optional[bool]: it defaults to false for checkbox groups and true for radio groups, and an explicit `nui.Set(false)` stops wrapping. State updates immediately, and OnChange runs once per toggle. At the Full motion level the Switch's thumb slides to the other end over 200 ms, mirrored right to left, in frames that only paint, while the track fades to its new colour; under reduced motion the thumb moves at once and the track still fades, and at Off both change at once. A loading Switch still blocks toggling.
 
 A group's visible title can come from the enclosing FormField.Label. To use one icon for all checkboxes in a group, set the same SVG as Option.Icon on every option that has no icon of its own; items with their own icons keep them.
 
@@ -116,7 +116,7 @@ A group's visible title can come from the enclosing FormField.Label. To use one 
 
 | Component | Common options and behavior |
 | --- | --- |
-| Switch | Loading blocks toggling by mouse and keyboard. LoadingIcon, CheckedIcon, and UncheckedIcon set the icons. The spinner stops when reduced motion is on |
+| Switch | Loading blocks toggling by mouse and keyboard. LoadingIcon, CheckedIcon, and UncheckedIcon set the icons. The spinner keeps turning under reduced motion and stops at the Off motion level |
 | Checkbox / CheckboxGroup / RadioGroup | Variant is ChoiceList, ChoiceCard, or ChoiceTable. Indicator is IndicatorStart, IndicatorEnd, or IndicatorHidden. Highlight emphasizes the border or indicator, even when unchecked |
 | InputTags | AddOnTab, AddOnBlur, and AddOnPaste control when tags are added. Duplicate, ConvertValue, and DisplayValue control values and display. MaxLength limits the text being edited |
 | PinInput | Color, Variant, and Size set the appearance. `Separator: []int{3}` adds a group break after the third cell; the control still uses one editor and one Tab stop |

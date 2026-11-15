@@ -5,7 +5,7 @@
 Select one or more items from a visible list.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Listbox`
 - Types: `ListboxOptions`, `ListboxEvent`
 - Theme key: `nui.ComponentListbox` (for `Theme.WithComponent`)
@@ -134,6 +134,10 @@ From the library documentation. Links point to other component references in thi
 
 ### Forms, dates, and data components
 
+#### Lifecycle and themes (excerpt)
+
+InputNumber, InputDate, and InputTime share Input's sizes, five field variants, colors, read-only and disabled states, icons, and error settings. InputNumber, InputTags, PinInput cells, the SelectMenu trigger, Listbox and Tree rows, Calendar cells and card-variant CheckboxGroup items fade their background, border and focus ring over `Motion.Transition` (150 ms) at the Full and Reduced motion levels, as Nuxt UI's `transition-colors`; text colours change at once, and the Off motion level shows every change at once. InputDate and InputTime fields do not fade. Other components are configured through their own Options at the end of this page.
+
 #### Listbox, SelectMenu, and async search
 
 ##### Listbox: a selectable list shown inline
@@ -148,7 +152,7 @@ Size and Color default to MD and Primary. Instance options take precedence over 
 
 Filter defaults to false. When enabled, configure the search input through FilterInput. SearchTerm takes a persistent string pointer; when unset, State.Query is used. FilterFields defaults to matching label only and also supports description, value/id, and group; an explicit empty list matches nothing for a non-empty query. Filtering ignores case and combining diacritical marks. Within each run of options between groups and structural rows, results are ordered by exact match, then prefix match, then substring match. Full locale collation rules are not implemented.
 
-With the filter field hidden, a retained query still applies; IgnoreFilter skips local filtering. Loading replaces the options with an icon and pauses list interaction, while the filter field stays editable. LoadingIcon overrides the icon, and the spinner stops with reduced motion.
+With the filter field hidden, a retained query still applies; IgnoreFilter skips local filtering. Loading replaces the options with an icon and pauses list interaction, while the filter field stays editable. LoadingIcon overrides the icon. The spinner keeps turning under reduced motion and stops at the Off motion level.
 
 The empty message and the loading indicator are polite status regions with stable identities, as are the empty messages of Select, InputMenu, SelectMenu, and filtered DropdownMenu and ContextMenu, and SelectMenu's loading and error rows. A status is not read when it first appears. If its text changes while it stays shown, for example from "No data" to "No matching data" as the user types, the new text is read once; rebuilding without a change reads nothing.
 

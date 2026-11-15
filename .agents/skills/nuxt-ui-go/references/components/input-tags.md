@@ -5,7 +5,7 @@
 Turn typed text into removable tags.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
 - Functions: `InputTags`, `AddTags`
 - Types: `InputTagsOptions`
 - Theme key: `nui.ComponentInputTags` (for `Theme.WithComponent`)
@@ -63,6 +63,10 @@ From the library documentation. Links point to other component references in thi
 
 ### Forms, dates, and data components
 
+#### Lifecycle and themes (excerpt)
+
+InputNumber, InputDate, and InputTime share Input's sizes, five field variants, colors, read-only and disabled states, icons, and error settings. InputNumber, InputTags, PinInput cells, the SelectMenu trigger, Listbox and Tree rows, Calendar cells and card-variant CheckboxGroup items fade their background, border and focus ring over `Motion.Transition` (150 ms) at the Full and Reduced motion levels, as Nuxt UI's `transition-colors`; text colours change at once, and the Off motion level shows every change at once. InputDate and InputTime fields do not fade. Other components are configured through their own Options at the end of this page.
+
 #### Numbers, tags, PINs, and ratings › InputTags
 
 InputTags binds a `*[]string`, and TagsState.Query stores the draft that has not been added yet. Enter adds a tag, and tags and the editor wrap together on the same lines. With the cursor at the start of the draft, Backspace first selects the last tag, and a second Backspace or Delete removes it. Left and Right move the tag selection, and Home and End go to the first and last tags while a tag is selected. The delete button uses DeleteIcon, × by default; after a deletion, focus returns to the input.
@@ -102,6 +106,10 @@ Text input in InputTags, PinInput in text mode, the Listbox filter field, Select
 InputTags' MaxLength limits what the user can insert, counted in UTF-16 code units; 0 means no limit. It limits the draft being edited and does not validate tag length on submit. With AddOnPaste on, pasted text is always handled as tags; text rejected as a duplicate or over the limit is not inserted as plain text either. With it off, pasting inserts plain text. With AddOnTab on, Tab and Shift+Tab commit a non-empty draft and keep focus; with an empty draft they move focus as usual.
 
 ### Inputs, selection, and fields
+
+#### State, themes, and events › Sizes, variants, and disabled state (excerpt)
+
+Input, Textarea, InputNumber, InputTags, PinInput cells, and the Select, SelectMenu and InputMenu triggers fade their background, border and focus ring over `Motion.Transition` (150 ms) when hover, focus or invalid state changes, as Nuxt UI's `transition-colors`. The fade also runs under reduced motion; `Motion.Transition = 0` or the Off motion level shows the change at once. Text and icon colours change at once.
 
 #### FormField and FieldGroup › FieldGroup: join several controls (excerpt)
 

@@ -5,7 +5,7 @@
 Show a short explanation on hover or keyboard focus.
 
 - Category: Overlays and navigation
-- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Tooltip`
 - Types: `TooltipOptions`
 - Theme key: `nui.ComponentTooltip` (for `Theme.WithComponent`)
@@ -83,7 +83,7 @@ Tooltip shows a short, non-interactive hint: `Tooltip(c, t, anchor, text, option
 
 `DelayDuration` is an `Optional[time.Duration]`, for example `nui.Set(200 * time.Millisecond)`. An explicit 0 or a negative value shows the tooltip immediately. Leaving the anchor cancels the wait, and keyboard focus does not wait for the hover delay. Nuxt UI defaults to a 700 ms delay and a 300 ms skip window; Go keeps MyGo's native defaults.
 
-The tooltip hides when the pointer leaves, the trigger is clicked, the user presses outside, or Escape is pressed. It also closes when it is Disabled, when the anchor is invalid or disabled, or when both the text and Kbds are empty. It opens with a 100 ms scale-and-fade animation, appears immediately with reduced motion, and disappears immediately on close. A Go Tooltip does not receive pointer input or focus, and it has no upstream hoverable content, arrow, or arbitrary content slot. For multiline or clickable content, use Popover.
+The tooltip hides when the pointer leaves, the trigger is clicked, the user presses outside, or Escape is pressed. It also closes when it is Disabled, when the anchor is invalid or disabled, or when both the text and Kbds are empty. It opens with a 100 ms scale-and-fade animation and closes with the reverse, fading without scaling under reduced motion; at the Off motion level it appears and disappears at once. A Go Tooltip does not receive pointer input or focus, and it has no upstream hoverable content, arrow, or arbitrary content slot. For multiline or clickable content, use Popover.
 
 Kbds use the SM size by default. The text and the shortcut are separated by `·`, and keys are 2 DIP apart. Unlike upstream, which hides shortcuts on narrow screens, Go always shows them. Panel.Gap sets the space between the text and the shortcut container, and Trailing styles the container of the shortcut and separator dot. The text is truncated to one line, but the shortcut does not shrink, so leave room for it in MaxWidth.
 

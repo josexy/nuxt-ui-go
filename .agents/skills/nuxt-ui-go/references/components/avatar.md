@@ -5,7 +5,7 @@
 Display an image, icon or name initials as an avatar.
 
 - Category: Themes and basic components
-- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Avatar`, `Initials`
 - Types: `AvatarOptions`
 - Theme key: `nui.ComponentAvatar` (for `Theme.WithComponent`)
@@ -65,7 +65,7 @@ User.Size sets the size of the avatar and its chip, overriding the nested Avatar
 
 Empty's default padding is 16, 24, or 32 DIP depending on the window width, with breakpoints at 640 and 1024 DIP. The header, body, and footer are at most 384 DIP wide. The avatar defaults to 32, 36, 40, 44, or 48 DIP for Empty sizes XS–XL; an explicit Avatar.Size takes precedence. Avatar.Image always takes precedence over an icon, and an explicit Avatar.Icon takes precedence over Empty.Icon and the loading icon.
 
-Loading affects only the leading icon. It does not disable Actions or change an existing avatar image. Reduced motion stops the rotation. There is no native equivalent of aria-busy. Set the loading icon's color with UI.Leading.Foreground; a late TextColor from Style does not replace the resolved custom-drawn color. Style the avatar through Avatar.UI. The Leading part keeps its default meaning (the icon); with a custom Leading, it refers to that content's container.
+Loading affects only the leading icon. It does not disable Actions or change an existing avatar image. The icon keeps turning under reduced motion and stands still at the Off motion level. There is no native equivalent of aria-busy. Set the loading icon's color with UI.Leading.Foreground; a late TextColor from Style does not replace the resolved custom-drawn color. Style the avatar through Avatar.UI. The Leading part keeps its default meaning (the icon); with a custom Leading, it refers to that content's container.
 
 #### Components and parts › Indicators, separators, and loading (excerpt)
 

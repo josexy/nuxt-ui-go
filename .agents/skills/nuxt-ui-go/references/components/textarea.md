@@ -5,7 +5,7 @@
 Edit multiple lines and optionally grow with the content.
 
 - Category: Inputs and selection
-- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Textarea`
 - Types: `TextareaOptions`
 - Theme key: `nui.ComponentTextarea` (for `Theme.WithComponent`)
@@ -46,6 +46,8 @@ From the library documentation. Links point to other component references in thi
 #### State, themes, and events › Sizes, variants, and disabled state (excerpt)
 
 Input, Textarea, Select, and InputMenu support these variants:
+
+Input, Textarea, InputNumber, InputTags, PinInput cells, and the Select, SelectMenu and InputMenu triggers fade their background, border and focus ring over `Motion.Transition` (150 ms) when hover, focus or invalid state changes, as Nuxt UI's `transition-colors`. The fade also runs under reduced motion; `Motion.Transition = 0` or the Off motion level shows the change at once. Text and icon colours change at once.
 
 #### Input and Textarea
 

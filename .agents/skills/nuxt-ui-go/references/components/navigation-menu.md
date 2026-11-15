@@ -5,7 +5,7 @@
 Provide primary navigation and nested destinations.
 
 - Category: Advanced interaction and layout
-- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
 - Functions: `NavigationMenu`
 - Types: `NavigationOptions`, `NavigationItem`, `NavigationState`, `NavigationEvent`
 - Theme key: `nui.ComponentNavigationMenu` (for `Theme.WithComponent`)
@@ -146,7 +146,9 @@ The side Popover opens on hover (including across the gap from the anchor), on c
 
 NavigationState.Expanded exposes the vertical expansion state, and DefaultOpen only initializes new nodes. Single=true lets only one branch per level be open; with Single, Collapsible=false prevents collapsing the current branch. User changes fire OnExpandedChange; initialization and app changes are silent. When a branch collapses, focus on a hidden child moves to its parent. Removing a root item moves focus to an available root item, and switching Compact keeps the expansion and the active ID.
 
-Horizontal menus use native menus. There is no shared web mega menu viewport, route-based active matching, or root hover delay model.
+In vertical mode, children expand and collapse their height over 200 ms at the Full motion level, as Collapsible does, and show or hide at once under reduced motion and at Off. Collapsing children take no input, and focus in them moves to the parent at once. The trailing chevron of an item with children, or its custom TrailingIcon, turns 180 degrees over 200 ms as it opens, rather than being swapped for an up chevron; under reduced motion and at Off it turns at once.
+
+Horizontal menus use native menus, one popup per item. There is no shared web mega menu viewport, route-based active matching, or root hover delay model, so Nuxt UI's viewport resize, sliding indicator and directional content transitions are not animated.
 
 ##### Toggles, side, and callbacks
 
@@ -232,13 +234,19 @@ It is 256 DIP wide by default, can be dragged between 200 and 360 DIP, and colla
 | --- | --- |
 | NavigationMenu | Vertical Compact mode adds tooltips and child popovers by default; turn either off with `nui.Set(false)`. PopupPlacement changes where child popups appear |
 
+### Overlays, menus, and navigation
+
+#### Tabs, Collapsible, and Accordion › Keeping hidden content mounted (excerpt)
+
+When KeepMounted changes while a Collapsible or Accordion is open, the content keeps the same identity and the editor's local state is not rebuilt. Theme.Motion.Reduce or the system's reduced motion setting completes height and icon changes immediately. The default animation uses MyGo's 200 ms interpolation, which is not frame-for-frame identical to upstream's CSS animation. A vertical NavigationMenu's children expand and collapse the same way.
+
 ### Compatibility and known limitations
 
 #### Feature scope › Layout and navigation (excerpt)
 
 | Area | Current behavior and limits |
 | --- | --- |
-| NavigationMenu / Sidebar | Icon navigation, tooltips, child popovers, resizing, and switching to an overlay based on the window width in DIP. The app implements routing and persistence |
+| NavigationMenu / Sidebar | Icon navigation, tooltips, child popovers, resizing, and switching to an overlay based on the window width in DIP. Vertical children expand and chevrons turn as Nuxt UI's do, and the Sidebar's width animates as it collapses (`Transition`). Horizontal menus open a native popup per item, so Nuxt UI's shared viewport resize, sliding indicator and directional content transitions are not animated. The app implements routing and persistence |
 
 ## Complete example
 

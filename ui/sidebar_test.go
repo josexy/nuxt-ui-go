@@ -55,10 +55,12 @@ func TestSidebarResizeCollapseAndPersistence(t *testing.T) {
 					t.Fatalf("keyboard resize: %+v, callbacks %d", state, resizes)
 				}
 				click(t, tt, "Toggle sidebar")
+				tt.Advance(250 * time.Millisecond) // the width's collapse
 				if !collapsed || bounds(t, tt, "Files").W != 64 {
 					t.Fatal("collapse width")
 				}
 				click(t, tt, "Toggle sidebar")
+				tt.Advance(250 * time.Millisecond)
 				if collapsed || bounds(t, tt, "Files").W != 230 || collapses != 2 {
 					t.Fatal("restore width")
 				}
@@ -81,6 +83,7 @@ func TestSidebarResizeCollapseAndPersistence(t *testing.T) {
 					t.Fatal("drag collapse discarded width")
 				}
 				click(t, tt, "Toggle sidebar")
+				tt.Advance(250 * time.Millisecond)
 				if bounds(t, tt, "Files").W != 310 {
 					t.Fatal("drag restore width")
 				}
@@ -238,6 +241,7 @@ func TestSidebarControlledSlotsAndZeroWidth(t *testing.T) {
 	}
 	collapsed = true
 	tt.Frame()
+	tt.Advance(250 * time.Millisecond) // the width's collapse
 	if r := bounds(t, tt, "Files"); r.W != 0 {
 		t.Fatal("explicit zero width ignored")
 	}

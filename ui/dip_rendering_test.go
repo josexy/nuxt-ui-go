@@ -55,11 +55,11 @@ func TestDIPTableHeader(t *testing.T) {
 			var state nui.TableState[string]
 			state.SetRows([]string{"row"}, func(v string) string { return v })
 			tt := ui.NewTester(func(c *ui.Context) {
-				nui.Table(c.Key("table"), th, &state, []nui.TableColumn[string]{{ID: "value", Title: "Value", Value: func(v string) string { return v }}}, nui.TableOptions{Label: "Records", Decoration: nui.Decoration{Style: func(slot nui.Slot, e ui.Element) {
+				nui.Table(c.Key("table"), th, &state, []nui.TableColumn[string]{{ID: "value", Title: "Value", Value: func(v string) string { return v }}}, nui.TableOptions{Label: "Records", Style: func(slot nui.Slot, e ui.Element) {
 					if slot == nui.SeparatorSlot {
 						e.Label("Header line")
 					}
-				}}}).Absolute().Left(10.3).Top(10.3).Width(330).Height(150)
+				}}).Absolute().Left(10.3).Top(10.3).Width(330).Height(150)
 			}, 400, 230)
 			dipScales(t, tt, func(t *testing.T, scale, zoom float32) {
 				r := bounds(t, tt, "Header line")
@@ -85,12 +85,12 @@ func TestDIPMenuHairlines(t *testing.T) {
 			tt := ui.NewTester(func(c *ui.Context) {
 				count = 0
 				a := nui.Button(c.Key("anchor"), th, "Actions", nui.ButtonOptions{}).Absolute().Left(20.3).Top(20.3)
-				o := nui.MenuOptions{Decoration: nui.Decoration{Style: func(slot nui.Slot, e ui.Element) {
+				o := nui.MenuOptions{Style: func(slot nui.Slot, e ui.Element) {
 					if slot == nui.SeparatorSlot {
 						e.Label(fmt.Sprintf("line %d", count))
 						count++
 					}
-				}}}
+				}}
 				if contextMenu {
 					nui.ContextMenu(c, th, a, &state, items, o)
 				} else {
@@ -213,11 +213,11 @@ func TestDIPSeparatorThickness(t *testing.T) {
 					}
 					tt := ui.NewTester(func(c *ui.Context) {
 						for i := range 6 {
-							nui.Separator(c.Key(i), th, nui.SeparatorOptions{Vertical: vertical, Size: size, Decoration: nui.Decoration{Style: func(slot nui.Slot, e ui.Element) {
+							nui.Separator(c.Key(i), th, nui.SeparatorOptions{Vertical: vertical, Size: size, Style: func(slot nui.Slot, e ui.Element) {
 								if slot == nui.Indicator {
 									e.Label(fmt.Sprint(i))
 								}
-							}}}).Absolute().Left(10.1 + float32(i)*19.3).Top(10.1 + float32(i)*19.3).Width(100).Height(100)
+							}}).Absolute().Left(10.1 + float32(i)*19.3).Top(10.1 + float32(i)*19.3).Width(100).Height(100)
 						}
 					}, 260, 260)
 					for _, scale := range []float32{1, 1.25, 1.5, 2} {
@@ -263,6 +263,7 @@ func TestDIPSidebarBorderAlignment(t *testing.T) {
 						tt.Frame()
 						r := bounds(t, tt, "Resize sidebar")
 						tt.Move(r.X+r.W/2, r.Y+r.H/2)
+						tt.Advance(200 * time.Millisecond) // the rail's colour transition
 						want := int(math.Round(float64(scale * zoom)))
 						if got := strokePixels(tt.Image(), r, scale, true, rgba(th.Primary)); got != want {
 							t.Fatalf("side=%v rtl=%v scale=%g zoom=%g: highlight=%d want=%d", side, rtl, scale, zoom, got, want)
@@ -315,12 +316,12 @@ func TestDIPSeparatorPatternsAndLabel(t *testing.T) {
 				count := 0
 				tt := ui.NewTester(func(c *ui.Context) {
 					count = 0
-					nui.Separator(c, nui.Light(), nui.SeparatorOptions{Label: "Continue", Vertical: vertical, Type: pattern, Size: size, Decoration: nui.Decoration{UI: nui.Styles{nui.Indicator: {Background: nui.Set(ink)}}, Style: func(slot nui.Slot, e ui.Element) {
+					nui.Separator(c, nui.Light(), nui.SeparatorOptions{Label: "Continue", Vertical: vertical, Type: pattern, Size: size, UI: nui.Styles{nui.Indicator: {Background: nui.Set(ink)}}, Style: func(slot nui.Slot, e ui.Element) {
 						if slot == nui.Indicator {
 							e.Label(fmt.Sprintf("segment %d", count))
 							count++
 						}
-					}}}).Absolute().Top(10.3).Left(10.3).Width(380).Height(380)
+					}}).Absolute().Top(10.3).Left(10.3).Width(380).Height(380)
 				}, 410, 410)
 				dipScales(t, tt, func(t *testing.T, scale, zoom float32) {
 					if count != 2 {
@@ -374,11 +375,11 @@ func TestDIPCardAndChartHairlines(t *testing.T) {
 				if kind == "card" {
 					nui.Card(c, th, nui.CardOptions{Variant: nui.Soft, Header: func() { ui.Box(c).Height(20.3) }, Footer: func() { ui.Box(c).Height(16.7) }}, func() { ui.Box(c).Height(50.3) }).Absolute().Top(10.3).Left(10.3).Width(300).Label("area")
 				} else {
-					nui.Chart(c, th, &chart, nui.ChartOptions{Height: 217.3, Decoration: nui.Decoration{Style: func(slot nui.Slot, e ui.Element) {
+					nui.Chart(c, th, &chart, nui.ChartOptions{Height: 217.3, Style: func(slot nui.Slot, e ui.Element) {
 						if slot == nui.Body {
 							e.Label("area")
 						}
-					}}}).Absolute().Top(10.3).Left(10.3).Width(300)
+					}}).Absolute().Top(10.3).Left(10.3).Width(300)
 				}
 			}, 340, 300)
 			dipScales(t, tt, func(t *testing.T, scale, zoom float32) {
@@ -416,11 +417,11 @@ func TestDIPTreeGuides(t *testing.T) {
 			state.SetNodes([]nui.TreeNode{{ID: "root", Label: "Root", DefaultExpanded: true, Children: []nui.TreeNode{{ID: "branch", Label: "Branch", DefaultExpanded: true, Children: []nui.TreeNode{{ID: "leaf", Label: "Leaf"}}}, {ID: "sibling", Label: "Sibling"}}}})
 			width := float32(1)
 			tt := ui.NewTester(func(c *ui.Context) {
-				nui.Tree(c, th, &state, nui.TreeOptions{Decoration: nui.Decoration{UI: nui.Styles{nui.Indicator: {BorderWidth: nui.Set(width), BorderColor: nui.Set(ink)}}, Style: func(slot nui.Slot, e ui.Element) {
+				nui.Tree(c, th, &state, nui.TreeOptions{UI: nui.Styles{nui.Indicator: {BorderWidth: nui.Set(width), BorderColor: nui.Set(ink)}}, Style: func(slot nui.Slot, e ui.Element) {
 					if slot == nui.Root {
 						e.Label("Tree")
 					}
-				}}}).Absolute().Left(10.3).Top(10.3).Width(330)
+				}}).Absolute().Left(10.3).Top(10.3).Width(330)
 			}, 460, 260)
 			if rtl {
 				tt.SetDirection(ui.RightToLeft)
@@ -465,12 +466,12 @@ func TestDIPPinCaret(t *testing.T) {
 		var state nui.PinState
 		tt := ui.NewTester(func(c *ui.Context) {
 			index := 0
-			nui.PinInput(c, th, &value, &state, nui.PinInputOptions{Label: "Code", Length: 6, Decoration: nui.Decoration{UI: nui.Styles{nui.Label: {Foreground: nui.Set(th.Text)}}, Style: func(slot nui.Slot, e ui.Element) {
+			nui.PinInput(c, th, &value, &state, nui.PinInputOptions{Label: "Code", Length: 6, UI: nui.Styles{nui.Label: {Foreground: nui.Set(th.Text)}}, Style: func(slot nui.Slot, e ui.Element) {
 				if slot == nui.Item {
 					e.Label(fmt.Sprintf("digit %d", index))
 					index++
 				}
-			}}}).Absolute().Left(10.3).Top(10.3)
+			}}).Absolute().Left(10.3).Top(10.3)
 		}, 380, 100)
 		dipScales(t, tt, func(t *testing.T, scale, zoom float32) {
 			for i := range 6 {

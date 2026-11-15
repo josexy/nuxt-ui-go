@@ -100,7 +100,7 @@ func TestEmptyLoadingColorUsesLeadingUI(t *testing.T) {
 	color := ui.Hex("#dc2626")
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
-		th.Motion.Reduce = true
+		th.Motion.Disabled = true
 		nui.Empty(c, th, nui.EmptyOptions{Loading: true, LoadingIcon: lucide.Check(),
 			UI: nui.Styles{nui.Leading: {Foreground: nui.Set(color)}},
 			Style: func(slot nui.Slot, e ui.Element) {

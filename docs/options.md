@@ -122,7 +122,7 @@ FormOptions.LoadingAuto defaults to true: while an async operation runs, form co
 
 | Component | Common options and behavior |
 | --- | --- |
-| Switch | Loading blocks toggling by mouse and keyboard. LoadingIcon, CheckedIcon, and UncheckedIcon set the icons. The spinner stops when reduced motion is on |
+| Switch | Loading blocks toggling by mouse and keyboard. LoadingIcon, CheckedIcon, and UncheckedIcon set the icons. The spinner keeps turning under reduced motion and stops at the Off motion level |
 | Checkbox / CheckboxGroup / RadioGroup | Variant is ChoiceList, ChoiceCard, or ChoiceTable. Indicator is IndicatorStart, IndicatorEnd, or IndicatorHidden. Highlight emphasizes the border or indicator, even when unchecked |
 | InputTags | AddOnTab, AddOnBlur, and AddOnPaste control when tags are added. Duplicate, ConvertValue, and DisplayValue control values and display. MaxLength limits the text being edited |
 | PinInput | Color, Variant, and Size set the appearance. `Separator: []int{3}` adds a group break after the third cell; the control still uses one editor and one Tab stop |

@@ -5,7 +5,7 @@
 Display rows and columns with sorting, selection and scrolling.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Table`
 - Types: `TableOptions`, `TableColumn`, `TableState`
 - Theme key: `nui.ComponentTable` (for `Theme.WithComponent`)
@@ -98,14 +98,25 @@ func (s *TableState[T]) SetRows(rows []T, key func(T) string)
 ### Related types
 
 ```go
-type TableLoadingAnimation uint8
+// LoadingAnimation is how an indeterminate bar moves, as Nuxt UI's Progress
+// animation presets: Progress's indicator and Table's loading bar.
+type LoadingAnimation uint8
 
 const (
-	TableLoadingCarousel TableLoadingAnimation = iota
-	TableLoadingCarouselInverse
-	TableLoadingSwing
-	TableLoadingElastic
+	// LoadingCarousel slides a half-length indicator from the start to the end.
+	LoadingCarousel LoadingAnimation = iota
+	// LoadingCarouselInverse slides it from the end to the start.
+	LoadingCarouselInverse
+	// LoadingSwing swings it to the end and back.
+	LoadingSwing
+	// LoadingElastic grows it from the middle to the whole track and back.
+	LoadingElastic
 )
+```
+
+```go
+// TableLoadingAnimation is the LoadingAnimation of Table's loading bar.
+type TableLoadingAnimation = LoadingAnimation
 ```
 
 Types documented in other references: `Color` → [theme.md](theme.md), `Decoration` → [theme.md](theme.md), `Optional` → [theme.md](theme.md), `Theme` → [theme.md](theme.md).
@@ -193,7 +204,7 @@ Table sets List.Key, Selection, Sort, and Label; do not override these bindings 
 
 For search, filtering, and pagination, your app computes the current rows first and then calls SetRows.
 
-EmptyText and BuildEmpty set the empty content below the header. Loading shows a loading bar and keeps the existing data. With no data, BuildLoading's content is shown if provided; otherwise the empty content is still shown. LoadingColor defaults to Primary. LoadingAnimation can be Carousel, CarouselInverse, Swing, or Elastic, and a static bar is used with reduced motion. Caption is the table's description for assistive technology, and BuildCaption can show a visible title. Height defaults to 320 DIP, including the title; the header stays fixed and the body scrolls inside.
+EmptyText and BuildEmpty set the empty content below the header. Loading shows a loading bar and keeps the existing data. With no data, BuildLoading's content is shown if provided; otherwise the empty content is still shown. LoadingColor defaults to Primary. LoadingAnimation can be Carousel, CarouselInverse, Swing, or Elastic, the same presets as Progress's Animation (`TableLoadingAnimation` is an alias of `LoadingAnimation`). Under reduced motion the bar spans the header and pulses its opacity, as Nuxt's `motion-reduce:animate-pulse`; at the Off motion level it is a static full-width bar. Caption is the table's description for assistive technology, and BuildCaption can show a visible title. Height defaults to 320 DIP, including the title; the header stays fixed and the body scrolls inside.
 
 Virtualization is always on. It reduces only the number of cells built; generating data, validating IDs, sorting, and filtering still scale with the data size. MyGo handles row layout. Cells can override Item and Label through a column's UI and Style, and column overrides are applied after table-level overrides.
 
@@ -212,6 +223,14 @@ InputNumber's and InputTags' `UI` support every part in the table, while the emb
 #### Common options by component (excerpt)
 
 Table's Sortable, ManualSorting, and List.SortBy control, respectively, whether a column can be sorted, whether the app sorts the data, and multi-column sorting. Loading keeps the existing rows and shows a loading bar; BuildLoading replaces the empty content only while an empty table is loading. Caption provides a description and BuildCaption a visible title. For sort, selection, and activation notifications and native limits, see Table.
+
+### Themes and basic components
+
+#### Components and parts › Progress and animation (excerpt)
+
+Determinate progress fills to the rounded integer percentage, while assistive technology receives the exact amount completed. The indeterminate indicator moves in a two-second cycle along one of Nuxt UI's presets, set with `Animation`: `LoadingCarousel` (the default, a half-length indicator sliding from the start to the end), `LoadingCarouselInverse`, `LoadingSwing` or `LoadingElastic`. The carousels run from the other end right to left and when Inverted, and all presets run along a vertical track; Table's loading bar uses the same presets. Under reduced motion the indicator spans the whole track and pulses its opacity instead, as Nuxt's `motion-reduce:animate-pulse`; with Animate=false or at the Off motion level it stays still, half the track's length, in the center. A determinate value moves to its new amount over 200 ms only at the Full motion level. An out-of-range Animation panics, as Table's LoadingAnimation does. Internally, `Now=-1 < Min=0` represents unknown progress, with an "In progress" value or description. Windows UIA clamps the unknown value to the minimum; how screen readers announce it has not been verified.
+
+**When animations stop:** Continuous animations request the next frame only while a visible component actually draws. They stop when the component scrolls out of view, unmounts, has Animate turned off, or at the Off motion level; spinners and the Skeleton pulse go on under reduced motion. Button's colour transition follows `Motion.Transition` at Full and Reduced and is immediate at Off, and `Animate: nui.Set(false)` controls the loading spinner. Once a transition ends, no more frames are requested. Indeterminate Progress and Table's loading bar pulse under reduced motion. In MyGo v0.9.0 a colour transition builds the view in each frame while the colour moves (about ten builds for 150 ms), so an app with an expensive view can set `Motion.Transition` to 0 or turn animation off. Components do not use timer goroutines for animation.
 
 ### Inputs, selection, and fields
 

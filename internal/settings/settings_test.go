@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	nui "github.com/josexy/nuxt-ui-go/ui"
@@ -146,5 +147,57 @@ func TestSettingsVisualArtifacts(t *testing.T) {
 	}
 	if closeErr != nil {
 		t.Fatal(closeErr)
+	}
+}
+
+func TestSettingsAnimationsSwitch(t *testing.T) {
+	// painted counts the pixels of the Collapsible's content that show.
+	painted := func(tt *ui.Tester) int {
+		r, ok := tt.Find("Sync notification filters")
+		if !ok {
+			t.Fatal("missing the Collapsible's content")
+		}
+		im := tt.Image()
+		bg := im.RGBAAt(int(r.X+r.W)+4, int(r.Y+r.H/2))
+		n := 0
+		for y := int(r.Y); y < int(r.Y+r.H); y++ {
+			for x := int(r.X); x < int(r.X+r.W); x++ {
+				if im.RGBAAt(x, y) != bg {
+					n++
+				}
+			}
+		}
+		return n
+	}
+	open := func(off bool) (*State, *ui.Tester) {
+		a := New()
+		tt := ui.NewTester(a.View, 960, 900)
+		if off {
+			press(t, tt, "Animations")
+			if !a.Config.DisableAnimations {
+				t.Fatal("the Animations switch did not disable animations")
+			}
+		}
+		press(t, tt, "Notification filters")
+		tt.Advance(250 * time.Millisecond)
+		press(t, tt, "Advanced delivery")
+		return a, tt
+	}
+	// With animations on, the content opens from no height.
+	if _, tt := open(false); painted(tt) != 0 {
+		t.Fatal("the Collapsible opened in one frame with animations on")
+	}
+	a, tt := open(true)
+	if painted(tt) == 0 {
+		t.Fatal("the Collapsible did not open in one frame with animations off")
+	}
+	tt.Advance(time.Second)
+	if tt.FramePending() {
+		t.Fatal("frames were requested with animations off")
+	}
+	press(t, tt, "Done filtering")
+	press(t, tt, "Animations")
+	if a.Config.DisableAnimations {
+		t.Fatal("the Animations switch did not turn animations back on")
 	}
 }

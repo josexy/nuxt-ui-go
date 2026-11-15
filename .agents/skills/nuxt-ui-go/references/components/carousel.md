@@ -5,7 +5,7 @@
 Drag or page through a set of cards.
 
 - Category: Advanced interaction and layout
-- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Carousel`
 - Types: `CarouselOptions`, `CarouselItem`, `CarouselState`
 - Theme key: `nui.ComponentCarousel` (for `Theme.WithComponent`)
@@ -17,7 +17,7 @@ Keep CarouselState persistent and control position through Index. Give items sta
 
 ## Things to know
 
-This native single-page carousel has no Embla drag-free, slide grouping, media query, physics duration or plugin API. Active gates external activity for autoplay and does not disable manual navigation, unlike Embla active. Build runs for the current item and its neighbors; neighbors are disabled. Start business work from actions. Autoplay respects window activity, visibility and reduced motion.
+Pages slide over 200 ms in the direction of travel, and at once under reduced motion; a jump of several pages slides in across one page rather than scrolling through them. This native single-page carousel has no Embla drag-free, slide grouping, media query, physics duration or plugin API. Active gates external activity for autoplay and does not disable manual navigation, unlike Embla active. Build runs for the current item and its neighbors, retaining the outgoing item during a jump; non-current items are disabled. Start business work from actions. Autoplay respects window activity and visibility, and stops under reduced motion and when animations are off.
 
 ## API
 
@@ -78,11 +78,12 @@ From the library documentation. Links point to other component references in thi
 
 ##### Carousel: switch content page by page
 
-CarouselItem contains a stable ID, a Label, and a synchronous Build; your app can control CarouselState.Index and Paused. The component builds only the current item and its neighbors. Neighboring items are not interactive, but their Build still runs, so never start business operations unconditionally in a build callback.
+CarouselItem contains a stable ID, a Label, and a synchronous Build; your app can control CarouselState.Index and Paused. The component builds the current item and its neighbors, also retaining the outgoing item until a jump finishes. Neighboring items are not interactive, but their Build still runs, so never start business operations unconditionally in a build callback.
 
 | Action or option | Behavior |
 | --- | --- |
-| Dragging | Drags along the Orientation. Moving more than 20% of the viewport, or faster than 600 DIP/s, changes the page; on release, it snaps into place |
+| Dragging | Drags along the Orientation, following the pointer. Moving more than 20% of the viewport, or faster than 600 DIP/s, changes the page; on release, the content goes on from where it was let go to its page |
+| Page changes | At the Full motion level, arrows, keys, dots, autoplay and a released drag slide the content to the new page over 200 ms in the direction of travel, following the orientation and the writing direction, in frames that only paint. A jump of more than one page, as by the dots or wrapping around, slides in across one page from the side it comes from, rather than scrolling through the pages between as Embla does. Under reduced motion and at Off the new page shows at once |
 | Previous / Next, arrow keys, Home / End | Navigate by page, with ←→ horizontally and ↑↓ vertically |
 | Arrows / Dots | Control the previous/next buttons and dot navigation |
 | Wrap=true | Buttons, keyboard, and autoplay can wrap from the last item to the first; dragging still stops at the ends |
@@ -92,11 +93,11 @@ CarouselItem contains a stable ID, a Label, and a synchronous Build; your app ca
 
 The current position is exposed only as the root element's assistive technology value, such as "Slide 1 of 3", using the slidePosition language key; no page counter is shown. Index is positional, so after reordering your app decides the index, and removing items clamps it to the valid range. Outside updates do not fire OnChange. If the focused element on the current page is removed, focus returns to the viewport. CarouselItem.Decoration can override the Item part; your app still stores business data such as drafts.
 
-Autoplay is off by default; a positive Autoplay sets the interval. Hovering, focus inside the component, Disabled, Paused, Active=false, being invisible, an inactive window, or reduced motion all stop scheduling. Active only indicates whether native autoplay is active; it does not disable manual navigation, which differs from Embla's active. With Wrap=false, autoplay stops at the last item. When a temporary pause ends, the timer restarts. The play/pause button is a native extension.
+Autoplay is off by default; a positive Autoplay sets the interval. Hovering, focus inside the component, Disabled, Paused, Active=false, being invisible, an inactive window, reduced motion, or the Off motion level all stop scheduling; manual navigation keeps working at every level. Active only indicates whether native autoplay is active; it does not disable manual navigation, which differs from Embla's active. With Wrap=false, autoplay stops at the last item. When a temporary pause ends, the timer restarts. The play/pause button is a native extension.
 
 OnChange fires once when user navigation or autoplay actually changes the index; drag and timer results produced during a build are reported after the build ends. Canceling a drag clears the offset, and an empty list also clears the drag state. Buttons are centered based on their actual size, and disabling at the bounds takes precedence over button options.
 
-Go builds only the current page and its neighbors. It has no Embla free dragging, slide groups, media queries, physics-based animation duration, auto height, or plugin objects. Switching pages positions the content immediately. Dots use native selected buttons and do not claim to implement a full ARIA tablist.
+Go builds the current page and its neighbors, retaining the outgoing page during a jump. It has no Embla free dragging, slide groups, media queries, physics-based animation duration, auto height, or plugin objects. Wraps and distant jumps keep the outgoing page beside the incoming one for the slide. Dots use native selected buttons and do not claim to implement a full ARIA tablist.
 
 ##### Stopping animation when hidden
 
@@ -128,7 +129,7 @@ After unmounting, no more frames are requested and no paused time accumulates.
 
 #### Table › Filtering and scope (excerpt)
 
-EmptyText and BuildEmpty set the empty content below the header. Loading shows a loading bar and keeps the existing data. With no data, BuildLoading's content is shown if provided; otherwise the empty content is still shown. LoadingColor defaults to Primary. LoadingAnimation can be Carousel, CarouselInverse, Swing, or Elastic, and a static bar is used with reduced motion. Caption is the table's description for assistive technology, and BuildCaption can show a visible title. Height defaults to 320 DIP, including the title; the header stays fixed and the body scrolls inside.
+EmptyText and BuildEmpty set the empty content below the header. Loading shows a loading bar and keeps the existing data. With no data, BuildLoading's content is shown if provided; otherwise the empty content is still shown. LoadingColor defaults to Primary. LoadingAnimation can be Carousel, CarouselInverse, Swing, or Elastic, the same presets as Progress's Animation (`TableLoadingAnimation` is an alias of `LoadingAnimation`). Under reduced motion the bar spans the header and pulses its opacity, as Nuxt's `motion-reduce:animate-pulse`; at the Off motion level it is a static full-width bar. Caption is the table's description for assistive technology, and BuildCaption can show a visible title. Height defaults to 320 DIP, including the title; the header stays fixed and the body scrolls inside.
 
 ### Compatibility and known limitations
 
@@ -136,7 +137,7 @@ EmptyText and BuildEmpty set the empty content below the header. Loading shows a
 
 | Area | Current behavior and limits |
 | --- | --- |
-| Carousel / Splitter | Carousel buttons, keyboard, and autoplay can loop, but dragging still stops at the ends. Active only gates autoplay. No full Embla plugin set or ARIA tablist. Splitter splits into exactly two panels |
+| Carousel / Splitter | Carousel buttons, keyboard, and autoplay can loop, but dragging still stops at the ends. Pages slide over 200 ms; a jump of several pages slides in across one page instead of Embla's scroll through the pages between. Active only gates autoplay. No full Embla plugin set or ARIA tablist. Splitter splits into exactly two panels |
 
 ## Complete example
 

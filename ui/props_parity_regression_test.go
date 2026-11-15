@@ -270,6 +270,7 @@ func TestParityChoiceHiddenCardHasSelectedAppearance(t *testing.T) {
 	before := slices.Clone(tt.Image().Pix)
 	checked = true
 	tt.Frame()
+	tt.Advance(200 * time.Millisecond) // the colour transition
 	parityScreenshot(t, tt, "checkbox-hidden-selected")
 	if bytes.Equal(before, tt.Image().Pix) {
 		t.Fatal("card with hidden indicator has identical unchecked and checked render")

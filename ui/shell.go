@@ -474,12 +474,32 @@ func navigationMenu(c *ui.Context, t Theme, active *string, s *NavigationState, 
 						s.Expanded[it.ID] = next
 						expandedChanged()
 					})
-					if s.Expanded[it.ID] {
-						children := ui.Column(c.Key("children")).MarginStart(t.spacing(20)).PaddingStart(t.spacing(6)).BorderStartWidth(1).BorderColor(t.Border).Gap(t.spacing(4)).Disabled(it.Disabled)
-						finishNavigationPart(t, List, children, PartStyle{}, o.Decoration, it.Decoration)
-						children.Children(func() { render(it.Children, depth+1) })
-					} else if focusedChild(it.Children) {
+					// The children open and close like Collapsible's content:
+					// their height at Full, at once otherwise. Closing children
+					// take no input, and focus in them returns to the item.
+					open := s.Expanded[it.ID]
+					target := float32(0)
+					if open {
+						target = 1
+					}
+					var progress float32
+					if t.moves(c) {
+						progress = b.AnimateWith(navigationChildrenKey{}, target, chevronMotion, ui.EaseOut)
+					} else {
+						progress = b.Jump(navigationChildrenKey{}, target)
+					}
+					if !open && focusedChild(it.Children) {
 						s.handles[it.ID].Focus(c)
+					}
+					if open || progress > 0 {
+						clip := ui.Column(c.Key("children-clip")).Shrink(0)
+						var children ui.Element
+						clip.Children(func() {
+							children = ui.Column(c.Key("children")).MarginStart(t.spacing(20)).PaddingStart(t.spacing(6)).BorderStartWidth(1).BorderColor(t.Border).Gap(t.spacing(4)).Disabled(it.Disabled || !open)
+							finishNavigationPart(t, List, children, PartStyle{}, o.Decoration, it.Decoration)
+							children.Children(func() { render(it.Children, depth+1) })
+						})
+						revealHeight(clip, children, progress)
 					}
 				} else {
 					panel := menu(c, t, b, s.menus[it.ID], menuItems(it.Children, s.menus[it.ID]), MenuOptions{Label: it.Label, Disabled: root.IsDisabled()}, false, func(item MenuItem, base Decoration) Decoration {
@@ -559,3 +579,6 @@ func FooterLayout(c *ui.Context, t Theme, o FooterOptions) ui.Element {
 	})
 	return root
 }
+
+// navigationChildrenKey keys how far a vertical item's children are open.
+type navigationChildrenKey struct{}

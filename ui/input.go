@@ -217,6 +217,7 @@ func inputShell(c *ui.Context, t Theme, value *string, o InputOptions, id Compon
 		return styles
 	})
 	styles[Root].apply(root)
+	t.fadeColors(c, root)
 	styles[Editor].apply(editor)
 	styles[Leading].apply(leading)
 	styles[Trailing].apply(trailing)
@@ -229,7 +230,7 @@ func inputShell(c *ui.Context, t Theme, value *string, o InputOptions, id Compon
 		if loadingLeading {
 			part = Leading
 		}
-		drawLoadingSVG(loader, icon, mergeValue(styles[Root].Foreground, styles[part].Foreground).Value, t.motion(c), t.Motion.Spin)
+		drawLoadingSVG(loader, icon, mergeValue(styles[Root].Foreground, styles[part].Foreground).Value, t.fades(c), t.Motion.Spin)
 	}
 	if focused && config.Variant != None {
 		color := config.Color

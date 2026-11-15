@@ -25,7 +25,43 @@ type DrawerState struct {
 	Snap              int
 	height, start     float32
 	dragging, wasOpen bool
+	// shown is the height the panel shows, on its way from from to goal
+	// since at while moving; window is the height its snap points were
+	// fractions of.
+	shown, from, goal, window float32
+	at                        time.Time
+	moving                    bool
 }
+
+// drawerMotion is how long the Drawer's height takes to reach a snap point.
+const drawerMotion = 200 * time.Millisecond
+
+// extent returns the height the panel shows in this build: the pointer's
+// while dragging, and goal otherwise, which it eases to at Full, from where
+// it was, after a release, a key or a change of Snap. Opening and resizing
+// the window show goal at once.
+func (s *DrawerState) extent(c *ui.Context, t Theme, goal, window float32, opening bool) float32 {
+	switch {
+	case s.dragging:
+		s.shown, s.moving = s.height, false
+	case opening || window != s.window || !t.moves(c):
+		s.shown, s.moving = goal, false
+	case s.shown != goal && (!s.moving || s.goal != goal):
+		s.from, s.goal, s.at, s.moving = s.shown, goal, c.Now(), true
+	}
+	s.window = window
+	if s.moving {
+		f := min(1, max(0, float32(c.Now().Sub(s.at))/float32(drawerMotion)))
+		s.shown = s.from + (s.goal-s.from)*(1-(1-f)*(1-f)*(1-f))
+		if f >= 1 {
+			s.shown, s.moving = s.goal, false
+		} else {
+			c.AnimationFrame()
+		}
+	}
+	return s.shown
+}
+
 type DrawerOptions struct {
 	ModalOptions
 	Handle Optional[bool]
@@ -95,7 +131,12 @@ func Drawer(c *ui.Context, t Theme, s *DrawerState, o DrawerOptions, content fun
 	if s.Open && (!s.wasOpen || !s.dragging) {
 		s.height = h * points[s.Snap]
 	}
+	opening := s.Open && !s.wasOpen
 	s.wasOpen = s.Open
+	shown := s.shown
+	if s.Open {
+		shown = s.extent(c, t, h*points[s.Snap], h, opening)
+	}
 	mo := o.ModalOptions
 	if !mo.CloseButton.Set {
 		mo.CloseButton = Set(mo.Close != nil)
@@ -114,7 +155,7 @@ func Drawer(c *ui.Context, t Theme, s *DrawerState, o DrawerOptions, content fun
 		if !valueOr(o.Handle, true) {
 			return
 		}
-		handle := ui.Box(c.Key("drawer-handle")).Size(t.spacing(64), t.spacing(16)).Margin(t.spacing(11), 0, 0, 0).AlignSelf(ui.Center).Focusable().FocusRing(true).Role(ui.RoleSlider).Label(namedMessage(c, "resizeNamed", name)).Range(0, float64(h*points[len(points)-1]), float64(s.height)).Cursor(ui.CursorResizeNS)
+		handle := ui.Box(c.Key("drawer-handle")).Size(t.spacing(64), t.spacing(16)).Margin(t.spacing(11), 0, 0, 0).AlignSelf(ui.Center).Focusable().FocusRing(true).Role(ui.RoleSlider).Label(namedMessage(c, "resizeNamed", name)).Range(0, float64(h*points[len(points)-1]), float64(shown)).Cursor(ui.CursorResizeNS)
 		handle.Children(func() {
 			finish(t, ComponentDrawer, Indicator, ui.Box(c).Width(t.spacing(48)).Height(t.spacing(6)).Margin(t.spacing(5), t.spacing(8)), PartStyle{Radius: Set(t.radius(999)), Background: Set(t.Accented)}, o.Decoration)
 		})
@@ -122,7 +163,9 @@ func Drawer(c *ui.Context, t Theme, s *DrawerState, o DrawerOptions, content fun
 		_ = dx
 		if held {
 			if !s.dragging {
-				s.start = s.height
+				// A drag can interrupt a snap: pick up the height on screen,
+				// not the snap's destination stored in height.
+				s.height, s.start = shown, shown
 				s.dragging = true
 			}
 			s.height = max(0, min(h*points[len(points)-1], s.height-dy))
@@ -179,7 +222,7 @@ func Drawer(c *ui.Context, t Theme, s *DrawerState, o DrawerOptions, content fun
 			style(slot, e)
 		}
 	}
-	return Slideover(c, t, &s.Open, SlideoverOptions{ModalOptions: mo, Side: SideBottom, Extent: Set(s.height), Inset: o.Inset}, content)
+	return Slideover(c, t, &s.Open, SlideoverOptions{ModalOptions: mo, Side: SideBottom, Extent: Set(shown), Inset: o.Inset}, content)
 }
 
 type CarouselItem struct {
@@ -198,7 +241,21 @@ type CarouselState struct {
 	rtl                  bool
 	last                 time.Time
 	identity             string
+	// The strip holding the panes slides from page to page: shown is the
+	// page it showed, dir the way the last change went, posed whether the
+	// last build posed it, and start, while starting, where its next pose
+	// starts (percent of a page, and DIPs dragged).
+	shown, dir           int
+	posed, starting      bool
+	startPct, startPx    float32
+	shownID, departingID string
+	departingPage        int
+	departingUntil       time.Time
 }
+
+// carouselMotion is how long the Carousel takes to slide to a page.
+const carouselMotion = 200 * time.Millisecond
+
 type CarouselOptions struct {
 	Label    string
 	Height   float32
@@ -239,6 +296,12 @@ func Carousel(c *ui.Context, t Theme, s *CarouselState, items []CarouselItem, o 
 	setIndex := func(index int) bool {
 		if len(items) == 0 {
 			return false
+		}
+		if index != s.Index {
+			s.dir = 1
+			if index < s.Index {
+				s.dir = -1
+			}
 		}
 		if o.Wrap {
 			index = (index%len(items) + len(items)) % len(items)
@@ -285,9 +348,10 @@ func Carousel(c *ui.Context, t Theme, s *CarouselState, items []CarouselItem, o 
 			})
 			s.last = time.Time{}
 			s.identity, s.offset, s.held, s.ignoreDrag = "", 0, false, false
+			s.shownID, s.departingID, s.posed, s.starting = "", "", false, false
 			return
 		}
-		running := o.Autoplay > 0 && len(items) > 1 && !root.IsDisabled() && !s.Paused && !s.held && !t.Motion.Reduce && !c.Preferences().ReduceMotion && motionVisible(view, o.Active) && !root.Hovered() && !s.root.FocusWithin(c)
+		running := o.Autoplay > 0 && len(items) > 1 && !root.IsDisabled() && !s.Paused && !s.held && t.moves(c) && motionVisible(view, o.Active) && !root.Hovered() && !s.root.FocusWithin(c)
 		if running {
 			if s.last.IsZero() {
 				s.last = c.Now()
@@ -350,7 +414,16 @@ func Carousel(c *ui.Context, t Theme, s *CarouselState, items []CarouselItem, o 
 		if vert {
 			vx = vy
 		}
+		// Where the strip shows page i, in percent of a page along its axis.
+		page := func(i int) float32 {
+			if !vert && rtl {
+				return 100 * float32(i)
+			}
+			return -100 * float32(i)
+		}
 		if ended && s.held {
+			// The content goes on from where it was let go.
+			s.startPct, s.startPx, s.starting = page(s.Index), s.offset, true
 			delta := 0
 			if s.offset < -w*.2 || vx < -600 {
 				delta = 1
@@ -367,40 +440,121 @@ func Carousel(c *ui.Context, t Theme, s *CarouselState, items []CarouselItem, o 
 			s.held = false
 		} else if !held && s.held {
 			s.held = false
+			s.startPct, s.startPx, s.starting = page(s.Index), s.offset, true
 			s.offset = 0
 		}
-		view.Children(func() {
-			for i := max(0, s.Index-1); i <= min(len(items)-1, s.Index+1); i++ {
-				it := items[i]
-				pane := ui.Column(c.Key(it.ID)).Absolute().WidthPercent(100).MinWidth(0).Label(it.Label)
-				if vert {
-					pane.Left(0).TopPercent(float32((i-s.Index)*100)).HeightPercent(100).Translate(0, s.offset)
-				} else {
-					offset := (i - s.Index) * 100
-					if c.Direction() == ui.RightToLeft {
-						offset = -offset
-					}
-					pane.LeftPercent(float32(offset)).Top(0).Bottom(0).Translate(s.offset, 0)
+		// A jump of more than a page slides in across one page, from the
+		// side it comes from.
+		if !t.moves(c) || s.held || !c.Now().Before(s.departingUntil) || s.shown != s.Index {
+			s.departingID = ""
+		}
+		if t.moves(c) && s.shownID != "" && !s.starting && s.shown != s.Index && (s.shown-s.Index > 1 || s.Index-s.shown > 1) {
+			dir := s.dir
+			if dir == 0 {
+				dir = 1
+				if s.Index < s.shown {
+					dir = -1
 				}
-				if i != s.Index {
-					pane.Disabled(true).Role(ui.RoleNone)
-				}
-				style := mergeStyle(mergeStyle(mergeStyle(PartStyle{PaddingX: Set(t.spacing(20)), PaddingY: Set(t.spacing(20))}, t.components[ComponentCarousel].UI[Item]), o.UI[Item]), it.UI[Item])
-				style.apply(pane)
-				if o.Style != nil {
-					o.Style(Item, pane)
-				}
-				if it.Style != nil {
-					it.Style(Item, pane)
-				}
-				pane.Children(func() {
-					if it.Build != nil {
-						it.Build(c, t)
-					} else {
-						ui.Text(c, it.Label).FontSize(t.text(18))
-					}
-				})
 			}
+			s.startPct, s.startPx, s.starting = page(s.Index-dir), 0, true
+			// Keep the old page in the virtual slot beside the destination.
+			// At a wrap there is no ordinary neighbor in that slot; at a
+			// dot jump the ordinary neighbor is not the page being left.
+			s.departingID, s.departingPage = s.shownID, s.Index-dir
+			s.departingUntil = c.Now().Add(carouselMotion)
+		}
+		s.shown, s.shownID, s.dir = s.Index, items[s.Index].ID, 0
+		departing := slices.IndexFunc(items, func(it CarouselItem) bool { return it.ID == s.departingID })
+		if departing >= 0 {
+			c.After(s.departingUntil.Sub(c.Now()))
+		}
+		view.Children(func() {
+			// The panes sit a page apart on one strip, which slides to the
+			// page shown in frames that only paint at Full. A pose of the
+			// frame before goes on from where it shows; one that missed a
+			// frame shows at once, which starts a slide from where a drag
+			// let go, or a page away for a jump.
+			strip := ui.Box(c.Key("strip")).Absolute().Left(0).Top(0).Right(0).Bottom(0)
+			place := func(pct, px float32) {
+				if vert {
+					strip.TranslatePercent(0, pct).Translate(0, px)
+				} else {
+					strip.TranslatePercent(pct, 0).Translate(px, 0)
+				}
+			}
+			pose := func(pct, px float32) {
+				p := ui.Pose{XPercent: pct, X: px}
+				if vert {
+					p = ui.Pose{YPercent: pct, Y: px}
+				}
+				strip.AnimatePose(p, ui.Animation{Duration: carouselMotion, Ease: ui.EaseOut})
+			}
+			switch {
+			case !t.moves(c):
+				place(page(s.Index), s.offset)
+				s.posed, s.starting = false, false
+			case s.held:
+				place(page(s.Index), s.offset)
+				s.posed = false
+			case s.starting && s.posed:
+				// Miss a pose, so that the next one shows at once.
+				place(s.startPct, s.startPx)
+				s.posed = false
+				c.Invalidate()
+			case s.starting:
+				pose(s.startPct, s.startPx)
+				s.posed, s.starting = true, false
+				c.Invalidate()
+			default:
+				pose(page(s.Index), 0)
+				s.posed = true
+			}
+			strip.Children(func() {
+				panes := make([]int, 0, 4)
+				for i := max(0, s.Index-1); i <= min(len(items)-1, s.Index+1); i++ {
+					if departing < 0 || i != s.departingPage {
+						panes = append(panes, i)
+					}
+				}
+				if departing >= 0 && !slices.Contains(panes, departing) {
+					panes = append(panes, departing)
+				}
+				for _, i := range panes {
+					it := items[i]
+					position := i
+					if i == departing {
+						position = s.departingPage
+					}
+					pane := ui.Column(c.Key(it.ID)).Absolute().WidthPercent(100).MinWidth(0).Label(it.Label)
+					if vert {
+						pane.Left(0).TopPercent(float32(position * 100)).HeightPercent(100)
+					} else {
+						at := float32(position * 100)
+						if rtl {
+							at = -at
+						}
+						pane.LeftPercent(at).Top(0).Bottom(0)
+					}
+					if i != s.Index {
+						pane.Disabled(true).Role(ui.RoleNone)
+					}
+					style := mergeStyle(mergeStyle(mergeStyle(PartStyle{PaddingX: Set(t.spacing(20)), PaddingY: Set(t.spacing(20))}, t.components[ComponentCarousel].UI[Item]), o.UI[Item]), it.UI[Item])
+					style.apply(pane)
+					if o.Style != nil {
+						o.Style(Item, pane)
+					}
+					if it.Style != nil {
+						it.Style(Item, pane)
+					}
+					pane.Children(func() {
+						if it.Build != nil {
+							it.Build(c, t)
+						} else {
+							ui.Text(c, it.Label).FontSize(t.text(18))
+						}
+					})
+				}
+			})
 		})
 		if valueOr(o.Arrows, false) {
 			stage.Children(func() {
@@ -454,6 +608,7 @@ func Carousel(c *ui.Context, t Theme, s *CarouselState, items []CarouselItem, o 
 							if dot.FocusVisible() {
 								dot.Shadow(0, 0, 0, 3, t.InvertedBackground.Alpha(.25))
 							}
+							t.fadeColors(c, dot)
 							finish(t, ComponentCarousel, Indicator, dot, PartStyle{Background: Set(color)}, o.Decoration)
 						}
 					})
@@ -660,7 +815,7 @@ func Marquee(c *ui.Context, t Theme, s *MarqueeState, o MarqueeOptions, content 
 		if run.moving && !external {
 			s.Offset = run.phase(now, period)
 		}
-		motion := !t.Motion.Reduce && !c.Preferences().ReduceMotion
+		motion := t.moves(c)
 		running := period > gap && !root.IsDisabled() && !s.Paused && (!o.PauseOnHover || !root.Hovered()) && !root.FocusWithin() && motion && motionVisible(root, o.Active) && !c.Instant()
 		dir := float32(-1)
 		if o.Reverse {

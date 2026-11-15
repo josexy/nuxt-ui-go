@@ -308,7 +308,7 @@ func commandRow(c *ui.Context, t Theme, match CommandMatch, o CommandPaletteOpti
 			part := ui.Box(c.Key("loading")).Size(m.Icon, m.Icon).Shrink(0)
 			color := mergeStyle(mergeStyle(mergeStyle(PartStyle{Foreground: Set(t.Muted)}, t.components[ComponentCommandPalette].UI[ItemLeadingSlot]), o.UI[ItemLeadingSlot]), a.UI[ItemLeadingSlot]).Foreground.Value
 			finishCommandPart(t, ItemLeadingSlot, part, PartStyle{}, o.Decoration, a.Decoration)
-			drawLoadingSVG(part, icon, color, t.motion(c), t.Motion.Spin)
+			drawLoadingSVG(part, icon, color, t.fades(c), t.Motion.Spin)
 		}
 		ui.Column(c.Key("body")).Grow(1).MinWidth(0).Children(func() {
 			ui.Row(c.Key("label")).MinWidth(0).Gap(t.spacing(4)).Children(func() {

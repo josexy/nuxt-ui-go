@@ -362,6 +362,7 @@ func TestTreeRTLHiddenRowsAndInheritedDisabled(t *testing.T) {
 	if !tt.Focused("Files") {
 		t.Fatal("tree did not inherit its field name")
 	}
+	tt.Advance(200 * time.Millisecond) // the colour transition
 	r := bounds(t, tt, "Parent")
 	if countWhere(tt.Image(), r, func(v color.RGBA) bool { return v == rgba(accent) }) == 0 {
 		t.Fatalf("neutral tree focus missing in %v", r)
@@ -472,6 +473,7 @@ func TestTreeNestedGuidesAndModeSwitch(t *testing.T) {
 				treeChosen(t, &s, "deep") // Nested ancestor gutters are outside the row's hit area.
 				o.Nested = nui.Set(false)
 				tt.Frame()
+				tt.Advance(200 * time.Millisecond) // the colour transition
 				flat := bounds(t, tt, "Text: Deep file")
 				if deep != flat {
 					t.Fatalf("content moved on mode switch: nested=%v flat=%v", deep, flat)
@@ -593,6 +595,7 @@ func TestTreeAdjacentSelectionSurfaceGap(t *testing.T) {
 					}
 					charlie := bounds(t, tt, "Charlie")
 					tt.Move(float32(x), charlie.Y+charlie.H/2)
+					tt.Advance(200 * time.Millisecond) // the colour transition
 					if got := tt.Image().RGBAAt(x, int(charlie.Y)); got != rgba(theme.Background) {
 						t.Fatalf("hover filled top inset: %v", got)
 					}

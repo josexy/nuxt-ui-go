@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/josexy/nuxt-ui-go/icons/lucide"
@@ -137,16 +138,19 @@ func TestCheckboxCardPreservesPartOverrides(t *testing.T) {
 	}
 	color = nui.Error
 	tt.Frame()
+	tt.Advance(200 * time.Millisecond) // the colour transition
 	if pixel() == rgba32(global) {
 		t.Fatal("explicit Color did not take precedence over global appearance")
 	}
 	explicit = nui.Styles{nui.Root: {Background: nui.Set(instance)}}
 	tt.Frame()
+	tt.Advance(200 * time.Millisecond) // the colour transition
 	if pixel() != rgba32(instance) {
 		t.Fatal("instance root style did not take precedence over Color")
 	}
 	checked = false
 	tt.Frame()
+	tt.Advance(200 * time.Millisecond) // the colour transition
 	if pixel() != rgba32(instance) {
 		t.Fatal("changing selection discarded the instance root style")
 	}
@@ -169,11 +173,13 @@ func TestCheckboxCardHighlightFollowsIndicatorPlacement(t *testing.T) {
 	before := border()
 	highlight = true
 	tt.Frame()
+	tt.Advance(200 * time.Millisecond) // the colour transition
 	if border() != before {
 		t.Fatal("visible indicator highlight also recolored the card border")
 	}
 	placement = nui.IndicatorHidden
 	tt.Frame()
+	tt.Advance(200 * time.Millisecond) // the colour transition
 	if border() == before {
 		t.Fatal("hidden indicator highlight did not recolor the card border")
 	}
@@ -189,11 +195,13 @@ func TestCheckboxCardHoverAndFocusBorder(t *testing.T) {
 	}, 280, 100)
 	r := bounds(t, tt, "Card")
 	tt.Move(r.X+r.W/2, r.Y+r.H/2)
+	tt.Advance(200 * time.Millisecond) // the colour transition
 	th := nui.Light()
 	if got := tt.Image().RGBAAt(int(r.X+r.W/2), int(r.Y)); got != rgba(th.BorderAccented) {
 		t.Fatalf("hovered card border = %v, want %v", got, rgba(th.BorderAccented))
 	}
 	tt.Key(0, ui.KeyTab)
+	tt.Advance(200 * time.Millisecond) // the colour transition
 	if got := tt.Image().RGBAAt(int(r.X+r.W/2), int(r.Y)); got != rgba(th.Primary) {
 		t.Fatalf("focused card border = %v, want %v", got, rgba(th.Primary))
 	}
@@ -212,11 +220,13 @@ func TestCheckboxTriCardMixedKeepsUnselectedCardBackground(t *testing.T) {
 	unchecked := tt.Image().RGBAAt(x, y)
 	value = nui.Indeterminate
 	tt.Frame()
+	tt.Advance(200 * time.Millisecond) // the colour transition
 	if tt.Image().RGBAAt(x, y) != unchecked {
 		t.Fatal("mixed indicator incorrectly applies the checked card background")
 	}
 	value = nui.Checked
 	tt.Frame()
+	tt.Advance(200 * time.Millisecond) // the colour transition
 	if tt.Image().RGBAAt(x, y) == unchecked {
 		t.Fatal("checked card did not receive its selected background")
 	}

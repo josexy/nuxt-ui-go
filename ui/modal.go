@@ -38,6 +38,13 @@ func ModalWithOptions(c *ui.Context, t Theme, open *bool, o ModalOptions, conten
 	}
 	host := ui.Themed(c, t.Native()).Background(ui.Transparent).Absolute().Size(0, 0).IgnoreInput(true)
 	wasOpen := ui.Local(host, "modal-presence", func() bool { return false })
+	pop := ui.Local(host, "modal-pop", func() popState { return popState{} })
+	motion := t
+	if !valueOr(o.Transition, true) {
+		motion.Motion.Disabled = true
+	}
+	pop.update(c, motion, *open, wasOpen)
+	defer func() { pop.note(c, *open) }()
 	if *wasOpen && !*open && o.ReturnFocus != nil {
 		o.ReturnFocus.Focus(c)
 	}
@@ -47,17 +54,17 @@ func ModalWithOptions(c *ui.Context, t Theme, open *bool, o ModalOptions, conten
 	}
 	var panel ui.Element
 	host.Children(func() {
-		panel = ui.DialogBase(c.Key(wasOpen), open, func(back, panel ui.Element) {
+		panel = ui.DialogBase(c.Key(pop.key(wasOpen)), open, func(back, panel ui.Element) {
 			backdrop := t.Elevated.Alpha(.75)
 			if !valueOr(o.Overlay, true) {
 				backdrop = ui.Transparent
 			}
 			// Nuxt fades the overlay in while the panel scales in, both over 200 ms.
-			motion := t
-			if !valueOr(o.Transition, true) {
-				motion.Motion.Reduce = true
-			}
-			shown := popIn(c, motion, panel, dialogMotion, .5, .5)
+			shown := popIn(c, motion, pop, panel, dialogMotion, .5, .5)
+			// The backdrop holds the panel, so the two fade out together over
+			// 200 ms as one copy, which takes no input (design D6: no
+			// scale-out). Transition=false and Off leave no copy.
+			back.Transition(motion.overlayTransition(c, nil, &ui.Motion{}, -1, dialogMotion))
 			finishBackdrop(t, ComponentModal, back, backdrop, o.Decoration, shown)
 			w, h := c.Size()
 			width := float32(512)
@@ -227,10 +234,17 @@ type slidePresence struct {
 	target, mounted bool
 	from, value     float32
 	started         time.Time
+	// leaving is whether the last build showed it leaving, and extent the
+	// last height measured of a vertical panel without an Extent.
+	leaving bool
+	extent  float32
 }
 
-// Slideover retains its modal scope through the exit, then unmounts to restore focus.
-// Call it every frame, including while open is false.
+// Slideover is modal while open. As it closes it leaves inert: its modal
+// scope goes, so that the window behind takes input at once and focus
+// returns then, while the panel slides (or, under reduced motion, fades)
+// out and the backdrop fades. Call it every frame, including while open is
+// false.
 func Slideover(c *ui.Context, t Theme, open *bool, o SlideoverOptions, content func(Theme)) ui.Element {
 	if open == nil {
 		panic("nui: Slideover requires open state")
@@ -251,25 +265,41 @@ func Slideover(c *ui.Context, t Theme, open *bool, o SlideoverOptions, content f
 	fraction = max(0, min(1, fraction))
 	eased := 1 - (1-fraction)*(1-fraction)*(1-fraction)
 	presence.value = presence.from + (goal-presence.from)*eased
-	if !t.motion(c) || !valueOr(o.Transition, true) {
+	// The panel slides at Full and fades in place at Reduced, while the
+	// backdrop fades at both; at Off and with Transition=false it shows at once.
+	if !t.fades(c) || !valueOr(o.Transition, true) {
 		presence.value = goal
 		presence.from, presence.started = goal, c.Now()
 	}
+	slides := t.moves(c)
 	if presence.value != goal {
 		c.AnimationFrame()
 	}
-	if !*open && presence.value == 0 {
-		if presence.mounted && o.ReturnFocus != nil {
-			o.ReturnFocus.Focus(c)
-		}
-		presence.mounted = false
+	leaving := !*open
+	if leaving && presence.mounted && !presence.leaving && o.ReturnFocus != nil {
+		// Focus does not wait for the exit.
+		o.ReturnFocus.Focus(c)
+	}
+	presence.leaving = leaving && presence.mounted
+	if leaving && presence.value == 0 {
+		presence.mounted, presence.leaving = false, false
 		return ui.Element{}
 	}
 	presence.mounted = true
 	var result ui.Element
 	host.Children(func() {
+		if !leaving {
+			overlayFocus(c, presence)
+		}
 		ui.Overlay(c, func() {
-			back := ui.Box(c.Key(presence)).Absolute().Left(0).Top(0).Right(0).Bottom(0).Modal()
+			back := ui.Box(c.Key(presence)).Absolute().Left(0).Top(0).Right(0).Bottom(0)
+			if leaving {
+				// What leaves takes no input and reads to no one; the window
+				// behind is live from the first frame.
+				back.IgnoreInput(true).AccessHidden(true)
+			} else {
+				back.Modal()
+			}
 			backdrop := t.Elevated.Alpha(.75)
 			if !valueOr(o.Overlay, true) {
 				backdrop = ui.Transparent
@@ -291,9 +321,6 @@ func Slideover(c *ui.Context, t Theme, open *bool, o SlideoverOptions, content f
 					o.OnClosePrevent()
 				}
 			})
-			if !*open {
-				back.Focusable().Focus()
-			}
 			back.Children(func() {
 				w, h := c.Size()
 				insetX, insetY := float32(0), float32(0)
@@ -305,7 +332,7 @@ func Slideover(c *ui.Context, t Theme, open *bool, o SlideoverOptions, content f
 				if o.Extent.Set {
 					extent = max(0, o.Extent.Value)
 				}
-				panel := ui.Column(c).Absolute().MinWidth(0).MinHeight(0).Clip().Role(ui.RoleDialog).Disabled(!*open).OnClick(func() {})
+				panel := ui.Column(c).Absolute().MinWidth(0).MinHeight(0).Clip().Role(ui.RoleDialog).OnClick(func() {})
 				vertical := o.Side == SideTop || o.Side == SideBottom
 				if vertical {
 					// Without an Extent, Nuxt's top and bottom panels fit their content.
@@ -317,6 +344,11 @@ func Slideover(c *ui.Context, t Theme, open *bool, o SlideoverOptions, content f
 					} else {
 						panel.MaxHeight(availableH)
 						extent = panel.Bounds().H
+						if extent > 0 {
+							presence.extent = extent
+						} else {
+							extent = presence.extent
+						}
 						if extent <= 0 {
 							extent = availableH
 						}
@@ -339,7 +371,12 @@ func Slideover(c *ui.Context, t Theme, open *bool, o SlideoverOptions, content f
 					panel.Right(insetX).Top(insetY).Bottom(insetY).Width(extent)
 					x = extent + insetX
 				}
-				panel.Translate(x*(1-presence.value), y*(1-presence.value))
+				shown := float32(1)
+				if slides {
+					panel.Translate(x*(1-presence.value), y*(1-presence.value))
+				} else {
+					shown = presence.value
+				}
 				recipe := dialogStyle(t)
 				recipe.Radius = Set(float32(0))
 				if o.Inset {
@@ -348,7 +385,7 @@ func Slideover(c *ui.Context, t Theme, open *bool, o SlideoverOptions, content f
 				recipe.PaddingX = Set(float32(0))
 				recipe.PaddingY = Set(float32(0))
 				recipe.Gap = Set(float32(0))
-				finish(t, ComponentSlideover, Panel, panel, recipe, o.Decoration)
+				finishPanel(t, ComponentSlideover, panel, recipe, o.Decoration, shown)
 				result = panel
 				available := availableH
 				if vertical && o.Extent.Set {
@@ -391,6 +428,7 @@ type tooltipMemory struct {
 	anchor                                                     ui.Handle
 	lastOpen, nativeOpen, suppressed, open, hovered, warmHover bool
 	hoverSince                                                 time.Time
+	pop                                                        popState
 }
 type tooltipOwner struct {
 	open        *bool
@@ -426,6 +464,8 @@ func Tooltip(c *ui.Context, t Theme, anchor ui.Element, text string, o TooltipOp
 	if opened == nil {
 		opened = &identity.open
 	}
+	identity.pop.note(c, *opened)
+	defer func() { identity.pop.note(c, *opened) }()
 	dismiss := func() {
 		*opened = false
 		identity.lastOpen = false
@@ -433,7 +473,7 @@ func Tooltip(c *ui.Context, t Theme, anchor ui.Element, text string, o TooltipOp
 		c.After(time.Nanosecond)
 	}
 	build := func(tip ui.Element) {
-		tip.Key(identity)
+		tip.Key(identity.pop.key(identity))
 		width := float32(320)
 		if o.MaxWidth.Set {
 			width = o.MaxWidth.Value
@@ -444,7 +484,8 @@ func Tooltip(c *ui.Context, t Theme, anchor ui.Element, text string, o TooltipOp
 		// Nuxt's tooltip: one truncated 24 DIP line, rounded-sm, px-2.5, shadow-sm.
 		tip.Row().Height(t.text(24)).AlignItems(ui.Center)
 		originX, originY := popupOrigin(placement, c.Direction() == ui.RightToLeft)
-		shown := popIn(c, t, tip, popupMotion, originX, originY)
+		shown := popIn(c, t, &identity.pop, tip, popupMotion, originX, originY)
+		popOut(c, t, tip)
 		finishPanel(t, ComponentTooltip, tip, PartStyle{Background: Set(t.Background), Foreground: Set(t.Highlighted), BorderWidth: Set(float32(1)), BorderColor: Set(t.Border), Radius: Set(t.radius(4)), PaddingX: Set(t.spacing(10)), PaddingY: Set(t.spacing(4)), Gap: Set(t.spacing(4)), Font: Set(t.Font), FontSize: Set(t.text(12)), LineHeight: Set(float32(16.0 / 12)), Shadow: Set(tooltipShadow)}, o.Decoration, shown)
 		tip.Children(func() {
 			if text != "" {
@@ -534,6 +575,7 @@ func Tooltip(c *ui.Context, t Theme, anchor ui.Element, text string, o TooltipOp
 	}
 	identity.nativeOpen = sourceOpen
 	identity.lastOpen = *opened
+	identity.pop.update(c, t, *opened, identity)
 	if !*opened {
 		if native.Valid() {
 			native.Hidden(true)
@@ -546,7 +588,7 @@ func Tooltip(c *ui.Context, t Theme, anchor ui.Element, text string, o TooltipOp
 		return native
 	}
 	var tip ui.Element
-	ui.Overlay(c.Key(identity), func() {
+	ui.Overlay(c.Key(identity.pop.key(identity)), func() {
 		tip = ui.Box(c).Role(ui.RoleTooltip)
 		build(tip)
 		if tip.OverlayShortcut(0, ui.KeyEscape) {

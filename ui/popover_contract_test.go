@@ -8,12 +8,12 @@ import (
 	nui "github.com/josexy/nuxt-ui-go/ui"
 )
 
-func TestPopoverReducedMotionRestorationDoesNotRestartEntry(t *testing.T) {
+func TestPopoverMotionRestorationDoesNotRestartEntry(t *testing.T) {
 	for _, initialReduced := range []bool{false, true} {
 		reduced, open := initialReduced, false
 		tt := ui.NewTester(func(c *ui.Context) {
 			th := nui.App(c, nui.AppConfig{})
-			th.Motion.Reduce = reduced
+			th.Motion.Disabled = reduced
 			ui.Column(c).Padding(24).Children(func() {
 				a := nui.Button(c, th, "Details", nui.ButtonOptions{}).OnClick(func() { open = !open })
 				nui.Popover(c, th, a, &open, nui.PopoverOptions{Label: "Panel", Width: nui.Set(float32(220))}, func(nui.Theme) { ui.Text(c, "Panel content") })
@@ -100,7 +100,7 @@ func TestPopoverPanelTypographyReachesPlainContent(t *testing.T) {
 	callback := false
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
-		th.Motion.Reduce = true
+		th.Motion.Disabled = true
 		a := nui.Button(c, th, "Anchor", nui.ButtonOptions{})
 		nui.Popover(c, th, a, &open, nui.PopoverOptions{UI: nui.Styles{nui.Panel: {Foreground: nui.Set(ui.RGB(255, 0, 255)), FontSize: nui.Set(float32(24)), LineHeight: nui.Set(float32(1.5))}}, Style: func(_ nui.Slot, e ui.Element) {
 			if callback {
@@ -131,7 +131,7 @@ func TestPopoverLocalNativeThemeDoesNotLeak(t *testing.T) {
 		app.Light = nui.Light()
 		app.Light.Primary = outside
 		th := nui.App(c, app)
-		th.Motion.Reduce = true
+		th.Motion.Disabled = true
 		ui.Column(c).Padding(24).Children(func() {
 			a := nui.Button(c, th, "Anchor", nui.ButtonOptions{}).Width(120)
 			local := th

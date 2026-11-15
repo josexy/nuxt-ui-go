@@ -13,8 +13,9 @@ import (
 )
 
 func TestButtonLoadingIconAnimationChangesPixels(t *testing.T) {
+	off := false
 	tt := ui.NewTester(func(c *ui.Context) {
-		th := nui.App(c, nui.AppConfig{})
+		th := nui.App(c, nui.AppConfig{DisableAnimations: off})
 		nui.Button(c, th, "Loading", nui.ButtonOptions{Loading: true})
 	}, 240, 100)
 	before := slices.Clone(tt.Image().Pix)
@@ -22,11 +23,20 @@ func TestButtonLoadingIconAnimationChangesPixels(t *testing.T) {
 	if bytes.Equal(before, tt.Image().Pix) {
 		t.Fatal("loading icon scheduled frames without rotating")
 	}
+	// A spinner is no movement: it turns under reduced motion, as Nuxt's
+	// animate-spin and MyGo's Loop do.
 	tt.SetPreferences(ui.Preferences{ReduceMotion: true})
 	before = slices.Clone(tt.Image().Pix)
 	tt.Advance(125 * time.Millisecond)
+	if bytes.Equal(before, tt.Image().Pix) || !tt.FramePending() {
+		t.Fatal("reduced motion stopped the loading icon")
+	}
+	off = true
+	tt.Frame()
+	before = slices.Clone(tt.Image().Pix)
+	tt.Advance(125 * time.Millisecond)
 	if !bytes.Equal(before, tt.Image().Pix) || tt.FramePending() {
-		t.Fatal("reduced motion did not stop the loading icon")
+		t.Fatal("disabled animations did not stop the loading icon")
 	}
 }
 
@@ -34,7 +44,7 @@ func TestButtonRestoringMotionKeepsCurrentColor(t *testing.T) {
 	color, reduce := nui.Primary, false
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
-		th.Motion.Reduce = reduce
+		th.Motion.Disabled = reduce
 		ui.Column(c).Padding(16).Children(func() { nui.Button(c, th, "Motion button", nui.ButtonOptions{Color: color}).Width(160) })
 	}, 220, 90)
 	color, reduce = nui.Error, true
@@ -42,7 +52,7 @@ func TestButtonRestoringMotionKeepsCurrentColor(t *testing.T) {
 	r := bounds(t, tt, "Motion button")
 	before := tt.Image().RGBAAt(int(r.X)+2, int(r.Y+r.H/2))
 	if before != rgba(nui.Light().Error) {
-		t.Fatal("reduced motion did not show the current button color immediately")
+		t.Fatal("disabled animations did not show the current button color immediately")
 	}
 	reduce = false
 	tt.Frame()

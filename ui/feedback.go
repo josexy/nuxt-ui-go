@@ -294,7 +294,7 @@ func emptyAvatar(c *ui.Context, t Theme, opts EmptyOptions, size Size, leading P
 	var buildIcon func(*ui.Context, *ui.SVG, float32, ui.Color) ui.Element
 	if opts.Loading {
 		buildIcon = func(c *ui.Context, icon *ui.SVG, size float32, color ui.Color) ui.Element {
-			return loadingSVG(c, icon, size, color, t.motion(c), t.Motion.Spin)
+			return loadingSVG(c, icon, size, color, t.fades(c), t.Motion.Spin)
 		}
 	}
 	avatarWithIcon(c, t, av, diameter, buildIcon)
@@ -315,7 +315,7 @@ func Skeleton(c *ui.Context, t Theme, opts SkeletonOptions) ui.Element {
 		h = opts.Height.Value
 	}
 	e := ui.Box(c).Size(w, h).Clip().Role(ui.RoleStatus).Label(message(c, "loading"))
-	animated := t.motion(c)
+	animated := t.fades(c)
 	if opts.Animate.Set {
 		animated = animated && opts.Animate.Value
 	}
@@ -329,10 +329,7 @@ func Skeleton(c *ui.Context, t Theme, opts SkeletonOptions) ui.Element {
 		ui.Box(c.Key(skeletonPaintKey{})).Absolute().Left(0).Top(0).Right(0).Bottom(0).IgnoreInput(true).Role(ui.RoleNone).Draw(func(p *ui.Painter, r ui.Rect) {
 			alpha := float32(1)
 			if animated {
-				// A pulse this slow looks as smooth at 30 frames a second, which
-				// spares displays refreshing at 120 Hz three of every four.
-				p.AnimationFrameRate(30)
-				alpha = .5 + .5*float32((1+math.Cos(2*math.Pi*phase(p.Now(), t.Motion.Pulse)))/2)
+				alpha = pulseAlpha(p, t.Motion.Pulse)
 			}
 			p.Fill(r, color.Alpha(alpha), 0)
 		})
@@ -344,6 +341,67 @@ func Skeleton(c *ui.Context, t Theme, opts SkeletonOptions) ui.Element {
 }
 
 type skeletonPaintKey struct{}
+
+// pulseAlpha returns the opacity of Nuxt's animate-pulse, from 1 down to .5
+// and back once per period, and asks to be painted again. A pulse this slow
+// looks as smooth at 30 frames a second, which spares displays refreshing at
+// 120 Hz three of every four.
+func pulseAlpha(p *ui.Painter, period time.Duration) float32 {
+	p.AnimationFrameRate(30)
+	return .5 + .5*float32((1+math.Cos(2*math.Pi*phase(p.Now(), period)))/2)
+}
+
+// LoadingAnimation is how an indeterminate bar moves, as Nuxt UI's Progress
+// animation presets: Progress's indicator and Table's loading bar.
+type LoadingAnimation uint8
+
+const (
+	// LoadingCarousel slides a half-length indicator from the start to the end.
+	LoadingCarousel LoadingAnimation = iota
+	// LoadingCarouselInverse slides it from the end to the start.
+	LoadingCarouselInverse
+	// LoadingSwing swings it to the end and back.
+	LoadingSwing
+	// LoadingElastic grows it from the middle to the whole track and back.
+	LoadingElastic
+)
+
+// loadingCycle is how long a LoadingAnimation takes to play once.
+const loadingCycle = 2 * time.Second
+
+func checkLoadingAnimation(a LoadingAnimation, component string) {
+	if a > LoadingElastic {
+		panic("nui: invalid " + component + " loading animation")
+	}
+}
+
+// loadingSpan returns where an indeterminate indicator starts and how long it
+// is, as fractions of its track, at phase (0 to 1) of its cycle. mirror runs
+// the carousels from the other end, as they do right to left; the swing and
+// the elastic look the same either way.
+func loadingSpan(a LoadingAnimation, phase float32, mirror bool) (start, length float32) {
+	start, length = 0, .5
+	switch a {
+	case LoadingCarousel, LoadingCarouselInverse:
+		start = 1.5*phase - .5
+		if a == LoadingCarouselInverse {
+			start = .5 - start
+		}
+		if mirror {
+			start = 1 - start - length
+		}
+	case LoadingSwing, LoadingElastic:
+		x := float32(1 - math.Abs(float64(2*phase-1)))
+		x = x * x * (3 - 2*x)
+		if a == LoadingSwing {
+			start = -.125 + .75*x
+		} else {
+			length = .5 + .5*x
+			start = (1 - length) / 2
+		}
+	}
+	return start, length
+}
 
 func phase(now time.Time, period time.Duration) float64 {
 	if period <= 0 {
@@ -377,6 +435,9 @@ type ProgressOptions struct {
 	Orientation             Orientation
 	Inverted                bool
 	Animate                 Optional[bool]
+	// Animation is how an indeterminate indicator moves: LoadingCarousel by
+	// default, LoadingCarouselInverse, LoadingSwing or LoadingElastic.
+	Animation LoadingAnimation
 	Decoration
 	countdown *progressCountdown // A toast's bar, drawn from the clock.
 }
@@ -388,8 +449,10 @@ type progressCountdown struct {
 	left, total time.Duration
 	at          time.Time
 	running     bool
-	// fps paints it that many times a second; zero, at the display's rate.
-	fps float32
+	// step, if set, shows the time left rounded up to a whole number of
+	// steps, painting it once per step; zero empties the bar smoothly at the
+	// display's rate.
+	step time.Duration
 }
 
 func (cd *progressCountdown) fraction(p *ui.Painter) float32 {
@@ -397,8 +460,12 @@ func (cd *progressCountdown) fraction(p *ui.Painter) float32 {
 	if cd.running {
 		left -= p.Now().Sub(cd.at)
 		if left > 0 {
-			if cd.fps > 0 {
-				p.AnimationFrameRate(cd.fps)
+			if cd.step > 0 {
+				// The steps follow the time left, not the build, so a build
+				// in between does not shorten one.
+				shown := (left + cd.step - 1) / cd.step * cd.step
+				p.After(left - (shown - cd.step))
+				left = shown
 			} else {
 				p.AnimationFrame()
 			}
@@ -412,6 +479,7 @@ func (cd *progressCountdown) fraction(p *ui.Painter) float32 {
 
 func Progress(c *ui.Context, t Theme, value float64, opts ProgressOptions) ui.Element {
 	opts.Vertical = vertical(opts.Orientation) || opts.Vertical
+	checkLoadingAnimation(opts.Animation, "progress")
 	config := selected(defaults(t, ComponentProgress, ComponentTheme{Color: Primary, Size: MD}), ComponentTheme{Color: opts.Color, Size: opts.Size})
 	max := progressMax(opts.Max)
 	value = math.Max(0, math.Min(max, finite(value)))
@@ -440,10 +508,13 @@ func Progress(c *ui.Context, t Theme, value float64, opts ProgressOptions) ui.El
 	if s := opts.UI[Indicator]; s.Background.Set {
 		color = s.Background.Value
 	}
-	animated := t.motion(c)
-	if opts.Animate.Set {
-		animated = animated && opts.Animate.Value
-	}
+	// The indicator moves at Full. Under reduced motion an indeterminate one
+	// pulses across the track instead, as Nuxt's motion-reduce:animate-pulse,
+	// and at Off or with Animate false it stands still.
+	animate := valueOr(opts.Animate, true)
+	animated := t.moves(c) && animate
+	pulsing := opts.Indeterminate && animate && t.motionLevel(c) == motionReduced
+	pulse := t.Motion.Pulse
 	reverse := opts.Inverted
 	if !opts.Vertical && c.Direction() == ui.RightToLeft {
 		reverse = !reverse
@@ -457,33 +528,39 @@ func Progress(c *ui.Context, t Theme, value float64, opts ProgressOptions) ui.El
 		}
 	}
 	e.Draw(func(p *ui.Painter, r ui.Rect) {
-		fraction, start := ratio, float32(0)
+		fraction, start, fill := ratio, float32(0), color
 		if countdown != nil && !opts.Indeterminate {
 			fraction = countdown.fraction(p)
 		}
 		if opts.Indeterminate {
-			fraction = .5
-			start = .25
-			if animated {
+			switch {
+			case animated:
+				// The span runs from the end itself where it is reversed.
 				p.AnimationFrame()
-				start = float32(phase(p.Now(), 2*time.Second))*1.5 - .5
+				start, fraction = loadingSpan(opts.Animation, float32(phase(p.Now(), loadingCycle)), reverse)
+			case pulsing:
+				start, fraction = 0, 1
+				fill = fill.Alpha(pulseAlpha(p, pulse))
+			default:
+				start, fraction = .25, .5
 			}
 		}
-		fill := r
+		from := reverse && !opts.Indeterminate
+		box := r
 		if opts.Vertical {
-			fill.H = r.H * fraction
-			fill.Y = r.Y + r.H*start
-			if reverse {
-				fill.Y = r.Y + r.H - fill.H - r.H*start
+			box.H = r.H * fraction
+			box.Y = r.Y + r.H*start
+			if from {
+				box.Y = r.Y + r.H - box.H - r.H*start
 			}
 		} else {
-			fill.W = r.W * fraction
-			fill.X = r.X + r.W*start
-			if reverse {
-				fill.X = r.X + r.W - fill.W - r.W*start
+			box.W = r.W * fraction
+			box.X = r.X + r.W*start
+			if from {
+				box.X = r.X + r.W - box.W - r.W*start
 			}
 		}
-		p.Clip(r, 999, func() { p.Fill(fill, color, 999) })
+		p.Clip(r, 999, func() { p.Fill(box, fill, 999) })
 	})
 	return e
 }

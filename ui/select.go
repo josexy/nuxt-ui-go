@@ -38,6 +38,7 @@ type selectionMemory[T comparable] struct {
 	list    optionListState[T]
 	open    bool
 	wasOpen bool
+	pop     popState
 	prefix  string
 	typed   time.Time
 	pending Optional[T]
@@ -202,6 +203,8 @@ func Select[T comparable](c *ui.Context, t Theme, selected *T, options []Option[
 	if o.Open != nil {
 		opened = o.Open
 	}
+	memory.pop.note(c, *opened)
+	defer func() { memory.pop.note(c, *opened) }()
 	changed := memory.list.update(options)
 	if memory.pending.Set {
 		v := memory.pending.Value
@@ -317,6 +320,7 @@ func Select[T comparable](c *ui.Context, t Theme, selected *T, options []Option[
 		return styles
 	})
 	styles[Root].apply(e)
+	t.fadeColors(c, e)
 	fieldSemantics(c, e, t, field)
 	label := o.Placeholder
 	found := false
@@ -346,11 +350,12 @@ func Select[T comparable](c *ui.Context, t Theme, selected *T, options []Option[
 			})
 		})
 	}
-	panel := ui.PopoverBase(c.Key(memory), e, opened, func(panel ui.Element) {
+	memory.pop.update(c, t, *opened, memory)
+	panel := popupBase(c, memory.pop.key(memory), e, opened, func(panel ui.Element) {
 		// The overlay is outside the trigger's disabled subtree. Propagate its
 		// effective state so disabling an open select also disables its options.
 		panel.Disabled(e.IsDisabled()).KeepFocus()
-		selectionPanel(c, panel, e, t, o.Popup)
+		selectionPanel(c, panel, e, t, o.Popup, &memory.pop)
 		finish(t, ComponentSelect, Panel, panel, PartStyle{}, o.Decoration)
 		if len(options) == 0 {
 			finish(t, ComponentSelect, EmptySlot, statusText(c, "empty", emptyMessage(c, "noData", "noOptions")).TextAlign(ui.Center), optionEmptyStyle(t, config.Size), o.Decoration)
@@ -421,7 +426,7 @@ func selectTriggerContentWithTrailing(c *ui.Context, t Theme, label string, plac
 		if loadingLeading {
 			part = Leading
 		}
-		drawLoadingSVG(loader, icon, mergeValue(styles[Root].Foreground, styles[part].Foreground).Value, t.motion(c), t.Motion.Spin)
+		drawLoadingSVG(loader, icon, mergeValue(styles[Root].Foreground, styles[part].Foreground).Value, t.fades(c), t.Motion.Spin)
 	}
 }
 func selectionHeight(o PopoverOptions) float32 {
@@ -465,6 +470,7 @@ type InputMenuOptions struct {
 	OnSelect                                       func(string)
 }
 type menuMemory struct {
+	pop            popState
 	data           optionListState[string]
 	list           optionListState[string]
 	selection      stringSelection
@@ -584,6 +590,7 @@ func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[stri
 		if o.Open != nil {
 			opened = o.Open
 		}
+		memory.pop.note(c, *opened)
 		if !o.Multiple && o.Mode != InputMenuAutocomplete && valueOr(o.ResetSearchTermOnSelect, true) && !memory.editor.Focused(c) && ((!memory.initialized && state.Query == "") || (memory.initialized && state.Selected != memory.lastSelected)) {
 			state.Query = ""
 			for _, option := range options {
@@ -722,9 +729,10 @@ func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[stri
 		}
 		editor.Expanded(*opened)
 		config := inputDefaults(t, ComponentInputMenu, input)
-		panel := ui.PopoverBase(c.Key(memory), anchor, opened, func(panel ui.Element) {
+		memory.pop.update(c, t, *opened, memory)
+		panel := popupBase(c, memory.pop.key(memory), anchor, opened, func(panel ui.Element) {
 			panel.KeepFocus().Disabled(editor.IsDisabled() || input.ReadOnly).Role(ui.RoleList)
-			selectionPanel(c, panel, anchor, t, o.Popup)
+			selectionPanel(c, panel, anchor, t, o.Popup, &memory.pop)
 			finish(t, ComponentInputMenu, Panel, panel, PartStyle{}, Decoration{UI: input.UI})
 			ui.Column(c).MinWidth(0).Children(func() {
 				optionList(c, t, &memory.list, editor, count, optionAt, selectionHeight(o.Popup), ComponentInputMenu, Decoration{UI: input.UI}, config.Size, o.SelectedIcon, valueOr(o.HighlightOnHover, true), func(id string) bool {
@@ -752,6 +760,7 @@ func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[stri
 		if panel.Valid() && panel.Dismissed() && !valueOr(o.Popup.Dismissible, true) && !editor.IsDisabled() && !o.ReadOnly {
 			*opened = true
 		}
+		memory.pop.note(c, *opened)
 	})
 	if memory.pending.Set {
 		id := memory.pending.Value

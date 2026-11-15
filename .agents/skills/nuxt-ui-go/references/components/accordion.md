@@ -5,7 +5,7 @@
 Organize content into several collapsible sections.
 
 - Category: Overlays and navigation
-- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Accordion`
 - Types: `AccordionOptions`, `AccordionItem`
 - Theme key: `nui.ComponentAccordion` (for `Theme.WithComponent`)
@@ -88,7 +88,7 @@ By default, only the active Tabs content is built, and collapsed content unmount
 
 KeepMounted=true keeps all content in every build and hides inactive content with Hidden, so MyGo's local state is preserved. Hidden items take no part in layout or focus, but their content callbacks still run. In keep-mounted collapsible content, the body hides immediately while the arrow still follows the native animation. Removing an entire item still unmounts it.
 
-When KeepMounted changes while a Collapsible or Accordion is open, the content keeps the same identity and the editor's local state is not rebuilt. Theme.Motion.Reduce or the system's reduced motion setting completes height and icon changes immediately. The default animation uses MyGo's 200 ms interpolation, which is not frame-for-frame identical to upstream's CSS animation.
+When KeepMounted changes while a Collapsible or Accordion is open, the content keeps the same identity and the editor's local state is not rebuilt. Theme.Motion.Reduce or the system's reduced motion setting completes height and icon changes immediately. The default animation uses MyGo's 200 ms interpolation, which is not frame-for-frame identical to upstream's CSS animation. A vertical [NavigationMenu](navigation-menu.md)'s children expand and collapse the same way.
 
 TabsOptions.Content defaults to true. An explicit false builds no panels, which unmounts local UI state even with KeepMounted=true; drafts your app stores are unaffected. When re-enabled, the panels are built from app data. Do not start I/O or submit anything unconditionally from content callbacks.
 
@@ -96,9 +96,9 @@ TabsOptions.Content defaults to true. An explicit false builds no panels, which 
 
 In the pill style, the active Tabs item uses the semantic color as its background with inverted text; Neutral uses InvertedBackground. A horizontal list fills the width. Underline corresponds to Nuxt UI's link style: the list has a 1 DIP baseline and an active indicator line, at the bottom when horizontal and on the start side when vertical, following RTL. Vertical tabs have equal widths, and the list and content are center-aligned. For XS–XL, the trigger gap is 4/6/6/8/8 DIP and the text line height is 16/16/20/20/24 DIP.
 
-Indicator styles the active background or indicator line, Trailing styles the badge, and TabItem.UI overrides that item's parts. Existing Trigger.Background overrides still work; Indicator.Background is the more specific setting for the active background. The indicator currently updates directly with the selection, without upstream's 200 ms slide between tabs. There are no arbitrary leading/default/trailing or list-leading/list-trailing slots; place other actions in a toolbar outside Tabs.
+Indicator styles the active background or indicator line, Trailing styles the badge, and TabItem.UI overrides that item's parts. Existing Trigger.Background overrides still work: they replace the default active surface, and Indicator.Background is the more specific setting for it. At the Full motion level the indicator slides and resizes from the previously selected trigger to the new one over 200 ms, for pill and underline, horizontal and vertical lists, as Nuxt UI's does, and the two triggers' label colours change in step, so a label is never shown in its active colour off the indicator. Two Tabs instances never exchange indicators. Under reduced motion and at the Off motion level the indicator and labels change at once. Changing the layout (direction, text scale or width) moves the indicator at once. A label's hover colour always changes at once. There are no arbitrary leading/default/trailing or list-leading/list-trailing slots; place other actions in a toolbar outside Tabs.
 
-In the pill style, Indicator and the active Trigger share one native element so the background stays behind the text and avatar. In the underline style, Indicator is a separate line. Configure the Style callback for these actual parts; do not assume every style entry point is a separate node.
+In the pill style, Indicator is a separate surface that fills the active trigger, drawn under its text, icon and avatar and above the trigger's own background; it has the pill's radius and shadow. In the underline style, Indicator is a separate line. `Style(Indicator, e)` receives that surface or line, not the trigger; style the trigger through Trigger.
 
 Accordion and Collapsible triggers have no hover background and no horizontal padding. They have 14 DIP of vertical padding, a 20 DIP icon, and a 6 DIP gap. Accordion content uses the default text color with a 14 DIP bottom margin.
 
@@ -126,6 +126,12 @@ Nuxt UI's Collapsible uses a trigger slot supplied by the app. Go's Label, Icon,
 | --- | --- |
 | Accordion | Collapsible defaults to true. In single mode, setting it to false prevents collapsing the open item by clicking it again, although another item can still be opened. Multiple mode ignores this option |
 | Collapsible / Accordion | Disabled disables only the header. KeepMounted defaults to false; true keeps hidden controls mounted. TrailingIcon defaults to ChevronDown, and an Accordion item's own icon takes precedence. AccordionItem.UI overrides that item's style |
+
+### Compatibility and known limitations
+
+#### Accessibility and motion (excerpt)
+
+Motion has three levels (see [Motion levels](app.md)). Under reduced motion, from the system or from `Theme.Motion.Reduce`, components stop moving, scaling, sliding and rotating, and keep fades, colour transitions, loading spinners and the Skeleton pulse, as Nuxt UI v4 and MyGo do. `AppConfig.DisableAnimations` or `Theme.Motion.Disabled` turns nui's animation off entirely; it does not stop MyGo's own scroll glide and caret blink, which follow the system preference, unless the app also calls `c.DisableAnimations()`. Accordion and Collapsible open at once under reduced motion, where Nuxt UI keeps their height animation, because MyGo makes motion that moves the content around them instant.
 
 ## Complete example
 

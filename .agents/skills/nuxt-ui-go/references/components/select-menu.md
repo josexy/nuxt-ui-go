@@ -5,7 +5,7 @@
 Search and choose items in a popup list.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
 - Functions: `SelectMenu`
 - Types: `SelectMenuOptions`
 - Theme key: `nui.ComponentSelectMenu` (for `Theme.WithComponent`)
@@ -120,6 +120,10 @@ From the library documentation. Links point to other component references in thi
 
 ### Forms, dates, and data components
 
+#### Lifecycle and themes (excerpt)
+
+InputNumber, InputDate, and InputTime share Input's sizes, five field variants, colors, read-only and disabled states, icons, and error settings. InputNumber, InputTags, PinInput cells, the SelectMenu trigger, Listbox and Tree rows, Calendar cells and card-variant CheckboxGroup items fade their background, border and focus ring over `Motion.Transition` (150 ms) at the Full and Reduced motion levels, as Nuxt UI's `transition-colors`; text colours change at once, and the Off motion level shows every change at once. InputDate and InputTime fields do not fade. Other components are configured through their own Options at the end of this page.
+
 #### Listbox, SelectMenu, and async search
 
 ##### SelectMenu: searchable popup
@@ -203,6 +207,10 @@ Clearable shows a clear button, configured with ClearOptions and ClearIcon. The 
 Listbox configures built-in filtering with Filter and FilterInput; SelectMenu uses SearchInput and FilterInput. Both support a SearchTerm pointer, FilterFields, IgnoreFilter, and OnSearchTermChange. When SearchTerm is unset, each uses its own State.Query. Assigning the term from outside does not fire a search notification.
 
 ### Inputs, selection, and fields
+
+#### State, themes, and events › Sizes, variants, and disabled state (excerpt)
+
+Input, Textarea, InputNumber, InputTags, PinInput cells, and the Select, SelectMenu and InputMenu triggers fade their background, border and focus ring over `Motion.Transition` (150 ms) when hover, focus or invalid state changes, as Nuxt UI's `transition-colors`. The fade also runs under reduced motion; `Motion.Transition = 0` or the Off motion level shows the change at once. Text and icon colours change at once.
 
 #### FormField and FieldGroup › FieldGroup: join several controls (excerpt)
 

@@ -57,7 +57,7 @@ func menuItemContent(c *ui.Context, t Theme, it MenuItem, o MenuOptions, d Decor
 		if it.Loading {
 			color := mergeValue(Set(leading), t.components[id].UI[Leading].Foreground)
 			color = mergeValue(color, d.UI[Leading].Foreground)
-			drawLoadingSVG(e, icon, color.Value, t.motion(c), t.Motion.Spin)
+			drawLoadingSVG(e, icon, color.Value, t.fades(c), t.Motion.Spin)
 		}
 	} else if it.Avatar != nil {
 		config := *it.Avatar

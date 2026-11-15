@@ -5,7 +5,7 @@
 Complete an edit or confirmation in a modal dialog.
 
 - Category: Overlays and navigation
-- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Modal`, `ModalWithOptions`
 - Types: `ModalOptions`
 - Theme key: `nui.ComponentModal` (for `Theme.WithComponent`)
@@ -17,7 +17,7 @@ Keep a persistent open bool and call ModalWithOptions on every build, even while
 
 ## Things to know
 
-Overlay=false hides the backdrop while keeping modal focus containment. CloseButton=false hides the close button. Dismissible=false blocks Escape and outside clicks and calls OnClosePrevent. OnClose counts component dismissal only; Save changes application state directly. Closing unmounts immediately, with no exit animation or keep-mounted option; persistent application drafts remain.
+Overlay=false hides the backdrop while keeping modal focus containment. CloseButton=false hides the close button. Dismissible=false blocks Escape and outside clicks and calls OnClosePrevent. OnClose counts component dismissal only; Save changes application state directly. Closing fades the panel and backdrop out together over 200 ms (no scale-out) through a copy that takes no input; focus returns at once. There is no keep-mounted option; persistent application drafts remain.
 
 ## API
 
@@ -117,7 +117,7 @@ The Panel's text styles are inherited directly by ordinary body elements. Panel.
 
 The Footer is right-aligned by default. PartStyle cannot set alignment; for a different arrangement, create the layout yourself inside the Footer callback.
 
-The Modal panel has an 8 DIP corner radius, and the overlay uses the Elevated color at 75% opacity. On open, the panel fades in from 95% scale over 200 ms while the overlay fades in with it. With Transition=false or reduced motion, it appears immediately. Like [Popover](popover.md), Modal closes immediately without an exit animation. There is no upstream full-overlay scrolling mode, non-modal switch, or keep-mounted option.
+The Modal panel has an 8 DIP corner radius, and the overlay uses the Elevated color at 75% opacity. On open, the panel fades in from 95% scale over 200 ms while the overlay fades in with it. Under reduced motion the panel fades in without scaling; with Transition=false or at the Off motion level it appears at once. Closing fades the panel and the overlay out together over 200 ms, without Nuxt UI's scale-out: MyGo's dialog holds the panel inside its overlay, so the two leave as one. The leaving copy takes no input and is hidden from assistive technology, the window behind takes input from the first frame of the exit, focus returns at once, and OnClose runs once, as it closes. Transition=false and the Off motion level leave no copy; switching either while the dialog exits discards the remaining copy immediately. There is no upstream full-overlay scrolling mode, non-modal switch, or keep-mounted option.
 
 #### Part index (excerpt)
 

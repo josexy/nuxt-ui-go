@@ -1,6 +1,7 @@
 package nui
 
 import (
+	"slices"
 	"strings"
 	"time"
 
@@ -106,6 +107,7 @@ type MenuState struct {
 	x, y         float32
 	point        bool
 	repositioned bool
+	pop          popState // the root panel's, for popIn
 }
 
 func (s *MenuState) resetHover() {
@@ -229,6 +231,15 @@ func menu(c *ui.Context, t Theme, anchor ui.Element, s *MenuState, items []MenuI
 		panic("nui: menu requires state")
 	}
 	s.prepare(c, items)
+	s.pop.update(c, t, s.Open, s)
+	if !t.fades(c) {
+		for id := range s.levels {
+			if id != "" && (!s.Open || !slices.Contains(s.path, id)) {
+				cancelOverlayExit(c, s.handles[id])
+			}
+		}
+	}
+	defer func() { s.pop.note(c, s.Open) }()
 	if anchor.Valid() && !context {
 		anchor.Role(ui.RoleMenuButton).Expanded(s.Open && !o.Disabled)
 	}
@@ -312,7 +323,7 @@ func menu(c *ui.Context, t Theme, anchor ui.Element, s *MenuState, items []MenuI
 			target = ui.Box(c).Absolute().Left(s.x).Top(s.y).Size(0, 0).IgnoreInput(true)
 		})
 	}
-	panel := ui.PopoverBase(c.Key(s), target, &s.Open, func(panel ui.Element) {
+	panel := ui.PopoverBase(c.Key(s.pop.key(s)), target, &s.Open, func(panel ui.Element) {
 		panel.Bind(&s.panel)
 		menuPanel(c, t, panel, target, s, items, o, id, "", 0, decorate)
 	})
@@ -401,7 +412,13 @@ func menuPanel(c *ui.Context, t Theme, panel, anchor ui.Element, s *MenuState, i
 	positionPanel(panel, anchor, t, popup)
 	panel.Role(ui.RoleMenu).Label(o.Label).FocusGroup(ui.Vertical).MinWidth(max(0, min(t.spacing(128), w-24))).MaxWidth(max(0, w-24)).Clip()
 	originX, originY := popupOrigin(popup.Placement, c.Direction() == ui.RightToLeft)
-	shown := popIn(c, t, panel, popupMotion, originX, originY)
+	// A submenu opened again as it leaves enters anew.
+	var pop *popState
+	if parent == "" {
+		pop = &s.pop
+	}
+	shown := popIn(c, t, pop, panel, popupMotion, originX, originY)
+	popOut(c, t, panel)
 	finishPanel(t, id, panel, recipe, o.Decoration, shown)
 	enabled := 0
 	for _, it := range items {
@@ -479,6 +496,7 @@ func menuPanel(c *ui.Context, t Theme, panel, anchor ui.Element, s *MenuState, i
 				}
 			}
 			finish(t, id, Item, row, style, d)
+			t.fadeColors(c, row)
 			row.TextCaret(ui.Rect{H: 1}).InputMethod(false)
 			handle := s.handles[it.ID]
 			rtl := c.Direction() == ui.RightToLeft

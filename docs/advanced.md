@@ -103,7 +103,9 @@ The side Popover opens on hover (including across the gap from the anchor), on c
 
 NavigationState.Expanded exposes the vertical expansion state, and DefaultOpen only initializes new nodes. Single=true lets only one branch per level be open; with Single, Collapsible=false prevents collapsing the current branch. User changes fire OnExpandedChange; initialization and app changes are silent. When a branch collapses, focus on a hidden child moves to its parent. Removing a root item moves focus to an available root item, and switching Compact keeps the expansion and the active ID.
 
-Horizontal menus use native menus. There is no shared web mega menu viewport, route-based active matching, or root hover delay model.
+In vertical mode, children expand and collapse their height over 200 ms at the Full motion level, as Collapsible does, and show or hide at once under reduced motion and at Off. Collapsing children take no input, and focus in them moves to the parent at once. The trailing chevron of an item with children, or its custom TrailingIcon, turns 180 degrees over 200 ms as it opens, rather than being swapped for an up chevron; under reduced motion and at Off it turns at once.
+
+Horizontal menus use native menus, one popup per item. There is no shared web mega menu viewport, route-based active matching, or root hover delay model, so Nuxt UI's viewport resize, sliding indicator and directional content transitions are not animated.
 
 ### Sidebar state and size
 
@@ -116,6 +118,8 @@ By default, Sidebar is 256 DIP wide when expanded and 64 DIP wide when collapsed
 | No State passed | Uses local state under the current stable Key. Pass State explicitly to keep it across unmounts or to save it to a file |
 
 Collapsing does not change the remembered expanded width. Double-clicking the handle restores Options.Width, and your app can also reset State.Width to unset. Your app handles persistence; the component never reads or writes the disk during a build.
+
+Collapsing and expanding animate the width over 200 ms at the Full motion level, and content beside the Sidebar lays out at each width on the way, as Nuxt's `transition-[width]` does. `Transition: nui.Set(false)` turns the animation off, as Nuxt's `transition` prop does; reduced motion and the Off motion level show the new width at once too. Resizing by dragging, with the keyboard or through State.Width, and switching mode at the Breakpoint, always show the width at once, so a drag follows the pointer.
 
 `Resizable: true` enables resizing, with a default minimum and maximum width of 160 and 480 DIP, which you can change with MinWidth and MaxWidth. Dragging below CollapsedWidth + 4 DIP collapses the sidebar, and dragging outward expands it again.
 
@@ -206,7 +210,7 @@ Dismissible=false prevents closing by dragging, clicking the overlay, or pressin
 
 The handle is focusable. Up and Down switch snap points, and Home and End go to the first and last. Losing pointer capture or window focus cancels the drag and restores the previous snap position. OnSnap reports only actual index changes; repeated keys at the bounds and outside changes are silent. OnClose reports close actions performed by the component; changing Open directly or a custom Done button does not report.
 
-The visible handle is 48×6 DIP by default, rounded, in the Accented color, and styled with Indicator. Thumb is the 64×16 DIP interactive area. An empty title creates no empty heading, and the panel and handle have localized names. Snap height changes are immediate, and opening and closing use Slideover's animation. Call Drawer on every build, including when it is closed. Dragging from any edge, spring snapping, and touch gestures linked to body scrolling are not supported.
+The visible handle is 48×6 DIP by default, rounded, in the Accented color, and styled with Indicator. Thumb is the 64×16 DIP interactive area. An empty title creates no empty heading, and the panel and handle have localized names. At the Full motion level, a change of snap point by the keyboard, through DrawerState.Snap, or after a drag is released eases the height to the new snap over 200 ms, continuing from where the panel was; while the handle is dragged, the height follows the pointer. Grabbing a snap in progress continues from its currently visible height. Under reduced motion and at Off the height changes at once. Opening and closing use Slideover's animation. Call Drawer on every build, including when it is closed. Dragging from any edge, spring snapping, and touch gestures linked to body scrolling are not supported.
 
 ## FileUpload and resource ownership
 
@@ -347,7 +351,7 @@ The plot area reports the focused row or slice as its value. A selection moved w
 
 ### Animation
 
-Animate is on by default, AnimationDuration defaults to 350 ms, and both theme and system reduced motion settings are respected. The first display appears directly; only later data or option changes animate.
+Animate is on by default and AnimationDuration defaults to 350 ms. Changes animate only at the Full motion level; under reduced motion, from the theme or the system, and at Off they show at once. The first display appears directly; only later data or option changes animate.
 
 When the chart type, series, and missing-value structure stay the same, coordinates are interpolated, and switching between Pie and Donut also animates the inner radius. When the chart type, series, point count, visibility, or missing-value structure changes, the chart cross-fades. An update in the middle of an animation continues from the current frame, keeping at most 3 exiting frames and 1 target frame. Axis labels and tooltips use the target data.
 
@@ -365,11 +369,12 @@ The chart is modeled on the TanStack Charts used by Nuxt UI 4.12.0, but Go actua
 
 ### Carousel: switch content page by page
 
-CarouselItem contains a stable ID, a Label, and a synchronous Build; your app can control CarouselState.Index and Paused. The component builds only the current item and its neighbors. Neighboring items are not interactive, but their Build still runs, so never start business operations unconditionally in a build callback.
+CarouselItem contains a stable ID, a Label, and a synchronous Build; your app can control CarouselState.Index and Paused. The component builds the current item and its neighbors, also retaining the outgoing item until a jump finishes. Neighboring items are not interactive, but their Build still runs, so never start business operations unconditionally in a build callback.
 
 | Action or option | Behavior |
 | --- | --- |
-| Dragging | Drags along the Orientation. Moving more than 20% of the viewport, or faster than 600 DIP/s, changes the page; on release, it snaps into place |
+| Dragging | Drags along the Orientation, following the pointer. Moving more than 20% of the viewport, or faster than 600 DIP/s, changes the page; on release, the content goes on from where it was let go to its page |
+| Page changes | At the Full motion level, arrows, keys, dots, autoplay and a released drag slide the content to the new page over 200 ms in the direction of travel, following the orientation and the writing direction, in frames that only paint. A jump of more than one page, as by the dots or wrapping around, slides in across one page from the side it comes from, rather than scrolling through the pages between as Embla does. Under reduced motion and at Off the new page shows at once |
 | Previous / Next, arrow keys, Home / End | Navigate by page, with ←→ horizontally and ↑↓ vertically |
 | Arrows / Dots | Control the previous/next buttons and dot navigation |
 | Wrap=true | Buttons, keyboard, and autoplay can wrap from the last item to the first; dragging still stops at the ends |
@@ -379,11 +384,11 @@ CarouselItem contains a stable ID, a Label, and a synchronous Build; your app ca
 
 The current position is exposed only as the root element's assistive technology value, such as "Slide 1 of 3", using the slidePosition language key; no page counter is shown. Index is positional, so after reordering your app decides the index, and removing items clamps it to the valid range. Outside updates do not fire OnChange. If the focused element on the current page is removed, focus returns to the viewport. CarouselItem.Decoration can override the Item part; your app still stores business data such as drafts.
 
-Autoplay is off by default; a positive Autoplay sets the interval. Hovering, focus inside the component, Disabled, Paused, Active=false, being invisible, an inactive window, or reduced motion all stop scheduling. Active only indicates whether native autoplay is active; it does not disable manual navigation, which differs from Embla's active. With Wrap=false, autoplay stops at the last item. When a temporary pause ends, the timer restarts. The play/pause button is a native extension.
+Autoplay is off by default; a positive Autoplay sets the interval. Hovering, focus inside the component, Disabled, Paused, Active=false, being invisible, an inactive window, reduced motion, or the Off motion level all stop scheduling; manual navigation keeps working at every level. Active only indicates whether native autoplay is active; it does not disable manual navigation, which differs from Embla's active. With Wrap=false, autoplay stops at the last item. When a temporary pause ends, the timer restarts. The play/pause button is a native extension.
 
 OnChange fires once when user navigation or autoplay actually changes the index; drag and timer results produced during a build are reported after the build ends. Canceling a drag clears the offset, and an empty list also clears the drag state. Buttons are centered based on their actual size, and disabling at the bounds takes precedence over button options. The default buttons sit 16 DIP inside the viewport, so leave room for them in your content; the Gallery and website show an input layout using Item padding.
 
-Go builds only the current page and its neighbors. It has no Embla free dragging, slide groups, media queries, physics-based animation duration, auto height, or plugin objects. Switching pages positions the content immediately. Dots use native selected buttons and do not claim to implement a full ARIA tablist.
+Go builds the current page and its neighbors, retaining the outgoing page during a jump. It has no Embla free dragging, slide groups, media queries, physics-based animation duration, auto height, or plugin objects. Wraps and distant jumps keep the outgoing page beside the incoming one for the slide. Dots use native selected buttons and do not claim to implement a full ARIA tablist.
 
 ### Marquee: continuously scrolling content
 
@@ -391,7 +396,7 @@ Marquee is for decorative content. It supports Orientation/Vertical, Reverse, Sp
 
 When Repeat is unset, the content is repeated 4 times; an explicit `nui.Set(0)` builds no content, and negative values are invalid. Each copy is at least as long as the container in the direction of motion, centered on the other axis, with its items evenly distributed, so even short content scrolls; a single copy may show a gap as it loops. Overlay fades to the background color over the outer third at each end by default; `Overlay: nui.Set(false)` turns the fade off.
 
-When ContentKey changes, scrolling restarts from the beginning. PauseOnHover defaults to false; when enabled, hovering pauses the motion. Focus, Paused, Active=false, a disabled parent, and reduced motion also stop it. Horizontal motion follows RTL. An offset set from outside is normalized to the current content cycle, so the position stays valid when the container shrinks; a non-finite offset resets to 0.
+When ContentKey changes, scrolling restarts from the beginning. PauseOnHover defaults to false; when enabled, hovering pauses the motion. Focus, Paused, Active=false, a disabled parent, reduced motion, and the Off motion level also stop it, and it then schedules no frames. Horizontal motion follows RTL. An offset set from outside is normalized to the current content cycle, so the position stays valid when the container shrinks; a non-finite offset resets to 0.
 
 The content moves in frames that only repaint, without building the view: Marquee builds again about once a second, to wrap the content back within its copies and to check whether it still shows. MarqueeState.Offset is therefore the phase as of the last build; read it in a build. Assistive technology also sees the copies where the last build placed them.
 

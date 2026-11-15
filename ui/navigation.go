@@ -3,6 +3,7 @@ package nui
 import (
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/josexy/nuxt-ui-go/icons/lucide"
@@ -40,7 +41,22 @@ type tabsMemory struct {
 	triggers, bodies map[string]*ui.Handle
 	active           string
 	changed          bool
+	// slide is when the indicator, sliding since the selection changed,
+	// arrives: until then it moves with the layout it is matched in, after
+	// it at once, as when the direction or the text scale changes.
+	slide time.Time
 }
+
+// tabsIndicatorMatch is the identity a Tabs instance's indicator keeps as it
+// moves from one trigger to another: its memory, which no other instance
+// shares.
+type tabsIndicatorMatch struct{ memory *tabsMemory }
+
+// tabsLabelColor keys a trigger's animated text colour.
+type tabsLabelColor struct{}
+
+// tabsMotion is how long the indicator slides and labels change colour.
+const tabsMotion = 200 * time.Millisecond
 
 func Tabs(c *ui.Context, t Theme, value *string, items []TabItem, o TabsOptions) ui.Element {
 	if o.ActivationMode > ActivationManual {
@@ -103,6 +119,9 @@ func Tabs(c *ui.Context, t Theme, value *string, items []TabItem, o TabsOptions)
 			memory.triggers[it.ID] = &ui.Handle{}
 			memory.bodies[it.ID] = &ui.Handle{}
 		}
+	}
+	if memory.active != "" && memory.active != *value {
+		memory.slide = c.Now().Add(tabsMotion)
 	}
 	memory.active = *value
 	index = slices.Index(enabled, *value)
@@ -191,8 +210,18 @@ func Tabs(c *ui.Context, t Theme, value *string, items []TabItem, o TabsOptions)
 						foreground = t.Inverted
 					}
 				}
+				selected := foreground
 				if trigger.Hovered() && !it.Disabled && !active {
 					foreground = t.Text
+				}
+				if t.moves(c) {
+					// The labels of the tabs selected and deselected change colour
+					// with the sliding pill, so a label never shows its active
+					// colour off it. Hover still shows at once.
+					fg := trigger.AnimateColor(tabsLabelColor{}, selected, ui.Animation{Duration: tabsMotion, Ease: ui.EaseOut})
+					if fg != selected {
+						foreground = fg
+					}
 				}
 				metrics := buttonMetrics(t, config.Size)
 				if config.Size == MD {
@@ -205,18 +234,28 @@ func Tabs(c *ui.Context, t Theme, value *string, items []TabItem, o TabsOptions)
 				finish(t, ComponentTabs, Trigger, trigger, PartStyle{Background: Set(background), Foreground: Set(foreground), Radius: Set(t.radius(6)), PaddingX: Set(metrics.X), PaddingY: Set(metrics.Y), Gap: Set(gap), Font: Set(t.Font), FontSize: Set(metrics.Font), LineHeight: Set(metrics.Line / metrics.Font), Weight: Set(500)}, decoration)
 				trigger.Children(func() {
 					if active {
-						// Absolute children paint after normal children in MyGo. The
-						// pill surface must style the trigger itself to stay behind text.
-						indicator := trigger
+						// The indicator is a surface of its own, which slides from
+						// the trigger selected before (Match). The pill fills the
+						// trigger under its content (ZIndex), above its background.
+						indicator := ui.Box(c.Key("indicator")).Absolute().IgnoreInput(true).Role(ui.RoleNone)
+						if t.moves(c) {
+							// Matched in every frame, so that the next one slides
+							// from it; layout changes outside a slide show at once.
+							d := time.Duration(-1)
+							if c.Now().Before(memory.slide) {
+								d = tabsMotion
+							}
+							indicator.Transition(ui.ElementTransition{Match: tabsIndicatorMatch{memory}, Position: true, Size: true, Duration: d})
+						}
 						style := PartStyle{Background: Set(indicatorColor), Radius: Set(t.radius(999))}
 						if o.Underline {
-							indicator = ui.Box(c.Key("indicator")).Absolute().IgnoreInput(true)
 							if o.Vertical {
 								indicator.Top(0).Bottom(0).Width(1).Start(-listStyle.PaddingX.Value - 1)
 							} else {
 								indicator.Left(0).Right(0).Height(1).Bottom(-listStyle.PaddingY.Value - 1)
 							}
 						} else {
+							indicator.Left(0).Top(0).Right(0).Bottom(0).ZIndex(-1)
 							style.Radius = Set(t.radius(6))
 							style.Shadow = Set(ShadowTokens{Color: ui.RGBA(0, 0, 0, .05), Blur: t.spacing(2), OffsetY: t.spacing(1)})
 							// Keep existing Trigger background overrides useful; Indicator

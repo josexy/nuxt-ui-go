@@ -177,6 +177,7 @@ func TestMenuRowsUseOptionRecipe(t *testing.T) {
 	}
 	tt.Key(0, ui.KeyDown)
 	tt.Frame()
+	tt.Advance(200 * time.Millisecond) // the colour transition
 	// Error at 10% over white: a light red, not elevated/50.
 	if got := tt.Image().RGBAAt(int(del.X)+2, int(del.Y+del.H/2)); got == white || got.R <= got.G || got.R <= got.B {
 		t.Fatalf("highlighted destructive row %v is not tinted with its color", got)
@@ -306,6 +307,7 @@ func TestSelectedOptionRowsHaveNoAccentSurface(t *testing.T) {
 		ada := bounds(t, tt, "Ada Lovelace")
 		tt.Move(ada.X+ada.W/2, ada.Y+ada.H/2)
 		tt.Frame()
+		tt.Advance(200 * time.Millisecond) // the colour transition
 		parityScreenshot(t, tt, "listbox-selected-rows")
 		if !slices.Equal(chosen, []string{"lin", "grace"}) {
 			t.Fatalf("chosen %v", chosen)

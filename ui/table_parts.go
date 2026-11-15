@@ -1,19 +1,18 @@
 package nui
 
 import (
-	"math"
-	"time"
-
 	"github.com/egoist/mygo/ui"
 )
 
-type TableLoadingAnimation uint8
+// TableLoadingAnimation is the LoadingAnimation of Table's loading bar.
+type TableLoadingAnimation = LoadingAnimation
 
+// The Table names of the LoadingAnimation presets.
 const (
-	TableLoadingCarousel TableLoadingAnimation = iota
-	TableLoadingCarouselInverse
-	TableLoadingSwing
-	TableLoadingElastic
+	TableLoadingCarousel        = LoadingCarousel
+	TableLoadingCarouselInverse = LoadingCarouselInverse
+	TableLoadingSwing           = LoadingSwing
+	TableLoadingElastic         = LoadingElastic
 )
 
 type tableEvents struct {
@@ -97,37 +96,23 @@ func tableLoading(c *ui.Context, t Theme, y float32, o TableOptions) {
 	style = mergeStyle(style, o.UI[Indicator])
 	line := ui.Box(c).Absolute().Left(0).Right(0).Top(y).Height(t.spacing(1)).Clip().PassThrough().Role(ui.RoleProgress).Label(message(c, "loading")).Range(0, 100, -1).Value(message(c, "inProgress"))
 	style.apply(line)
-	animated, rtl := t.motion(c), c.Direction() == ui.RightToLeft
+	// The bar travels at Full, pulses across the header under reduced
+	// motion, as Nuxt's motion-reduce:animate-pulse, and stands still at Off.
+	moving, pulsing, rtl := t.moves(c), t.motionLevel(c) == motionReduced, c.Direction() == ui.RightToLeft
+	pulse := t.Motion.Pulse
 	line.Draw(func(p *ui.Painter, r ui.Rect) {
-		start, width := float32(0), float32(1)
-		if animated {
+		start, width, color := float32(0), float32(1), style.Foreground.Value
+		switch {
+		case moving:
 			p.AnimationFrame()
-			phase := float32(phase(p.Now(), 2*time.Second))
-			width = .5
-			switch o.LoadingAnimation {
-			case TableLoadingCarousel, TableLoadingCarouselInverse:
-				start = 1.5*phase - .5
-				if o.LoadingAnimation == TableLoadingCarouselInverse {
-					start = .5 - start
-				}
-				if rtl {
-					start = 1 - start - width
-				}
-			case TableLoadingSwing, TableLoadingElastic:
-				x := float32(1 - math.Abs(float64(2*phase-1)))
-				x = x * x * (3 - 2*x)
-				if o.LoadingAnimation == TableLoadingSwing {
-					start = -.125 + .75*x
-				} else {
-					width = .5 + .5*x
-					start = (1 - width) / 2
-				}
-			}
+			start, width = loadingSpan(o.LoadingAnimation, float32(phase(p.Now(), loadingCycle)), rtl)
+		case pulsing:
+			color = color.Alpha(pulseAlpha(p, pulse))
 		}
 		fill := r
 		fill.X += start * r.W
 		fill.W *= width
-		p.Clip(r, 0, func() { p.Fill(fill, style.Foreground.Value, 0) })
+		p.Clip(r, 0, func() { p.Fill(fill, color, 0) })
 	})
 	if o.Style != nil {
 		o.Style(Indicator, line)

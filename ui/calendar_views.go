@@ -163,10 +163,9 @@ func calendarPicker(c *ui.Context, t Theme, s *CalendarState, o CalendarOptions,
 					}
 					if active {
 						grid.ActiveDescendant(cell)
-						if grid.FocusVisible() {
-							cell.Shadow(0, 0, 0, 3, inputFocusColor(t, config.Color))
-						}
 					}
+					focusRing(cell, active && grid.FocusVisible(), inputFocusColor(t, config.Color))
+					t.fadeColors(c, cell)
 					finish(t, ComponentCalendar, Item, cell, style, o.Decoration)
 					cell.Children(func() {
 						build := o.BuildMonth

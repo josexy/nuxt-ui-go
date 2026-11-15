@@ -42,6 +42,7 @@ func Banner(c *ui.Context, t Theme, open *bool, o BannerOptions) ui.Element {
 		if root.FocusVisible() {
 			root.Shadow(0, 0, 0, 3, t.Background.Alpha(.25))
 		}
+		t.fadeColors(c, root)
 	}
 	finish(t, ComponentBanner, Root, root, PartStyle{Background: Set(bg), Foreground: Set(t.Inverted), Font: Set(t.Font), FontSize: Set(t.text(14)), LineHeight: Set(float32(20.0 / 14))}, o.Decoration)
 	width, _ := c.Size()

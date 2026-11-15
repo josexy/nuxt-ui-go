@@ -25,12 +25,19 @@ type Example interface {
 	SetReport(func(string, []string))
 	SetWindow(*mygo.Window)
 }
-type appExample struct{ Live showcase.Runtime }
+type appExample struct {
+	Live   showcase.Runtime
+	Notify bool
+}
 
 func (s *appExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
+	if cfg.Bool("disableAnimations") {
+		t.Motion.Disabled = true
+	}
 	nui.Card(c.Key("card"), t, nui.CardOptions{Title: "NuxtUI Go", Description: "Window theme and component defaults"}, func() {
 		nui.Button(c.Key("save"), t, cfg.String("label"), nui.ButtonOptions{AccessibleLabel: cmp.Or(cfg.String("label"), "Example action"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral})})
+		nui.Switch(c.Key("notify"), t, &s.Notify, nui.SwitchOptions{Label: "Notifications"})
 	})
 }
 func (s *appExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
@@ -375,7 +382,7 @@ func (s *progressExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) 
 			t.InvertedBackground = ui.Hex("#c084fc")
 		}
 	}
-	nui.Progress(c.Key("progress"), t, cfg.Number("value"), showcase.Options(cfg, "ProgressOptions", nui.ProgressOptions{Label: "Progress", Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Max: nui.Set(float64(cfg.Number("max"))), Indeterminate: cfg.Bool("indeterminate"), Orientation: showcase.Select(cfg, "orientation", map[string]nui.Orientation{"horizontal": nui.Horizontal, "vertical": nui.Vertical}), Inverted: cfg.Bool("inverted"), Animate: cfg.OptionalBool("animate")}, c, t, &s.Live))
+	nui.Progress(c.Key("progress"), t, cfg.Number("value"), showcase.Options(cfg, "ProgressOptions", nui.ProgressOptions{Label: "Progress", Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Max: nui.Set(float64(cfg.Number("max"))), Indeterminate: cfg.Bool("indeterminate"), Orientation: showcase.Select(cfg, "orientation", map[string]nui.Orientation{"horizontal": nui.Horizontal, "vertical": nui.Vertical}), Inverted: cfg.Bool("inverted"), Animate: cfg.OptionalBool("animate"), Animation: showcase.Select(cfg, "animation", map[string]nui.LoadingAnimation{"carousel": nui.LoadingCarousel, "carousel-inverse": nui.LoadingCarouselInverse, "swing": nui.LoadingSwing, "elastic": nui.LoadingElastic})}, c, t, &s.Live))
 }
 func (s *progressExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *progressExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -2520,7 +2527,7 @@ func (s *sidebarExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 		styles = nui.Styles{nui.Description: {Foreground: nui.Set(t.Primary)}, nui.Actions: {Background: nui.Set(t.Elevated), Radius: nui.Set(float32(6))}, nui.Body: {Background: nui.Set(t.Elevated)}}
 	}
 	options := showcase.Options(cfg, "SidebarOptions", nui.SidebarOptions{
-		Title: cfg.String("label"), Description: cfg.String("description"), Actions: headerActions, Decoration: nui.Decoration{UI: styles}, State: &s.Sidebar, Resizable: cfg.Bool("resizable"), Collapsible: cfg.OptionalBool("collapsible"),
+		Title: cfg.String("label"), Description: cfg.String("description"), Actions: headerActions, Decoration: nui.Decoration{UI: styles}, State: &s.Sidebar, Resizable: cfg.Bool("resizable"), Collapsible: cfg.OptionalBool("collapsible"), Transition: cfg.OptionalBool("transition"),
 		Width: nui.Set(float32(cfg.Number("width"))), MinWidth: nui.Set(float32(160)), MaxWidth: nui.Set(float32(360)),
 		Side: nui.Set(showcase.Select(cfg, "side", map[string]nui.Side{"left": nui.SideLeft, "right": nui.SideRight})), Breakpoint: nui.Set(float32(cfg.Number("breakpoint"))), Mode: showcase.Select(cfg, "mode", map[string]nui.SidebarMode{"slideover": nui.SidebarSlideover, "modal": nui.SidebarModal, "drawer": nui.SidebarDrawer}), NavigationKey: s.Active,
 		FooterContent: func(c *ui.Context, t nui.Theme, scope nui.SidebarScope) {

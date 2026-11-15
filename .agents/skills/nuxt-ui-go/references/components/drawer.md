@@ -5,7 +5,7 @@
 Open a bottom panel and adjust its height with a handle.
 
 - Category: Advanced interaction and layout
-- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Drawer`
 - Types: `DrawerOptions`, `DrawerState`
 - Theme key: `nui.ComponentDrawer` (for `Theme.WithComponent`)
@@ -17,7 +17,7 @@ Keep DrawerState persistent: Open controls visibility and Snap selects a stop. S
 
 ## Things to know
 
-This native bottom sheet is dragged only by its handle. SnapPoints accepts fractions in (0,1], not px strings; defaults are 0.5/0.85. Snaps change immediately; entrance/exit use Slideover. DismissDistance/DismissVelocity are native thresholds with 0 selecting defaults, not Vaul closeThreshold equivalents. Overlay=false only hides the backdrop, retaining modal interaction rules. Width, MaxHeight and Fullscreen do not apply.
+This native bottom sheet is dragged only by its handle. SnapPoints accepts fractions in (0,1], not px strings; defaults are 0.5/0.85. Snaps ease over 200 ms at full motion and change at once under reduced motion; entrance/exit use Slideover. DismissDistance/DismissVelocity are native thresholds with 0 selecting defaults, not Vaul closeThreshold equivalents. Overlay=false only hides the backdrop, retaining modal interaction rules. Width, MaxHeight and Fullscreen do not apply.
 
 ## API
 
@@ -75,7 +75,7 @@ Dismissible=false prevents closing by dragging, clicking the overlay, or pressin
 
 The handle is focusable. Up and Down switch snap points, and Home and End go to the first and last. Losing pointer capture or window focus cancels the drag and restores the previous snap position. OnSnap reports only actual index changes; repeated keys at the bounds and outside changes are silent. OnClose reports close actions performed by the component; changing Open directly or a custom Done button does not report.
 
-The visible handle is 48×6 DIP by default, rounded, in the Accented color, and styled with Indicator. Thumb is the 64×16 DIP interactive area. An empty title creates no empty heading, and the panel and handle have localized names. Snap height changes are immediate, and opening and closing use Slideover's animation. Call Drawer on every build, including when it is closed. Dragging from any edge, spring snapping, and touch gestures linked to body scrolling are not supported.
+The visible handle is 48×6 DIP by default, rounded, in the Accented color, and styled with Indicator. Thumb is the 64×16 DIP interactive area. An empty title creates no empty heading, and the panel and handle have localized names. At the Full motion level, a change of snap point by the keyboard, through DrawerState.Snap, or after a drag is released eases the height to the new snap over 200 ms, continuing from where the panel was; while the handle is dragged, the height follows the pointer. Grabbing a snap in progress continues from its currently visible height. Under reduced motion and at Off the height changes at once. Opening and closing use Slideover's animation. Call Drawer on every build, including when it is closed. Dragging from any edge, spring snapping, and touch gestures linked to body scrolling are not supported.
 
 #### State and part index (excerpt)
 
@@ -87,6 +87,8 @@ The visible handle is 48×6 DIP by default, rounded, in the Accented color, and 
 
 #### Modal and Slideover › Slideover: open from an edge (excerpt)
 
+Opening and closing use a fixed 200 ms cubic ease-out slide and overlay transition. Under reduced motion, from Theme.Motion.Reduce or the system's setting, the panel stays in place and fades in and out over the same 200 ms while the overlay fades. With Transition=false or at the Off motion level, the change is immediate. As it closes, the modal scope goes at once: the leaving panel and overlay take no input and are hidden from assistive technology, the window behind takes input from the first frame of the exit, and focus returns then, to ReturnFocus or else to the element that had it as the Slideover opened. The panel keeps its scroll position and local control state throughout the exit and a reversal, and unmounts when the exit ends. Drawer, and the narrow-window Sidebar built on them, leave the same way. If the direction reverses midway, the transition continues from its current progress.
+
 Slideover cannot be stretched from its edge. For dragging by a bottom handle with multiple snap heights, use Drawer.
 
 ### Compatibility and known limitations
@@ -95,7 +97,7 @@ Slideover cannot be stretched from its edge. For dragging by a bottom handle wit
 
 | Area | Current behavior and limits |
 | --- | --- |
-| Drawer | Dragged by a separate handle at the bottom; the content scrolls as a whole. No dragging from other edges, Vaul background scaling, or gestures linked to body scrolling. SnapPoints accept only height fractions; native close thresholds and animation are documented separately |
+| Drawer | Dragged by a separate handle at the bottom; the content scrolls as a whole. No dragging from other edges, Vaul background scaling, or gestures linked to body scrolling. SnapPoints accept only height fractions; native close thresholds and animation are documented separately. Snap changes ease over 200 ms instead of Vaul's spring |
 
 ## Complete example
 

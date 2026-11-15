@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image/color"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/josexy/nuxt-ui-go/icons/lucide"
@@ -40,6 +41,7 @@ func TestInputNeutralRingAndNoneHighlight(t *testing.T) {
 			}, 300, 90)
 			if !highlight {
 				click(t, tt, "Field")
+				tt.Advance(200 * time.Millisecond) // the colour transition
 			}
 			r := bounds(t, tt, "Input root")
 			if got := tt.Image().RGBAAt(int(r.X+r.W/2), int(r.Y)); got != rgba(accent) {
