@@ -56,7 +56,7 @@ func paletteSwatch(c *ui.Context, t nui.Theme, name string) {
 	if p, ok := nui.PaletteByName(name); ok {
 		color = p.Shade(500)
 	}
-	ui.Box(c).Size(10, 10).Radius(5).Background(color).Shrink(0)
+	ui.Box(c.Key("palette-swatch")).Size(10, 10).Radius(5).Background(color).Shrink(0).AlignSelf(ui.Center)
 }
 
 func (a *State) paletteItems(primary bool) []nui.MenuItem {
