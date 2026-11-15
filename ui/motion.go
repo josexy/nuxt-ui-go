@@ -163,7 +163,9 @@ func Drawer(c *ui.Context, t Theme, s *DrawerState, o DrawerOptions, content fun
 		_ = dx
 		if held {
 			if !s.dragging {
-				s.start = s.height
+				// A drag can interrupt a snap: pick up the height on screen,
+				// not the snap's destination stored in height.
+				s.height, s.start = shown, shown
 				s.dragging = true
 			}
 			s.height = max(0, min(h*points[len(points)-1], s.height-dy))
@@ -243,9 +245,12 @@ type CarouselState struct {
 	// page it showed, dir the way the last change went, posed whether the
 	// last build posed it, and start, while starting, where its next pose
 	// starts (percent of a page, and DIPs dragged).
-	shown, dir        int
-	posed, starting   bool
-	startPct, startPx float32
+	shown, dir           int
+	posed, starting      bool
+	startPct, startPx    float32
+	shownID, departingID string
+	departingPage        int
+	departingUntil       time.Time
 }
 
 // carouselMotion is how long the Carousel takes to slide to a page.
@@ -343,6 +348,7 @@ func Carousel(c *ui.Context, t Theme, s *CarouselState, items []CarouselItem, o 
 			})
 			s.last = time.Time{}
 			s.identity, s.offset, s.held, s.ignoreDrag = "", 0, false, false
+			s.shownID, s.departingID, s.posed, s.starting = "", "", false, false
 			return
 		}
 		running := o.Autoplay > 0 && len(items) > 1 && !root.IsDisabled() && !s.Paused && !s.held && t.moves(c) && motionVisible(view, o.Active) && !root.Hovered() && !s.root.FocusWithin(c)
@@ -439,7 +445,10 @@ func Carousel(c *ui.Context, t Theme, s *CarouselState, items []CarouselItem, o 
 		}
 		// A jump of more than a page slides in across one page, from the
 		// side it comes from.
-		if !s.starting && s.shown != s.Index && (s.shown-s.Index > 1 || s.Index-s.shown > 1) {
+		if !t.moves(c) || s.held || !c.Now().Before(s.departingUntil) || s.shown != s.Index {
+			s.departingID = ""
+		}
+		if t.moves(c) && s.shownID != "" && !s.starting && s.shown != s.Index && (s.shown-s.Index > 1 || s.Index-s.shown > 1) {
 			dir := s.dir
 			if dir == 0 {
 				dir = 1
@@ -448,8 +457,17 @@ func Carousel(c *ui.Context, t Theme, s *CarouselState, items []CarouselItem, o 
 				}
 			}
 			s.startPct, s.startPx, s.starting = page(s.Index-dir), 0, true
+			// Keep the old page in the virtual slot beside the destination.
+			// At a wrap there is no ordinary neighbor in that slot; at a
+			// dot jump the ordinary neighbor is not the page being left.
+			s.departingID, s.departingPage = s.shownID, s.Index-dir
+			s.departingUntil = c.Now().Add(carouselMotion)
 		}
-		s.shown = s.Index
+		s.shown, s.shownID, s.dir = s.Index, items[s.Index].ID, 0
+		departing := slices.IndexFunc(items, func(it CarouselItem) bool { return it.ID == s.departingID })
+		if departing >= 0 {
+			c.After(s.departingUntil.Sub(c.Now()))
+		}
 		view.Children(func() {
 			// The panes sit a page apart on one strip, which slides to the
 			// page shown in frames that only paint at Full. A pose of the
@@ -492,13 +510,26 @@ func Carousel(c *ui.Context, t Theme, s *CarouselState, items []CarouselItem, o 
 				s.posed = true
 			}
 			strip.Children(func() {
+				panes := make([]int, 0, 4)
 				for i := max(0, s.Index-1); i <= min(len(items)-1, s.Index+1); i++ {
+					if departing < 0 || i != s.departingPage {
+						panes = append(panes, i)
+					}
+				}
+				if departing >= 0 && !slices.Contains(panes, departing) {
+					panes = append(panes, departing)
+				}
+				for _, i := range panes {
 					it := items[i]
+					position := i
+					if i == departing {
+						position = s.departingPage
+					}
 					pane := ui.Column(c.Key(it.ID)).Absolute().WidthPercent(100).MinWidth(0).Label(it.Label)
 					if vert {
-						pane.Left(0).TopPercent(float32(i * 100)).HeightPercent(100)
+						pane.Left(0).TopPercent(float32(position * 100)).HeightPercent(100)
 					} else {
-						at := float32(i * 100)
+						at := float32(position * 100)
 						if rtl {
 							at = -at
 						}

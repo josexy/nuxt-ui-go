@@ -350,7 +350,8 @@ func Select[T comparable](c *ui.Context, t Theme, selected *T, options []Option[
 			})
 		})
 	}
-	panel := ui.PopoverBase(c.Key(memory), e, opened, func(panel ui.Element) {
+	memory.pop.update(c, t, *opened, memory)
+	panel := popupBase(c, memory.pop.key(memory), e, opened, func(panel ui.Element) {
 		// The overlay is outside the trigger's disabled subtree. Propagate its
 		// effective state so disabling an open select also disables its options.
 		panel.Disabled(e.IsDisabled()).KeepFocus()
@@ -728,7 +729,8 @@ func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[stri
 		}
 		editor.Expanded(*opened)
 		config := inputDefaults(t, ComponentInputMenu, input)
-		panel := ui.PopoverBase(c.Key(memory), anchor, opened, func(panel ui.Element) {
+		memory.pop.update(c, t, *opened, memory)
+		panel := popupBase(c, memory.pop.key(memory), anchor, opened, func(panel ui.Element) {
 			panel.KeepFocus().Disabled(editor.IsDisabled() || input.ReadOnly).Role(ui.RoleList)
 			selectionPanel(c, panel, anchor, t, o.Popup, &memory.pop)
 			finish(t, ComponentInputMenu, Panel, panel, PartStyle{}, Decoration{UI: input.UI})

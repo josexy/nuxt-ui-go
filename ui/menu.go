@@ -1,6 +1,7 @@
 package nui
 
 import (
+	"slices"
 	"strings"
 	"time"
 
@@ -230,7 +231,14 @@ func menu(c *ui.Context, t Theme, anchor ui.Element, s *MenuState, items []MenuI
 		panic("nui: menu requires state")
 	}
 	s.prepare(c, items)
-	s.pop.note(c, s.Open)
+	s.pop.update(c, t, s.Open, s)
+	if !t.fades(c) {
+		for id := range s.levels {
+			if id != "" && (!s.Open || !slices.Contains(s.path, id)) {
+				cancelOverlayExit(c, s.handles[id])
+			}
+		}
+	}
 	defer func() { s.pop.note(c, s.Open) }()
 	if anchor.Valid() && !context {
 		anchor.Role(ui.RoleMenuButton).Expanded(s.Open && !o.Disabled)
@@ -315,7 +323,7 @@ func menu(c *ui.Context, t Theme, anchor ui.Element, s *MenuState, items []MenuI
 			target = ui.Box(c).Absolute().Left(s.x).Top(s.y).Size(0, 0).IgnoreInput(true)
 		})
 	}
-	panel := ui.PopoverBase(c.Key(s), target, &s.Open, func(panel ui.Element) {
+	panel := ui.PopoverBase(c.Key(s.pop.key(s)), target, &s.Open, func(panel ui.Element) {
 		panel.Bind(&s.panel)
 		menuPanel(c, t, panel, target, s, items, o, id, "", 0, decorate)
 	})

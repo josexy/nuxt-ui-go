@@ -210,7 +210,7 @@ Dismissible=false prevents closing by dragging, clicking the overlay, or pressin
 
 The handle is focusable. Up and Down switch snap points, and Home and End go to the first and last. Losing pointer capture or window focus cancels the drag and restores the previous snap position. OnSnap reports only actual index changes; repeated keys at the bounds and outside changes are silent. OnClose reports close actions performed by the component; changing Open directly or a custom Done button does not report.
 
-The visible handle is 48×6 DIP by default, rounded, in the Accented color, and styled with Indicator. Thumb is the 64×16 DIP interactive area. An empty title creates no empty heading, and the panel and handle have localized names. At the Full motion level, a change of snap point by the keyboard, through DrawerState.Snap, or after a drag is released eases the height to the new snap over 200 ms, continuing from where the panel was; while the handle is dragged, the height follows the pointer. Under reduced motion and at Off the height changes at once. Opening and closing use Slideover's animation. Call Drawer on every build, including when it is closed. Dragging from any edge, spring snapping, and touch gestures linked to body scrolling are not supported.
+The visible handle is 48×6 DIP by default, rounded, in the Accented color, and styled with Indicator. Thumb is the 64×16 DIP interactive area. An empty title creates no empty heading, and the panel and handle have localized names. At the Full motion level, a change of snap point by the keyboard, through DrawerState.Snap, or after a drag is released eases the height to the new snap over 200 ms, continuing from where the panel was; while the handle is dragged, the height follows the pointer. Grabbing a snap in progress continues from its currently visible height. Under reduced motion and at Off the height changes at once. Opening and closing use Slideover's animation. Call Drawer on every build, including when it is closed. Dragging from any edge, spring snapping, and touch gestures linked to body scrolling are not supported.
 
 ## FileUpload and resource ownership
 
@@ -369,7 +369,7 @@ The chart is modeled on the TanStack Charts used by Nuxt UI 4.12.0, but Go actua
 
 ### Carousel: switch content page by page
 
-CarouselItem contains a stable ID, a Label, and a synchronous Build; your app can control CarouselState.Index and Paused. The component builds only the current item and its neighbors. Neighboring items are not interactive, but their Build still runs, so never start business operations unconditionally in a build callback.
+CarouselItem contains a stable ID, a Label, and a synchronous Build; your app can control CarouselState.Index and Paused. The component builds the current item and its neighbors, also retaining the outgoing item until a jump finishes. Neighboring items are not interactive, but their Build still runs, so never start business operations unconditionally in a build callback.
 
 | Action or option | Behavior |
 | --- | --- |
@@ -388,7 +388,7 @@ Autoplay is off by default; a positive Autoplay sets the interval. Hovering, foc
 
 OnChange fires once when user navigation or autoplay actually changes the index; drag and timer results produced during a build are reported after the build ends. Canceling a drag clears the offset, and an empty list also clears the drag state. Buttons are centered based on their actual size, and disabling at the bounds takes precedence over button options. The default buttons sit 16 DIP inside the viewport, so leave room for them in your content; the Gallery and website show an input layout using Item padding.
 
-Go builds only the current page and its neighbors. It has no Embla free dragging, slide groups, media queries, physics-based animation duration, auto height, or plugin objects. Switching pages positions the content immediately. Dots use native selected buttons and do not claim to implement a full ARIA tablist.
+Go builds the current page and its neighbors, retaining the outgoing page during a jump. It has no Embla free dragging, slide groups, media queries, physics-based animation duration, auto height, or plugin objects. Wraps and distant jumps keep the outgoing page beside the incoming one for the slide. Dots use native selected buttons and do not claim to implement a full ARIA tablist.
 
 ### Marquee: continuously scrolling content
 

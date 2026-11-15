@@ -133,8 +133,67 @@ func popIn(c *ui.Context, t Theme, pop *popState, panel ui.Element, d time.Durat
 // closed, kept while it is closed: popIn tells a panel opened again during
 // its exit from one entering anew.
 type popState struct {
-	open     bool
-	closedAt time.Time
+	open       bool
+	closedAt   time.Time
+	cancelled  bool
+	generation uint64
+}
+
+type overlaySurfaceKey struct {
+	owner      any
+	generation uint64
+}
+
+func (p *popState) key(owner any) overlaySurfaceKey {
+	return overlaySurfaceKey{owner, p.generation}
+}
+
+type overlayFocusKey struct{ key any }
+
+// overlayFocus keeps MyGo's opener restoration independent of the surface.
+// The marker goes as soon as the overlay closes, even if a hidden surface
+// with the same identity is needed to discard an exit copy.
+func overlayFocus(c *ui.Context, key any) {
+	ui.Overlay(c, func() {
+		ui.Box(c.Key(overlayFocusKey{key})).Absolute().Size(0, 0).IgnoreInput(true).AccessHidden(true)
+	})
+}
+
+// cancelOverlayExit replaces a departing surface with a hidden, inert one
+// of the same identity. MyGo drops a hidden element's transition, including
+// its exit copy. Unlike Context.DisableAnimations this affects only this
+// overlay, and never interrupts an unrelated component or scroll glide.
+func cancelOverlayExit(c *ui.Context, key any) {
+	ui.Overlay(c, func() {
+		ui.Box(c.Key(key)).Hidden(true).IgnoreInput(true).AccessHidden(true).
+			Transition(ui.ElementTransition{Duration: -1, ExitDuration: -1})
+	})
+}
+
+func (p *popState) update(c *ui.Context, t Theme, open bool, key any) {
+	p.note(c, open)
+	if open && p.cancelled {
+		// The hidden replacement has no live content. A fresh surface also
+		// gives MyGo a fresh opener, rather than reusing the cancelled one.
+		p.generation++
+		p.cancelled, p.closedAt = false, time.Time{}
+	}
+	if open {
+		overlayFocus(c, p.key(key))
+	} else if !t.fades(c) && !p.closedAt.IsZero() {
+		cancelOverlayExit(c, p.key(key))
+		p.cancelled = true
+	}
+}
+
+// popupBase assigns the key only when MyGo will construct a panel. A closed
+// PopoverBase constructs nothing, so passing c.Key to it would leak that key
+// into the next control built by the caller.
+func popupBase(c *ui.Context, key any, anchor ui.Element, open *bool, build func(ui.Element)) ui.Element {
+	if !*open {
+		return ui.Element{}
+	}
+	return ui.PopoverBase(c.Key(key), anchor, open, build)
 }
 
 // note records whether the popup is open as a build starts or ends: the end
@@ -333,6 +392,7 @@ func popover(c *ui.Context, t Theme, anchor ui.Element, open *bool, opts Popover
 	if opts.Mode == PopoverHover && !*open {
 		updateHover(anchorIntent)
 	}
+	identity.pop.update(c, t, *open, identity)
 	if !*open {
 		if identity.wasOpen && identity.focusWithin {
 			anchor.Focus()
@@ -345,7 +405,7 @@ func popover(c *ui.Context, t Theme, anchor ui.Element, open *bool, opts Popover
 	inner.group = groupPart{}
 	var panel ui.Element
 	host.Children(func() {
-		panel = ui.PopoverBase(c.Key(identity), anchor, open, func(panel ui.Element) {
+		panel = ui.PopoverBase(c.Key(identity.pop.key(identity)), anchor, open, func(panel ui.Element) {
 			stylePanel(c, panel, anchor, t, opts, recipe, &identity.pop)
 			if content != nil {
 				content(inner)

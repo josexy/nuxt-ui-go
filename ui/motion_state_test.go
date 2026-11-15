@@ -810,7 +810,7 @@ func TestCarouselDotJumpSlidesInOnePage(t *testing.T) {
 		t.Fatalf("the jump did not land on page 5: OnChange %v", changes)
 	}
 	for id, n := range builds {
-		if id != "Page 4" && id != "Page 5" && n > 0 {
+		if id != "Page 1" && id != "Page 4" && id != "Page 5" && n > 0 {
 			t.Fatalf("after the jump %s was built %d times: %v", id, n, builds)
 		}
 	}

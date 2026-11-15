@@ -16,12 +16,26 @@ func redPixels(im *image.RGBA, r ui.Rect) int {
 	n := 0
 	for y := int(r.Y); y < int(r.Y+r.H); y++ {
 		for x := int(r.X); x < int(r.X+r.W); x++ {
-			if p := im.RGBAAt(x, y); int(p.R) > int(p.G)+12 && int(p.R) > int(p.B)+12 {
+			if redSurfacePixel(im, x, y) {
 				n++
 			}
 		}
 	}
 	return n
+}
+
+// A solid panel tints an area, whereas Windows subpixel text rendering can
+// tint individual glyph-edge pixels even in a closed, never-opened control.
+// Require the surrounding pixels too, so text fringes cannot masquerade as
+// a surviving exit. This trims one pixel from each measured panel edge.
+func redSurfacePixel(im *image.RGBA, x, y int) bool {
+	for _, at := range [][2]int{{x, y}, {x - 1, y}, {x + 1, y}, {x, y - 1}, {x, y + 1}} {
+		p := im.RGBAAt(at[0], at[1])
+		if int(p.R) <= int(p.G)+12 || int(p.R) <= int(p.B)+12 {
+			return false
+		}
+	}
+	return true
 }
 
 // The overlay exits rely on MyGo v0.9.0 copying a PopoverBase panel, built
@@ -72,7 +86,7 @@ func redExtent(im *image.RGBA, r ui.Rect) (box ui.Rect, strength int) {
 	for y := int(r.Y); y < int(r.Y+r.H); y++ {
 		for x := int(r.X); x < int(r.X+r.W); x++ {
 			p := im.RGBAAt(x, y)
-			if tint := int(p.R) - int(p.G); tint > 12 && int(p.R) > int(p.B)+12 {
+			if tint := int(p.R) - int(p.G); redSurfacePixel(im, x, y) {
 				x0, y0, x1, y1 = min(x0, x), min(y0, y), max(x1, x), max(y1, y)
 				strength = max(strength, tint)
 			}
@@ -475,7 +489,7 @@ func TestPopupExitsAtEachLevel(t *testing.T) {
 			}, escape},
 			{"Tooltip", func(c *ui.Context, th nui.Theme) {
 				a := nui.Button(c, th, "Save", nui.ButtonOptions{})
-				nui.Tooltip(c, th, a, "Save the draft", nui.TooltipOptions{DelayDuration: nui.Set(time.Duration(0)), UI: redPanel})
+				nui.Tooltip(c, th, a, "Save the draft before closing", nui.TooltipOptions{DelayDuration: nui.Set(time.Duration(0)), UI: redPanel})
 			}, func(t *testing.T, m *motionTester) {
 				r := bounds(t, m.Tester, "Save")
 				m.Move(r.X+r.W/2, r.Y+r.H/2)
@@ -586,13 +600,15 @@ func TestLeavingSheetsAreInert(t *testing.T) {
 					}
 				}
 				// Still leaving, it takes no input: the click goes behind it.
-				leavingCorner := m.at(690, 490)
+				// This point is outside both the right Slideover and the
+				// bottom Drawer, so it measures the backdrop, not the panel.
+				leavingCorner := m.at(240, 10)
 				m.ClickAt(under.X+under.W/2, under.Y+under.H/2)
 				if behind != 1 {
 					t.Fatal("the window behind took no click in the exit's first frame")
 				}
 				m.Advance(400 * time.Millisecond)
-				if m.at(690, 490) == leavingCorner {
+				if m.at(240, 10) == leavingCorner {
 					t.Fatal("the sheet's backdrop was not showing as the click went behind it")
 				}
 				if closes != 1 {
