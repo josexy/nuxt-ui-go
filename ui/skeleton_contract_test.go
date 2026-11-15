@@ -49,8 +49,9 @@ func TestSkeletonExplicitZeroAndTransparentBackground(t *testing.T) {
 }
 
 func TestSkeletonPulseChangesPixelsAndStops(t *testing.T) {
+	off := false
 	tt := ui.NewTester(func(c *ui.Context) {
-		nui.Skeleton(c, nui.App(c, nui.AppConfig{Mode: nui.LightMode}), nui.SkeletonOptions{})
+		nui.Skeleton(c, nui.App(c, nui.AppConfig{Mode: nui.LightMode, DisableAnimations: off}), nui.SkeletonOptions{})
 	}, 200, 60)
 	first := bytes.Clone(tt.Image().Pix)
 	changed := false
@@ -61,11 +62,20 @@ func TestSkeletonPulseChangesPixelsAndStops(t *testing.T) {
 	if !changed {
 		t.Fatal("pulse requested frames without changing pixels")
 	}
+	// The pulse moves nothing: it goes on under reduced motion, as Nuxt's
+	// animate-pulse does, and stops with animations off.
 	tt.SetPreferences(ui.Preferences{ReduceMotion: true})
+	before := bytes.Clone(tt.Image().Pix)
+	tt.Advance(time.Second)
+	if bytes.Equal(before, tt.Image().Pix) || !tt.FramePending() {
+		t.Fatal("reduced motion stopped the pulse")
+	}
+	off = true
+	tt.Frame()
 	still := bytes.Clone(tt.Image().Pix)
 	tt.Advance(time.Second)
 	if !bytes.Equal(still, tt.Image().Pix) || tt.FramePending() {
-		t.Fatal("reduced motion did not stop pulse")
+		t.Fatal("disabled animations did not stop the pulse")
 	}
 }
 

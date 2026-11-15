@@ -545,6 +545,7 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 			})
 			d := listboxItemDecoration(o.Decoration, it.Options)
 			finish(t, ComponentListbox, Item, row, optionItemStyle(t, m, highlighted), d)
+			t.fadeColors(r.Context, row)
 			row.Children(func() { listboxItemContent(r.Context, t, it, o, d, config.Size, chosen, highlighted) })
 		}
 		if vert {
@@ -748,6 +749,7 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 			}
 		}
 		style.apply(anchor)
+		t.fadeColors(c, anchor)
 		if anchor.FocusVisible() && config.Variant != None {
 			color := config.Color
 			if fieldInvalid(t, field) {

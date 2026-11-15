@@ -5,7 +5,7 @@
 Expand hierarchical data and select its nodes.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Tree`
 - Types: `TreeOptions`, `TreeNode`, `TreeState`, `TreeEvent`, `TreeItemState`
 - Theme key: `nui.ComponentTree` (for `Theme.WithComponent`)
@@ -162,6 +162,10 @@ From the library documentation. Links point to other component references in thi
 
 ### Forms, dates, and data components
 
+#### Lifecycle and themes (excerpt)
+
+InputNumber, InputDate, and InputTime share Input's sizes, five field variants, colors, read-only and disabled states, icons, and error settings. InputNumber, InputTags, PinInput cells, the SelectMenu trigger, Listbox and Tree rows, Calendar cells and card-variant CheckboxGroup items fade their background, border and focus ring over `Motion.Transition` (150 ms) at the Full and Reduced motion levels, as Nuxt UI's `transition-colors`; text colours change at once, and the Off motion level shows every change at once. InputDate and InputTime fields do not fade. Other components are configured through their own Options at the end of this page.
+
 #### Tree
 
 ##### Store nodes, selection, and expansion
@@ -206,7 +210,7 @@ Outline.List keeps the scroll state and Handle, while Tree manages Selected, Sel
 
 OnExpandedChange fires after a user action actually changes the expansion state, with the expanded IDs sorted as strings. Cancellation, initialization, and outside SetExpanded calls do not trigger it. OnChange still reports only selection changes. If a selection handler replaces the nodes, the earlier click no longer expands a newly created node with the same ID.
 
-A TreeNode's UI and Style can override Item, Leading, Label, and Trailing; node overrides are applied after the tree instance's overrides. BuildLeading and BuildTrailing replace the leading and trailing icons, and Build replaces the main content; these callbacks should build display content only. TreeItemState.Indeterminate is used only for multiple-selection linking. With BubbleSelect, a node is indeterminate when its available descendants are a mix of selected and unselected; with only PropagateSelect, the parent must also be selected. In single selection, or with both linking options off, it is false.
+A TreeNode's UI and Style can override Item, Leading, Label, and Trailing; node overrides are applied after the tree instance's overrides. BuildLeading and BuildTrailing replace the leading and trailing icons, and Build replaces the main content; these callbacks should build display content only. An expandable node's trailing chevron, or its custom TrailingIcon, turns 180 degrees over 200 ms as it expands and back as it collapses, in frames that only paint; under reduced motion and at the Off motion level it shows its final rotation at once, and a row scrolled into view already expanded shows it turned without animating. TreeItemState.Indeterminate is used only for multiple-selection linking. With BubbleSelect, a node is indeterminate when its available descendants are a mix of selected and unselected; with only PropagateSelect, the parent must also be selected. In single selection, or with both linking options off, it is false.
 
 A loaded empty branch keeps its expansion state but does not get the default folder icon and arrow; set Icon explicitly if you want a folder look. Type-ahead search cycles through matches when the same character is repeated, and keeps the current match while the user continues typing a prefix.
 

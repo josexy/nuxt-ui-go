@@ -44,6 +44,7 @@ type popoverMemory struct {
 	since                time.Time
 	intent, suppressed   bool
 	wasOpen, focusWithin bool
+	pop                  popState
 }
 
 // popupStyle is Nuxt's popup surface for Popover, Select, InputMenu, SelectMenu
@@ -65,33 +66,94 @@ func dialogStyle(t Theme) PartStyle {
 const (
 	popupMotion  = 100 * time.Millisecond
 	dialogMotion = 200 * time.Millisecond
+	// switchMotion is how long a Switch's thumb slides and its track fades.
+	switchMotion = 200 * time.Millisecond
+	// chevronMotion is how long an expanding item's chevron turns.
+	chevronMotion = 200 * time.Millisecond
 )
+
+// turnChevron points icon up while open, as Nuxt's rotate-180: turning over
+// chevronMotion in frames that only paint at Full, and at once otherwise.
+// An icon posed for the first time, as a row scrolled into view already
+// open, shows its pose at once.
+func turnChevron(c *ui.Context, t Theme, icon ui.Element, open bool) {
+	turn := float32(0)
+	if open {
+		turn = 180
+	}
+	if t.moves(c) {
+		icon.AnimatePose(ui.Pose{Rotate: turn}, ui.Animation{Duration: chevronMotion, Ease: ui.EaseOut})
+	} else if open {
+		icon.Rotate(turn)
+	}
+}
 
 type popInKey struct{}
 
 // popIn plays Nuxt's scale-in on a panel as it appears: from 95% and
 // transparent to its place, scaled around (originX, originY), the side
-// toward its anchor. Each newly shown panel plays it once. Closing is
-// immediate: a popup's overlay leaves with it, so no exit can be drawn.
-// It returns the progress for finishPanel's fade, 1 once settled or while motion is reduced.
-func popIn(c *ui.Context, t Theme, panel ui.Element, d time.Duration, originX, originY float32) float32 {
+// toward its anchor. At Reduced it fades in without scaling, and at Off it
+// shows at once. Each newly shown panel plays it once. pop, kept by the
+// caller while the panel is closed too, holds when it last closed.
+// It returns the progress for finishPanel's fade, 1 once settled or at Off.
+func popIn(c *ui.Context, t Theme, pop *popState, panel ui.Element, d time.Duration, originX, originY float32) float32 {
 	if !panel.Valid() {
 		return 1
 	}
+	// A panel opened less than its exit after it closed is coming back
+	// while its exit copy leaves, from where the copy was (MyGo): it goes on
+	// fully shown rather than entering a second time over it.
+	returning := pop != nil && !pop.closedAt.IsZero() && c.Now().Sub(pop.closedAt) <= d
 	started := ui.Local(panel, "nui-pop-in", func() bool { return false })
-	if !t.motion(c) {
+	level := t.motionLevel(c)
+	if level == motionOff {
 		*started = true
 		panel.Jump(popInKey{}, 1)
 		return 1
 	}
 	if !*started {
 		*started = true
-		panel.Jump(popInKey{}, 0)
+		from := float32(0)
+		if returning {
+			from = 1
+		}
+		panel.Jump(popInKey{}, from)
 	}
-	v := panel.AnimateWith(popInKey{}, 1, d, ui.EaseOut)
-	scale := .95 + .05*v
-	panel.TransformOrigin(originX, originY).Scale(scale, scale)
+	// At Reduced the value only fades, which the desktop's preference lets
+	// go on (NonMotion).
+	v := panel.AnimateTo(popInKey{}, 1, ui.Animation{Duration: d, Ease: ui.EaseOut, NonMotion: level == motionReduced})
+	if level == motionFull {
+		scale := .95 + .05*v
+		panel.TransformOrigin(originX, originY).Scale(scale, scale)
+	}
 	return v
+}
+
+// popState is whether a popup was open in the last build, and when it last
+// closed, kept while it is closed: popIn tells a panel opened again during
+// its exit from one entering anew.
+type popState struct {
+	open     bool
+	closedAt time.Time
+}
+
+// note records whether the popup is open as a build starts or ends: the end
+// catches a close made during the build, as by Escape.
+func (p *popState) note(c *ui.Context, open bool) {
+	if p.open && !open {
+		p.closedAt = c.Now()
+	}
+	p.open = open
+}
+
+// popOut plays Nuxt's scale-out on a popup panel as it closes: a copy of it,
+// which takes no input, shrinks to 95% and fades over popupMotion; at
+// Reduced it only fades, and at Off the panel goes at once. Other changes of
+// the panel, as it follows its anchor, show at once.
+func popOut(c *ui.Context, t Theme, panel ui.Element) {
+	if panel.Valid() {
+		panel.Transition(t.overlayTransition(c, nil, &ui.Motion{Scale: .95}, -1, popupMotion))
+	}
 }
 
 // finishPanel fades toward the resolved opacity and keeps Style as the final override.
@@ -149,10 +211,11 @@ func popupOrigin(p Placement, rtl bool) (x, y float32) {
 	return x, y
 }
 
-func stylePanel(c *ui.Context, panel, anchor ui.Element, t Theme, opts PopoverOptions, recipe PartStyle) {
+func stylePanel(c *ui.Context, panel, anchor ui.Element, t Theme, opts PopoverOptions, recipe PartStyle, pop *popState) {
 	positionPanel(panel, anchor, t, opts)
 	x, y := popupOrigin(opts.Placement, c.Direction() == ui.RightToLeft)
-	shown := popIn(c, t, panel, popupMotion, x, y)
+	shown := popIn(c, t, pop, panel, popupMotion, x, y)
+	popOut(c, t, panel)
 	finishPanel(t, ComponentPopover, panel, recipe, opts.Decoration, shown)
 }
 func positionPanel(panel, anchor ui.Element, t Theme, opts PopoverOptions) {
@@ -233,6 +296,8 @@ func popover(c *ui.Context, t Theme, anchor ui.Element, open *bool, opts Popover
 	if open == nil {
 		panic("nui: Popover requires open state")
 	}
+	identity.pop.note(c, *open)
+	defer func() { identity.pop.note(c, *open) }()
 	if !anchor.Valid() || anchor.IsDisabled() {
 		*open = false
 		*identity = popoverMemory{}
@@ -281,7 +346,7 @@ func popover(c *ui.Context, t Theme, anchor ui.Element, open *bool, opts Popover
 	var panel ui.Element
 	host.Children(func() {
 		panel = ui.PopoverBase(c.Key(identity), anchor, open, func(panel ui.Element) {
-			stylePanel(c, panel, anchor, t, opts, recipe)
+			stylePanel(c, panel, anchor, t, opts, recipe, &identity.pop)
 			if content != nil {
 				content(inner)
 			}
@@ -312,7 +377,7 @@ func popover(c *ui.Context, t Theme, anchor ui.Element, open *bool, opts Popover
 	return panel
 }
 
-func selectionPanel(c *ui.Context, panel, anchor ui.Element, t Theme, opts PopoverOptions) {
+func selectionPanel(c *ui.Context, panel, anchor ui.Element, t Theme, opts PopoverOptions, pop *popState) {
 	if !opts.MaxHeight.Set {
 		opts.MaxHeight = Set(float32(240))
 	}
@@ -320,5 +385,5 @@ func selectionPanel(c *ui.Context, panel, anchor ui.Element, t Theme, opts Popov
 	// Tight viewport spacing is a recipe default, before theme/instance overrides.
 	recipe := popupStyle(t)
 	recipe.PaddingX, recipe.PaddingY, recipe.Gap = Set(t.spacing(4)), Set(t.spacing(4)), Set(float32(0))
-	stylePanel(c, panel, anchor, t, opts, recipe)
+	stylePanel(c, panel, anchor, t, opts, recipe, pop)
 }

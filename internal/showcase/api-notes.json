@@ -88,8 +88,8 @@
     "en": "Use equal padding on every side. Defaults to false and is enabled automatically for an empty label. Instance Root.PaddingX / PaddingY can still override it."
   },
   "ButtonOptions.Animate": {
-    "zh": "控制加载图标旋转；未设置时遵循主题与系统的减少动态效果偏好。false 停止旋转，true 不能覆盖减少动态效果。背景颜色过渡由 Theme.Motion.Transition 控制。",
-    "en": "Control loader rotation. Unset follows theme and system reduced-motion preferences; false stops rotation and true cannot override reduced motion. Theme.Motion.Transition controls background transitions."
+    "zh": "控制加载图标旋转，默认启用。加载图标在减少动态效果时仍会旋转；false 停止旋转，true 不能在关闭动画（Motion.Disabled）时开启。背景颜色过渡由 Theme.Motion.Transition 控制，减少动态效果时仍会渐变。",
+    "en": "Controls loader rotation, on by default. The loader keeps turning under reduced motion; false stops it, and true cannot turn it on when animations are off (Motion.Disabled). Theme.Motion.Transition controls background transitions, which still fade under reduced motion."
   },
   "ButtonOptions.Style": {
     "zh": "同步配置 root、label、leading、trailing；没有构建的部件为零值 Element。加载图标颜色使用对应 UI 部件的 Foreground，Style.TextColor 不改变自定义绘制颜色。不要保存 Element。",
@@ -144,8 +144,8 @@
     "en": "Configure part elements during the current build. Do not retain the supplied Elements for later use."
   },
   "Animate": {
-    "zh": "控制动画，并遵守系统的减少动态效果偏好。",
-    "en": "Control animation while respecting reduced-motion preferences."
+    "zh": "控制组件动画；只能关闭动画，不能超过主题的动态效果级别（减少动态效果或关闭动画）。",
+    "en": "Controls the component's animation. It can only turn animation down, never past the theme's motion level (reduced or off)."
   },
   "AnimationDuration": {
     "zh": "动画持续时间。",
@@ -1124,8 +1124,8 @@
     "en": "Monospace font family."
   },
   "Motion": {
-    "zh": "设置动画时长及减少动态效果的行为。",
-    "en": "Configure animation timing and reduced-motion behavior."
+    "zh": "动画时长与级别：Reduce 或系统的减少动态效果偏好为“减少”级别，只停止移动、缩放和旋转，淡入淡出、颜色过渡和加载动画照常；Disabled 关闭全部动画且不请求动画帧。组件的 Animate 或 Transition 只能关闭动画，不能超过当前级别。",
+    "en": "Animation timing and level. Reduce, or the system's reduced-motion preference, selects Reduced: movement, scaling and rotation stop, while fades, color transitions and loading indicators continue. Disabled turns all animation off and requests no animation frames. A component's Animate or Transition can only turn its animation down, never past the level."
   },
   "HighContrast": {
     "zh": "启用高对比度主题处理。",
@@ -1660,8 +1660,8 @@
     "en": "Native dimension in DIP. Unset height is 16 with text scaling; explicit values keep their size, including zero."
   },
   "SkeletonOptions.Animate": {
-    "zh": "原生动画开关，默认启用。主题或系统减少动态效果优先于显式 true。背景透明度在 0.5–1 之间变化；移出可见区后停止请求帧。",
-    "en": "Native animation switch, enabled by default. Theme or system reduced motion takes precedence over explicit true. Background opacity pulses from 0.5 to 1; offscreen instances stop requesting frames."
+    "zh": "原生动画开关，默认启用。减少动态效果时仍会脉冲；关闭动画（Motion.Disabled）优先于显式 true。背景透明度在 0.5–1 之间变化；移出可见区后停止请求帧。",
+    "en": "Native animation switch, enabled by default. The pulse continues under reduced motion; animations off (Motion.Disabled) take precedence over explicit true. Background opacity pulses from 0.5 to 1; offscreen instances stop requesting frames."
   },
   "SkeletonOptions.UI": {
     "zh": "Root 对应上游 ui.base；Background 设置脉冲颜色，Radius 设置圆角。全局组件样式、实例 UI、Style 依次应用。",
@@ -1676,8 +1676,8 @@
     "en": "Defaults to 100; explicit values must be finite and positive or panic. Numeric maxima only; no upstream step-array form."
   },
   "ProgressOptions.Indeterminate": {
-    "zh": "忽略完成量，显示半条轨道长的未知进度指示器；默认两秒轮播，减少动态效果时居中静止。",
-    "en": "Ignores the amount and shows a half-track unknown-progress indicator. Uses a two-second carousel, centered and still under reduced motion."
+    "zh": "忽略完成量，显示未知进度指示器，按 Animation 预设以两秒为周期运动；减少动态效果时铺满轨道并脉冲，关闭动画时以半条轨道长居中静止。",
+    "en": "Ignores the amount and shows an unknown-progress indicator that moves along the Animation preset in two-second cycles. Under reduced motion it spans the track and pulses; with animations off it stays centered at half the track."
   },
   "ProgressOptions.Inverted": {
     "zh": "反转填充或未知进度移动方向。水平方向先遵循 LTR / RTL；纵向默认从顶部填充。",
@@ -1696,8 +1696,8 @@
     "en": "Defaults to Primary; Neutral uses InvertedBackground. Set Indicator.Background for an arbitrary fill color."
   },
   "ProgressOptions.Animate": {
-    "zh": "默认启用；控制 200ms 数值过渡与两秒未知进度轮播，系统或主题减少动态效果优先。没有其他 CSS 动画预设。",
-    "en": "Enabled by default. Controls the 200ms value transition and two-second unknown-progress carousel. System or theme reduced motion takes precedence; other CSS animation presets are not provided."
+    "zh": "默认启用；控制 200ms 数值过渡与两秒未知进度动画。数值过渡只在完整动态效果下播放；减少动态效果时未知进度铺满轨道并脉冲；false 或关闭动画时静止。",
+    "en": "Enabled by default. Controls the 200ms value transition and the two-second unknown-progress animation. The value moves only at full motion; under reduced motion unknown progress spans the track and pulses; false or animations off keep it still."
   },
   "ProgressOptions.UI": {
     "zh": "Root 是进度轨道，对应上游 base；Indicator 读取 Background 作为自绘填充色，其他 Indicator 字段不生效。",
@@ -2120,8 +2120,8 @@
     "en": "Runs synchronously after part-style merging for Panel, Label and Trailing."
   },
   "ModalOptions.Transition": {
-    "zh": "默认 true；false 立即显示。Modal 关闭始终立即完成，Slideover 关闭时也会跳过过渡。恢复 true 不重播已经完成的入场。",
-    "en": "Defaults to true. False shows immediately; Modal always unmounts immediately on close, and Slideover also skips its exit. Re-enabling does not replay a completed entrance."
+    "zh": "默认 true；false 时立即显示和关闭，不留退出副本。Modal 关闭时面板与遮罩一起在 200 毫秒内淡出（不缩小）；Slideover 滑出，减少动态效果时原地淡入淡出。关闭动画（Motion.Disabled）时同样立即切换。恢复 true 不重播已经完成的入场。",
+    "en": "Defaults to true. False shows and closes immediately, leaving no exit copy. Modal fades its panel and backdrop out together over 200 ms (no scale-out); Slideover slides out, and fades in place under reduced motion. Animations off (Motion.Disabled) also change at once. Re-enabling does not replay a completed entrance."
   },
   "ModalOptions.Close": {
     "zh": "可选关闭按钮配置，默认 MD / Neutral / Ghost。CloseButton=false 时不创建按钮；禁用或加载状态阻止按钮关闭。",
@@ -2152,8 +2152,8 @@
     "en": "Defaults to true. False hides the backdrop color while retaining modal focus and outside-dismissal policy. Explicit Backdrop styles can still override the color."
   },
   "SlideoverOptions.Transition": {
-    "zh": "默认 true；false 立即显示。Modal 关闭始终立即完成，Slideover 关闭时也会跳过过渡。恢复 true 不重播已经完成的入场。",
-    "en": "Defaults to true. False shows immediately; Modal always unmounts immediately on close, and Slideover also skips its exit. Re-enabling does not replay a completed entrance."
+    "zh": "默认 true；false 时立即显示和关闭，不留退出副本。Modal 关闭时面板与遮罩一起在 200 毫秒内淡出（不缩小）；Slideover 滑出，减少动态效果时原地淡入淡出。关闭动画（Motion.Disabled）时同样立即切换。恢复 true 不重播已经完成的入场。",
+    "en": "Defaults to true. False shows and closes immediately, leaving no exit copy. Modal fades its panel and backdrop out together over 200 ms (no scale-out); Slideover slides out, and fades in place under reduced motion. Animations off (Motion.Disabled) also change at once. Re-enabling does not replay a completed entrance."
   },
   "SlideoverOptions.Close": {
     "zh": "可选关闭按钮配置，默认 MD / Neutral / Ghost。CloseButton=false 时不创建按钮；禁用或加载状态阻止按钮关闭。",
@@ -2184,8 +2184,8 @@
     "en": "Defaults to true. False hides the backdrop color while retaining modal focus and outside-dismissal policy. Explicit Backdrop styles can still override the color."
   },
   "DrawerOptions.Transition": {
-    "zh": "默认 true，出入场沿用 Slideover 的 200 毫秒过渡；false 或减少动态效果时跳过，吸附高度即时切换。",
-    "en": "Defaults to true with Slideover’s 200 ms entrance/exit. False or reduced motion skips it; snap heights change immediately."
+    "zh": "默认 true，出入场沿用 Slideover 的 200 毫秒过渡（减少动态效果时原地淡入淡出）；false 时跳过。完整动态效果下，键盘、DrawerState.Snap 或松开拖动后，高度在 200 毫秒内过渡到吸附点；减少动态效果和关闭动画时吸附高度即时切换。拖动时高度跟随指针。",
+    "en": "Defaults to true with Slideover’s 200 ms entrance/exit (a fade in place under reduced motion); false skips it. At full motion, a snap change by keyboard, DrawerState.Snap or a drag release eases the height over 200 ms; reduced motion and animations off change snap heights immediately. Dragging follows the pointer."
   },
   "DrawerOptions.Close": {
     "zh": "关闭按钮配置，默认 MD / Neutral / Ghost；非空时隐式启用，CloseButton=false 可隐藏。",
@@ -2584,8 +2584,8 @@
     "en": "Emits once when a user selects a different ID. External assignments, invalid-value fallback and idle rebuilds do not emit."
   },
   "TabsOptions.UI": {
-    "zh": "Root、List、Trigger、Leading、Label、Trailing、Indicator、Body 的部件样式；Indicator 只绘制当前活动项。",
-    "en": "Styles Root, List, Trigger, Leading, Label, Trailing, Indicator and Body. Indicator is rendered only for the active item."
+    "zh": "Root、List、Trigger、Leading、Label、Trailing、Indicator、Body 的部件样式；Indicator 只绘制当前活动项。药丸样式中 Indicator 是铺满当前触发器、位于文字下方的独立表面，完整动态效果下在触发器之间滑动。",
+    "en": "Styles Root, List, Trigger, Leading, Label, Trailing, Indicator and Body. Indicator is rendered only for the active item. In pill style, Indicator is a separate surface filling the active trigger under its text, which slides between triggers at full motion."
   },
   "TabsOptions.Style": {
     "zh": "同步配置当前构建部件，不保留元素。正文是以标签 Label 命名的可聚焦 tabpanel，标签用 Controls 指向它。",
@@ -3844,8 +3844,8 @@
     "en": "Loading-line color; defaults to the component theme or Primary."
   },
   "TableOptions.LoadingAnimation": {
-    "zh": "默认 TableLoadingCarousel，另有 CarouselInverse、Swing、Elastic；减少动态效果时显示静态线。",
-    "en": "Defaults to TableLoadingCarousel; CarouselInverse, Swing and Elastic are also available. Reduced motion shows a static line."
+    "zh": "默认 TableLoadingCarousel，另有 CarouselInverse、Swing、Elastic，与 Progress 的 Animation 共用（TableLoadingAnimation 是 LoadingAnimation 的别名）。减少动态效果时加载线铺满表头并脉冲；关闭动画时显示静态线。",
+    "en": "Defaults to TableLoadingCarousel; CarouselInverse, Swing and Elastic are also available, shared with Progress's Animation (TableLoadingAnimation aliases LoadingAnimation). Under reduced motion the line spans the header and pulses; with animations off it is static."
   },
   "TableOptions.BuildCaption": {
     "zh": "可见标题内容，在原生表格上方构建；Caption 字符串仍用于辅助技术说明。",
@@ -3960,8 +3960,8 @@
     "en": "Synchronous callback for current-build parts; never retain Element. Node Style runs last for its supported parts."
   },
   "TreeOptions.TrailingIcon": {
-    "zh": "父分支默认 ChevronDown，展开旋转 180 度。节点 TrailingIcon 优先；已加载的空分支不补图标。",
-    "en": "Defaults to ChevronDown for parent branches, rotated 180 degrees when expanded. Node TrailingIcon takes precedence; loaded empty branches receive no fallback icon."
+    "zh": "父分支默认 ChevronDown，展开时在 200 毫秒内旋转 180 度（减少动态效果和关闭动画时立即旋转，滚入视图的已展开行直接显示旋转后的状态）。节点 TrailingIcon 优先；已加载的空分支不补图标。",
+    "en": "Defaults to ChevronDown for parent branches, turned 180 degrees over 200 ms when expanded (at once under reduced motion or with animations off; rows scrolled in already expanded show it turned). Node TrailingIcon takes precedence; loaded empty branches receive no fallback icon."
   },
   "TreeOptions.OnLoad": {
     "zh": "未加载分支可见并展开时，以票据调用一次。后台工作由应用管理，结果通过 Window.Update 调用 CompleteLoad；不要保存构建期对象。",
@@ -4276,8 +4276,8 @@
     "en": "Defaults to true; false prevents closing the open branch in Single mode."
   },
   "NavigationOptions.TrailingIcon": {
-    "zh": "分支箭头，单项设置优先；默认关闭向下、打开向上，显式图标不旋转。",
-    "en": "Branch arrow, overridden per item; defaults down when closed and up when open. Explicit icons are not rotated."
+    "zh": "分支箭头，单项设置优先；默认 ChevronDown，打开时在 200 毫秒内旋转 180 度（减少动态效果和关闭动画时立即旋转）。自定义图标同样旋转。",
+    "en": "Branch arrow, overridden per item; defaults to ChevronDown, turned 180 degrees over 200 ms as the branch opens (at once under reduced motion or with animations off). Custom icons turn the same way."
   },
   "NavigationOptions.Tooltip": {
     "zh": "紧凑纵向提示默认 true，为原生默认值；单项 Optional 可覆盖。",
@@ -4926,5 +4926,17 @@
   "FooterColumn.Items": {
     "zh": "仅使用 NavigationItem 的 ID、Label、Icon、Active、Disabled、OnSelect、UI、Style。OnSelect 可用 PreventDefault 取消根 OnNavigate；单项样式使用 Item、ItemLeadingSlot、ItemLabelSlot。",
     "en": "Uses only NavigationItem ID, Label, Icon, Active, Disabled, OnSelect, UI and Style. OnSelect can PreventDefault to cancel root OnNavigate. Item styles use Item, ItemLeadingSlot and ItemLabelSlot."
+  },
+  "DisableAnimations": {
+    "zh": "关闭明暗两套主题中 nui 组件的全部动画（设置 Motion.Disabled），优先于组件的 Animate 和 Transition 选项，可在运行时切换。不影响 MyGo 自身的滚动和光标动画；需要时在视图中调用 c.DisableAnimations()。",
+    "en": "Turns off all nui component animation in both the light and dark themes (sets Motion.Disabled), overriding components' Animate and Transition options; it can change while the app runs. MyGo's own scrolling and caret motion are unaffected; call c.DisableAnimations() in the view for those."
+  },
+  "ProgressOptions.Animation": {
+    "zh": "未知进度的动画预设：LoadingCarousel（默认）、LoadingCarouselInverse、LoadingSwing 或 LoadingElastic，与 Table 的 LoadingAnimation 相同。轮播在从右到左布局和 Inverted 时反向，竖直时沿竖直轨道运动。超出范围的值会 panic。",
+    "en": "Unknown-progress preset: LoadingCarousel (default), LoadingCarouselInverse, LoadingSwing or LoadingElastic, the same as Table's LoadingAnimation. Carousels run the other way right to left and when Inverted, and along the track when vertical. Out-of-range values panic."
+  },
+  "SidebarOptions.Transition": {
+    "zh": "默认启用：桌面侧边栏收起和展开时宽度在 200 毫秒内过渡，旁边的内容随之重新布局，对应 Nuxt 的 transition 属性。false 立即切换；减少动态效果和关闭动画时同样立即切换。拖动、键盘或 State.Width 调整宽度，以及跨越断点切换模式时总是立即生效。",
+    "en": "On by default: the desktop width animates over 200 ms as the Sidebar collapses and expands, and content beside it reflows, as Nuxt's transition prop. False changes it at once, as do reduced motion and animations off. Resizing by drag, keyboard or State.Width, and switching mode at the breakpoint, always apply at once."
   }
 }

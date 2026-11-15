@@ -5,7 +5,7 @@
 Add a label, help text and errors to an input.
 
 - Category: Inputs and selection
-- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
 - Functions: `FormField`
 - Types: `FormFieldOptions`
 - Theme key: `nui.ComponentFormField` (for `Theme.WithComponent`)
@@ -133,7 +133,7 @@ nui.Form(c, theme, &form, nui.FormOptions{
 
 #### Numbers, tags, PINs, and ratings › PinInput (excerpt)
 
-A focused empty cell hides its Placeholder and shows a blinking cursor. With reduced motion, the cursor stays solid; it is hidden when read-only, disabled, or unfocused. When FormField has an Error, every cell shows the error border. Text scaling and masking do not affect hit testing.
+A focused empty cell hides its Placeholder and shows a blinking cursor. It blinks under reduced motion too, as MyGo's own text caret does, and stays solid at the Off motion level; it is hidden when read-only, disabled, or unfocused. When FormField has an Error, every cell shows the error border. Text scaling and masking do not affect hit testing.
 
 #### Numbers, tags, PINs, and ratings › InputRating (excerpt)
 

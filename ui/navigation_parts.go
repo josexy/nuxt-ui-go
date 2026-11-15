@@ -87,6 +87,11 @@ func navigationButton(c *ui.Context, t Theme, it NavigationItem, o NavigationOpt
 	if b.FocusVisible() {
 		b.Shadow(0, 0, 0, 3, inputFocusColor(t, config.Color))
 	}
+	if config.Variant == Soft {
+		// Pill links fade their surface; link-variant labels change only
+		// their text colour, which shows at once.
+		t.fadeColors(c, b)
+	}
 	finishNavigationPart(t, Item, b, PartStyle{Font: Set(t.Font), FontSize: Set(t.text(14)), LineHeight: Set(float32(20.0 / 14)), Weight: Set(500), PaddingX: Set(padding), PaddingY: Set(t.spacing(6)), Gap: Set(t.spacing(6)), Foreground: Set(fg), Background: Set(bg), Radius: Set(t.radius(6))}, o.Decoration, it.Decoration)
 	b.Children(func() {
 		var leading ui.Element
@@ -144,15 +149,15 @@ func navigationButton(c *ui.Context, t Theme, it NavigationItem, o NavigationOpt
 				if icon == nil && len(it.Children) > 0 {
 					icon = o.TrailingIcon
 					if icon == nil {
-						if open {
-							icon = lucide.ChevronUp()
-						} else {
-							icon = lucide.ChevronDown()
-						}
+						icon = lucide.ChevronDown()
 					}
 				}
 				if icon != nil {
-					ui.Icon(c.Key("trailing-icon"), icon).Size(t.text(20), t.text(20))
+					// One icon turns to point up as its children open, as Nuxt's.
+					trailing := ui.Icon(c.Key("trailing-icon"), icon).Size(t.text(20), t.text(20))
+					if len(it.Children) > 0 {
+						turnChevron(c, t, trailing, open)
+					}
 				}
 			})
 		}

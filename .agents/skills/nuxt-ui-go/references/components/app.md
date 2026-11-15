@@ -5,7 +5,7 @@
 Apply a window theme and share it with its components.
 
 - Category: Themes and basic components
-- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
 - Functions: `App`, `DefaultApp`, `Window`, `Themed`, `SupportedLocales`
 - Types: `AppConfig`
 - Sections: Usage · Things to know · API · Documentation excerpts · Complete example
@@ -16,7 +16,7 @@ Call `nui.App(c, config)` at the start of the view and pass its theme to buttons
 
 ## Things to know
 
-App configures the current window theme. Create the window with `mygo.NewWindow`. Set the application language with `mygo.App.SetLocale`; AppConfig does not provide a per-window locale.
+App configures the current window theme. Create the window with `mygo.NewWindow`. Set the application language with `mygo.App.SetLocale`; AppConfig does not provide a per-window locale. `AppConfig.DisableAnimations` turns off all nui component animation in both the light and dark themes; the system's reduced-motion preference stops only movement, scaling and rotation, while fades, color transitions and loading indicators keep playing.
 
 ## API
 
@@ -40,6 +40,11 @@ func SupportedLocales() []string
 type AppConfig struct {
 	Mode        Mode
 	Light, Dark Theme
+	// DisableAnimations turns nui's animation off in both themes, whatever
+	// the mode (MotionTokens.Disabled). It does not stop MyGo's own motion,
+	// such as scroll glides, which follow the desktop's preference; call
+	// c.DisableAnimations for the app's own.
+	DisableAnimations bool
 }
 
 func DefaultApp() AppConfig
@@ -102,7 +107,7 @@ nui.Button(c.Key("save"), theme, "Save", nui.ButtonOptions{
 | `Radius` | Base corner radius of 6 DIP. Set it to 0 for square corners. Each component derives its radius from this base |
 | `ContainerWidth` | Maximum content width, 1280 DIP by default |
 | `Shadow` | `ShadowTokens{Color, Blur, OffsetY}`. Apply it to a part with `Shadow: nui.Set(theme.Shadow)`. Card has no outer shadow by default |
-| `Motion` | Background transitions take 150 ms by default, a loading spinner rotation takes 1 s, and a Skeleton pulse takes 2 s. `Reduce` turns animation off |
+| `Motion` | `Transition` is how long colour transitions take (150 ms by default; 0 or less makes colour changes immediate), `Spin` is a loading spinner's turn (1 s) and `Pulse` a Skeleton pulse (2 s). `Reduce` asks for reduced motion and `Disabled` turns animation off; see Motion levels |
 
 Windows uses Segoe UI and Consolas by default; other platforms use system-ui and monospace. The library does not bundle fonts, and fonts and fallback fonts can affect the actual control height.
 
@@ -116,7 +121,23 @@ Windows uses Segoe UI and Consolas by default; other platforms use system-ui and
 | Backgrounds | `Background`, `MutedBackground`, `Elevated`, `Accented`, `InvertedBackground` |
 | Borders | `Border`, `BorderMuted`, `BorderAccented`, `BorderInverted` |
 
-If either the system or the theme enables reduced motion, animation is off; a component's `Animate: nui.Set(true)` cannot override it. High contrast mode strengthens text, borders, and focus indicators, and switches accent colors to shade 700 in light mode and 300 in dark mode.
+High contrast mode strengthens text, borders, and focus indicators, and switches accent colors to shade 700 in light mode and 300 in dark mode.
+
+##### Motion levels
+
+Every component resolves one of three motion levels in each build, from the theme it receives:
+
+| Level | When | What animates |
+| --- | --- | --- |
+| Full | The default, for a zero `AppConfig` and for `Light()` and `Dark()` | Everything |
+| Reduced | `Motion.Reduce` is set, or the system asks for reduced motion | Nothing moves, scales, slides or rotates, and expanding content shows at once. Fades, colour transitions, loading spinners and the Skeleton pulse go on, as under Nuxt UI's and the system's reduced motion: a popup or Modal fades in without scaling |
+| Off | `Motion.Disabled` is set | Nothing animates, transitions, pulses or spins, and no component asks for frames to animate: a change shows in the frame that builds it |
+
+`AppConfig.DisableAnimations` sets `Motion.Disabled` in both the light and the dark theme, whatever the mode, for an app that turns animation off to save work or by the user's choice. It can change while the app runs: the next build uses the new level without remounting anything, so focus, drafts and selections stay, and an animation already playing settles at once. To turn motion off for part of a window, pass a theme with `Motion.Disabled` set to the components there, for example through `Themed`.
+
+A component's `Animate` or `Transition` option can only turn its own animation down. `nui.Set(false)` stops it at any level; `nui.Set(true)` cannot turn it on at Off, and at Reduced it plays the reduced form, such as a fade without scaling.
+
+The levels cover nui's own animation. MyGo's own motion, such as a scroll view's glide and the text caret's blink, follows the system preference only; to stop it as well, call `c.DisableAnimations()` in the view, which applies to that frame's values, transitions and poses.
 
 With high contrast mode on, the default palettes' Solid text colors pass a 4.5:1 contrast check. This does not hold in normal mode: for example, white text on the default light primary color has a contrast ratio of about 2.22:1. Verify custom palettes, other states, and the accessibility of your complete app separately.
 
@@ -161,6 +182,12 @@ Black changes with the color mode and has no 11-shade palette, so it does not ap
 | --- | --- | --- |
 | App / Theme | `AppConfig` manages light/dark mode; `Theme` holds colors, sizes, and component defaults | Configured per component |
 
+### Compatibility and known limitations
+
+#### Accessibility and motion (excerpt)
+
+Motion has three levels (see Motion levels). Under reduced motion, from the system or from `Theme.Motion.Reduce`, components stop moving, scaling, sliding and rotating, and keep fades, colour transitions, loading spinners and the Skeleton pulse, as Nuxt UI v4 and MyGo do. `AppConfig.DisableAnimations` or `Theme.Motion.Disabled` turns nui's animation off entirely; it does not stop MyGo's own scroll glide and caret blink, which follow the system preference, unless the app also calls `c.DisableAnimations()`. Accordion and Collapsible open at once under reduced motion, where Nuxt UI keeps their height animation, because MyGo makes motion that moves the content around them instant.
+
 ### Internationalization
 
 #### Setting up your app › Switch languages (excerpt)
@@ -182,11 +209,12 @@ import (
 	nui "github.com/josexy/nuxt-ui-go/ui"
 )
 
-type example struct{}
+type example struct{ Notify bool }
 
 func (s *example) view(c *ui.Context, t nui.Theme) {
 	nui.Card(c.Key("card"), t, nui.CardOptions{Title: "NuxtUI Go", Description: "Window theme and component defaults"}, func() {
 		nui.Button(c.Key("save"), t, "Save changes", nui.ButtonOptions{AccessibleLabel: "Save changes"})
+		nui.Switch(c.Key("notify"), t, &s.Notify, nui.SwitchOptions{Label: "Notifications"})
 	})
 }
 

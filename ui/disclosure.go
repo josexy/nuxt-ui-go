@@ -19,7 +19,7 @@ type CollapsibleOptions struct {
 type disclosureMemory struct{ trigger, body ui.Handle }
 
 func disclosureProgress(c *ui.Context, t Theme, p ui.CollapsibleParts, open bool) float32 {
-	if !t.motion(c) {
+	if !t.moves(c) {
 		v := float32(0)
 		if open {
 			v = 1
@@ -47,10 +47,18 @@ func disclosureBody(c *ui.Context, t Theme, open, keep bool, progress float32, i
 	})
 	if keep {
 		clip.Hidden(!open)
-	} else if progress < 1 {
-		clip.ClipY().Height(progress * body.Bounds().H)
+	} else {
+		revealHeight(clip, body, progress)
 	}
 	return body
+}
+
+// revealHeight shows progress of body's height through clip, as a disclosure
+// opens and closes: body keeps its layout, clipped.
+func revealHeight(clip, body ui.Element, progress float32) {
+	if progress < 1 {
+		clip.ClipY().Height(progress * body.Bounds().H)
+	}
 }
 
 func Collapsible(c *ui.Context, t Theme, open *bool, o CollapsibleOptions, content func(Theme)) ui.Element {

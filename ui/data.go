@@ -236,9 +236,7 @@ func Table[T any](c *ui.Context, t Theme, s *TableState[T], columns []TableColum
 	if s == nil {
 		panic("nui: Table requires state")
 	}
-	if o.LoadingAnimation > TableLoadingElastic {
-		panic("nui: invalid table loading animation")
-	}
+	checkLoadingAnimation(o.LoadingAnimation, "table")
 	if o.Label == "" {
 		o.Label = t.field.Label
 	}

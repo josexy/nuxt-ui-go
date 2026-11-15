@@ -5,7 +5,7 @@
 Display data as lines, bars, areas or slices.
 
 - Category: Advanced interaction and layout
-- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Chart`
 - Types: `ChartOptions`, `ChartSelection`
 - Theme key: `nui.ComponentChart` (for `Theme.WithComponent`)
@@ -252,7 +252,7 @@ The plot area reports the focused row or slice as its value. A selection moved w
 
 ##### Animation
 
-Animate is on by default, AnimationDuration defaults to 350 ms, and both theme and system reduced motion settings are respected. The first display appears directly; only later data or option changes animate.
+Animate is on by default and AnimationDuration defaults to 350 ms. Changes animate only at the Full motion level; under reduced motion, from the theme or the system, and at Off they show at once. The first display appears directly; only later data or option changes animate.
 
 When the chart type, series, and missing-value structure stay the same, coordinates are interpolated, and switching between Pie and Donut also animates the inner radius. When the chart type, series, point count, visibility, or missing-value structure changes, the chart cross-fades. An update in the middle of an animation continues from the current frame, keeping at most 3 exiting frames and 1 target frame. Axis labels and tooltips use the target data.
 

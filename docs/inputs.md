@@ -35,6 +35,8 @@ Input, Textarea, Select, and InputMenu support these variants:
 
 Fields do not accept Button's Solid or LinkVariant. Color mainly controls the focus and selection accent; font size, corner radius, density, and light/dark colors come from the Theme.
 
+Input, Textarea, InputNumber, InputTags, PinInput cells, and the Select, SelectMenu and InputMenu triggers fade their background, border and focus ring over `Motion.Transition` (150 ms) when hover, focus or invalid state changes, as Nuxt UI's `transition-colors`. The fade also runs under reduced motion; `Motion.Transition = 0` or the Off motion level shows the change at once. Text and icon colours change at once.
+
 Size precedence is: the instance's Size → the FormField/FieldGroup Size → the component's default Size. Set component defaults with calls such as `WithComponent(ComponentInput, ...)`. When a parent field or any ancestor is disabled, a child cannot re-enable itself with `Disabled: false`.
 
 ### Focus and callbacks
@@ -201,7 +203,7 @@ ChoiceTable on a single Checkbox and Variant/Indicator on Switch are Go-native e
 
 Both group types use ChoiceGroupOptions, which adds Horizontal, Loop, and a parameterless OnChange. Groups are vertical by default; Horizontal lets items wrap, except with ChoiceTable. Each option's Label and Description provide its text. In checkbox groups, Option.Icon replaces the check icon; in both group types with the indicator hidden, it appears above the label. Option.Build has no effect in choice groups; it is only used by Select and InputMenu.
 
-Checkbox and Switch toggle on click or Space. Each group is a single Tab stop. Use Left/Right arrows in horizontal layout and Up/Down arrows in vertical layout; Home and End go to the first and last items, and disabled items are skipped. In CheckboxGroup, arrow keys only move focus and Space toggles the item; in RadioGroup, moving also selects. Loop is an Optional[bool]: it defaults to false for checkbox groups and true for radio groups, and an explicit `nui.Set(false)` stops wrapping. State updates immediately; there is currently no toggle animation.
+Checkbox and Switch toggle on click or Space. Each group is a single Tab stop. Use Left/Right arrows in horizontal layout and Up/Down arrows in vertical layout; Home and End go to the first and last items, and disabled items are skipped. In CheckboxGroup, arrow keys only move focus and Space toggles the item; in RadioGroup, moving also selects. Loop is an Optional[bool]: it defaults to false for checkbox groups and true for radio groups, and an explicit `nui.Set(false)` stops wrapping. State updates immediately, and OnChange runs once per toggle. At the Full motion level the Switch's thumb slides to the other end over 200 ms, mirrored right to left, in frames that only paint, while the track fades to its new colour; under reduced motion the thumb moves at once and the track still fades, and at Off both change at once. A loading Switch still blocks toggling.
 
 A group's visible title can come from the enclosing FormField.Label. To use one icon for all checkboxes in a group, set the same SVG as Option.Icon on every option that has no icon of its own; items with their own icons keep them.
 
@@ -337,7 +339,7 @@ Select, InputMenu, SelectMenu, Listbox, menus, and CommandPalette share the same
 | Font size / line height (DIP) | 12/16 | 12/16 | 14/20 | 14/20 | 16/24 |
 | Icon size (DIP) | 16 | 16 | 20 | 20 | 24 |
 
-Rows have a 6 DIP corner radius. A row highlighted by keyboard or pointer uses Elevated at 50% as its background and Highlighted for its text, and its leading icon changes from Dimmed to Text. Selected items are marked with a check mark at the end of the row, without an extra background.
+Rows have a 6 DIP corner radius. A row highlighted by keyboard or pointer uses Elevated at 50% as its background and Highlighted for its text, and its leading icon changes from Dimmed to Text. The background fades in and out over `Motion.Transition`, also under reduced motion, so moving the highlight cross-fades the two rows; the text colour changes at once. In virtual lists the fade is on each row's content, so it never moves rows, and a held arrow key highlights, scrolls and reports the same rows as with animations off. Selected items are marked with a check mark at the end of the row, without an extra background.
 
 The description appears on the line below the label, at the same font size, in the Muted color. Group headings are semibold and one size smaller than items. The empty state is centered and uses the Muted color.
 
@@ -377,9 +379,9 @@ By default, a generic Popover has the theme background, a 1 DIP border, a 6 DIP 
 
 The Panel's font, text color, line height, and Gap apply directly to plain content. Native child controls keep using the local theme passed to them, and their own explicit text styles take precedence. Changing the anchor or panel size keeps the content's identity, drafts, and selection. If focus is inside the popover when it closes, focus returns to the current anchor; if it closes because the user clicked another control, that control keeps focus.
 
-The entrance animation respects reduced motion, and changing that preference while the popover is open does not replay it. Closing unmounts the popover immediately; there is no exit animation as in upstream. Collision handling uses MyGo's 4 DIP edge margin, while upstream defaults to 8 px. When there is no room on either side, a side placement can still overflow the window; constrain the content size or use a top or bottom placement.
+Under reduced motion the entrance fades in without scaling, and changing that preference while the popover is open does not replay it. Closing plays Nuxt UI's 100 ms scale-out and fade through a copy of the panel that takes no input and is hidden from assistive technology: focus returns at once, and a click on what was under the panel reaches it. Under reduced motion the exit only fades, and at the Off motion level the panel goes at once. Opening it again during the exit continues fully shown from where it was, without a second panel. Collision handling uses MyGo's 4 DIP edge margin, while upstream defaults to 8 px. When there is no room on either side, a side placement can still overflow the window; constrain the content size or use a top or bottom placement.
 
-On open, the panel fades in from 95% scale within 100 ms, scaling from the side nearest the anchor. With reduced motion, it appears immediately. Closing unmounts the panel at once and restores focus, with no exit animation. A selection list's own Panel override is applied last, and explicit padding in Popup.UI also takes effect.
+On open, the panel fades in from 95% scale within 100 ms, scaling from the side nearest the anchor. Under reduced motion it fades in without scaling, and at the Off motion level it appears at once. Closing restores focus at once and plays the same 100 ms scale-out and fade through a copy that takes no input (a fade under reduced motion, nothing at Off). A selection list's own Panel override is applied last, and explicit padding in Popup.UI also takes effect.
 
 ### ScrollArea: give content a scrolling region
 

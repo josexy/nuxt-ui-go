@@ -45,7 +45,9 @@ func (a *State) themeConfig() nui.AppConfig {
 	if a.Compact {
 		config.Light.Density, config.Dark.Density = .8, .8
 	}
-	config.Light.Motion.Reduce, config.Dark.Motion.Reduce = !a.Animations, !a.Animations
+	// Turning the Gallery's animations off is the app-wide switch, not
+	// reduced motion, which keeps fades and spinners.
+	config.DisableAnimations = !a.Animations
 	return config
 }
 

@@ -196,7 +196,12 @@ func togglePresentation(c *ui.Context, t Theme, e ui.Element, on bool, id Compon
 	if o.Invalid || o.ErrorMessage != "" || t.field.Error != "" {
 		focusColor = Error
 	}
-	if (o.Variant != ChoiceList || o.Indicator == IndicatorHidden) && e.FocusVisible() {
+	ring := (o.Variant != ChoiceList || o.Indicator == IndicatorHidden) && e.FocusVisible()
+	if o.Variant == ChoiceCard {
+		// Cards fade their surface, as Nuxt's transition-colors.
+		focusRing(e, ring, t.focusColor(focusColor))
+		t.fadeColors(c, e)
+	} else if ring {
 		e.Shadow(0, 0, 0, 3, t.focusColor(focusColor))
 	}
 	styles[rowSlot].apply(e)
@@ -228,7 +233,13 @@ func togglePresentation(c *ui.Context, t Theme, e ui.Element, on bool, id Compon
 			}
 			ui.Box(c.Key("indicator")).Height(container).Shrink(0).Center().Children(func() {
 				box := ui.Box(c).Size(boxSize, boxSize).Center().Shrink(0)
-				if o.Variant == ChoiceList && e.FocusVisible() {
+				if isSwitch {
+					// Nuxt fades the track with its thumb, over 200 ms.
+					focusRing(box, o.Variant == ChoiceList && e.FocusVisible(), t.focusColor(focusColor))
+					if t.fades(c) && t.Motion.Transition > 0 {
+						box.Transition(ui.ElementTransition{Colors: true, Shadows: true, Duration: switchMotion})
+					}
+				} else if o.Variant == ChoiceList && e.FocusVisible() {
 					box.Shadow(0, 0, 0, 3, t.focusColor(focusColor))
 				}
 				styles[Indicator].apply(box)
@@ -236,15 +247,24 @@ func togglePresentation(c *ui.Context, t Theme, e ui.Element, on bool, id Compon
 					width := t.text([5]float32{28, 32, 36, 40, 44}[sizeIndex(config.Size)])
 					height := boxSize + 4
 					box.Size(width, height)
-					offset := float32(2)
-					if on {
-						offset = width - boxSize - 2
-					}
+					// The thumb rests at the start unchecked and at the end
+					// checked, mirrored right to left.
+					start, end := float32(2), width-boxSize-2
 					if c.Direction() == ui.RightToLeft {
-						offset = width - boxSize - offset
+						start, end = end, start
+					}
+					offset := start
+					if on {
+						offset = end
 					}
 					box.Children(func() {
-						thumb := ui.Box(c).Size(boxSize, boxSize).Radius(999).Absolute().Left(offset).Top(2).Center()
+						thumb := ui.Box(c).Size(boxSize, boxSize).Radius(999).Absolute().Top(2).Center()
+						if t.moves(c) {
+							// It slides in frames that only paint.
+							thumb.Left(start).AnimatePose(ui.Pose{X: offset - start}, ui.Animation{Duration: switchMotion, Ease: ui.EaseOut})
+						} else {
+							thumb.Left(offset)
+						}
 						decorated(Thumb, thumb, styles, o.Style)
 						thumb.Children(func() {
 							iconColor := t.Dimmed
@@ -260,7 +280,7 @@ func togglePresentation(c *ui.Context, t Theme, e ui.Element, on bool, id Compon
 								if icon == nil {
 									icon = lucide.LoaderCircle()
 								}
-								loadingSVG(c, icon, boxSize*10/12, iconColor, t.motion(c), t.Motion.Spin)
+								loadingSVG(c, icon, boxSize*10/12, iconColor, t.fades(c), t.Motion.Spin)
 							} else if icon != nil {
 								ui.Icon(c, icon).Size(boxSize*10/12, boxSize*10/12).TextColor(iconColor)
 							}

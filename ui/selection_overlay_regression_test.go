@@ -239,14 +239,14 @@ func TestOverlayPanelOpacityOverrides(t *testing.T) {
 	for _, kind := range []string{"popover", "menu", "tooltip", "modal"} {
 		for _, source := range []string{"theme", "instance", "callback", "zero"} {
 			t.Run(kind+"/"+source, func(t *testing.T) {
-				open := true
+				open, off := true, false
 				menu := nui.MenuState{Open: true}
 				want := float32(.25)
 				if source == "zero" {
 					want = 0
 				}
 				tt := ui.NewTester(func(c *ui.Context) {
-					th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
+					th := nui.App(c, nui.AppConfig{Mode: nui.LightMode, DisableAnimations: off})
 					component := map[string]nui.Component{"popover": nui.ComponentPopover, "menu": nui.ComponentDropdownMenu, "tooltip": nui.ComponentTooltip, "modal": nui.ComponentModal}[kind]
 					th = th.WithComponent(component, nui.ComponentTheme{UI: nui.Styles{nui.Panel: {Background: nui.Set(ui.RGB(255, 0, 0)), Opacity: nui.Set(float32(.25)), Radius: nui.Set(float32(0)), BorderWidth: nui.Set(float32(0)), Shadow: nui.Set(nui.ShadowTokens{})}}})
 					d := nui.Decoration{Style: func(slot nui.Slot, e ui.Element) {
@@ -297,11 +297,11 @@ func TestOverlayPanelOpacityOverrides(t *testing.T) {
 				if _, visible := tt.Find("Panel"); visible {
 					t.Fatal("closed panel is still visible")
 				}
-				tt.SetPreferences(ui.Preferences{ReduceMotion: true})
+				off = true
 				open, menu.Open = true, true
 				tt.Frame()
 				if got := pixel(); got != last {
-					t.Fatalf("reduced motion changed explicit opacity: %d -> %d", last, got)
+					t.Fatalf("disabled animations changed explicit opacity: %d -> %d", last, got)
 				}
 			})
 		}

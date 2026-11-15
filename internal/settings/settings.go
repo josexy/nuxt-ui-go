@@ -43,6 +43,11 @@ func (a *State) View(c *ui.Context) {
 	ui.Column(c).Fill().Children(func() {
 		ui.Row(c).Padding(16, 24).Gap(12).AlignItems(ui.Center).BorderWidth(0, 0, 1, 0).BorderColor(t.Border).Children(func() {
 			ui.Text(c, "Workspace settings").FontSize(t.FontSize + 4).FontWeight(600).Grow(1)
+			// The app-wide switch for nui's animation; the desktop's reduced
+			// motion preference applies either way.
+			animations := !a.Config.DisableAnimations
+			nui.Switch(c, t, &animations, nui.SwitchOptions{Label: "Animations"})
+			a.Config.DisableAnimations = !animations
 			nui.Button(c, t, "Theme", nui.ButtonOptions{Variant: nui.Outline, Color: nui.Neutral, Leading: lucide.Moon()}).OnClick(func() {
 				if t.Dark {
 					a.Config.Mode = nui.LightMode

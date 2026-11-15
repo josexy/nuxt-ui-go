@@ -56,11 +56,11 @@ func TestSwitchLoadingBlocksControlAndFieldActivation(t *testing.T) {
 }
 
 func TestSwitchIconsDirectionAndReducedMotion(t *testing.T) {
-	on, loading, custom := false, false, false
+	on, loading, custom, off := false, false, false, false
 	size := nui.MD
 	changes := 0
 	tt := ui.NewTester(func(c *ui.Context) {
-		th := nui.App(c, nui.AppConfig{})
+		th := nui.App(c, nui.AppConfig{DisableAnimations: off})
 		ui.Column(c).Padding(20).Children(func() {
 			o := nui.SwitchOptions{Label: "Sync", Size: size, Loading: loading, OnChange: func(bool) { changes++ }, Style: func(slot nui.Slot, e ui.Element) {
 				switch slot {
@@ -93,6 +93,7 @@ func TestSwitchIconsDirectionAndReducedMotion(t *testing.T) {
 			for _, value := range []bool{false, true} {
 				on = value
 				tt.Frame()
+				tt.Advance(250 * time.Millisecond) // the thumb's slide
 				track, thumb := bounds(t, tt, "Track"), bounds(t, tt, "Thumb")
 				want := track.X + 2
 				if value != (direction == ui.RightToLeft) {
@@ -105,13 +106,22 @@ func TestSwitchIconsDirectionAndReducedMotion(t *testing.T) {
 		}
 	}
 	parityScreenshot(t, tt, "switch-icons-rtl")
+	// The spinner turns under reduced motion and stands still with
+	// animations off.
 	loading = true
 	tt.SetPreferences(ui.Preferences{ReduceMotion: true})
 	tt.Frame()
 	before := slices.Clone(tt.Image().Pix)
 	tt.Advance(250 * time.Millisecond)
+	if !tt.FramePending() || bytes.Equal(before, tt.Image().Pix) {
+		t.Fatal("reduced-motion loading stopped the spinner")
+	}
+	off = true
+	tt.Frame()
+	before = slices.Clone(tt.Image().Pix)
+	tt.Advance(250 * time.Millisecond)
 	if tt.FramePending() || !bytes.Equal(before, tt.Image().Pix) || changes != 0 {
-		t.Fatal("reduced-motion loading continued animating or appearance updates emitted changes")
+		t.Fatal("loading with animations off continued animating or appearance updates emitted changes")
 	}
 	custom = false
 	tt.Frame()

@@ -117,7 +117,7 @@ func Chart(c *ui.Context, t Theme, s *ChartState, o ChartOptions) ui.Element {
 	if duration <= 0 {
 		duration = 350 * time.Millisecond
 	}
-	s.animation.set(p.scene, c.Now(), duration, t.motion(c) && valueOr(o.Animate, true))
+	s.animation.set(p.scene, c.Now(), duration, t.moves(c) && valueOr(o.Animate, true))
 	root := ui.Column(c).MinWidth(0).Gap(t.spacing(8)).Role(ui.RoleGroup).Bind(&s.frame)
 	if o.Width > 0 {
 		root.Width(o.Width)

@@ -159,6 +159,7 @@ func optionList[T comparable](c *ui.Context, t Theme, s *optionListState[T], own
 			owner.ActiveDescendant(item)
 		}
 		optionStyle(item, t, component, decoration, size, highlighted)
+		t.fadeColors(r.Context, item)
 		item.HandleInput(func(ev ui.InputEvent) bool {
 			if highlightOnHover && ev.Kind == ui.InputPointerMove && !o.Disabled && (!s.active.Set || s.active.Value != o.Value) {
 				s.highlight(o.Value, false)

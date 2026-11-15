@@ -90,9 +90,9 @@ func TestPinInputSequentialReplacement(t *testing.T) {
 func TestPinInputVisibleCaret(t *testing.T) {
 	value := ""
 	var state nui.PinState
-	readOnly, disabled, shown, reduceMotion := false, false, true, false
+	readOnly, disabled, shown, reduceMotion, off := false, false, true, false, false
 	tt := ui.NewTester(func(c *ui.Context) {
-		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
+		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode, DisableAnimations: off})
 		th.Motion.Reduce = reduceMotion
 		ui.Column(c).Padding(24).Gap(16).Children(func() {
 			if shown {
@@ -147,11 +147,19 @@ func TestPinInputVisibleCaret(t *testing.T) {
 	if caretPixels(2) < 10 {
 		t.Fatal("remounted PIN did not restore its caret")
 	}
+	// The caret blinks under reduced motion, as MyGo's own caret and a
+	// browser's do, and stays solid with animations off.
 	reduceMotion = true
 	tt.Frame()
 	tt.Advance(600 * time.Millisecond)
-	if caretPixels(2) < 10 {
-		t.Fatal("reduced-motion caret should stay visible")
+	if caretPixels(2) != 0 {
+		t.Fatal("reduced-motion caret should still blink")
+	}
+	off = true
+	tt.Frame()
+	tt.Advance(600 * time.Millisecond)
+	if caretPixels(2) < 10 || tt.FramePending() {
+		t.Fatal("caret with animations off should stay visible without frames")
 	}
 	click(t, tt, "After")
 	if caretPixels(2) >= 10 {
@@ -295,9 +303,13 @@ func TestPinInputFocusAppearance(t *testing.T) {
 						nui.Button(c, th, "After", nui.ButtonOptions{})
 					})
 				}, 380, 240)
+				// The slots fade their colours over Motion.Transition: read
+				// them once the fade has arrived.
+				settle := func() { tt.Advance(200 * time.Millisecond) }
 				idle := fieldPixels(t, tt, "Digit 3")
 				before := bounds(t, tt, "Digit 3")
 				click(t, tt, "Digit 3")
+				settle()
 				focused := fieldPixels(t, tt, "Digit 3")
 				if (focused[1] != idle[1]) != (variant != nui.None) {
 					t.Fatalf("pointer focus outline: idle=%v focused=%v", idle, focused)
@@ -308,21 +320,25 @@ func TestPinInputFocusAppearance(t *testing.T) {
 				parityScreenshot(t, tt, fmt.Sprintf("pin-focus-dark-%v-variant-%v", dark, variant))
 				tt.Key(0, ui.KeyTab)
 				tt.Move(370, 230)
+				settle()
 				if !tt.Focused("After") || fieldPixels(t, tt, "Digit 3") != idle {
 					t.Fatal("Tab must leave the PIN and clear its focus appearance")
 				}
 				tt.Key(ui.Shift, ui.KeyTab)
 				tt.Key(0, ui.KeyHome)
+				settle()
 				if fieldPixels(t, tt, "Digit 1") != focused {
 					t.Fatal("keyboard focus must use the same appearance as pointer focus")
 				}
 				invalid = true
 				tt.Frame()
+				settle()
 				if variant != nui.None && fieldPixels(t, tt, "Digit 1")[1] == focused[1] {
 					t.Fatal("invalid PIN must use the error focus outline")
 				}
 				disabled = true
 				tt.Frame()
+				settle()
 				if fieldPixels(t, tt, "Digit 1")[1] != idle[1] {
 					t.Fatal("disabled PIN retained its focus outline")
 				}

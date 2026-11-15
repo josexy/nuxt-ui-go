@@ -5,7 +5,7 @@
 Continuously scroll text or other display-only content.
 
 - Category: Advanced interaction and layout
-- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Marquee`
 - Types: `MarqueeOptions`
 - Theme key: `nui.ComponentMarquee` (for `Theme.WithComponent`)
@@ -17,7 +17,7 @@ Repeat defaults to four copies; explicit zero builds no content and a single cop
 
 ## Things to know
 
-Repeat is the callback count: avoid inputs, buttons and business side effects. Focus, pause, Active=false, disabled ancestors, invisibility (including being scrolled or clipped out of view, or a hidden kept-mounted panel) and reduced motion stop animation. The content moves in frames that only repaint, so the view builds about once a second, and MarqueeState.Offset is the phase as of the last build. Native speed uses DIP/s, while upstream CSS defaults to 20 seconds per cycle. Repeated content still requires target screen-reader validation.
+Repeat is the callback count: avoid inputs, buttons and business side effects. Focus, pause, Active=false, disabled ancestors, invisibility (including being scrolled or clipped out of view, or a hidden kept-mounted panel), reduced motion and turning animations off stop animation. The content moves in frames that only repaint, so the view builds about once a second, and MarqueeState.Offset is the phase as of the last build. Native speed uses DIP/s, while upstream CSS defaults to 20 seconds per cycle. Repeated content still requires target screen-reader validation.
 
 ## API
 
@@ -73,7 +73,7 @@ Marquee is for decorative content. It supports Orientation/Vertical, Reverse, Sp
 
 When Repeat is unset, the content is repeated 4 times; an explicit `nui.Set(0)` builds no content, and negative values are invalid. Each copy is at least as long as the container in the direction of motion, centered on the other axis, with its items evenly distributed, so even short content scrolls; a single copy may show a gap as it loops. Overlay fades to the background color over the outer third at each end by default; `Overlay: nui.Set(false)` turns the fade off.
 
-When ContentKey changes, scrolling restarts from the beginning. PauseOnHover defaults to false; when enabled, hovering pauses the motion. Focus, Paused, Active=false, a disabled parent, and reduced motion also stop it. Horizontal motion follows RTL. An offset set from outside is normalized to the current content cycle, so the position stays valid when the container shrinks; a non-finite offset resets to 0.
+When ContentKey changes, scrolling restarts from the beginning. PauseOnHover defaults to false; when enabled, hovering pauses the motion. Focus, Paused, Active=false, a disabled parent, reduced motion, and the Off motion level also stop it, and it then schedules no frames. Horizontal motion follows RTL. An offset set from outside is normalized to the current content cycle, so the position stays valid when the container shrinks; a non-finite offset resets to 0.
 
 The content moves in frames that only repaint, without building the view: Marquee builds again about once a second, to wrap the content back within its copies and to check whether it still shows. MarqueeState.Offset is therefore the phase as of the last build; read it in a build. Assistive technology also sees the copies where the last build placed them.
 

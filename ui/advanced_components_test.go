@@ -757,6 +757,7 @@ func TestNavigationSplitterAndLayouts(t *testing.T) {
 		})
 	}, 800, 500)
 	click(t, tt, "Manage")
+	tt.Advance(250 * time.Millisecond) // the children's height reveal
 	click(t, tt, "Members")
 	if active != "two" || count != 1 {
 		t.Fatal("navigation")

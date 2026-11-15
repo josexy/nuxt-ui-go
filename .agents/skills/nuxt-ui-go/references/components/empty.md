@@ -5,7 +5,7 @@
 Explain an empty state and offer a next action.
 
 - Category: Themes and basic components
-- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Empty`
 - Types: `EmptyOptions`
 - Theme key: `nui.ComponentEmpty` (for `Theme.WithComponent`)
@@ -13,7 +13,7 @@ Explain an empty state and offer a next action.
 
 ## Usage
 
-Title and Description explain the empty state. Use Icon or Avatar for leading content, and Actions or Footer for controls and supporting content. Loading uses a spinning icon; theme or system reduced motion stops rotation.
+Title and Description explain the empty state. Use Icon or Avatar for leading content, and Actions or Footer for controls and supporting content. Loading uses a spinning icon; it keeps turning under reduced motion and stops when animations are off.
 
 Header replaces the default header, Leading replaces only its leading content, and Body replaces the default action area. Stable section identities preserve action controls when the header changes. Default padding follows window width at 16 / 24 / 32 DIP.
 

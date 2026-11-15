@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	nui "github.com/josexy/nuxt-ui-go/ui"
@@ -78,12 +79,16 @@ func TestTextFieldPointerAndKeyboardFocus(t *testing.T) {
 				if kind == "time" {
 					editorLabel += " hour"
 				}
+				// Fields fade their colours over Motion.Transition: read them
+				// once the fade has arrived.
+				settle := func() { tt.Advance(200 * time.Millisecond) }
 				idle := fieldPixels(t, tt, "Field")
 				click(t, tt, "Before")
 				tt.Key(0, ui.KeyTab)
 				if !tt.Focused(editorLabel) {
 					t.Fatal("Tab did not focus the text editor")
 				}
+				settle()
 				keyboard := fieldPixels(t, tt, "Field")
 				if keyboard[0] == idle[0] || keyboard[1] == idle[1] {
 					t.Fatalf("keyboard focus did not highlight border and ring: idle=%v focused=%v", idle, keyboard)
@@ -92,6 +97,7 @@ func TestTextFieldPointerAndKeyboardFocus(t *testing.T) {
 				click(t, tt, "After")
 				click(t, tt, editorLabel)
 				tt.Frame()
+				settle()
 				if !tt.Focused(editorLabel) || fieldPixels(t, tt, "Field") != keyboard {
 					t.Fatalf("pointer focus should match keyboard focus: pointer=%v keyboard=%v", fieldPixels(t, tt, "Field"), keyboard)
 				}
@@ -121,6 +127,7 @@ func TestTextFieldPointerAndKeyboardFocus(t *testing.T) {
 				shown, disabled = true, false
 				tt.Frame()
 				click(t, tt, editorLabel)
+				settle()
 				if !tt.Focused(editorLabel) || fieldPixels(t, tt, "Field") != keyboard {
 					t.Fatal("remounted editor lost pointer focus styling")
 				}
@@ -217,6 +224,7 @@ func TestFieldFocusVariantsAndReadOnly(t *testing.T) {
 					if !tt.Focused("Editor") {
 						t.Fatal("read-only editor must remain focusable")
 					}
+					tt.Advance(200 * time.Millisecond) // the colour transition
 					focused := fieldPixels(t, tt, "Field")
 					if invalid && focused[0] != idle[0] {
 						t.Fatal("focus replaced the error border")
@@ -235,6 +243,7 @@ func TestFieldFocusVariantsAndReadOnly(t *testing.T) {
 						t.Fatal("read-only editing changed the value")
 					}
 					click(t, tt, "After")
+					tt.Advance(200 * time.Millisecond)
 					if fieldPixels(t, tt, "Field") != idle {
 						t.Fatal("blur did not restore the idle border and ring")
 					}
@@ -259,13 +268,16 @@ func TestSelectHoverVariants(t *testing.T) {
 			background := func() color.RGBA { return tt.Image().RGBAAt(int(r.X+r.W/2), int(r.Y+r.H/2)) }
 			idle := background()
 			tt.Move(r.X+r.W/2, r.Y+r.H/2)
+			tt.Advance(200 * time.Millisecond) // the colour transition
 			if background() == idle {
 				t.Fatal("select should highlight its background on hover")
 			}
 			disabled = true
 			tt.Frame()
+			tt.Advance(200 * time.Millisecond)
 			hoverDisabled := background()
 			tt.Move(390, 150)
+			tt.Advance(200 * time.Millisecond)
 			if background() != hoverDisabled {
 				t.Fatal("disabled select should ignore hover")
 			}
@@ -299,6 +311,7 @@ func TestToggleErrorFocusIndication(t *testing.T) {
 			idle := fieldPixels(t, tt, "Indicator")
 			click(t, tt, "Before")
 			tt.Key(0, ui.KeyTab)
+			tt.Advance(250 * time.Millisecond) // a Switch track's ring fades in
 			explicitError := fieldPixels(t, tt, "Indicator")
 			if explicitError[1] == idle[1] {
 				t.Fatal("keyboard focus ring missing")
@@ -310,6 +323,7 @@ func TestToggleErrorFocusIndication(t *testing.T) {
 			}
 			click(t, tt, "Before")
 			click(t, tt, "Toggle")
+			tt.Advance(250 * time.Millisecond) // the keyboard ring fading out
 			if fieldPixels(t, tt, "Indicator")[1] != idle[1] {
 				t.Fatal("pointer activation should not add a keyboard ring to a toggle")
 			}

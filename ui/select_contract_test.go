@@ -35,6 +35,7 @@ func TestSelectNeutralFocusUsesInvertedBackground(t *testing.T) {
 				})
 			}, 300, 120)
 			tt.Key(0, ui.KeyTab)
+			tt.Advance(200 * time.Millisecond) // the colour transition
 			r := bounds(t, tt, "Select trigger")
 			if got := tt.Image().RGBAAt(int(r.X+r.W/2), int(r.Y)-2); got != rgba(accent) {
 				t.Fatalf("neutral focus=%v, want %v", got, rgba(accent))
@@ -129,7 +130,7 @@ func TestSelectHighlightRTLAndSelectedIcon(t *testing.T) {
 				marker := ui.MustParseSVG([]byte(`<svg viewBox="0 0 10 10"><rect width="10" height="10" fill="#ff00ff"/></svg>`))
 				tt := ui.NewTester(func(c *ui.Context) {
 					th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
-					th.Motion.Reduce = true
+					th.Motion.Disabled = true
 					th.InvertedBackground = accent
 					ui.Column(c).Padding(16).Children(func() {
 						o := nui.SelectOptions{Label: "Choice", Color: nui.Neutral, Variant: nui.None, Highlight: true, Open: &open, Leading: lucide.Star(), Trailing: lucide.Plus(), SelectedIcon: marker, UI: nui.Styles{nui.Item: {Foreground: nui.Set(ui.RGB(255, 0, 255))}}, Style: func(p nui.Slot, e ui.Element) {
@@ -307,7 +308,7 @@ func TestSelectMultiplePanelBackgroundSurvivesThemeWrapper(t *testing.T) {
 	accent := ui.RGB(255, 0, 255)
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
-		th.Motion.Reduce = true
+		th.Motion.Disabled = true
 		ui.Column(c).Padding(16).Children(func() {
 			nui.SelectMultiple(c, th, &values, []nui.Option[string]{{Value: "a", Label: "Alpha"}}, nui.SelectOptions{Label: "Choice", Open: &open, Popup: nui.PopoverOptions{Label: "Selection panel"}, UI: nui.Styles{nui.Panel: {Background: nui.Set(accent)}}}).Width(240)
 		})

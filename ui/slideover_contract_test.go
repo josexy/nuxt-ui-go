@@ -98,11 +98,17 @@ func TestSlideoverTransitionExitReversalAndFocus(t *testing.T) {
 	}
 	block = false
 	tt.Frame()
+	action := bounds(t, tt, "Panel action")
 	tt.Key(0, ui.KeyEscape)
+	// The leaving panel is inert: focus returns as it closes, and a click
+	// where its action was does not reach it.
+	if closed != 1 || !tt.Focused("Open panel") {
+		t.Fatalf("closing did not return focus at once: closed=%d", closed)
+	}
 	tt.Advance(30 * time.Millisecond)
-	click(t, tt, "Panel action")
-	if actions != 0 || closed != 1 || tt.Focused("Open panel") {
-		t.Fatal("exiting panel accepted input or restored focus too early")
+	tt.ClickAt(action.X+action.W/2, action.Y+action.H/2)
+	if actions != 0 {
+		t.Fatal("the leaving panel accepted input")
 	}
 	open = true
 	tt.Frame()

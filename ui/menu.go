@@ -106,6 +106,7 @@ type MenuState struct {
 	x, y         float32
 	point        bool
 	repositioned bool
+	pop          popState // the root panel's, for popIn
 }
 
 func (s *MenuState) resetHover() {
@@ -229,6 +230,8 @@ func menu(c *ui.Context, t Theme, anchor ui.Element, s *MenuState, items []MenuI
 		panic("nui: menu requires state")
 	}
 	s.prepare(c, items)
+	s.pop.note(c, s.Open)
+	defer func() { s.pop.note(c, s.Open) }()
 	if anchor.Valid() && !context {
 		anchor.Role(ui.RoleMenuButton).Expanded(s.Open && !o.Disabled)
 	}
@@ -401,7 +404,13 @@ func menuPanel(c *ui.Context, t Theme, panel, anchor ui.Element, s *MenuState, i
 	positionPanel(panel, anchor, t, popup)
 	panel.Role(ui.RoleMenu).Label(o.Label).FocusGroup(ui.Vertical).MinWidth(max(0, min(t.spacing(128), w-24))).MaxWidth(max(0, w-24)).Clip()
 	originX, originY := popupOrigin(popup.Placement, c.Direction() == ui.RightToLeft)
-	shown := popIn(c, t, panel, popupMotion, originX, originY)
+	// A submenu opened again as it leaves enters anew.
+	var pop *popState
+	if parent == "" {
+		pop = &s.pop
+	}
+	shown := popIn(c, t, pop, panel, popupMotion, originX, originY)
+	popOut(c, t, panel)
 	finishPanel(t, id, panel, recipe, o.Decoration, shown)
 	enabled := 0
 	for _, it := range items {
@@ -479,6 +488,7 @@ func menuPanel(c *ui.Context, t Theme, panel, anchor ui.Element, s *MenuState, i
 				}
 			}
 			finish(t, id, Item, row, style, d)
+			t.fadeColors(c, row)
 			row.TextCaret(ui.Rect{H: 1}).InputMethod(false)
 			handle := s.handles[it.ID]
 			rtl := c.Direction() == ui.RightToLeft

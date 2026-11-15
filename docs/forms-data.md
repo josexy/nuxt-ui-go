@@ -16,7 +16,7 @@ Keep business values and component state per window. Do not reinitialize them on
 
 FormTicket, QueryTicket, and TreeTicket identify async operations and carry the instance identity and a version. Return each result to the state object that started the request; old results are rejected if the data has changed or the request was canceled. Background work should operate only on data snapshots and return to the UI thread through `Window.Update`. Cancel business tasks when the window closes.
 
-InputNumber, InputDate, and InputTime share Input's sizes, five field variants, colors, read-only and disabled states, icons, and error settings. Other components are configured through their own Options; see the [style part index](#style-part-index) at the end of this page.
+InputNumber, InputDate, and InputTime share Input's sizes, five field variants, colors, read-only and disabled states, icons, and error settings. InputNumber, InputTags, PinInput cells, the SelectMenu trigger, Listbox and Tree rows, Calendar cells and card-variant CheckboxGroup items fade their background, border and focus ring over `Motion.Transition` (150 ms) at the Full and Reduced motion levels, as Nuxt UI's `transition-colors`; text colours change at once, and the Off motion level shows every change at once. InputDate and InputTime fields do not fade. Other components are configured through their own Options; see the [style part index](#style-part-index) at the end of this page.
 
 ## Form
 
@@ -150,7 +150,7 @@ PinInput uses one real editor behind several visual cells, so Tab enters it only
 
 Cells are 6 DIP apart, scaled by Density. The separator is a centered dot in the Dimmed color with equal space on both sides. The current cell shows a 3 DIP focus ring in the theme color at 25% opacity. In the error state it uses Error, in high contrast mode the ring is opaque, and None shows no ring.
 
-A focused empty cell hides its Placeholder and shows a blinking cursor. With reduced motion, the cursor stays solid; it is hidden when read-only, disabled, or unfocused. When FormField has an Error, every cell shows the error border. Text scaling and masking do not affect hit testing.
+A focused empty cell hides its Placeholder and shows a blinking cursor. It blinks under reduced motion too, as MyGo's own text caret does, and stays solid at the Off motion level; it is hidden when read-only, disabled, or unfocused. When FormField has an Error, every cell shows the error border. Text scaling and masking do not affect hit testing.
 
 ### InputRating
 
@@ -204,7 +204,7 @@ Size and Color default to MD and Primary. Instance options take precedence over 
 
 Filter defaults to false. When enabled, configure the search input through FilterInput. SearchTerm takes a persistent string pointer; when unset, State.Query is used. FilterFields defaults to matching label only and also supports description, value/id, and group; an explicit empty list matches nothing for a non-empty query. Filtering ignores case and combining diacritical marks. Within each run of options between groups and structural rows, results are ordered by exact match, then prefix match, then substring match. Full locale collation rules are not implemented.
 
-With the filter field hidden, a retained query still applies; IgnoreFilter skips local filtering. Loading replaces the options with an icon and pauses list interaction, while the filter field stays editable. LoadingIcon overrides the icon, and the spinner stops with reduced motion.
+With the filter field hidden, a retained query still applies; IgnoreFilter skips local filtering. Loading replaces the options with an icon and pauses list interaction, while the filter field stays editable. LoadingIcon overrides the icon. The spinner keeps turning under reduced motion and stops at the Off motion level.
 
 The empty message and the loading indicator are polite status regions with stable identities, as are the empty messages of Select, InputMenu, SelectMenu, and filtered DropdownMenu and ContextMenu, and SelectMenu's loading and error rows. A status is not read when it first appears. If its text changes while it stays shown, for example from "No data" to "No matching data" as the user types, the new text is read once; rebuilding without a change reads nothing.
 
@@ -469,7 +469,7 @@ Table sets List.Key, Selection, Sort, and Label; do not override these bindings 
 
 For search, filtering, and pagination, your app computes the current rows first and then calls SetRows. The data browser example shows search, team and status filters, and pages of 100 rows; your app manages server requests, totals, and caching.
 
-EmptyText and BuildEmpty set the empty content below the header. Loading shows a loading bar and keeps the existing data. With no data, BuildLoading's content is shown if provided; otherwise the empty content is still shown. LoadingColor defaults to Primary. LoadingAnimation can be Carousel, CarouselInverse, Swing, or Elastic, and a static bar is used with reduced motion. Caption is the table's description for assistive technology, and BuildCaption can show a visible title. Height defaults to 320 DIP, including the title; the header stays fixed and the body scrolls inside.
+EmptyText and BuildEmpty set the empty content below the header. Loading shows a loading bar and keeps the existing data. With no data, BuildLoading's content is shown if provided; otherwise the empty content is still shown. LoadingColor defaults to Primary. LoadingAnimation can be Carousel, CarouselInverse, Swing, or Elastic, the same presets as Progress's Animation (`TableLoadingAnimation` is an alias of `LoadingAnimation`). Under reduced motion the bar spans the header and pulses its opacity, as Nuxt's `motion-reduce:animate-pulse`; at the Off motion level it is a static full-width bar. Caption is the table's description for assistive technology, and BuildCaption can show a visible title. Height defaults to 320 DIP, including the title; the header stays fixed and the body scrolls inside.
 
 Virtualization is always on. It reduces only the number of cells built; generating data, validating IDs, sorting, and filtering still scale with the data size. MyGo handles row layout. Cells can override Item and Label through a column's UI and Style, and column overrides are applied after table-level overrides.
 
@@ -519,7 +519,7 @@ Outline.List keeps the scroll state and Handle, while Tree manages Selected, Sel
 
 OnExpandedChange fires after a user action actually changes the expansion state, with the expanded IDs sorted as strings. Cancellation, initialization, and outside SetExpanded calls do not trigger it. OnChange still reports only selection changes. If a selection handler replaces the nodes, the earlier click no longer expands a newly created node with the same ID.
 
-A TreeNode's UI and Style can override Item, Leading, Label, and Trailing; node overrides are applied after the tree instance's overrides. BuildLeading and BuildTrailing replace the leading and trailing icons, and Build replaces the main content; these callbacks should build display content only. TreeItemState.Indeterminate is used only for multiple-selection linking. With BubbleSelect, a node is indeterminate when its available descendants are a mix of selected and unselected; with only PropagateSelect, the parent must also be selected. In single selection, or with both linking options off, it is false.
+A TreeNode's UI and Style can override Item, Leading, Label, and Trailing; node overrides are applied after the tree instance's overrides. BuildLeading and BuildTrailing replace the leading and trailing icons, and Build replaces the main content; these callbacks should build display content only. An expandable node's trailing chevron, or its custom TrailingIcon, turns 180 degrees over 200 ms as it expands and back as it collapses, in frames that only paint; under reduced motion and at the Off motion level it shows its final rotation at once, and a row scrolled into view already expanded shows it turned without animating. TreeItemState.Indeterminate is used only for multiple-selection linking. With BubbleSelect, a node is indeterminate when its available descendants are a mix of selected and unselected; with only PropagateSelect, the parent must also be selected. In single selection, or with both linking options off, it is false.
 
 A loaded empty branch keeps its expansion state but does not get the default folder icon and arrow; set Icon explicitly if you want a folder look. Type-ahead search cycles through matches when the same character is repeated, and keeps the current match while the user continues typing a prefix.
 

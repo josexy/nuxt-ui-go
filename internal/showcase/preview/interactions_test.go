@@ -23,7 +23,7 @@ func exampleTester(t *testing.T, id string) (*ui.Tester, *showcase.Config) {
 	t.Cleanup(example.Dispose)
 	tester := ui.NewTester(func(c *ui.Context) {
 		app := cfg.Theme()
-		app.Light.Motion.Reduce, app.Dark.Motion.Reduce = true, true
+		app.Light.Motion.Disabled, app.Dark.Motion.Disabled = true, true
 		theme := nui.App(c, app)
 		ui.Column(c.Key("preview")).Fill().Padding(24).Gap(16).Children(func() { example.View(c, theme, cfg) })
 	}, 760, demo.Height)

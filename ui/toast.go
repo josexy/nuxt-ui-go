@@ -188,13 +188,17 @@ func ToastViewport(c *ui.Context, t Theme, o ToastViewportOptions) ui.Element {
 			recipe := dialogStyle(inner)
 			recipe.PaddingX, recipe.PaddingY = Set(inner.spacing(16)), Set(inner.spacing(16))
 			finish(inner, ComponentToast, Panel, root, recipe, d)
-			if inner.motion(c) {
-				shift := float32(8)
-				if top {
-					shift = -shift
-				}
-				root.Transition(ui.ElementTransition{Duration: 150 * time.Millisecond, Enter: &ui.Motion{Y: shift}, Exit: &ui.Motion{Y: shift}})
+			// Nuxt's 200 ms slide and fade toward the screen edge; at Reduced
+			// the toast fades in place, and stacked toasts move at once.
+			shift := float32(8)
+			if top {
+				shift = -shift
 			}
+			motion := inner.overlayTransition(c, &ui.Motion{Y: shift}, &ui.Motion{Y: shift}, toastMotion, toastMotion)
+			if !inner.moves(c) {
+				motion.Colors = true
+			}
+			root.Transition(motion)
 			root.Children(func() {
 				actions := func() {
 					group := ui.Row(c.Key("actions")).Wrap()
@@ -295,12 +299,12 @@ func ToastViewport(c *ui.Context, t Theme, o ToastViewportOptions) ui.Element {
 						opts.UI = appearance.ProgressOptions.UI
 					}
 					// The toasts' time stops as MyGo's ToastViewportBase stops it. The
-					// bar empties in frames that only paint; reduced motion steps
-					// it four times a second instead of moving it smoothly.
+					// bar empties in frames that only paint; under reduced motion
+					// and at Off it steps every 250 ms instead of moving smoothly.
 					stopped := viewport.Hovered() || viewport.FocusWithin() && c.WindowActive()
 					opts.countdown = &progressCountdown{left: left, total: total, at: c.Now(), running: left > 0 && !stopped}
-					if !inner.motion(c) {
-						opts.countdown.fps = 4
+					if !inner.moves(c) {
+						opts.countdown.step = 250 * time.Millisecond
 					}
 					Progress(c.Key("progress"), inner, 100*float64(left)/float64(total), opts).Absolute().Left(0).Right(0).Bottom(0)
 					if opts.countdown.running {
@@ -341,3 +345,6 @@ func toastCloseOptions(c *ui.Context, appearance toastAppearance, title string) 
 	opts.UI[Root] = mergeStyle(PartStyle{PaddingX: Set(float32(0)), PaddingY: Set(float32(0))}, opts.UI[Root])
 	return opts
 }
+
+// toastMotion is how long a toast takes to come in and to leave.
+const toastMotion = 200 * time.Millisecond

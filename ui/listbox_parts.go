@@ -56,7 +56,7 @@ func listboxLoading(c *ui.Context, t Theme, size Size, o ListboxOptions) {
 		color := mergeValue(style.Foreground, t.components[ComponentListbox].UI[LoadingIconSlot].Foreground)
 		color = mergeValue(color, o.UI[LoadingIconSlot].Foreground)
 		finish(t, ComponentListbox, LoadingIconSlot, part, PartStyle{}, o.Decoration)
-		drawLoadingSVG(part, icon, color.Value, t.motion(c), t.Motion.Spin)
+		drawLoadingSVG(part, icon, color.Value, t.fades(c), t.Motion.Spin)
 	})
 }
 

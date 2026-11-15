@@ -5,7 +5,7 @@
 Show a placeholder while content is loading.
 
 - Category: Themes and basic components
-- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Skeleton`
 - Types: `SkeletonOptions`
 - Theme key: `nui.ComponentSkeleton` (for `Theme.WithComponent`)
@@ -17,7 +17,7 @@ Width and Height are native Go dimensions. Unset values default to 160×16 DIP; 
 
 ## Things to know
 
-Animation changes the placeholder background opacity. System or theme reduced motion keeps it still; leaving the visible area or unmounting stops animation frames. Set the pulse color with UI.Root.Background; Style.Background sets the underlying surface without replacing the drawn pulse color. The native status role does not reproduce Web aria-busy / alert announcements.
+Animation changes the placeholder background opacity. The pulse continues under reduced motion, as Nuxt UI's animate-pulse does; Animate=false or turning animations off keeps it still. Leaving the visible area or unmounting stops animation frames. Set the pulse color with UI.Root.Background; Style.Background sets the underlying surface without replacing the drawn pulse color. The native status role does not reproduce Web aria-busy / alert announcements.
 
 ## API
 
@@ -53,7 +53,15 @@ From the library documentation. Links point to other component references in thi
 
 **Skeleton**'s Width, Height, and Animate are native extensions. The default size is 160×16 DIP. The default height follows the text scale, but explicit sizes do not scale, and an explicit 0 stays 0. To fit the parent's width, call FillWidth on the returned element. Both Root.Radius and the final Style can set the corner radius, and the resulting radius clips the placeholder background and any attached content.
 
-The pulse changes only the opacity of the custom-drawn background; set its color with UI.Root.Background. Style.Background configures the underlying surface and cannot replace the resolved pulse color. Skeleton provides a localized loading name and a native status role, but not the full aria-busy/alert announcement semantics of the web. Your app decides when to show and hide placeholders and how to present the loaded result.
+The pulse changes only the opacity of the custom-drawn background, once per `Motion.Pulse`; it goes on under reduced motion, as Nuxt UI's `animate-pulse` does, and stops with `Animate: nui.Set(false)` or at the Off motion level. Set its color with UI.Root.Background. Style.Background configures the underlying surface and cannot replace the resolved pulse color. Skeleton provides a localized loading name and a native status role, but not the full aria-busy/alert announcement semantics of the web. Your app decides when to show and hide placeholders and how to present the loaded result.
+
+**When animations stop:** Continuous animations request the next frame only while a visible component actually draws. They stop when the component scrolls out of view, unmounts, has Animate turned off, or at the Off motion level; spinners and the Skeleton pulse go on under reduced motion. Button's colour transition follows `Motion.Transition` at Full and Reduced and is immediate at Off, and `Animate: nui.Set(false)` controls the loading spinner. Once a transition ends, no more frames are requested. Indeterminate Progress and Table's loading bar pulse under reduced motion. In MyGo v0.9.0 a colour transition builds the view in each frame while the colour moves (about ten builds for 150 ms), so an app with an expensive view can set `Motion.Transition` to 0 or turn animation off. Components do not use timer goroutines for animation.
+
+### Compatibility and known limitations
+
+#### Accessibility and motion (excerpt)
+
+Motion has three levels (see [Motion levels](app.md)). Under reduced motion, from the system or from `Theme.Motion.Reduce`, components stop moving, scaling, sliding and rotating, and keep fades, colour transitions, loading spinners and the Skeleton pulse, as Nuxt UI v4 and MyGo do. `AppConfig.DisableAnimations` or `Theme.Motion.Disabled` turns nui's animation off entirely; it does not stop MyGo's own scroll glide and caret blink, which follow the system preference, unless the app also calls `c.DisableAnimations()`. Accordion and Collapsible open at once under reduced motion, where Nuxt UI keeps their height animation, because MyGo makes motion that moves the content around them instant.
 
 ## Complete example
 

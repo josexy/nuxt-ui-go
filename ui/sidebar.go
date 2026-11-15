@@ -2,6 +2,7 @@ package nui
 
 import (
 	"math"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/josexy/nuxt-ui-go/icons/lucide"
@@ -46,6 +47,10 @@ type SidebarOptions struct {
 	State               *SidebarState
 	Resizable, Disabled bool
 	Collapsible, Toggle Optional[bool]
+	// Transition animates the width as the Sidebar collapses and expands,
+	// over 200 ms, as Nuxt's transition prop: on by default, at the Full
+	// motion level only. Resizing by dragging always follows the pointer.
+	Transition Optional[bool]
 	// NavigationKey is an application-owned route/selection ID. Changes close the
 	// overlay when AutoClose is true (the default), without coupling to a router.
 	NavigationKey  string
@@ -74,6 +79,9 @@ type sidebarMemory struct {
 	navigation          string
 	initialized, mobile bool
 	right               bool
+	// collapsedShown is the collapsed state the last build showed, and
+	// widthMoving whether the width is on its way after it changed.
+	collapsedShown, widthMoving bool
 }
 
 // Sidebar preserves the original collapsed-pointer API. Supply State to control
@@ -156,7 +164,20 @@ func Sidebar(c *ui.Context, t Theme, collapsed *bool, o SidebarOptions, content 
 		w = compact
 	}
 	restoreFocus := containedFocus && ((mobile && !wasMobile && !s.Open) || (!mobile && w == 0 && m.root.Bounds(c).W > 0))
-	root.Width(w)
+	// The width collapses and expands over 200 ms, which content beside it
+	// follows as it lays out. Resizing (a drag, the keyboard or State.Width),
+	// a change of mode at the breakpoint, reduced motion and Transition=false
+	// show the width at once.
+	toggled := scope.Collapsed != m.collapsedShown
+	m.collapsedShown = scope.Collapsed
+	if t.moves(c) && valueOr(o.Transition, true) && !m.dragging && mobile == wasMobile && (toggled || m.widthMoving) {
+		shown := root.AnimateWith(sidebarWidthKey{}, w, sidebarMotion, ui.EaseOut)
+		m.widthMoving = shown != w
+		root.Width(shown)
+	} else {
+		m.widthMoving = false
+		root.Width(root.Jump(sidebarWidthKey{}, w))
+	}
 	padding := t.spacing(16)
 	if scope.Collapsed {
 		padding = t.spacing(8)
@@ -379,8 +400,13 @@ func sidebarResize(c *ui.Context, t Theme, m *sidebarMemory, s *SidebarState, co
 		if right {
 			edge = -1
 		}
-		line := ui.Box(c.Key("line")).Absolute().Top(0).Bottom(0).Width(1).IgnoreInput(true).
-			Material(lineMaterial{color: color, vertical: true, edge: edge})
+		line := ui.Box(c.Key("line")).Absolute().Top(0).Bottom(0).Width(1).IgnoreInput(true)
+		// The rail draws through a material, which a colour transition does
+		// not reach: fade its colour as a value, as transition-colors would.
+		if t.fades(c) && t.Motion.Transition > 0 {
+			color = line.AnimateColor(sidebarRailColor{}, color, ui.Animation{Duration: t.Motion.Transition, Ease: ui.EaseOut})
+		}
+		line.Material(lineMaterial{color: color, vertical: true, edge: edge})
 		if right {
 			line.Left(3)
 		} else {
@@ -393,7 +419,7 @@ func sidebarResize(c *ui.Context, t Theme, m *sidebarMemory, s *SidebarState, co
 func sidebarOverlay(c *ui.Context, t Theme, m *sidebarMemory, s *SidebarState, o SidebarOptions, scope SidebarScope, width float32, right, disabled bool, content func(*ui.Context, Theme, bool)) {
 	scope.Collapsed = false
 	if !scope.Mobile {
-		t.Motion.Reduce = true
+		t.Motion.Disabled = true
 	}
 	// Keep the desktop content as the only active copy after a breakpoint change.
 	open := s.Open && scope.Mobile && !disabled
@@ -461,3 +487,12 @@ func sidebarOverlay(c *ui.Context, t Theme, m *sidebarMemory, s *SidebarState, o
 		Slideover(c, t, &open, SlideoverOptions{ModalOptions: mo, Side: edge, Extent: Set(width)}, build)
 	}
 }
+
+// sidebarRailColor keys the Sidebar rail's animated colour.
+type sidebarRailColor struct{}
+
+// sidebarWidthKey keys the Sidebar's animated width.
+type sidebarWidthKey struct{}
+
+// sidebarMotion is how long the Sidebar's width takes to collapse or expand.
+const sidebarMotion = 200 * time.Millisecond

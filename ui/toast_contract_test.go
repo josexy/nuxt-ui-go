@@ -120,7 +120,7 @@ func TestToastAvatarCloseAndProgressSnapshots(t *testing.T) {
 	progress := nui.ToastProgressOptions{Color: nui.Error, UI: nui.Styles{nui.Indicator: {Background: nui.Set(ui.RGB(255, 0, 255))}}}
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
-		th.Motion.Reduce = true
+		th.Motion.Disabled = true
 		nui.Button(c, th, "Notify", nui.ButtonOptions{}).OnClick(func() {
 			nui.Toast(c, th, nui.ToastOptions{ID: "stable", Title: "Snapshot notice", Description: "Description", Icon: lucide.Info(), Avatar: &avatar, CloseOptions: &close, CloseIcon: lucide.Check(), ProgressOptions: &progress, Timeout: time.Hour, OnClose: func() { closed++ }})
 		})

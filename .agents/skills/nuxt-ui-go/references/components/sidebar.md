@@ -5,7 +5,7 @@
 Add a collapsible, resizable application sidebar.
 
 - Category: Advanced interaction and layout
-- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Sidebar`
 - Types: `SidebarOptions`, `SidebarState`, `SidebarScope`
 - Theme key: `nui.ComponentSidebar` (for `Theme.WithComponent`)
@@ -19,7 +19,7 @@ The resize highlight aligns to the same physical edge as the sidebar border, avo
 
 ## Things to know
 
-The component defaults to no breakpoint and no resizing; this example enables 160–360 DIP resizing and a 64-DIP compact width. Desktop collapsed and mobile Open are independent; native icon-width collapse differs from upstream offcanvas. External assignments are silent. Breakpoint remounts retain application models, but not widget-local scrolling or selections. Supply an external opener and ReturnFocus when hiding every internal control. Native floating/inset variants, a click-to-collapse rail and arbitrary menu option objects are not provided.
+The component defaults to no breakpoint and no resizing; this example enables 160–360 DIP resizing and a 64-DIP compact width. Desktop collapsed and mobile Open are independent; native icon-width collapse differs from upstream offcanvas. External assignments are silent. Breakpoint remounts retain application models, but not widget-local scrolling or selections. Supply an external opener and ReturnFocus when hiding every internal control. Collapsing animates the width over 200 ms (Transition); dragging follows the pointer. Native floating/inset variants, a click-to-collapse rail and arbitrary menu option objects are not provided.
 
 ## API
 
@@ -48,6 +48,10 @@ type SidebarOptions struct {
 	State               *SidebarState
 	Resizable, Disabled bool
 	Collapsible, Toggle Optional[bool]
+	// Transition animates the width as the Sidebar collapses and expands,
+	// over 200 ms, as Nuxt's transition prop: on by default, at the Full
+	// motion level only. Resizing by dragging always follows the pointer.
+	Transition Optional[bool]
 	// NavigationKey is an application-owned route/selection ID. Changes close the
 	// overlay when AutoClose is true (the default), without coupling to a router.
 	NavigationKey  string
@@ -145,7 +149,9 @@ The side Popover opens on hover (including across the gap from the anchor), on c
 
 NavigationState.Expanded exposes the vertical expansion state, and DefaultOpen only initializes new nodes. Single=true lets only one branch per level be open; with Single, Collapsible=false prevents collapsing the current branch. User changes fire OnExpandedChange; initialization and app changes are silent. When a branch collapses, focus on a hidden child moves to its parent. Removing a root item moves focus to an available root item, and switching Compact keeps the expansion and the active ID.
 
-Horizontal menus use native menus. There is no shared web mega menu viewport, route-based active matching, or root hover delay model.
+In vertical mode, children expand and collapse their height over 200 ms at the Full motion level, as Collapsible does, and show or hide at once under reduced motion and at Off. Collapsing children take no input, and focus in them moves to the parent at once. The trailing chevron of an item with children, or its custom TrailingIcon, turns 180 degrees over 200 ms as it opens, rather than being swapped for an up chevron; under reduced motion and at Off it turns at once.
+
+Horizontal menus use native menus, one popup per item. There is no shared web mega menu viewport, route-based active matching, or root hover delay model, so Nuxt UI's viewport resize, sliding indicator and directional content transitions are not animated.
 
 ##### Sidebar state and size
 
@@ -158,6 +164,8 @@ By default, Sidebar is 256 DIP wide when expanded and 64 DIP wide when collapsed
 | No State passed | Uses local state under the current stable Key. Pass State explicitly to keep it across unmounts or to save it to a file |
 
 Collapsing does not change the remembered expanded width. Double-clicking the handle restores Options.Width, and your app can also reset State.Width to unset. Your app handles persistence; the component never reads or writes the disk during a build.
+
+Collapsing and expanding animate the width over 200 ms at the Full motion level, and content beside the Sidebar lays out at each width on the way, as Nuxt's `transition-[width]` does. `Transition: nui.Set(false)` turns the animation off, as Nuxt's `transition` prop does; reduced motion and the Off motion level show the new width at once too. Resizing by dragging, with the keyboard or through State.Width, and switching mode at the Breakpoint, always show the width at once, so a drag follows the pointer.
 
 `Resizable: true` enables resizing, with a default minimum and maximum width of 160 and 480 DIP, which you can change with MinWidth and MaxWidth. Dragging below CollapsedWidth + 4 DIP collapses the sidebar, and dragging outward expands it again.
 
@@ -270,13 +278,19 @@ It is 256 DIP wide by default, can be dragged between 200 and 360 DIP, and colla
 
 Clicking an interactive UploadArea, or pressing Enter or Space on it, opens the file picker; its accessible name comes from Label first. In the built-in list, file actions are separate from the title/icon entry point so native assistive technology can reach each action. The Choose button appears only with UploadButton or `Interactive: nui.Set(false)`. Dropzone=false removes the drop target. Preview=false hides the whole list, and FileImage=false hides only the app-supplied preview accessories; the Files data is kept in both cases. OnChange fires when a selection or removal changes the queue, and OnReject reports newly rejected files. After a removal, focus returns to the selection entry point. For full defaults and responsibilities, see [FileUpload](file-upload.md). For Sidebar's region builders, sizes, and keyboard controls, see Sidebar state and size.
 
+### Overlays, menus, and navigation
+
+#### Modal and Slideover › Slideover: open from an edge (excerpt)
+
+Opening and closing use a fixed 200 ms cubic ease-out slide and overlay transition. Under reduced motion, from Theme.Motion.Reduce or the system's setting, the panel stays in place and fades in and out over the same 200 ms while the overlay fades. With Transition=false or at the Off motion level, the change is immediate. As it closes, the modal scope goes at once: the leaving panel and overlay take no input and are hidden from assistive technology, the window behind takes input from the first frame of the exit, and focus returns then, to ReturnFocus or else to the element that had it as the Slideover opened. The panel unmounts when the exit ends. Drawer, and the narrow-window Sidebar built on them, leave the same way. If the direction reverses midway, the transition continues from its current progress.
+
 ### Compatibility and known limitations
 
 #### Feature scope › Layout and navigation (excerpt)
 
 | Area | Current behavior and limits |
 | --- | --- |
-| NavigationMenu / Sidebar | Icon navigation, tooltips, child popovers, resizing, and switching to an overlay based on the window width in DIP. The app implements routing and persistence |
+| NavigationMenu / Sidebar | Icon navigation, tooltips, child popovers, resizing, and switching to an overlay based on the window width in DIP. Vertical children expand and chevrons turn as Nuxt UI's do, and the Sidebar's width animates as it collapses (`Transition`). Horizontal menus open a native popup per item, so Nuxt UI's shared viewport resize, sliding indicator and directional content transitions are not animated. The app implements routing and persistence |
 
 #### Accessibility and motion (excerpt)
 

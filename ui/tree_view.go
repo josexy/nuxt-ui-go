@@ -334,6 +334,7 @@ func Tree(c *ui.Context, t Theme, s *TreeState, o TreeOptions) ui.Element {
 				style.PaddingY = Set(max(0, m.Pad-1))
 				surface := ui.Row(r.Context.Key("surface")).MinWidth(0).AlignItems(ui.Center).Margin(1, 0).Role(ui.RoleNone)
 				finishTreeItem(t, Item, surface, style, o.Decoration, n.node.Decoration)
+				t.fadeColors(r.Context, surface)
 				surface.Children(func() {
 					if !nested && entry.depth > 0 {
 						// The row's gap after this spacer is part of the indentation.
@@ -389,9 +390,7 @@ func Tree(c *ui.Context, t Theme, s *TreeState, o TreeOptions) ui.Element {
 					} else if trailing != nil {
 						arrow := ui.Icon(r.Context.Key("trailing"), trailing).Size(m.Icon, m.Icon).Shrink(0)
 						if n.children != nil {
-							if expanded {
-								arrow.Rotate(180)
-							}
+							turnChevron(c, t, arrow, expanded)
 							arrow.KeepFocus().OnClick(func() { s.keyboard = false; s.Active = id; s.Outline.List.Focus(c); toggleItem(id) })
 						}
 						finishTreeItem(t, Trailing, arrow, PartStyle{}, o.Decoration, n.node.Decoration)

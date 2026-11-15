@@ -5,7 +5,7 @@
 Edit one line of text with read-only, clear and loading options.
 
 - Category: Inputs and selection
-- Version: nuxt-ui-go v0.1.0 (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
 - Functions: `Input`
 - Types: `InputOptions`
 - Theme key: `nui.ComponentInput` (for `Theme.WithComponent`)
@@ -63,6 +63,8 @@ From the library documentation. Links point to other component references in thi
 Input controls support XS, SM, MD, LG, and XL, with MD as the default. At the default font size and density, the base single-line heights are 24, 28, 32, 36, and 40 DIP. Controls grow taller when the font's line height is larger; for example, Chinese fallback fonts on Linux can make an MD Input taller than 32 DIP.
 
 Input, Textarea, Select, and InputMenu support these variants:
+
+Input, Textarea, InputNumber, InputTags, PinInput cells, and the Select, SelectMenu and InputMenu triggers fade their background, border and focus ring over `Motion.Transition` (150 ms) when hover, focus or invalid state changes, as Nuxt UI's `transition-colors`. The fade also runs under reduced motion; `Motion.Transition = 0` or the Off motion level shows the change at once. Text and icon colours change at once.
 
 #### Input and Textarea
 
@@ -143,7 +145,7 @@ InputMenu supports Input's four parts plus Panel, Item, and EmptySlot. Icons in 
 
 #### Lifecycle and themes (excerpt)
 
-InputNumber, InputDate, and InputTime share Input's sizes, five field variants, colors, read-only and disabled states, icons, and error settings. Other components are configured through their own Options at the end of this page.
+InputNumber, InputDate, and InputTime share Input's sizes, five field variants, colors, read-only and disabled states, icons, and error settings. InputNumber, InputTags, PinInput cells, the SelectMenu trigger, Listbox and Tree rows, Calendar cells and card-variant CheckboxGroup items fade their background, border and focus ring over `Motion.Transition` (150 ms) at the Full and Reduced motion levels, as Nuxt UI's `transition-colors`; text colours change at once, and the Off motion level shows every change at once. InputDate and InputTime fields do not fade. Other components are configured through their own Options at the end of this page.
 
 #### Calendar, InputDate, and InputTime › Date and time styles and limits (excerpt)
 
