@@ -50,6 +50,7 @@ func main() {
 ```
 
 - `nui.App(c, config)` applies the window theme and the system preferences (dark mode, text scale, contrast, reduced motion) and returns the `Theme` to pass to every component. Call it before any `nui.Window`/`nui.Themed` call in the same build. Never assign its result back to `config.Light` or `config.Dark`, or text scaling is applied twice.
+- Reduced motion is not "no animation". Under the system preference or `Theme.Motion.Reduce`, components stop moving, scaling and sliding, but fades, color transitions, spinners and the Skeleton pulse go on. `config.DisableAnimations = true` turns off all nui animation in both themes; it can change while the app runs, keeping focus, drafts and selections. It does not stop MyGo's own scroll glide and caret blink; call `c.DisableAnimations()` in the view for those. To turn motion off for one subtree only, pass it a theme with `Motion.Disabled` set through `nui.Themed`. See "Motion levels" in `components/theme.md`.
 - Build `config` (mode, palettes, radius, density) when you create the window. Rebuilding it in the view overwrites runtime changes. See `components/app.md` and `components/theme.md`.
 - Layout uses MyGo containers: `ui.Column(c)`, `ui.Row(c)`, `.Gap`, `.Padding`, `.Fill`, `.FillWidth`, `ui.Scroll`. `nui.Container` centers content and caps its width. `nui.Main` is a flexible main area.
 
@@ -67,6 +68,7 @@ MyGo calls the view again after input, after `Window.Update`, and while somethin
 - Keep each window's editing and interaction state separate, and give every component instance its own state object. Do not copy a state value after a component has used it; pass pointers.
 - Components bind through pointers to model fields (`&a.Name`). Binding to a local variable loses edits, as does binding to the copy that `for _, item := range` makes.
 - Elements may be used right away in the same build, for example `.FillWidth()` or passing an anchor element to `nui.Popover` or `nui.Tooltip`, but they expire afterwards.
+- With MyGo v0.9.0, a color transition (hover, focus, row highlight) rebuilds the view in each frame it moves, about ten builds per 150 ms fade. Keep views cheap. If a view is expensive, set `Motion.Transition` to 0 in both themes so color changes are immediate, or turn animation off with `config.DisableAnimations`.
 
 ## 3. Identity and lists
 
@@ -179,6 +181,7 @@ func (a *dialogApp) view(c *ui.Context, t nui.Theme) {
 ```
 
 - The same pattern applies to Slideover, Drawer, Popover (anchor element plus `*bool`), DropdownMenu and ContextMenu (`*nui.MenuState`, one per trigger and window), and CommandPalette (`*nui.CommandPaletteState`).
+- Closing plays an exit transition. Popups, menus and Tooltip scale and fade out over 100 ms, Modal fades over 200 ms, Slideover and Drawer slide out, and Toasts leave over 200 ms. Under reduced motion they only fade, and at the Off level they go at once. The leaving copy takes no input and is hidden from assistive technology from the first frame, the window behind takes input again, and focus returns as the overlay closes. A leaving Slideover or Drawer keeps its scroll position and control state, and reopening it during the exit continues from where it was. Keep calling the component while it leaves, which the every-build rule already ensures.
 - Toasts: put `nui.ToastViewport(c, t, nui.ToastViewportOptions{})` in the view once per window, then call `nui.Toast(c, t, nui.ToastOptions{...})` from an action. It returns the toast ID; `nui.CloseToast` removes it. See `components/toast.md`.
 - Tooltip wraps an anchor element built in the same build. Keep tooltip text short and do not put the only copy of important information in it.
 
