@@ -117,7 +117,7 @@ Coding agents can use the [nuxt-ui-go skill](.agents/skills/nuxt-ui-go/SKILL.md)
 
 Component sources, tests, and embedded translations live in [ui/](ui/).
 
-Install [Task](https://taskfile.dev/docs/installation) and Python 3.9 or later, then run `task` in the repository root to list the available commands. `task verify` runs the [verification script](scripts/verify.py), which checks formatting, tests, lifecycle rules, generated sources, and cross-platform builds. The scripts need only the Python standard library, not Bash or PowerShell, so every platform runs the same commands.
+Install [Task](https://taskfile.dev/docs/installation) and Python 3.9 or later, then run `task` in the repository root to list the available commands. `task verify` runs the [verification script](scripts/verify.py), which checks formatting, MyGo version mentions, tests, lifecycle rules, generated sources, and cross-platform builds. The scripts need only the Python standard library, not Bash or PowerShell, so every platform runs the same commands.
 
 All commands are defined in [Taskfile.yml](Taskfile.yml), and the CI configuration is in [check.yml](.github/workflows/check.yml). Working on the website also requires Node.js and pnpm; ordinary Go apps do not need them.
 

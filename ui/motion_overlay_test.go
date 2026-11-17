@@ -38,7 +38,7 @@ func redSurfacePixel(im *image.RGBA, x, y int) bool {
 	return true
 }
 
-// The overlay exits rely on MyGo v0.9.2 copying a PopoverBase panel, built
+// The overlay exits rely on MyGo copying a PopoverBase panel, built
 // directly in the overlay layer, as it leaves: the copy paints for its
 // ExitDuration and takes no input (design D6).
 func TestPopoverBaseExitCopySpike(t *testing.T) {

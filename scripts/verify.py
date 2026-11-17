@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check formatting, tests, lifecycle rules, generated sources and cross builds.
+"""Check formatting, MyGo version mentions, tests, lifecycle rules, generated sources and cross builds.
 
 Runs on Windows, Linux and macOS with Python 3.9 or later and only the
 standard library. Use `task verify`, or run it directly from any directory:
@@ -13,6 +13,7 @@ import argparse
 import ast
 import hashlib
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -23,6 +24,28 @@ ROOT = Path(__file__).resolve().parent.parent
 CROSS_TARGETS = (("windows", "amd64"), ("linux", "amd64"), ("darwin", "arm64"))
 # The full Lucide set exceeds the Windows command-line length limit in one call.
 GOFMT_BATCH = 100
+# go.mod is the one place that names the MyGo version: generators read it from
+# there, and docs and comments state current behavior without a version, backed
+# by tests that fail when MyGo changes it. A version written anywhere else goes
+# stale with the next upgrade. "Since MyGo ..." history and CHANGELOG.md may
+# name one.
+MYGO_VERSION = re.compile(r"(?i)\bmygo\b[^\w\n]{0,3}(?:tree/|releases/tag/)?v?\d+\.\d+\.\d+")
+SINCE = re.compile(r"(?i)\bsince\s+$")
+VERSION_SCAN_FILES = ("AGENTS.md", "README.md", "THIRD_PARTY_NOTICES.md", "Taskfile.yml")
+VERSION_SCAN_DIRS = (".agents", ".github", "docs", "examples", "internal", "scripts", "ui", "website")
+VERSION_SCAN_SUFFIXES = {".go", ".js", ".json", ".md", ".mjs", ".py", ".ts", ".vue", ".yaml", ".yml"}
+# Dependencies, build output and generated files, which take the version from go.mod.
+VERSION_SCAN_SKIP = {
+    ".agents/skills/nuxt-ui-go/references/components",
+    "website/.data",
+    "website/.nuxt",
+    "website/.output",
+    "website/app/data",
+    "website/content",
+    "website/dist",
+    "website/node_modules",
+    "website/public/preview",
+}
 
 
 class CheckFailed(Exception):
@@ -71,6 +94,32 @@ def check_gofmt() -> None:
             raise CheckFailed(f"gofmt required:\n{unformatted.rstrip()}")
 
 
+def version_scan_files() -> list[Path]:
+    files = [ROOT / name for name in VERSION_SCAN_FILES if (ROOT / name).is_file()]
+    for directory in VERSION_SCAN_DIRS:
+        for current, dirs, names in os.walk(ROOT / directory):
+            here = Path(current)
+            dirs[:] = sorted(d for d in dirs if (here / d).relative_to(ROOT).as_posix() not in VERSION_SCAN_SKIP)
+            files.extend(here / n for n in sorted(names) if Path(n).suffix in VERSION_SCAN_SUFFIXES)
+    return files
+
+
+def check_mygo_version_mentions() -> None:
+    found = []
+    for path in version_scan_files():
+        text = path.read_text(encoding="utf-8", errors="replace")
+        for number, line in enumerate(text.splitlines(), 1):
+            for match in MYGO_VERSION.finditer(line):
+                if not SINCE.search(line[: match.start()]):
+                    found.append(f"  {path.relative_to(ROOT).as_posix()}:{number}: {match.group(0)}")
+    if found:
+        listing = "\n".join(found)
+        raise CheckFailed(
+            "MyGo versions outside go.mod go stale with the next upgrade. Read the version from go.mod,"
+            " or state the behavior without one and keep a test that fails when MyGo changes it:\n" + listing
+        )
+
+
 def generated_fingerprint() -> dict[str, str]:
     # Key by file name as well as content, so additions and removals also fail.
     files = [p for p in (ROOT / "icons" / "lucide").glob("*.go") if p.is_file()]
@@ -110,6 +159,7 @@ def main() -> int:
     try:
         check_python_scripts()
         check_gofmt()
+        check_mygo_version_mentions()
         run("go", "test", "./...", "-count=1")
         run("go", "vet", "./...")
         run("go", "tool", "mygo", "vet", ".")

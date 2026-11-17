@@ -294,7 +294,7 @@ Opening and closing use a fixed 200 ms cubic ease-out slide and overlay transiti
 
 #### Accessibility and motion (excerpt)
 
-Programmatic focus scrolls the newly focused control into view as little as needed, as described in Focus and callbacks. `ui.Element.Focus` accepts `ui.FocusOptions{PreventScroll: true}`, but MyGo v0.9.2's `ui.Handle.Focus` takes no options, so focus moved through a persistent Handle, such as a Modal's or Sidebar's ReturnFocus, always reveals a target that is not fully visible.
+Programmatic focus scrolls the newly focused control into view as little as needed, as described in Focus and callbacks. `ui.Element.Focus` accepts `ui.FocusOptions{PreventScroll: true}`, but MyGo's `ui.Handle.Focus` takes no options, so focus moved through a persistent Handle, such as a Modal's or Sidebar's ReturnFocus, always reveals a target that is not fully visible.
 
 ## Complete example
 

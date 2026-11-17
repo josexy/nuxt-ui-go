@@ -33,6 +33,8 @@ export function useCatalog() {
     categories,
     primary: data.primary,
     neutral: data.neutral,
+    // The MyGo version go.mod pins, which genwebsite reads.
+    mygo: data.mygo as string,
     schemas,
     matchesField
   }
