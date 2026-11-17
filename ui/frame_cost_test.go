@@ -374,10 +374,12 @@ func TestMarqueeOutOfItsScrollAreaWaits(t *testing.T) {
 	}
 }
 
-// TestColorTransitionCost measures what a colour fade costs. In MyGo v0.9.0,
-// an ElementTransition with Colors rebuilds the view in every frame while the
+// TestColorTransitionCost measures what a colour fade costs. In MyGo, an
+// ElementTransition with Colors rebuilds the view in every frame while the
 // colour moves (an AnimatePose moves in frames that only paint), and asks for
-// nothing once it arrives. The unify-component-motion design records this.
+// nothing once it arrives. The unify-component-motion design records this,
+// and the docs say it without naming a MyGo version: this fails when it
+// changes.
 func TestColorTransitionCost(t *testing.T) {
 	for _, fade := range []bool{false, true} {
 		builds := 0
@@ -401,7 +403,7 @@ func TestColorTransitionCost(t *testing.T) {
 			t.Fatalf("fade=%v: did not settle: %v pending=%v", fade, end, tt.FramePending())
 		}
 		if fade && (mid.R == 0 || mid.R == 255 || during < 4) {
-			t.Fatalf("the fade's colour %v and %d builds no longer match the recorded cost", mid, during)
+			t.Fatalf("the fade's colour %v and %d builds no longer match the recorded cost: update docs/compatibility.md (Theme and sizing), docs/foundations.md (When animations stop) and the skill's references/app-patterns.md", mid, during)
 		}
 		if !fade && during != 0 {
 			t.Fatalf("an instant hover built the view %d times after the hover", during)

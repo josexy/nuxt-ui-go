@@ -5,7 +5,7 @@
 Display a persistent, dismissible message within a page.
 
 - Category: Overlays and navigation
-- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.2)
 - Functions: `Banner`
 - Types: `BannerOptions`
 - Theme key: `nui.ComponentBanner` (for `Theme.WithComponent`)

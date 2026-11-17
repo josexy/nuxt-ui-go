@@ -1,11 +1,22 @@
 package nui_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
 	nui "github.com/josexy/nuxt-ui-go/ui"
 )
+
+// docs/inputs.md and docs/compatibility.md say that MyGo's ui.Handle.Focus
+// takes no options, so focus moved through a Handle always reveals its
+// target. This fails once Focus takes options; update the docs with it.
+func TestUpstreamHandleFocusTakesNoOptions(t *testing.T) {
+	got := reflect.TypeOf((*ui.Handle).Focus)
+	if want := reflect.TypeOf(func(*ui.Handle, ...*ui.Context) {}); got != want {
+		t.Fatalf("ui.Handle.Focus is now %v: update docs/inputs.md (Focus and callbacks) and docs/compatibility.md (Accessibility and motion)", got)
+	}
+}
 
 // This is an upstream parity probe, NOT an acceptance of lossless cancellation.
 // Replacing a selection with composition and cancelling keeps the deletion.

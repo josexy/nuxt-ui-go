@@ -266,6 +266,7 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 			input.Style = func(frame, editor, leading, trailing ui.Element) {
 				searchEditor = editor
 				editor.Bind(&s.QueryHandle).OnTextKey(func(k ui.TextKey) bool {
+					// Input methods' filters withhold these keys; the guard covers a backend that lets one through.
 					if c.Resolve(s.QueryHandle).Composing() || k.Mods & ^ui.Shift != 0 {
 						return false
 					}
@@ -884,6 +885,7 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 				input.Style = func(frame, editor, leading, trailing ui.Element) {
 					frame.FillWidth()
 					editor.Bind(&s.QueryHandle).OnTextKey(func(k ui.TextKey) bool {
+						// Input methods' filters withhold these keys; the guard covers a backend that lets one through.
 						if !c.Resolve(s.QueryHandle).Composing() && k.Mods == 0 && (k.Key == ui.KeyDown || k.Key == ui.KeyUp) {
 							s.Listbox.List.Handle.Focus(c)
 							return true

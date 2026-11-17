@@ -285,7 +285,7 @@ func TestInputRatingKeyboardDirection(t *testing.T) {
 }
 
 // Re-verifies the selected-text IME cancellation known issue against the
-// pinned MyGo (v0.9.0): docs/compatibility.md describes what this asserts.
+// pinned MyGo: docs/compatibility.md describes what this asserts.
 // When MyGo keeps the selection, this fails; update the docs with it.
 func TestIMECancelOverSelectionProbe(t *testing.T) {
 	for _, kind := range []string{"Input", "Textarea"} {

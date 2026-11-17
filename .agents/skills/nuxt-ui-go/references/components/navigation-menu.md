@@ -5,7 +5,7 @@
 Provide primary navigation and nested destinations.
 
 - Category: Advanced interaction and layout
-- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.2)
 - Functions: `NavigationMenu`
 - Types: `NavigationOptions`, `NavigationItem`, `NavigationState`, `NavigationEvent`
 - Theme key: `nui.ComponentNavigationMenu` (for `Theme.WithComponent`)

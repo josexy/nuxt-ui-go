@@ -6,7 +6,7 @@ NuxtUI Go uses MyGo for native layout, input, and drawing, and follows the visua
 
 ## Requirements and platforms
 
-You need Go **1.27.3 or later**, and you build with `CGO_ENABLED=0`. This repository pins the MyGo runtime and tools to `v0.9.0`; see [go.mod](../go.mod). Native apps do not need Node.js, Vue, or a WebView at runtime, but they do need a desktop graphics session.
+You need Go **1.27.3 or later**, and you build with `CGO_ENABLED=0`. This repository pins the MyGo runtime and tools to the version in [go.mod](../go.mod). Native apps do not need Node.js, Vue, or a WebView at runtime, but they do need a desktop graphics session.
 
 The table records what the project has verified. Platforms have not all been tested to the same depth.
 
@@ -18,15 +18,25 @@ The table records what the project has verified. Platforms have not all been tes
 | Browser WASM preview | The project provides [website previews and checks](../website/README.md) | Native file dialogs and the full assistive technology experience are outside the browser preview's scope |
 | Other architectures | No verification records | Check in the target environment |
 
+On Windows, MyGo's `mygo_nowebview` build tag leaves WebView2 and the code that drives it out of the executable. nui creates no windows and shows every component as native content, so an app whose windows all set `Content` and that opens no web view can build with it:
+
+```sh
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -tags mygo_nowebview .
+```
+
+With the tag, a window without `Content` panics and `Window.NewWebView` returns an error; other platforms ignore it. The library and its examples are verified to cross-build with the tag, but such a build has not been run on Windows.
+
 Check native file selection on each target system: cancellation, multiple selection, filters, drag and drop between apps, and results that arrive after the window closes. Your app is responsible for macOS sandbox permissions and file access bookmarks.
 
 ## Canceling IME composition
 
-MyGo v0.9.0, the pinned dependency, still has this known issue: **if you select text, start an IME composition, and then cancel it, the selected text is lost.** Undo restores it. Headless `ui.Tester` checks reproduce it with Input and Textarea, and will flag the change once MyGo keeps the selection.
+The pinned MyGo version has this known issue: **if you select text, start an IME composition, and then cancel it, the selected text is lost.** Undo restores it. Headless `ui.Tester` checks reproduce it with Input, Textarea and PinInput's text mode, and fail once MyGo keeps the selection, so that this section is updated with it.
 
 Affected inputs: Input, Textarea, InputMenu, InputTags, PinInput in text mode, the Listbox filter field, SelectMenu, the HEX field inside ColorPicker, and CommandPalette. If your app edits important text, test this flow with the IMEs on your target systems.
 
 `PinInputOptions{Numeric: true}`, InputNumber, InputDate, and InputTime accept only numeric or date/time formats and do not enable IME. Other input methods still need testing on each target platform.
+
+While text is composing, keys pressed without Ctrl or Command, such as Enter, Escape, Tab, Backspace and the arrow keys, go to the input method and do not submit a field, change tags, move a highlight or close an overlay, while chords with Ctrl or Command still reach the app's shortcuts.
 
 ## Feature scope
 
@@ -34,7 +44,7 @@ Affected inputs: Input, Textarea, InputMenu, InputTags, PinInput in text mode, t
 
 | Area | Supported | Notes |
 | --- | --- | --- |
-| Theme and sizing | DIP units, native fonts, XS/SM/MD/LG/XL sizes; Nuxt's `transition-colors` on interactive surfaces | Fonts and fallback fonts can increase line height. There is no Tailwind or CSS runtime. Native disabled controls use 50% opacity. Some sizes, states, and animations differ from Nuxt UI. These surfaces fade their background, border and focus-ring colours over `Motion.Transition` (150 ms) at the Full and Reduced motion levels: Button; Input, Textarea, InputNumber, InputTags and PinInput cells; the Select, SelectMenu and InputMenu triggers; the rows of DropdownMenu, ContextMenu, Listbox, Select, SelectMenu, InputMenu, CommandPalette and Tree; NavigationMenu pill links; Calendar cells; card-variant Checkbox, CheckboxGroup and RadioGroup items; a clickable Banner, FileUpload's drop area, Carousel dots and the Sidebar rail. A hover that changes only text or icon colour shows at once, unlike Nuxt's `transition-colors`: Link, Breadcrumb links, Tabs labels on hover, NavigationMenu link-variant labels and User text, because MyGo's element transitions do not animate text colour. In MyGo v0.9.0 a colour fade builds the view in each frame it moves |
+| Theme and sizing | DIP units, native fonts, XS/SM/MD/LG/XL sizes; Nuxt's `transition-colors` on interactive surfaces | Fonts and fallback fonts can increase line height. There is no Tailwind or CSS runtime. Native disabled controls use 50% opacity. Some sizes, states, and animations differ from Nuxt UI. These surfaces fade their background, border and focus-ring colours over `Motion.Transition` (150 ms) at the Full and Reduced motion levels: Button; Input, Textarea, InputNumber, InputTags and PinInput cells; the Select, SelectMenu and InputMenu triggers; the rows of DropdownMenu, ContextMenu, Listbox, Select, SelectMenu, InputMenu, CommandPalette and Tree; NavigationMenu pill links; Calendar cells; card-variant Checkbox, CheckboxGroup and RadioGroup items; a clickable Banner, FileUpload's drop area, Carousel dots and the Sidebar rail. A hover that changes only text or icon colour shows at once, unlike Nuxt's `transition-colors`: Link, Breadcrumb links, Tabs labels on hover, NavigationMenu link-variant labels and User text, because MyGo's element transitions do not animate text colour. In MyGo a colour fade builds the view in each frame it moves |
 | Language and input | English, Simplified Chinese, Gregorian dates, locale-specific segment order, 12- and 24-hour clocks | Digits are ASCII and the decimal separator is `.`. There is no full locale-aware number input, no alternative calendars, no time ranges, and no per-segment undo/redo |
 | Segmented date and time | Single dates and date ranges, locale order, steps, date/time bounds and unavailable predicates, time granularity, optional native calendar | Date carries no time of day. ClockTime carries no date, milliseconds, or time zone. Build a time range from two InputTime controls. The full screen reader experience is unverified |
 | ColorPicker | sRGB byte channels, HEX/HEXA, native keyboard support, alpha, swatches, sizes, change throttling | Uses MyGo's horizontal tracks. The internal SV area, tracks, and HEX parts are not public. There is no HSL/CMYK/Lab text editing or wide-gamut editing. The full screen reader experience is unverified |
@@ -84,6 +94,6 @@ Pay particular attention to these areas:
 | Marquee | How repeated content is presented to screen readers still needs verification |
 | Tree | Provides Tree/TreeItem roles, levels, selection, and active item semantics. The current virtual list lacks the assistive technology expand/collapse actions built into `ui.Outline` |
 
-Programmatic focus scrolls the newly focused control into view as little as needed, as described in [Focus and callbacks](inputs.md#focus-and-callbacks). `ui.Element.Focus` accepts `ui.FocusOptions{PreventScroll: true}`, but MyGo v0.9.0's `ui.Handle.Focus` takes no options, so focus moved through a persistent Handle, such as a Modal's or Sidebar's ReturnFocus, always reveals a target that is not fully visible.
+Programmatic focus scrolls the newly focused control into view as little as needed, as described in [Focus and callbacks](inputs.md#focus-and-callbacks). `ui.Element.Focus` accepts `ui.FocusOptions{PreventScroll: true}`, but MyGo's `ui.Handle.Focus` takes no options, so focus moved through a persistent Handle, such as a Modal's or Sidebar's ReturnFocus, always reveals a target that is not fully visible.
 
 When you supply custom content, keep the control names, focus, and interaction semantics intact. Check the contrast of custom colors separately. Mouse, keyboard, and Canvas WASM preview tests cover only those interactions; they do not replace screen reader testing on the target system.

@@ -5,7 +5,7 @@
 Expand hierarchical data and select its nodes.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.2)
 - Functions: `Tree`
 - Types: `TreeOptions`, `TreeNode`, `TreeState`, `TreeEvent`, `TreeItemState`
 - Theme key: `nui.ComponentTree` (for `Theme.WithComponent`)
@@ -19,7 +19,7 @@ Indent guides round Indicator.BorderWidth from DIPs to whole device pixels; an e
 
 ## Things to know
 
-Linkage covers loaded, enabled nodes, stops at disabled nodes, and does not select children loaded later. Mixed state applies only in multiple mode: BubbleSelect checks mixed descendants; PropagateSelect alone also requires a selected parent. Nested changes guides, backgrounds and hit areas; both modes use native virtualization. Leading/trailing builders replace default icons and should contain display content only; rows and the keyboard retain interaction. Empty branches retain expansion state without fallback folder/chevron icons.
+Linkage covers loaded, enabled nodes, stops at disabled nodes, and does not select children loaded later. Mixed state applies only in multiple mode: BubbleSelect checks mixed descendants; PropagateSelect alone also requires a selected parent. Nested changes guides, backgrounds and hit areas; both modes use native virtualization. Leading/trailing builders replace default icons and should contain display content only; rows and the keyboard retain interaction. Empty branches retain expansion state without fallback folder/chevron icons. Tree builds its own index of visible rows and uses only Outline.Open and Outline.List; setting Outline.Generation has no effect.
 
 ## API
 
@@ -186,7 +186,7 @@ Nodes can be Disabled, and OnSelect and OnToggle can cancel the current action. 
 
 Nested defaults to true, which shows ancestor guide lines and indents each child's background and click area by level. With `nui.Set(false)`, the background and click area span the full row while the content stays indented. Switching keeps the selection, expansion, focus, and scroll position.
 
-Both modes use a native virtual list that builds only the rows near the viewport. The index of visible nodes is rebuilt when the data or the expansion state changes. Because apps may edit the public collections directly, every build still checks the expanded IDs, and also the selected IDs when indeterminate states are needed. Customize row content with Build.
+Both modes use a native virtual list that builds only the rows near the viewport. The index of visible nodes is rebuilt when the data or the expansion state changes. Tree builds that index itself rather than through `ui.Outline`, so of `state.Outline` it uses only `Outline.Open` and `Outline.List`: setting `Outline.Generation` has no effect on Tree. Because apps may edit the public collections directly, every build still checks the expanded IDs, and also the selected IDs when indeterminate states are needed. Customize row content with Build.
 
 ##### Lazy loading
 

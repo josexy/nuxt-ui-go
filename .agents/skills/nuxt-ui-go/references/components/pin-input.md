@@ -5,7 +5,7 @@
 Enter a verification code or other fixed-length text.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.2)
 - Functions: `PinInput`
 - Types: `PinInputOptions`
 - Theme key: `nui.ComponentPinInput` (for `Theme.WithComponent`)
@@ -118,6 +118,8 @@ Input, Textarea, InputNumber, InputTags, PinInput cells, and the Select, SelectM
 ### Compatibility and known limitations
 
 #### Canceling IME composition (excerpt)
+
+The pinned MyGo version has this known issue: **if you select text, start an IME composition, and then cancel it, the selected text is lost.** Undo restores it. Headless `ui.Tester` checks reproduce it with Input, Textarea and PinInput's text mode, and fail once MyGo keeps the selection, so that this section is updated with it.
 
 Affected inputs: Input, Textarea, InputMenu, InputTags, PinInput in text mode, the Listbox filter field, SelectMenu, the HEX field inside ColorPicker, and CommandPalette. If your app edits important text, test this flow with the IMEs on your target systems.
 

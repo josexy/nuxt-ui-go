@@ -5,7 +5,7 @@
 Drag or page through a set of cards.
 
 - Category: Advanced interaction and layout
-- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.2)
 - Functions: `Carousel`
 - Types: `CarouselOptions`, `CarouselItem`, `CarouselState`
 - Theme key: `nui.ComponentCarousel` (for `Theme.WithComponent`)

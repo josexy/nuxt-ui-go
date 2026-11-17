@@ -5,7 +5,7 @@
 Display rows and columns with sorting, selection and scrolling.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.2)
 - Functions: `Table`
 - Types: `TableOptions`, `TableColumn`, `TableState`
 - Theme key: `nui.ComponentTable` (for `Theme.WithComponent`)
@@ -19,7 +19,7 @@ The header divider paints one device pixel. Set its color with SeparatorSlot.Bac
 
 ## Things to know
 
-The header stays above the internal scrolling body and native virtualization is always enabled. Fixed only prevents column movement and resizing. Headers are not separate keyboard stops, so this example provides sorting buttons. OnSelectionChange reports selected IDs; OnActivate runs on Enter or double-click. These differ from Nuxt’s row-click select event. Filtering, pagination and requests belong to the application; pinned columns, grouped headers, expanded rows and aggregation are not provided.
+The header stays above the internal scrolling body and native virtualization is always enabled. Fixed only prevents column movement and resizing. Headers are not separate keyboard stops, so this example provides sorting buttons. OnSelectionChange reports selected IDs; OnActivate runs on Enter or double-click. These differ from Nuxt’s row-click select event. Filtering, pagination and requests belong to the application; pinned columns, grouped headers, expanded rows and aggregation are not provided. With List.RowHeight above 0 every body row takes that height and the header keeps its own; List.EndReached, with NearEnd, asks once for more rows as the user scrolls near the end, never on rebuilds, appends or app scrolling. List.MoveAnimation is not supported yet, because nui's motion levels do not govern it.
 
 ## API
 
@@ -176,6 +176,8 @@ SetRows copies the row values and checks that each ID is non-empty and unique. I
 | `ManualSorting` | Keeps the input order from SetRows; your app loads or computes the data based on the sort state |
 | `InvalidateSort` | Requests a re-sort when data captured by a comparator changes. SetRows invalidates the sort automatically |
 | `state.List.Columns` | Stores column widths and order; your app can persist it |
+| `state.List.RowHeight` | Above 0, every body row is that many DIPs high, with its cells in the middle; the header keeps its height. 0 keeps the default row height |
+| `state.List.EndReached` / `NearEnd` | EndReached is called once, with the index of the last row in view, when the user's scrolling brings the rows in view within NearEnd rows of the end; see Filtering and scope |
 | `Row` / `RowID` / `Len` | Read a row, a row ID, and the row count in the current view |
 
 Columns can also set Width, MinWidth, MaxWidth, and Align. Sorting changes row positions, so when editing data, look up the business model by RowID or by the IDs in Selection. CellBuilds counts the cell builder calls in the current build.
@@ -198,11 +200,13 @@ nui.Table(c.Key("files"), t, &app.files, columns, nui.TableOptions{
 
 Restore it by assigning the saved `ui.TableLayout` to `List.Columns` before the first build. The internal active row that OnActivate reads follows its record: after sorting or several SetRows calls before the next build, Enter activates the same record even though its row moved. When SetRows removes that record, no row is active and Enter does nothing until the user chooses another row.
 
-Table sets List.Key, Selection, Sort, and Label; do not override these bindings in your app. List.SortBy, Columns, Selected, KeepOffset, FollowEnd, HeaderMenu, CellMenu, and similar fields follow MyGo's rules. List.CellSelect is a native extension, and this wrapper has no RowHeader column. Full cell selection semantics differ from row selection notifications.
+Table sets List.Key, Selection, Sort, and Label; do not override these bindings in your app. List.SortBy, Columns, Selected, KeepOffset, FollowEnd, RowHeight, EndReached, NearEnd, HeaderMenu, CellMenu, and similar fields follow MyGo's rules. List.MoveAnimation is not supported through Table yet: nui's motion levels do not govern it, and MyGo turns it off only for the desktop's reduced-motion setting, so rows would still glide when `AppConfig.DisableAnimations` turns nui's motion off. List.CellSelect is a native extension, and this wrapper has no RowHeader column. Full cell selection semantics differ from row selection notifications.
 
 ##### Filtering and scope
 
 For search, filtering, and pagination, your app computes the current rows first and then calls SetRows.
+
+To load more rows as the user scrolls, set `state.List.EndReached`, and `NearEnd` for how many rows before the last count as near the end. Start the request in the background, then append the page with SetRows in `Window.Update`. EndReached is called once per approach to the end: not again while the rows in view stay there, and not when the table first shows or rebuilds, when SetRows appends rows, when the app scrolls with `List.ScrollToEnd`, or when every row already fits. After a page is appended, the user's next scroll near the new end calls it once more. It calls none of OnChange, OnSortChange, OnSelectionChange, or OnActivate.
 
 EmptyText and BuildEmpty set the empty content below the header. Loading shows a loading bar and keeps the existing data. With no data, BuildLoading's content is shown if provided; otherwise the empty content is still shown. LoadingColor defaults to Primary. LoadingAnimation can be Carousel, CarouselInverse, Swing, or Elastic, the same presets as Progress's Animation (`TableLoadingAnimation` is an alias of `LoadingAnimation`). Under reduced motion the bar spans the header and pulses its opacity, as Nuxt's `motion-reduce:animate-pulse`; at the Off motion level it is a static full-width bar. Caption is the table's description for assistive technology, and BuildCaption can show a visible title. Height defaults to 320 DIP, including the title; the header stays fixed and the body scrolls inside.
 
@@ -230,7 +234,7 @@ Table's Sortable, ManualSorting, and List.SortBy control, respectively, whether 
 
 Determinate progress fills to the rounded integer percentage, while assistive technology receives the exact amount completed. The indeterminate indicator moves in a two-second cycle along one of Nuxt UI's presets, set with `Animation`: `LoadingCarousel` (the default, a half-length indicator sliding from the start to the end), `LoadingCarouselInverse`, `LoadingSwing` or `LoadingElastic`. The carousels run from the other end right to left and when Inverted, and all presets run along a vertical track; Table's loading bar uses the same presets. Under reduced motion the indicator spans the whole track and pulses its opacity instead, as Nuxt's `motion-reduce:animate-pulse`; with Animate=false or at the Off motion level it stays still, half the track's length, in the center. A determinate value moves to its new amount over 200 ms only at the Full motion level. An out-of-range Animation panics, as Table's LoadingAnimation does. Internally, `Now=-1 < Min=0` represents unknown progress, with an "In progress" value or description. Windows UIA clamps the unknown value to the minimum; how screen readers announce it has not been verified.
 
-**When animations stop:** Continuous animations request the next frame only while a visible component actually draws. They stop when the component scrolls out of view, unmounts, has Animate turned off, or at the Off motion level; spinners and the Skeleton pulse go on under reduced motion. Button's colour transition follows `Motion.Transition` at Full and Reduced and is immediate at Off, and `Animate: nui.Set(false)` controls the loading spinner. Once a transition ends, no more frames are requested. Indeterminate Progress and Table's loading bar pulse under reduced motion. In MyGo v0.9.0 a colour transition builds the view in each frame while the colour moves (about ten builds for 150 ms), so an app with an expensive view can set `Motion.Transition` to 0 or turn animation off. Components do not use timer goroutines for animation.
+**When animations stop:** Continuous animations request the next frame only while a visible component actually draws. They stop when the component scrolls out of view, unmounts, has Animate turned off, or at the Off motion level; spinners and the Skeleton pulse go on under reduced motion. Button's colour transition follows `Motion.Transition` at Full and Reduced and is immediate at Off, and `Animate: nui.Set(false)` controls the loading spinner. Once a transition ends, no more frames are requested. Indeterminate Progress and Table's loading bar pulse under reduced motion. In MyGo a colour transition builds the view in each frame while the colour moves (about ten builds for 150 ms), so an app with an expensive view can set `Motion.Transition` to 0 or turn animation off. Components do not use timer goroutines for animation.
 
 ### Inputs, selection, and fields
 

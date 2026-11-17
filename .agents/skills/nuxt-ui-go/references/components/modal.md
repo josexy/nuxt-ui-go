@@ -5,7 +5,7 @@
 Complete an edit or confirmation in a modal dialog.
 
 - Category: Overlays and navigation
-- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.2)
 - Functions: `Modal`, `ModalWithOptions`
 - Types: `ModalOptions`
 - Theme key: `nui.ComponentModal` (for `Theme.WithComponent`)
@@ -150,7 +150,7 @@ if app.restoreFocus == id {
 
 #### Accessibility and motion (excerpt)
 
-Programmatic focus scrolls the newly focused control into view as little as needed, as described in Focus and callbacks. `ui.Element.Focus` accepts `ui.FocusOptions{PreventScroll: true}`, but MyGo v0.9.0's `ui.Handle.Focus` takes no options, so focus moved through a persistent Handle, such as a Modal's or Sidebar's ReturnFocus, always reveals a target that is not fully visible.
+Programmatic focus scrolls the newly focused control into view as little as needed, as described in Focus and callbacks. `ui.Element.Focus` accepts `ui.FocusOptions{PreventScroll: true}`, but MyGo's `ui.Handle.Focus` takes no options, so focus moved through a persistent Handle, such as a Modal's or Sidebar's ReturnFocus, always reveals a target that is not fully visible.
 
 ## Complete example
 

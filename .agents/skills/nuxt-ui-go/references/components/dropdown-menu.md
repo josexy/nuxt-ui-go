@@ -5,7 +5,7 @@
 Choose an action from a button’s dropdown menu.
 
 - Category: Overlays and navigation
-- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.2)
 - Functions: `DropdownMenu`
 - Types: `MenuOptions`, `MenuItem`, `MenuContentOptions`
 - Theme key: `nui.ComponentDropdownMenu` (for `Theme.WithComponent`)

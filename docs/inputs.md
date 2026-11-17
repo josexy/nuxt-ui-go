@@ -56,7 +56,7 @@ if app.restoreFocus == id {
 }
 ```
 
-`ui.Handle.Focus` takes no options in MyGo v0.9.0; see [Compatibility](compatibility.md#accessibility-and-motion).
+MyGo's `ui.Handle.Focus` takes no options; see [Compatibility](compatibility.md#accessibility-and-motion).
 
 ## Input and Textarea
 

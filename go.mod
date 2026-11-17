@@ -3,7 +3,7 @@ module github.com/josexy/nuxt-ui-go
 go 1.27.3
 
 require (
-	github.com/egoist/mygo v0.9.0
+	github.com/egoist/mygo v0.9.2
 	golang.org/x/text v0.43.0
 )
 
