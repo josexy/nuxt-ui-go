@@ -23,7 +23,7 @@ type tableEvents struct {
 	initialized bool
 }
 
-// MyGo 0.9.0 does not expose its header divider as a part. Cover its full
+// MyGo 0.9.2 does not expose its header divider as a part. Cover its full
 // one-DIP rectangle before painting the replacement; simply drawing a hairline
 // on top leaves a second native-colored pixel at fractional scales.
 func tableHeaderDivider(c *ui.Context, t Theme, table ui.Element, headerHeight float32, d Decoration) {

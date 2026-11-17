@@ -374,7 +374,7 @@ func TestMarqueeOutOfItsScrollAreaWaits(t *testing.T) {
 	}
 }
 
-// TestColorTransitionCost measures what a colour fade costs. In MyGo v0.9.0,
+// TestColorTransitionCost measures what a colour fade costs. In MyGo v0.9.2,
 // an ElementTransition with Colors rebuilds the view in every frame while the
 // colour moves (an AnimatePose moves in frames that only paint), and asks for
 // nothing once it arrives. The unify-component-motion design records this.

@@ -195,6 +195,7 @@ func InputTags(c *ui.Context, t Theme, value *[]string, s *TagsState, o InputTag
 			add(text, false)
 			return true
 		}).OnTextKey(func(k ui.TextKey) bool {
+			// Input methods' filters withhold these keys; the guard covers a backend that lets one through.
 			if !mutable || c.Resolve(s.Handle).Composing() {
 				return false
 			}
@@ -488,6 +489,8 @@ func PinInput(c *ui.Context, t Theme, value *string, s *PinState, o PinInputOpti
 			start, end := editor.TextSelection()
 			// Selecting the current occupied slot makes the next keystroke a
 			// replacement, including after typing, arrows and keyboard focus.
+			// This runs while building, not on a key, so Composing() still keeps
+			// the selection off text the input method is composing.
 			if focused && !o.ReadOnly && !editor.IsDisabled() && !editor.Composing() && s.text == *value && start == end {
 				// Left first collapses the native one-character selection. Move
 				// one additional position to reach the preceding PIN slot.

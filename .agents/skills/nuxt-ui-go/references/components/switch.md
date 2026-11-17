@@ -5,7 +5,7 @@
 Turn a setting on or off.
 
 - Category: Inputs and selection
-- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.2)
 - Functions: `Switch`
 - Types: `SwitchOptions`
 - Theme key: `nui.ComponentSwitch` (for `Theme.WithComponent`)

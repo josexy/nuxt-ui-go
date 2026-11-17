@@ -5,7 +5,7 @@
 Apply a window theme and share it with its components.
 
 - Category: Themes and basic components
-- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.2)
 - Functions: `App`, `DefaultApp`, `Window`, `Themed`, `SupportedLocales`
 - Types: `AppConfig`
 - Sections: Usage · Things to know · API · Documentation excerpts · Complete example
@@ -181,6 +181,12 @@ Black changes with the color mode and has no 11-shade palette, so it does not ap
 | Component | Purpose and main options | Parts |
 | --- | --- | --- |
 | App / Theme | `AppConfig` manages light/dark mode; `Theme` holds colors, sizes, and component defaults | Configured per component |
+
+### Forms, dates, and data components
+
+#### Table › Sorting, selection, and custom cells (excerpt)
+
+Table sets List.Key, Selection, Sort, and Label; do not override these bindings in your app. List.SortBy, Columns, Selected, KeepOffset, FollowEnd, RowHeight, EndReached, NearEnd, HeaderMenu, CellMenu, and similar fields follow MyGo's rules. List.MoveAnimation is not supported through Table yet: nui's motion levels do not govern it, and MyGo turns it off only for the desktop's reduced-motion setting, so rows would still glide when `AppConfig.DisableAnimations` turns nui's motion off. List.CellSelect is a native extension, and this wrapper has no RowHeader column. Full cell selection semantics differ from row selection notifications.
 
 ### Compatibility and known limitations
 

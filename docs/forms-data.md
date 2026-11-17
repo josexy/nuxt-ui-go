@@ -441,6 +441,8 @@ SetRows copies the row values and checks that each ID is non-empty and unique. I
 | `ManualSorting` | Keeps the input order from SetRows; your app loads or computes the data based on the sort state |
 | `InvalidateSort` | Requests a re-sort when data captured by a comparator changes. SetRows invalidates the sort automatically |
 | `state.List.Columns` | Stores column widths and order; your app can persist it |
+| `state.List.RowHeight` | Above 0, every body row is that many DIPs high, with its cells in the middle; the header keeps its height. 0 keeps the default row height |
+| `state.List.EndReached` / `NearEnd` | EndReached is called once, with the index of the last row in view, when the user's scrolling brings the rows in view within NearEnd rows of the end; see [Filtering and scope](#filtering-and-scope) |
 | `Row` / `RowID` / `Len` | Read a row, a row ID, and the row count in the current view |
 
 Columns can also set Width, MinWidth, MaxWidth, and Align. Sorting changes row positions, so when editing data, look up the business model by RowID or by the IDs in Selection. CellBuilds counts the cell builder calls in the current build.
@@ -463,11 +465,13 @@ nui.Table(c.Key("files"), t, &app.files, columns, nui.TableOptions{
 
 Restore it by assigning the saved `ui.TableLayout` to `List.Columns` before the first build. The internal active row that OnActivate reads follows its record: after sorting or several SetRows calls before the next build, Enter activates the same record even though its row moved. When SetRows removes that record, no row is active and Enter does nothing until the user chooses another row.
 
-Table sets List.Key, Selection, Sort, and Label; do not override these bindings in your app. List.SortBy, Columns, Selected, KeepOffset, FollowEnd, HeaderMenu, CellMenu, and similar fields follow MyGo's rules. List.CellSelect is a native extension, and this wrapper has no RowHeader column. Full cell selection semantics differ from row selection notifications.
+Table sets List.Key, Selection, Sort, and Label; do not override these bindings in your app. List.SortBy, Columns, Selected, KeepOffset, FollowEnd, RowHeight, EndReached, NearEnd, HeaderMenu, CellMenu, and similar fields follow MyGo's rules. List.MoveAnimation is not supported through Table yet: nui's motion levels do not govern it, and MyGo turns it off only for the desktop's reduced-motion setting, so rows would still glide when `AppConfig.DisableAnimations` turns nui's motion off. List.CellSelect is a native extension, and this wrapper has no RowHeader column. Full cell selection semantics differ from row selection notifications.
 
 ### Filtering and scope
 
 For search, filtering, and pagination, your app computes the current rows first and then calls SetRows. The data browser example shows search, team and status filters, and pages of 100 rows; your app manages server requests, totals, and caching.
+
+To load more rows as the user scrolls, set `state.List.EndReached`, and `NearEnd` for how many rows before the last count as near the end. Start the request in the background, then append the page with SetRows in `Window.Update`. EndReached is called once per approach to the end: not again while the rows in view stay there, and not when the table first shows or rebuilds, when SetRows appends rows, when the app scrolls with `List.ScrollToEnd`, or when every row already fits. After a page is appended, the user's next scroll near the new end calls it once more. It calls none of OnChange, OnSortChange, OnSelectionChange, or OnActivate.
 
 EmptyText and BuildEmpty set the empty content below the header. Loading shows a loading bar and keeps the existing data. With no data, BuildLoading's content is shown if provided; otherwise the empty content is still shown. LoadingColor defaults to Primary. LoadingAnimation can be Carousel, CarouselInverse, Swing, or Elastic, the same presets as Progress's Animation (`TableLoadingAnimation` is an alias of `LoadingAnimation`). Under reduced motion the bar spans the header and pulses its opacity, as Nuxt's `motion-reduce:animate-pulse`; at the Off motion level it is a static full-width bar. Caption is the table's description for assistive technology, and BuildCaption can show a visible title. Height defaults to 320 DIP, including the title; the header stays fixed and the body scrolls inside.
 
@@ -495,7 +499,7 @@ Nodes can be Disabled, and OnSelect and OnToggle can cancel the current action. 
 
 Nested defaults to true, which shows ancestor guide lines and indents each child's background and click area by level. With `nui.Set(false)`, the background and click area span the full row while the content stays indented. Switching keeps the selection, expansion, focus, and scroll position.
 
-Both modes use a native virtual list that builds only the rows near the viewport. The index of visible nodes is rebuilt when the data or the expansion state changes. Because apps may edit the public collections directly, every build still checks the expanded IDs, and also the selected IDs when indeterminate states are needed. Customize row content with Build.
+Both modes use a native virtual list that builds only the rows near the viewport. The index of visible nodes is rebuilt when the data or the expansion state changes. Tree builds that index itself rather than through `ui.Outline`, so of `state.Outline` it uses only `Outline.Open` and `Outline.List`: setting `Outline.Generation` has no effect on Tree. Because apps may edit the public collections directly, every build still checks the expanded IDs, and also the selected IDs when indeterminate states are needed. Customize row content with Build.
 
 ### Lazy loading
 

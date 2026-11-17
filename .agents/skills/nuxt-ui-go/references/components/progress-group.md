@@ -5,7 +5,7 @@
 Show several amounts within one progress track.
 
 - Category: Themes and basic components
-- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.2)
 - Functions: `ProgressGroup`
 - Types: `ProgressGroupOptions`
 - Theme key: `nui.ComponentProgressGroup` (for `Theme.WithComponent`)

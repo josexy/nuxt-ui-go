@@ -5,7 +5,7 @@
 Show completed progress or indicate that work is ongoing.
 
 - Category: Themes and basic components
-- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.0)
+- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.2)
 - Functions: `Progress`
 - Types: `ProgressOptions`
 - Theme key: `nui.ComponentProgress` (for `Theme.WithComponent`)
@@ -99,7 +99,7 @@ Each item's UI can configure Segment, Item, Leading, Label, and Trailing, overri
 
 Horizontal groups follow RTL. Orientation defaults to Horizontal; in vertical layout, a Height of 0 or less uses 160 DIP. Segments are static and the group exposes overall progress to assistive technology. There is no per-segment progress role, built-in status text, or segment click event. You can add actions or descriptions with the legend's Build; scheduling the underlying work remains up to your app.
 
-**When animations stop:** Continuous animations request the next frame only while a visible component actually draws. They stop when the component scrolls out of view, unmounts, has Animate turned off, or at the Off motion level; spinners and the Skeleton pulse go on under reduced motion. Button's colour transition follows `Motion.Transition` at Full and Reduced and is immediate at Off, and `Animate: nui.Set(false)` controls the loading spinner. Once a transition ends, no more frames are requested. Indeterminate Progress and Table's loading bar pulse under reduced motion. In MyGo v0.9.0 a colour transition builds the view in each frame while the colour moves (about ten builds for 150 ms), so an app with an expensive view can set `Motion.Transition` to 0 or turn animation off. Components do not use timer goroutines for animation.
+**When animations stop:** Continuous animations request the next frame only while a visible component actually draws. They stop when the component scrolls out of view, unmounts, has Animate turned off, or at the Off motion level; spinners and the Skeleton pulse go on under reduced motion. Button's colour transition follows `Motion.Transition` at Full and Reduced and is immediate at Off, and `Animate: nui.Set(false)` controls the loading spinner. Once a transition ends, no more frames are requested. Indeterminate Progress and Table's loading bar pulse under reduced motion. In MyGo v0.9.2 a colour transition builds the view in each frame while the colour moves (about ten builds for 150 ms), so an app with an expensive view can set `Motion.Transition` to 0 or turn animation off. Components do not use timer goroutines for animation.
 
 ### Advanced interaction, charts, and layout
 

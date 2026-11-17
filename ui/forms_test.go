@@ -407,8 +407,9 @@ func TestInputReadonlyAndCompositionSubmission(t *testing.T) {
 	click(t, tt, "Name")
 	tt.Key(0, ui.KeyEnd)
 	tt.Compose("lin", 3)
-	// Tester.Type is the documented candidate commit. Tester.Key injects an
-	// ordinary unconsumed application key, bypassing the operating system IME.
+	// Tester.Type is the documented candidate commit. While text composes,
+	// Tester.Key gives keys without Ctrl or Super to the input method, as each
+	// platform's filter does; after the commit they reach the field again.
 	tt.Type("林")
 	if submits != 0 {
 		t.Fatal("committing composition submitted the form")
