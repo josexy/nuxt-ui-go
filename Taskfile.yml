@@ -16,7 +16,7 @@ tasks:
       - task --list
 
   verify:
-    desc: Checks formatting, MyGo version mentions, tests, lifecycle, generated sources and cross builds
+    desc: Checks formatting, tests, lifecycle, generated sources and cross builds
     summary: Runs scripts/verify.py with Python, including all examples.
     cmds:
       - "{{.PYTHON}} scripts/verify.py"
