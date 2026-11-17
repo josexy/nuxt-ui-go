@@ -1,10 +1,24 @@
 package main
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/josexy/nuxt-ui-go/internal/showcase"
 )
+
+func TestMyGoVersionComesFromGoMod(t *testing.T) {
+	v, err := mygoVersion("../../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !regexp.MustCompile(`^\d+\.\d+\.\d+`).MatchString(v) {
+		t.Fatalf("MyGo version %q, want a semantic version without its v", v)
+	}
+	if _, err := mygoVersion(t.TempDir()); err == nil {
+		t.Fatal("a missing go.mod gave no error")
+	}
+}
 
 func TestAPISourcePathsAreRepositoryRelative(t *testing.T) {
 	e := extract("../../..")

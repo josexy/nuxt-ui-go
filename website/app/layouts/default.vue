@@ -3,7 +3,7 @@ const { t, locale, setLocale } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
 const colorMode = useColorMode()
-const { components, local, categories } = useCatalog()
+const { components, local, categories, mygo } = useCatalog()
 const query = useState('component-search', () => '')
 const menuOpen = ref(false)
 const searchInput = ref<HTMLInputElement>()
@@ -154,6 +154,6 @@ async function changeLanguage() {
   </div>
   <footer class="site-footer">
     <span>{{ t('footer') }}</span
-    ><span>MyGo 0.9.2</span>
+    ><span>MyGo {{ mygo }}</span>
   </footer>
 </template>

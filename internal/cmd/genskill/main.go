@@ -185,7 +185,7 @@ type generator struct {
 	docs    []*mdFile
 	consts  map[string]string // Component value -> constant name
 	covered map[string]bool
-	version string // "nuxt-ui-go v0.0.2 (MyGo v0.8.3)"
+	version string // "nuxt-ui-go vX.Y.Z (MyGo vX.Y.Z)", from CHANGELOG.md and go.mod
 	// include maps "file.md#anchor" to the references that contain that
 	// documentation section in full, for resolving cross-references.
 	include map[string][]string

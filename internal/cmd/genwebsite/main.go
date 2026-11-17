@@ -13,6 +13,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -152,6 +153,21 @@ func extract(root string) *extractor {
 	}
 	return e
 }
+
+// mygoVersion is the MyGo version go.mod pins, without its "v", so that the
+// site names what its previews run on without a copy to keep up to date.
+func mygoVersion(root string) (string, error) {
+	mod, err := os.ReadFile(filepath.Join(root, "go.mod"))
+	if err != nil {
+		return "", err
+	}
+	m := regexp.MustCompile(`(?m)^\s*github\.com/egoist/mygo v(\S+)`).FindSubmatch(mod)
+	if m == nil {
+		return "", fmt.Errorf("%s/go.mod does not require github.com/egoist/mygo", root)
+	}
+	return string(m[1]), nil
+}
+
 func write(path string, data []byte) {
 	if existing, err := os.ReadFile(path); err == nil && bytes.Equal(existing, data) {
 		return
@@ -229,7 +245,11 @@ func main() {
 		log.Fatal(err)
 	}
 	write(filepath.Join(*root, "internal/showcase/preview/generated.go"), []byte(views))
-	data, err := json.MarshalIndent(map[string]any{"components": pages, "schemas": showcase.Schemas(), "primary": showcase.PrimaryColors(), "neutral": nui.NeutralPaletteNames()}, "", "  ")
+	mygo, err := mygoVersion(*root)
+	if err != nil {
+		log.Fatal(err)
+	}
+	data, err := json.MarshalIndent(map[string]any{"components": pages, "schemas": showcase.Schemas(), "primary": showcase.PrimaryColors(), "neutral": nui.NeutralPaletteNames(), "mygo": mygo}, "", "  ")
 	if err != nil {
 		log.Fatal(err)
 	}
