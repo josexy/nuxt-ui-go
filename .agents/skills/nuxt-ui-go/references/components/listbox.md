@@ -5,7 +5,7 @@
 Select one or more items from a visible list.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.2)
+- Version: nuxt-ui-go v0.1.1 (MyGo v0.9.2)
 - Functions: `Listbox`
 - Types: `ListboxOptions`, `ListboxEvent`
 - Theme key: `nui.ComponentListbox` (for `Theme.WithComponent`)

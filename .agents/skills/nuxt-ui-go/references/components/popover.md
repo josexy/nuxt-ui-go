@@ -5,7 +5,7 @@
 Open related content beside a button or other control.
 
 - Category: Inputs and selection
-- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.2)
+- Version: nuxt-ui-go v0.1.1 (MyGo v0.9.2)
 - Functions: `Popover`
 - Types: `PopoverOptions`
 - Theme key: `nui.ComponentPopover` (for `Theme.WithComponent`)

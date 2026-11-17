@@ -5,7 +5,7 @@
 Continuously scroll text or other display-only content.
 
 - Category: Advanced interaction and layout
-- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.2)
+- Version: nuxt-ui-go v0.1.1 (MyGo v0.9.2)
 - Functions: `Marquee`
 - Types: `MarqueeOptions`
 - Theme key: `nui.ComponentMarquee` (for `Theme.WithComponent`)

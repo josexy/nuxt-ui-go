@@ -5,7 +5,7 @@
 Add a label, help text and errors to an input.
 
 - Category: Inputs and selection
-- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.2)
+- Version: nuxt-ui-go v0.1.1 (MyGo v0.9.2)
 - Functions: `FormField`
 - Types: `FormFieldOptions`
 - Theme key: `nui.ComponentFormField` (for `Theme.WithComponent`)

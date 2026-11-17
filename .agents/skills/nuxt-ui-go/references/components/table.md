@@ -5,7 +5,7 @@
 Display rows and columns with sorting, selection and scrolling.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.2)
+- Version: nuxt-ui-go v0.1.1 (MyGo v0.9.2)
 - Functions: `Table`
 - Types: `TableOptions`, `TableColumn`, `TableState`
 - Theme key: `nui.ComponentTable` (for `Theme.WithComponent`)

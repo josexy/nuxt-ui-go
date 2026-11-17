@@ -5,7 +5,7 @@
 Expand hierarchical data and select its nodes.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.2)
+- Version: nuxt-ui-go v0.1.1 (MyGo v0.9.2)
 - Functions: `Tree`
 - Types: `TreeOptions`, `TreeNode`, `TreeState`, `TreeEvent`, `TreeItemState`
 - Theme key: `nui.ComponentTree` (for `Theme.WithComponent`)

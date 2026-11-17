@@ -5,7 +5,7 @@
 Open a URL or navigate with a link.
 
 - Category: Themes and basic components
-- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.2)
+- Version: nuxt-ui-go v0.1.1 (MyGo v0.9.2)
 - Functions: `Link`
 - Types: `LinkOptions`
 - Theme key: `nui.ComponentLink` (for `Theme.WithComponent`)

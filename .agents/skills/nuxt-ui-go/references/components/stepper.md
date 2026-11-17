@@ -5,7 +5,7 @@
 Display a process and select its current step.
 
 - Category: Overlays and navigation
-- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.2)
+- Version: nuxt-ui-go v0.1.1 (MyGo v0.9.2)
 - Functions: `Stepper`
 - Types: `StepperOptions`, `StepItem`
 - Theme key: `nui.ComponentStepper` (for `Theme.WithComponent`)

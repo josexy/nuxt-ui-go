@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.1.1 - 2026-11-16
 
 - Components animate at one of three motion levels: Full, Reduced (from `Theme.Motion.Reduce` or the system's preference) and Off. Every animated component now decides through the same rules, so the levels apply alike everywhere.
 - Add `MotionTokens.Disabled` and `AppConfig.DisableAnimations`, which turns nui's animation off in both themes: nothing animates and no component asks for frames to animate. Per-component `Animate` and `Transition` options can only turn animation down, never past the level. The settings example has an "Animations" switch, the Gallery's "Gallery animations" switch now turns animations off through it rather than through reduced motion, and the website's App demo has a "Disable animations" control.

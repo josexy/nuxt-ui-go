@@ -5,7 +5,7 @@
 Open a bottom panel and adjust its height with a handle.
 
 - Category: Advanced interaction and layout
-- Version: nuxt-ui-go v0.1.0 plus unreleased changes (MyGo v0.9.2)
+- Version: nuxt-ui-go v0.1.1 (MyGo v0.9.2)
 - Functions: `Drawer`
 - Types: `DrawerOptions`, `DrawerState`
 - Theme key: `nui.ComponentDrawer` (for `Theme.WithComponent`)
