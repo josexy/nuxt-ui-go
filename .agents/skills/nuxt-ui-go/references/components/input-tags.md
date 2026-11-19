@@ -5,7 +5,7 @@
 Turn typed text into removable tags.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.1.1 (MyGo v0.9.2)
+- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
 - Functions: `InputTags`, `AddTags`
 - Types: `InputTagsOptions`
 - Theme key: `nui.ComponentInputTags` (for `Theme.WithComponent`)

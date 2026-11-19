@@ -5,7 +5,7 @@
 Show explanatory text and secondary actions below the content.
 
 - Category: Advanced interaction and layout
-- Version: nuxt-ui-go v0.1.1 (MyGo v0.9.2)
+- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
 - Functions: `FooterLayout`
 - Types: `FooterOptions`
 - Theme key: `nui.ComponentFooter` (for `Theme.WithComponent`)

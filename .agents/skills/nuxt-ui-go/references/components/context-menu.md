@@ -5,7 +5,7 @@
 Show actions for content on right-click.
 
 - Category: Overlays and navigation
-- Version: nuxt-ui-go v0.1.1 (MyGo v0.9.2)
+- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
 - Functions: `ContextMenu`
 - Types: `MenuOptions`, `MenuItem`, `MenuContentOptions`
 - Theme key: `nui.ComponentContextMenu` (for `Theme.WithComponent`)
@@ -179,7 +179,7 @@ Keep one MenuState per window and per trigger; your app can read and write Open.
 
 MenuOptions.Size defaults to MD, can be inherited from the component theme, or can be set explicitly from XS to XL. Menus use the [option row style](select.md): at MD, the padding is 6 DIP and icons are 20 DIP. Descriptions use the same font size as labels, and icons and trailing content align with the first line. The default avatar diameter is 16/16/20/20/24 DIP by size; an explicit Avatar.Size takes precedence. CheckedIcon defaults to Check and LoadingIcon to LoaderCircle. The submenu arrow follows RTL.
 
-MenuOptions.Label sets the panel's name. Width follows the content by default, with a minimum of 128 DIP. MaxHeight defaults to 320 DIP, long menus scroll, and an explicit 0 hides the visible content. Sizes are limited to the window. The DropdownMenu root opens at BottomStart with an 8 DIP offset by default; ContextMenu opens at RightStart with a 2 DIP offset. Submenus open outward in the reading direction with a 3 DIP offset. Placement and Offset can both be overridden explicitly; for ContextMenu, this is a native extension. Menus stay clear of the window edges through AttachTo. There is no custom collision boundary or arrow option.
+MenuOptions.Label sets the panel's name. Width follows the content by default, with a minimum of 128 DIP. MaxHeight defaults to 320 DIP, long menus scroll, and an explicit 0 hides the visible content. A menu placed above or below its trigger is also no taller than the room between the trigger and the window edge on that side, and a menu opened at the pointer is no taller than the window, so every item, and the filter field when there is one, can be reached by scrolling in a short window. The DropdownMenu root opens at BottomStart with an 8 DIP offset by default; ContextMenu opens at RightStart with a 2 DIP offset. Submenus open outward in the reading direction with a 3 DIP offset. Placement and Offset can both be overridden explicitly; for ContextMenu, this is a native extension. Menus stay clear of the window edges through AttachTo. There is no custom collision boundary or arrow option.
 
 Shortcut is split on `+` into Kbd keys; in `Ctrl++`, the final `+` is the plus key. FormatKey converts key names to each platform's display form. XS and SM menus use SM Kbds, MD and LG use MD, and XL uses LG; the gaps between keys are 2/2/2/4/4 DIP. Go shows shortcuts even in narrow windows.
 
@@ -239,7 +239,7 @@ The empty message and the loading indicator are polite status regions with stabl
 
 #### Popover and ScrollArea › Popover: show content next to a control (excerpt)
 
-By default, a generic Popover has the theme background, a 1 DIP border, a 6 DIP corner radius, an 8 DIP content gap, a shadow, and 16 DIP of padding. To make content reach the edges, set the padding of UI[Panel] to 0. Select, InputMenu, and menus use the same base style but usually with a 240 DIP maximum height, 4 DIP of padding, no gap, and at least the trigger's width. For the menus' own height options, see DropdownMenu and ContextMenu.
+By default, a generic Popover has the theme background, a 1 DIP border, a 6 DIP corner radius, an 8 DIP content gap, a shadow, and 16 DIP of padding. To make content reach the edges, set the padding of UI[Panel] to 0. Select, InputMenu, and menus use the same base style but usually with a 240 DIP maximum height, 4 DIP of padding, no gap, and at least the trigger's width. Their lists shrink with the panel and scroll, so in a short window every option can still be scrolled into view. For the menus' own height options, see DropdownMenu and ContextMenu.
 
 ## Complete example
 

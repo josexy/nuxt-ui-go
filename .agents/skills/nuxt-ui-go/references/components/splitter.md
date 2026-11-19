@@ -5,7 +5,7 @@
 Resize two panels by dragging their divider.
 
 - Category: Advanced interaction and layout
-- Version: nuxt-ui-go v0.1.1 (MyGo v0.9.2)
+- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
 - Functions: `Splitter`
 - Types: `SplitterOptions`
 - Theme key: `nui.ComponentSplitter` (for `Theme.WithComponent`)

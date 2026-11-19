@@ -5,7 +5,7 @@
 Edit date segments or choose a date from a calendar.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.1.1 (MyGo v0.9.2)
+- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
 - Functions: `InputDate`, `InputDateRange`
 - Types: `InputDateOptions`
 - Theme key: `nui.ComponentInputDate` (for `Theme.WithComponent`)

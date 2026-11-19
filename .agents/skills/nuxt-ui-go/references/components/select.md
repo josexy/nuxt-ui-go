@@ -5,7 +5,7 @@
 Choose one or more values from a dropdown list.
 
 - Category: Inputs and selection
-- Version: nuxt-ui-go v0.1.1 (MyGo v0.9.2)
+- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
 - Functions: `Select`, `SelectMultiple`
 - Types: `SelectOptions`
 - Theme key: `nui.ComponentSelect` (for `Theme.WithComponent`)
@@ -153,7 +153,7 @@ The description appears on the line below the label, at the same font size, in t
 
 #### Popover and ScrollArea › Popover: show content next to a control (excerpt)
 
-By default, a generic Popover has the theme background, a 1 DIP border, a 6 DIP corner radius, an 8 DIP content gap, a shadow, and 16 DIP of padding. To make content reach the edges, set the padding of UI[Panel] to 0. Select, InputMenu, and menus use the same base style but usually with a 240 DIP maximum height, 4 DIP of padding, no gap, and at least the trigger's width. For the menus' own height options, see [DropdownMenu and ContextMenu](dropdown-menu.md).
+By default, a generic Popover has the theme background, a 1 DIP border, a 6 DIP corner radius, an 8 DIP content gap, a shadow, and 16 DIP of padding. To make content reach the edges, set the padding of UI[Panel] to 0. Select, InputMenu, and menus use the same base style but usually with a 240 DIP maximum height, 4 DIP of padding, no gap, and at least the trigger's width. Their lists shrink with the panel and scroll, so in a short window every option can still be scrolled into view. For the menus' own height options, see [DropdownMenu and ContextMenu](dropdown-menu.md).
 
 ### Options and defaults
 

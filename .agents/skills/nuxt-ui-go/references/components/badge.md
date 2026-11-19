@@ -5,7 +5,7 @@
 Show a status, category or count as a small label.
 
 - Category: Themes and basic components
-- Version: nuxt-ui-go v0.1.1 (MyGo v0.9.2)
+- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
 - Functions: `Badge`
 - Types: `BadgeOptions`
 - Theme key: `nui.ComponentBadge` (for `Theme.WithComponent`)

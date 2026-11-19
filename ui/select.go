@@ -734,7 +734,9 @@ func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[stri
 			panel.KeepFocus().Disabled(editor.IsDisabled() || input.ReadOnly).Role(ui.RoleList)
 			selectionPanel(c, panel, anchor, t, o.Popup, &memory.pop)
 			finish(t, ComponentInputMenu, Panel, panel, PartStyle{}, Decoration{UI: input.UI})
-			ui.Column(c).MinWidth(0).Children(func() {
+			// Shrinks with the panel, which is no taller than the room the window
+			// has, so that the list scrolls within it.
+			ui.Column(c).MinWidth(0).MinHeight(0).Shrink(1).Children(func() {
 				optionList(c, t, &memory.list, editor, count, optionAt, selectionHeight(o.Popup), ComponentInputMenu, Decoration{UI: input.UI}, config.Size, o.SelectedIcon, valueOr(o.HighlightOnHover, true), func(id string) bool {
 					if o.Mode == InputMenuAutocomplete {
 						return false

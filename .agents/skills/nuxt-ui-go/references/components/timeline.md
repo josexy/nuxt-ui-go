@@ -5,7 +5,7 @@
 Display activities or milestones in sequence.
 
 - Category: Overlays and navigation
-- Version: nuxt-ui-go v0.1.1 (MyGo v0.9.2)
+- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
 - Functions: `Timeline`
 - Types: `TimelineOptions`, `TimelineItem`
 - Theme key: `nui.ComponentTimeline` (for `Theme.WithComponent`)

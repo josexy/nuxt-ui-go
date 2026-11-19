@@ -5,7 +5,7 @@
 Select files and display their status and upload progress.
 
 - Category: Advanced interaction and layout
-- Version: nuxt-ui-go v0.1.1 (MyGo v0.9.2)
+- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
 - Functions: `FileUpload`
 - Types: `FileUploadOptions`, `UploadStatus`
 - Theme key: `nui.ComponentFileUpload` (for `Theme.WithComponent`)
