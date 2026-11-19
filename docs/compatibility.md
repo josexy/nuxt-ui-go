@@ -12,11 +12,14 @@ The table records what the project has verified. Platforms have not all been tes
 
 | Platform | Verified | Not yet verified |
 | --- | --- | --- |
-| Windows amd64 | Builds, automated component tests, real Gallery window | Full system IME workflows, DPI changes across monitors, screen reader experience |
+| Windows amd64 | Builds, automated component tests, real Gallery window | Full system IME workflows, DPI changes across monitors, screen reader experience, touchscreen scrolling and pinching |
 | Linux amd64 | Builds, automated component tests, and first frame of a hidden native window on WSL Ubuntu 22.04 | Full desktop interaction, system IME, other distributions |
 | macOS arm64 | Cross-compilation | Running and interacting on the desktop |
 | Browser WASM preview | The project provides [website previews and checks](../website/README.md) | Native file dialogs and the full assistive technology experience are outside the browser preview's scope |
+| Phones (iOS, Android) | No verification records | Not supported yet; see below |
 | Other architectures | No verification records | Check in the target environment |
+
+nui is built and verified with `CGO_ENABLED=0` for desktop systems and the browser. MyGo's iOS and Android targets build with cgo, through Xcode or the Android NDK, so nui does not support phones yet.
 
 On Windows, MyGo's `mygo_nowebview` build tag leaves WebView2 and the code that drives it out of the executable. nui creates no windows and shows every component as native content, so an app whose windows all set `Content` and that opens no web view can build with it:
 

@@ -5,7 +5,7 @@
 Scroll content that exceeds the visible area.
 
 - Category: Inputs and selection
-- Version: nuxt-ui-go v0.1.1 (MyGo v0.9.2)
+- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
 - Functions: `ScrollArea`
 - Types: `ScrollAreaOptions`
 - Theme key: `nui.ComponentScrollArea` (for `Theme.WithComponent`)

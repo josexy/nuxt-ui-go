@@ -5,7 +5,7 @@
 Show the current page within a navigation hierarchy.
 
 - Category: Overlays and navigation
-- Version: nuxt-ui-go v0.1.1 (MyGo v0.9.2)
+- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
 - Functions: `Breadcrumb`
 - Types: `BreadcrumbOptions`, `BreadcrumbItem`
 - Theme key: `nui.ComponentBreadcrumb` (for `Theme.WithComponent`)

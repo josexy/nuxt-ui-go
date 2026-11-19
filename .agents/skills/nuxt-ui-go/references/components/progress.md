@@ -5,7 +5,7 @@
 Show completed progress or indicate that work is ongoing.
 
 - Category: Themes and basic components
-- Version: nuxt-ui-go v0.1.1 (MyGo v0.9.2)
+- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
 - Functions: `Progress`
 - Types: `ProgressOptions`
 - Theme key: `nui.ComponentProgress` (for `Theme.WithComponent`)

@@ -5,7 +5,7 @@
 Choose a color from a panel, swatches or numeric values.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.1.1 (MyGo v0.9.2)
+- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
 - Functions: `ColorPicker`
 - Types: `ColorPickerOptions`
 - Theme key: `nui.ComponentColorPicker` (for `Theme.WithComponent`)

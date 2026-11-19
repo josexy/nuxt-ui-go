@@ -5,7 +5,7 @@
 Choose a whole-number star rating.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.1.1 (MyGo v0.9.2)
+- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
 - Functions: `InputRating`
 - Types: `InputRatingOptions`
 - Theme key: `nui.ComponentInputRating` (for `Theme.WithComponent`)

@@ -5,7 +5,7 @@
 Explain a failure and provide a retry action.
 
 - Category: Overlays and navigation
-- Version: nuxt-ui-go v0.1.1 (MyGo v0.9.2)
+- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
 - Functions: `ErrorView`
 - Types: `ErrorOptions`
 - Theme key: `nui.ComponentError` (for `Theme.WithComponent`)

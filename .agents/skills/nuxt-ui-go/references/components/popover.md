@@ -5,7 +5,7 @@
 Open related content beside a button or other control.
 
 - Category: Inputs and selection
-- Version: nuxt-ui-go v0.1.1 (MyGo v0.9.2)
+- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
 - Functions: `Popover`
 - Types: `PopoverOptions`
 - Theme key: `nui.ComponentPopover` (for `Theme.WithComponent`)
@@ -17,7 +17,7 @@ Create an anchor and pass it with persistent open state to Popover. The content 
 
 ## Things to know
 
-Unset Width follows content; default MaxHeight is 320 DIP without automatic scrolling. MatchAnchor sets a minimum width and Label is an accessible name. MyGo handles collisions with a 4 DIP window margin, versus upstream collisionPadding 8 px. Modal, arrow, portal and virtual anchors are not exposed. An outside button keeps its focus; closing from within returns to the current anchor.
+Unset Width follows content; default MaxHeight is 320 DIP without automatic scrolling. MatchAnchor sets a minimum width and Label is an accessible name. MyGo handles collisions with a 4 DIP window margin, versus upstream collisionPadding 8 px, and keeps the panel no taller than the room on the side it opens; content past that is cut off. Modal, arrow, portal and virtual anchors are not exposed. An outside button keeps its focus; closing from within returns to the current anchor.
 
 ## API
 
@@ -110,9 +110,9 @@ Popover is non-modal: an outside click closes it and still reaches its target. E
 | Offset | 8 DIP from the anchor |
 | Decoration | Use the Panel part to style the appearance |
 
-For top and bottom placements, start and end follow the text direction; left and right placements use physical screen directions. MyGo's AttachTo keeps the popover clear of the window edges.
+For top and bottom placements, start and end follow the text direction; left and right placements use physical screen directions. MyGo's AttachTo keeps the popover clear of the window edges, and keeps a panel placed above or below its anchor no taller than the room between the anchor and the window edge on that side, so the panel never covers its anchor. In a short window, Popover content taller than that room is cut off at the panel's edge.
 
-By default, a generic Popover has the theme background, a 1 DIP border, a 6 DIP corner radius, an 8 DIP content gap, a shadow, and 16 DIP of padding. To make content reach the edges, set the padding of UI[Panel] to 0. Select, InputMenu, and menus use the same base style but usually with a 240 DIP maximum height, 4 DIP of padding, no gap, and at least the trigger's width. For the menus' own height options, see [DropdownMenu and ContextMenu](dropdown-menu.md).
+By default, a generic Popover has the theme background, a 1 DIP border, a 6 DIP corner radius, an 8 DIP content gap, a shadow, and 16 DIP of padding. To make content reach the edges, set the padding of UI[Panel] to 0. Select, InputMenu, and menus use the same base style but usually with a 240 DIP maximum height, 4 DIP of padding, no gap, and at least the trigger's width. Their lists shrink with the panel and scroll, so in a short window every option can still be scrolled into view. For the menus' own height options, see [DropdownMenu and ContextMenu](dropdown-menu.md).
 
 The Panel's font, text color, line height, and Gap apply directly to plain content. Native child controls keep using the local theme passed to them, and their own explicit text styles take precedence. Changing the anchor or panel size keeps the content's identity, drafts, and selection. If focus is inside the popover when it closes, focus returns to the current anchor; if it closes because the user clicked another control, that control keeps focus.
 

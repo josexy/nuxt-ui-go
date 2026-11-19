@@ -5,7 +5,7 @@
 Display an inline message, warning or error.
 
 - Category: Themes and basic components
-- Version: nuxt-ui-go v0.1.1 (MyGo v0.9.2)
+- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
 - Functions: `Alert`
 - Types: `AlertOptions`
 - Theme key: `nui.ComponentAlert` (for `Theme.WithComponent`)
