@@ -54,6 +54,8 @@ Each component's `description` briefly states its purpose. `guide` is Markdown w
 
 `internal/showcase/api-notes.json` holds bilingual descriptions of API fields. `internal/cmd/genwebsite` extracts public functions, Options, and embedded fields from the component sources in `ui/`. The API tables distinguish Go zero values from the component's actual default behavior, and never guess an effective default from the type.
 
+`internal/cmd/genwebsite` also writes a `swatches` object next to the `primary` and `neutral` palette lists in the generated `app/data/catalog.json`. It maps every palette name to a CSS color taken from the Go palettes themselves: the 500 shade that `nui.PaletteByName` returns from `ui/palette_gen.go`, and for `black` the light-mode primary of `nui.Theme.WithBlackPrimary`. The preview's palette pickers show these swatches, so they match the colors the preview paints. A unit test fails if a listed palette has no swatch.
+
 To add an example:
 
 1. Add a registry entry with a stable ID, fill in the English and Chinese text, and list every allowed value for each option.

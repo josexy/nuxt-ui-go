@@ -1,12 +1,14 @@
-import data from '~/data/catalog.json'
-import type { Demo, LocalText, ValueSchema, ValueField } from '~/types/catalog'
+import json from '~/data/catalog.json'
+import type { Catalog, LocalText, ValueField } from '~/types/catalog'
+
+const data = json as unknown as Catalog
 
 export function useCatalog() {
   const { locale } = useI18n()
-  const components = data.components as unknown as Demo[]
+  const components = data.components
   const local = (text: LocalText) => (locale.value === 'zh' ? text.zh : text.en)
   const categories = ['foundations', 'inputs', 'overlays', 'data', 'advanced']
-  const schemas = data.schemas as unknown as Record<string, ValueSchema>
+  const schemas = data.schemas
   function matchesField(field: ValueField, query: string, visited = new Set<string>()): boolean {
     const needle = query.toLowerCase().trim()
     if (
@@ -33,8 +35,9 @@ export function useCatalog() {
     categories,
     primary: data.primary,
     neutral: data.neutral,
+    swatches: data.swatches,
     // The MyGo version go.mod pins, which genwebsite reads.
-    mygo: data.mygo as string,
+    mygo: data.mygo,
     schemas,
     matchesField
   }

@@ -17,6 +17,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/egoist/mygo/ui"
 	"github.com/josexy/nuxt-ui-go/internal/showcase"
 	nui "github.com/josexy/nuxt-ui-go/ui"
 )
@@ -168,6 +169,27 @@ func mygoVersion(root string) (string, error) {
 	return string(m[1]), nil
 }
 
+// swatches maps every palette name the preview offers to a CSS color, so the
+// site's palette pickers show the color the preview paints: the 500 shade of
+// the Go palette, and for "black" the light-mode primary of
+// nui.Theme.WithBlackPrimary, which the preview applies for that name.
+func swatches(names ...[]string) (map[string]string, error) {
+	css := func(c ui.Color) string { return fmt.Sprintf("#%02x%02x%02x", c.R, c.G, c.B) }
+	out := map[string]string{}
+	for _, name := range slices.Concat(names...) {
+		if name == "black" {
+			out[name] = css(nui.Light().WithBlackPrimary().Primary)
+			continue
+		}
+		p, ok := nui.PaletteByName(name)
+		if !ok {
+			return nil, fmt.Errorf("palette %q is not a built-in palette", name)
+		}
+		out[name] = css(p.Shade(500))
+	}
+	return out, nil
+}
+
 func write(path string, data []byte) {
 	if existing, err := os.ReadFile(path); err == nil && bytes.Equal(existing, data) {
 		return
@@ -249,7 +271,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	data, err := json.MarshalIndent(map[string]any{"components": pages, "schemas": showcase.Schemas(), "primary": showcase.PrimaryColors(), "neutral": nui.NeutralPaletteNames(), "mygo": mygo}, "", "  ")
+	primary, neutral := showcase.PrimaryColors(), nui.NeutralPaletteNames()
+	colors, err := swatches(primary, neutral)
+	if err != nil {
+		log.Fatal(err)
+	}
+	data, err := json.MarshalIndent(map[string]any{"components": pages, "schemas": showcase.Schemas(), "primary": primary, "neutral": neutral, "swatches": colors, "mygo": mygo}, "", "  ")
 	if err != nil {
 		log.Fatal(err)
 	}

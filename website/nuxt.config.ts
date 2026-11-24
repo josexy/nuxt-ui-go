@@ -8,7 +8,7 @@ export default defineNuxtConfig({
   css: ['~/assets/main.css'],
   app: {
     baseURL,
-    head: { title: 'NuxtUI Go', meta: [{ name: 'theme-color', content: '#16a34a' }] }
+    head: { title: 'NuxtUI Go' }
   },
   ui: { fonts: false },
   content: { experimental: { sqliteConnector: 'native' } },

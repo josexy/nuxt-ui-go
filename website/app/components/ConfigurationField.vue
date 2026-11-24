@@ -23,7 +23,7 @@ const configured = computed(() => props.modelValue !== undefined)
       <label
         :for="path"
         :title="local(field.description)"
-        ><code>{{ field.name }}</code
+        ><code class="font-mono">{{ field.name }}</code
         ><span
           v-if="schemas[field.type]?.kind === 'duration'"
           class="field-annotation"
@@ -38,15 +38,15 @@ const configured = computed(() => props.modelValue !== undefined)
           >{{ local(field.when.label) }}</span
         ></label
       >
-      <button
+      <UButton
         v-if="configured"
-        type="button"
-        class="field-reset"
+        icon="i-lucide-rotate-ccw"
+        color="neutral"
+        variant="ghost"
+        size="xs"
         :aria-label="`${t('reset')} ${field.name}`"
         @click="emit('update:modelValue', undefined)"
-      >
-        <UIcon name="i-lucide-rotate-ccw" />
-      </button>
+      />
     </div>
     <ValueEditor
       :id="path"

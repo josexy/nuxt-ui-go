@@ -125,42 +125,65 @@ onBeforeUnmount(() => {
 
 <template>
   <div
-    class="live-frame"
+    class="relative"
     :data-preview-state="state"
   >
     <div
       v-if="state === 'loading'"
-      class="preview-loading"
+      class="pointer-events-none absolute inset-0 grid place-items-center bg-default text-sm text-muted"
       role="status"
     >
-      {{ t('loading') }}
+      <span class="flex items-center gap-2"
+        ><UIcon
+          name="i-lucide-loader-circle"
+          class="size-5 animate-spin"
+        />{{ t('loading') }}</span
+      >
     </div>
     <iframe
       ref="frame"
       :key="attempt"
       :src="stableURL"
       :title="`${demo.name} — ${t('preview')}`"
+      class="block w-full border-0"
       :style="{ height: `${demo.height}px` }"
       @error="status('error')"
     />
     <div
       v-if="state === 'error'"
-      class="preview-error"
+      class="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-default p-6 text-center"
     >
-      <p>{{ t('previewError') }}</p>
+      <UIcon
+        name="i-lucide-triangle-alert"
+        class="size-8 text-muted"
+      />
+      <p
+        class="text-sm text-highlighted"
+        role="alert"
+      >
+        {{ t('previewError') }}
+      </p>
       <UButton
         icon="i-lucide-refresh-cw"
+        color="neutral"
         variant="outline"
         @click="retry"
         >{{ t('retry') }}</UButton
       >
     </div>
-    <p
+    <div
       v-if="configurationError"
-      class="configuration-error"
       role="alert"
+      class="border-t border-default p-3"
     >
-      {{ configurationError }}
-    </p>
+      <UAlert
+        color="error"
+        variant="subtle"
+        icon="i-lucide-circle-alert"
+        :title="t('invalidSettings')"
+        :description="configurationError"
+        :ui="{ title: 'text-highlighted', description: 'text-default wrap-anywhere' }"
+      />
+    </div>
   </div>
 </template>
