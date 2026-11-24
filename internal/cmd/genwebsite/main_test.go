@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/josexy/nuxt-ui-go/internal/showcase"
+	nui "github.com/josexy/nuxt-ui-go/ui"
 )
 
 func TestMyGoVersionComesFromGoMod(t *testing.T) {
@@ -17,6 +18,26 @@ func TestMyGoVersionComesFromGoMod(t *testing.T) {
 	}
 	if _, err := mygoVersion(t.TempDir()); err == nil {
 		t.Fatal("a missing go.mod gave no error")
+	}
+}
+
+func TestEveryPaletteNameHasASwatch(t *testing.T) {
+	primary, neutral := showcase.PrimaryColors(), nui.NeutralPaletteNames()
+	colors, err := swatches(primary, neutral)
+	if err != nil {
+		t.Fatal(err)
+	}
+	color := regexp.MustCompile(`^#[0-9a-f]{6}$`)
+	for _, name := range append(primary, neutral...) {
+		if !color.MatchString(colors[name]) {
+			t.Errorf("palette %q has swatch %q, want a #rrggbb color", name, colors[name])
+		}
+	}
+	if colors["black"] == colors["green"] || colors["slate"] == colors["zinc"] {
+		t.Errorf("distinct palettes share a swatch: %v", colors)
+	}
+	if _, err := swatches([]string{"no-such-palette"}); err == nil {
+		t.Error("an unknown palette name gave no error")
 	}
 }
 

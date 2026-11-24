@@ -56,7 +56,7 @@ function quickValue(control: Control) {
   }
   return values.value[control.key]
 }
-function setQuick(control: Control, raw: string | boolean) {
+function setQuick(control: Control, raw: string | number | boolean | null) {
   for (const binding of props.demo.bindings || []) {
     const patch = options.value[binding.id]
     if (!patch || typeof patch !== 'object' || Array.isArray(patch)) continue
@@ -72,10 +72,19 @@ function setQuick(control: Control, raw: string | boolean) {
           : null
       : control.kind === 'number' || control.kind === 'integer'
         ? Number(raw)
-        : raw
+        : (raw as string | boolean)
 }
-function inputValue(event: Event) {
-  return (event.target as HTMLInputElement).value
+// Choices for a select quick parameter. "__custom__" stands for a value set in
+// All fields that the list does not offer; it shows but cannot be chosen.
+function choiceItems(control: Control) {
+  const items = (control.choices || []).map(c => ({
+    label: c.value === 'default' ? t('inherit') : c.value,
+    value: c.value,
+    disabled: false
+  }))
+  return quickValue(control) === '__custom__'
+    ? [{ label: t('customValue'), value: '__custom__', disabled: true }, ...items]
+    : items
 }
 function defaults(binding: Binding): JSONValue {
   if (
@@ -120,9 +129,11 @@ const status = ref('loading')
 const codeMode = ref('fragment')
 const snippet = ref(props.demo.snippet)
 const source = ref(props.demo.source)
-const copyState = ref('copy')
 const synchronized = ref(false)
-const currentCode = computed(() => (codeMode.value === 'complete' ? source.value : snippet.value))
+const codeTabs = computed(() => [
+  { value: 'fragment', label: t('fragment'), code: snippet.value },
+  { value: 'complete', label: t('complete'), code: source.value }
+])
 watch(
   config,
   () => {
@@ -145,30 +156,17 @@ function reset() {
   events.value = []
   resetKey.value++
 }
-let copyTimer: ReturnType<typeof setTimeout> | undefined
-async function copy() {
-  if (!synchronized.value) return
-  try {
-    await navigator.clipboard.writeText(currentCode.value)
-    copyState.value = 'copied'
-  } catch {
-    copyState.value = 'copyFailed'
-  }
-  clearTimeout(copyTimer)
-  copyTimer = setTimeout(() => {
-    copyState.value = 'copy'
-  }, 2500)
-}
-onBeforeUnmount(() => clearTimeout(copyTimer))
 </script>
 
 <template>
-  <section
-    id="preview"
-    class="playground-section"
-  >
-    <div class="section-title">
-      <h2>{{ t('preview') }}</h2>
+  <section>
+    <div class="mb-3 flex items-center justify-between gap-3">
+      <h2
+        id="preview"
+        class="text-2xl font-bold text-highlighted"
+      >
+        {{ t('preview') }}
+      </h2>
       <UButton
         icon="i-lucide-rotate-ccw"
         color="neutral"
@@ -178,38 +176,20 @@ onBeforeUnmount(() => clearTimeout(copyTimer))
         >{{ t('reset') }}</UButton
       >
     </div>
-    <div class="playground">
-      <div class="theme-toolbar">
-        <label
-          >{{ t('primary')
-          }}<select
-            v-model="primaryColor"
-            :aria-label="t('primary')"
-          >
-            <option
-              v-for="name in primary"
-              :key="name"
-              :value="name"
-            >
-              {{ name }}
-            </option>
-          </select></label
-        >
-        <label
-          >{{ t('neutral')
-          }}<select
-            v-model="neutralColor"
-            :aria-label="t('neutral')"
-          >
-            <option
-              v-for="name in neutral"
-              :key="name"
-              :value="name"
-            >
-              {{ name }}
-            </option>
-          </select></label
-        >
+    <div class="overflow-hidden rounded-lg border border-default">
+      <div
+        class="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-default bg-elevated/50 px-4 py-2.5"
+      >
+        <PalettePicker
+          v-model="primaryColor"
+          :label="t('primary')"
+          :names="primary"
+        />
+        <PalettePicker
+          v-model="neutralColor"
+          :label="t('neutral')"
+          :names="neutral"
+        />
       </div>
       <ClientOnly>
         <PreviewFrame
@@ -220,193 +200,187 @@ onBeforeUnmount(() => clearTimeout(copyTimer))
           @status="previewStatus"
           @event="record"
         />
-        <template #fallback
-          ><div
-            class="preview-placeholder"
-            :style="{ height: `${demo.height + 40}px` }"
+        <template #fallback>
+          <div
+            class="grid place-items-center text-sm text-muted"
+            :style="{ height: `${demo.height}px` }"
           >
-            {{ t('loading') }}
-          </div></template
-        >
+            <span class="flex items-center gap-2"
+              ><UIcon
+                name="i-lucide-loader-circle"
+                class="size-5 animate-spin"
+              />{{ t('loading') }}</span
+            >
+          </div>
+        </template>
       </ClientOnly>
-      <div
-        id="parameters"
-        class="parameter-panel"
-      >
-        <h3>{{ t('parameters') }}</h3>
-        <p class="parameter-hint">{{ t('parameterHint') }}</p>
-        <div class="parameter-grid">
-          <label
+      <div class="border-t border-default p-4 sm:p-5">
+        <h3
+          id="parameters"
+          class="text-base font-semibold text-highlighted"
+        >
+          {{ t('parameters') }}
+        </h3>
+        <p class="mt-1 mb-4 text-sm text-muted">{{ t('parameterHint') }}</p>
+        <div class="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2 2xl:grid-cols-3">
+          <UFormField
             v-for="control in demo.controls"
             :key="control.key"
-            class="parameter-field"
-            :for="`param-${control.key}`"
+            :label="local(control.label)"
+            size="sm"
+            :ui="{ hint: 'min-w-0' }"
           >
-            <span
-              >{{ local(control.label) }} <code>{{ control.key }}</code></span
-            >
-            <select
+            <template #hint>
+              <code class="truncate font-mono text-xs text-muted">{{ control.key }}</code>
+            </template>
+            <USelect
               v-if="control.kind === 'select'"
-              :id="`param-${control.key}`"
-              :value="quickValue(control)"
+              :model-value="String(quickValue(control))"
+              :items="choiceItems(control)"
               :data-param="control.key"
-              @change="setQuick(control, inputValue($event))"
-            >
-              <option
-                v-if="control.kind === 'select' && quickValue(control) === '__custom__'"
-                value="__custom__"
-                disabled
-              >
-                {{ t('customValue') }}
-              </option>
-              <option
-                v-for="choice in control.choices"
-                :key="choice.value"
-                :value="choice.value"
-              >
-                {{ choice.value === 'default' ? t('inherit') : choice.value }}
-              </option>
-            </select>
-            <select
+              class="w-full"
+              @update:model-value="setQuick(control, $event)"
+            />
+            <USelect
               v-else-if="control.kind === 'optionalBoolean'"
-              :id="`param-${control.key}`"
-              :value="quickValue(control) == null ? 'unset' : String(quickValue(control))"
+              :model-value="quickValue(control) == null ? 'unset' : String(quickValue(control))"
+              :items="[
+                { label: t('inherit'), value: 'unset' },
+                { label: t('yes'), value: 'true' },
+                { label: t('no'), value: 'false' }
+              ]"
               :data-param="control.key"
-              @change="setQuick(control, inputValue($event))"
-            >
-              <option value="unset">{{ t('inherit') }}</option>
-              <option value="true">{{ t('yes') }}</option>
-              <option value="false">{{ t('no') }}</option>
-            </select>
-            <span
+              class="w-full"
+              @update:model-value="setQuick(control, $event)"
+            />
+            <USwitch
               v-else-if="control.kind === 'boolean'"
-              class="boolean-field"
-              ><input
-                :id="`param-${control.key}`"
-                :checked="Boolean(quickValue(control))"
-                type="checkbox"
-                :data-param="control.key"
-                @change="setQuick(control, ($event.target as HTMLInputElement).checked)"
-              /><span>{{ quickValue(control) ? t('yes') : t('no') }}</span></span
-            >
-            <input
+              :model-value="Boolean(quickValue(control))"
+              :data-param="control.key"
+              @update:model-value="setQuick(control, $event)"
+            />
+            <UInputNumber
               v-else-if="control.kind === 'integer' || control.kind === 'number'"
-              :id="`param-${control.key}`"
-              :value="quickValue(control)"
-              @input="setQuick(control, inputValue($event))"
-              type="number"
+              :model-value="Number(quickValue(control))"
               :min="control.min ?? 0"
               :max="control.max"
-              :step="control.kind === 'integer' ? 1 : 'any'"
+              :step="1"
+              :step-snapping="control.kind === 'integer'"
+              :format-options="{ useGrouping: false, maximumFractionDigits: 6 }"
               :data-param="control.key"
+              class="w-full"
+              @update:model-value="setQuick(control, $event)"
             />
-            <input
+            <UInput
               v-else
-              :id="`param-${control.key}`"
-              :value="quickValue(control)"
-              @input="setQuick(control, inputValue($event))"
-              type="text"
+              :model-value="String(quickValue(control) ?? '')"
               maxlength="500"
               :data-param="control.key"
+              class="w-full"
+              @update:model-value="setQuick(control, String($event))"
             />
-          </label>
+          </UFormField>
         </div>
-        <details
+        <UCollapsible
           v-if="fieldCount"
-          class="all-fields"
+          class="mt-5 border-t border-default pt-3"
         >
-          <summary>
-            {{ t('allFields') }} <span>{{ fieldCount }}</span>
-          </summary>
-          <input
-            v-model="fieldFilter"
-            type="search"
-            :placeholder="t('searchFields')"
-            :aria-label="t('searchFields')"
-            class="field-search"
-          />
-          <div
-            v-for="binding in visibleBindings"
-            :key="binding.id"
-            class="binding-fields"
+          <UButton
+            color="neutral"
+            variant="ghost"
+            trailing-icon="i-lucide-chevron-down"
+            class="group -ms-2.5"
+            :ui="{
+              trailingIcon: 'transition-transform duration-200 group-data-[state=open]:rotate-180'
+            }"
           >
-            <h4>{{ binding.id }}</h4>
-            <ValueEditor
-              :id="binding.id"
-              :type="binding.type"
-              :fields="binding.fields"
-              :model-value="options[binding.id]"
-              :fallback="defaults(binding)"
-              :filter="fieldFilter"
-              @update:model-value="configure(binding.id, $event)"
+            {{ t('allFields') }}
+            <UBadge
+              :label="String(fieldCount)"
+              color="neutral"
+              variant="subtle"
+              size="sm"
             />
-          </div>
-        </details>
+          </UButton>
+          <template #content>
+            <UInput
+              v-model="fieldFilter"
+              type="search"
+              icon="i-lucide-search"
+              size="sm"
+              :placeholder="t('searchFields')"
+              :aria-label="t('searchFields')"
+              class="my-3 w-full"
+            />
+            <div
+              v-for="binding in visibleBindings"
+              :key="binding.id"
+              class="mt-5 first:mt-2"
+            >
+              <h4 class="mb-3 font-mono text-xs font-medium text-muted">{{ binding.id }}</h4>
+              <ValueEditor
+                :id="binding.id"
+                :type="binding.type"
+                :fields="binding.fields"
+                :model-value="options[binding.id]"
+                :fallback="defaults(binding)"
+                :filter="fieldFilter"
+                @update:model-value="configure(binding.id, $event)"
+              />
+            </div>
+          </template>
+        </UCollapsible>
       </div>
       <div
-        v-if="events.length"
-        class="event-log"
         aria-live="polite"
+        :class="events.length ? 'border-t border-default px-4 py-3 sm:px-5' : ''"
       >
-        <div class="config-field-heading">
-          <span>{{ t('events') }}</span
-          ><button
-            type="button"
-            @click="events = []"
-          >
-            {{ t('clear') }}
-          </button>
-        </div>
-        <code
-          v-for="(event, index) in events"
-          :key="index"
-          >{{ event.name }}{{ event.args.length ? `(${event.args.join(', ')})` : '()' }}</code
-        >
+        <template v-if="events.length">
+          <div class="mb-1.5 flex items-center justify-between gap-2">
+            <h4 class="text-sm font-semibold text-highlighted">{{ t('events') }}</h4>
+            <UButton
+              color="neutral"
+              variant="link"
+              size="xs"
+              icon="i-lucide-trash-2"
+              @click="events = []"
+              >{{ t('clear') }}</UButton
+            >
+          </div>
+          <ol class="space-y-0.5 font-mono text-xs text-muted">
+            <li
+              v-for="(event, index) in events"
+              :key="index"
+              class="wrap-anywhere"
+            >
+              {{ event.name }}{{ event.args.length ? `(${event.args.join(', ')})` : '()' }}
+            </li>
+          </ol>
+        </template>
       </div>
     </div>
   </section>
-  <section
-    id="code"
-    class="code-section"
-  >
-    <div class="section-title">
-      <h2>
-        {{ t('code')
-        }}<UIcon
-          v-if="!synchronized && status === 'ready'"
-          name="i-lucide-loader-circle"
-          class="animate-spin code-pending"
-          :aria-label="t('loading')"
-        />
-      </h2>
-      <UButton
-        :disabled="!synchronized"
-        :icon="copyState === 'copied' ? 'i-lucide-check' : 'i-lucide-copy'"
-        color="neutral"
-        variant="ghost"
-        size="sm"
-        @click="copy"
-        >{{ t(copyState) }}</UButton
-      >
-    </div>
-    <div class="code-box">
-      <div class="code-tabs">
-        <button
-          :class="{ selected: codeMode === 'fragment' }"
-          :aria-pressed="codeMode === 'fragment'"
-          @click="codeMode = 'fragment'"
-        >
-          {{ t('fragment') }}</button
-        ><button
-          :class="{ selected: codeMode === 'complete' }"
-          :aria-pressed="codeMode === 'complete'"
-          @click="codeMode = 'complete'"
-        >
-          {{ t('complete') }}</button
-        ><span>Go</span>
-      </div>
-      <pre tabindex="0"><code>{{ currentCode }}</code></pre>
-    </div>
-    <p class="code-hint">{{ t(synchronized ? 'codeHint' : 'defaultCode') }}</p>
+  <UAlert
+    color="neutral"
+    variant="subtle"
+    icon="i-lucide-info"
+    :title="t('platform')"
+    :description="t('platformNote')"
+  />
+  <section>
+    <h2
+      id="code"
+      class="mb-3 text-2xl font-bold text-highlighted"
+    >
+      {{ t('code') }}
+    </h2>
+    <CodePanel
+      v-model:tab="codeMode"
+      :tabs="codeTabs"
+      badge="Go"
+      :pending="!synchronized && status === 'ready'"
+      :copyable="synchronized"
+    />
+    <p class="mt-2 text-sm text-muted">{{ t(synchronized ? 'codeHint' : 'defaultCode') }}</p>
   </section>
 </template>

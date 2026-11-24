@@ -72,3 +72,14 @@ export interface PreviewConfig {
   mode: 'light' | 'dark' | 'system'
   locale: 'en' | 'zh-Hans'
 }
+// The shape of app/data/catalog.json, which internal/cmd/genwebsite writes.
+export interface Catalog {
+  components: Demo[]
+  schemas: Record<string, ValueSchema>
+  primary: string[]
+  neutral: string[]
+  // Palette name → CSS color of the swatch the palette pickers show.
+  swatches: Record<string, string>
+  // The MyGo version go.mod pins.
+  mygo: string
+}
