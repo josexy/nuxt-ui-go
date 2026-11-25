@@ -12,7 +12,7 @@ Apply a window theme and share it with its components.
 
 ## Usage
 
-Call `nui.App(c, config)` at the start of the view and pass its theme to buttons, cards and other components. Initialize `config` when creating the window to keep appearance and palette choices. The complete example includes window and language setup.
+Call `nui.App(c, config)` at the start of the view and pass its theme to buttons, cards and other components. Initialize `config` when creating the window to keep appearance and palette choices. The complete program includes window and language setup.
 
 ## Things to know
 

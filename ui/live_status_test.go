@@ -156,7 +156,7 @@ func TestFileUploadMessagesAreReadOnceWhenTheyAppear(t *testing.T) {
 	if !state.Pending() {
 		t.Fatal("the chooser did not start")
 	}
-	r.expectRead("reading starts", "Reading file information…")
+	r.expectRead("reading starts", "Reading files…")
 	r.Frame()
 	r.Frame()
 	r.expectSilent("rebuilds while reading")
@@ -180,7 +180,7 @@ func TestFileUploadMessagesAreReadOnceWhenTheyAppear(t *testing.T) {
 	r.expectRead("the error text changes while shown", "Upload quota reached")
 
 	click(t, r.Tester, "Files")
-	r.expectRead("reading again clears the error", "Reading file information…")
+	r.expectRead("reading again clears the error", "Reading files…")
 	release <- nil
 	awaitAdvancing(t, r.Tester, func() bool { return !state.Pending() })
 	r.Frame()

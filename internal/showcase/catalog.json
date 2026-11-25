@@ -8,8 +8,8 @@
       "en": "Apply a window theme and share it with its components."
     },
     "guide": {
-      "zh": "### 基本用法\n\n在视图函数开头调用 `nui.App(c, config)`，再把返回的主题传给按钮、卡片等组件。`config` 保存明暗模式和色板，应在创建窗口时初始化。页面中的完整示例包含窗口创建和语言设置。\n\n### 在预览中试一试\n\n1. 修改按钮文字和颜色，观察卡片中的按钮。\n2. 切换页面右上角的明暗模式，查看同一组组件的配色。\n3. 打开“关闭动画”，再切换开关：滑块立即到位，按钮悬停颜色也立即变化。",
-      "en": "### Basic usage\n\nCall `nui.App(c, config)` at the start of the view and pass its theme to buttons, cards and other components. Initialize `config` when creating the window to keep appearance and palette choices. The complete example includes window and language setup.\n\n### Try the preview\n\n1. Change the button text and color inside the card.\n2. Switch the site appearance to compare light and dark colors.\n3. Turn on Disable animations and toggle the switch: the thumb moves at once, and the button's hover colors change at once."
+      "zh": "### 基本用法\n\n在视图函数开头调用 `nui.App(c, config)`，再把返回的主题传给按钮、卡片等组件。`config` 保存明暗模式和色板，应在创建窗口时初始化。页面中的「完整程序」包含窗口创建和语言设置。\n\n### 在预览中试一试\n\n1. 修改按钮文字和颜色，观察卡片中的按钮。\n2. 切换页面右上角的明暗模式，查看同一组组件的配色。\n3. 打开“关闭动画”，再切换开关：滑块立即到位，按钮悬停颜色也立即变化。",
+      "en": "### Basic usage\n\nCall `nui.App(c, config)` at the start of the view and pass its theme to buttons, cards and other components. Initialize `config` when creating the window to keep appearance and palette choices. The complete program includes window and language setup.\n\n### Try the preview\n\n1. Change the button text and color inside the card.\n2. Switch the site appearance to compare light and dark colors.\n3. Turn on Disable animations and toggle the switch: the thumb moves at once, and the button's hover colors change at once."
     },
     "note": {
       "zh": "App 只配置当前窗口的主题。创建窗口仍需调用 `mygo.NewWindow`。语言通过 `mygo.App.SetLocale` 设置，作用于整个应用；AppConfig 不提供单窗口语言参数。`AppConfig.DisableAnimations` 关闭明暗两套主题中 nui 组件的全部动画；系统的减少动态效果偏好只停止移动、缩放和旋转，淡入淡出、颜色过渡和加载动画仍会播放。预览用主题的 `Motion.Disabled` 演示同样的效果。",
@@ -292,15 +292,15 @@
     "name": "Main",
     "category": "foundations",
     "description": {
-      "zh": "放置应用的主要内容，并占用剩余空间。",
-      "en": "Place the main application content in the available space."
+      "zh": "放置页面主体内容，并自动占满剩余空间。",
+      "en": "Place the main page content in the remaining space."
     },
     "guide": {
-      "zh": "### 基本用法\n\n在 `Main` 的内容回调中创建页面主体，可与 HeaderLayout、Sidebar 和 FooterLayout 组合。回调会随界面更新而重复执行，业务数据应保存在视图函数外。\n\n### 在预览中试一试\n\n1. 修改标题，查看主内容区中的卡片。\n2. 打开完整示例，查看 Main 与窗口主题的组合方式。",
-      "en": "### Basic usage\n\nBuild the main page content in the `Main` callback and combine it with HeaderLayout, Sidebar and FooterLayout. The callback runs again as the UI updates, so keep application data outside the view function.\n\n### Try the preview\n\n1. Change the title on the card in the main content area.\n2. Open the complete example to see Main used with a window theme."
+      "zh": "### 基本用法\n\n在 `Main` 的内容回调中创建页面主体，可与 HeaderLayout、Sidebar 和 FooterLayout 组合。回调会随界面更新而重复执行，业务数据应保存在视图函数外。\n\n### 在预览中试一试\n\n1. 修改标题，查看主内容区中的卡片。\n2. 查看「完整程序」，了解 Main 与窗口主题的组合方式。",
+      "en": "### Basic usage\n\nBuild the main page content in the `Main` callback and combine it with HeaderLayout, Sidebar and FooterLayout. The callback runs again as the UI updates, so keep application data outside the view function.\n\n### Try the preview\n\n1. Change the title on the card in the main content area.\n2. Open the complete program to see Main used with a window theme."
     },
     "note": {
-      "zh": "Main 提供布局，不会自动增加滚动条。内容需要滚动时，再组合 ScrollArea 或 MyGo 的 Scroll。Main 是窗口的主要内容地标（ui.RoleMain），一个窗口只应有一个；嵌套或预览实例可在返回的元素上调用 .Role(ui.RoleGroup) 取消地标，布局不变。",
+      "zh": "Main 提供布局，不会自动增加滚动条。内容需要滚动时，再组合 ScrollArea 或 MyGo 的 Scroll。Main 是窗口的主内容区域（无障碍角色 ui.RoleMain），一个窗口只应有一个；嵌套或预览实例可在返回元素上调用 .Role(ui.RoleGroup) 取消该角色，布局不变。",
       "en": "Main provides layout without scrolling. Add ScrollArea or MyGo Scroll when content needs to scroll. Main is the window’s main landmark (ui.RoleMain), and a window should have one; call .Role(ui.RoleGroup) on the returned element to opt a nested or preview instance out without changing its layout."
     },
     "symbols": ["Main"],
@@ -402,7 +402,7 @@
       "en": "### Basic usage\n\nSet button text and appearance with `Button`, then handle activation with `.OnClick(...)`. Keep values such as a click count outside the view function. Loading and Disabled both prevent activation.\n\n### Try the preview\n\n1. Click the button and watch the count below it increase.\n2. Change its icon, color or size and confirm the count is retained.\n3. Enable loading or disabled, then click again to check that the count stays the same.\n4. Enable the avatar, then choose a leading icon or turn loading on to compare precedence. A trailing loader keeps the avatar visible.\n\nEnable reduced motion and change the color: the background still fades and the loader keeps turning, as under the system preference. Disable the toggle again; the button keeps its current color."
     },
     "note": {
-      "zh": "仅显示图标或头像的按钮必须设置 `AccessibleLabel`。前导图标或前导加载图标优先于 Avatar。加载图标的颜色使用 `UI[Leading].Foreground` 或 `UI[Trailing].Foreground` 配置，Style 中的 TextColor 不改变其绘制颜色。重置示例会清除点击计数。 将 Color 设为 Neutral、Variant 设为 Solid 后，可用自定义背景开关查看 InvertedBackground 的效果；这只修改示例的局部主题。",
+      "zh": "仅显示图标或头像的按钮必须设置 `AccessibleLabel`。前导图标或前导加载图标优先于 Avatar。加载图标的颜色使用 `UI[Leading].Foreground` 或 `UI[Trailing].Foreground` 配置，Style 中的 TextColor 不改变其绘制颜色。点击「重置」会清除点击计数。将 Color 设为 Neutral、Variant 设为 Solid 后，可用自定义背景开关查看 InvertedBackground 的效果；这只修改示例的局部主题。",
       "en": "An icon-only or avatar-only button requires an `AccessibleLabel`. Leading icons and leading loaders replace Avatar. Set loader colors through `UI[Leading].Foreground` or `UI[Trailing].Foreground`; TextColor in Style does not change their painted color. Resetting clears the click count. Set Color to Neutral and Variant to Solid, then use the custom background toggle to inspect InvertedBackground. This only changes the example’s local theme."
     },
     "symbols": ["Button"],
@@ -618,7 +618,7 @@
         "key": "reduceMotion",
         "label": {
           "zh": "减少动态效果",
-          "en": "Reduced motion"
+          "en": "Reduce motion"
         },
         "kind": "boolean",
         "default": false
@@ -738,7 +738,7 @@
       "en": "### Basic usage\n\nPass a short label to `Badge` and choose Color, Variant and Size. Leading and Trailing add icons before or after the text.\n\n### Try the preview\n\n1. Change the label, then choose a color and icon.\n2. Compare variants and the square option with text or an icon alone.\n3. Enable the avatar, then choose an icon to replace it. Clear the label to compare automatic square padding for an icon-only badge."
     },
     "note": {
-      "zh": "Badge 用于显示信息，需要执行操作时使用 Button。空文字会自动启用 Square；头像未设置 Size 时随 Badge 尺寸调整，显式头像尺寸优先。 将 Color 设为 Neutral、Variant 设为 Solid 后，可用自定义背景开关查看 InvertedBackground 的效果；这只修改示例的局部主题。",
+      "zh": "Badge 用于显示信息，需要执行操作时使用 Button。空文字会自动启用 Square；头像未设置 Size 时随 Badge 尺寸调整，显式头像尺寸优先。将 Color 设为 Neutral、Variant 设为 Solid 后，可用自定义背景开关查看 InvertedBackground 的效果；这只修改示例的局部主题。",
       "en": "Badge displays information; use Button for actions. An empty label enables Square automatically. Unset avatar Size follows the badge; explicit avatar size takes precedence. Set Color to Neutral and Variant to Solid, then use the custom background toggle to inspect InvertedBackground. This only changes the example’s local theme."
     },
     "symbols": ["Badge"],
@@ -935,15 +935,15 @@
     "name": "Card",
     "category": "foundations",
     "description": {
-      "zh": "把标题、说明和相关内容放在同一张卡片中。",
-      "en": "Group a title, description and related content in a card."
+      "zh": "将标题、说明和相关内容组织在一张卡片中。",
+      "en": "Group a title, description, and related content in a card."
     },
     "guide": {
-      "zh": "### 基本用法\n\nTitle 和 Description 设置卡片标题及说明，内容回调用于添加正文和按钮。需要定制标题区或底部操作区时，使用 Header 和 Footer 回调。\n\n分区线固定为一个物理像素，布局仍占 1 DIP。\n\n### 在预览中试一试\n\n1. 修改标题，查看卡片顶部的变化。\n2. 切换 Variant，比较边框和背景样式。\n3. 清空标题，只保留描述；再清空描述，观察页头区域移除后的布局。\n4. 编辑正文草稿，再清空或恢复标题和描述，已有输入会保留。",
+      "zh": "### 基本用法\n\nTitle 和 Description 设置卡片标题及说明，内容回调用于添加正文和按钮。需要定制标题区或底部操作区时，使用 Header 和 Footer 回调。\n\n分区线固定为一个物理像素，布局仍占 1 DIP。\n\n### 在预览中试一试\n\n1. 修改标题，查看卡片顶部的变化。\n2. 切换 Variant，比较边框和背景样式。\n3. 清空标题，只保留说明；再清空说明，观察页头区域移除后的布局。\n4. 编辑正文草稿，再清空或恢复标题和说明，已有输入会保留。",
       "en": "### Basic usage\n\nUse Title and Description for the heading, and the content callback for the body and buttons. Header and Footer callbacks customize the heading area and footer.\n\nSection dividers paint one device pixel while retaining 1 DIP of layout space.\n\n### Try the preview\n\n1. Change the title at the top of the card.\n2. Switch Variant to compare borders and backgrounds.\n3. Clear the title to keep only the description, then clear the description to remove the header.\n4. Edit the body draft, then clear or restore the title and description. The draft stays intact."
     },
     "note": {
-      "zh": "默认内边距在窗口宽度小于 640 DIP 时为 16 DIP；达到 640 后，水平内边距和正文垂直内边距为 24，页头/页尾垂直内边距仍为 16。只有描述时保留 4 DIP 顶部间距。动态移除页头不会重建正文输入。",
+      "zh": "默认内边距在窗口宽度小于 640 DIP 时为 16 DIP；达到 640 后，水平内边距和正文垂直内边距为 24，页头/页尾垂直内边距仍为 16。只有说明时保留 4 DIP 顶部间距。动态移除页头不会重建正文输入。",
       "en": "Default padding is 16 DIP below a window width of 640 DIP. At 640 and above, horizontal and body vertical padding are 24; header/footer vertical padding stays 16. A description without a title retains its 4 DIP top margin. Removing the header does not remount the body editor."
     },
     "symbols": ["Card"],
@@ -993,7 +993,7 @@
       {
         "key": "description",
         "label": {
-          "zh": "描述",
+          "zh": "说明",
           "en": "Description"
         },
         "kind": "text",
@@ -1018,7 +1018,7 @@
       "en": "### Basic usage\n\nTitle, Description and Icon describe the status. Avatar takes precedence over Icon and defaults to 44 DIP. Actions builds controls below the body by default; Horizontal moves them beside it.\n\n### Try the preview\n\n1. Click Review changes, watch the count, then change orientation.\n2. Enable the avatar and compare it with the icon; edit the title, description, color and variant.\n3. Close the notice and use Reopen notice to restore it; try disabling close and changing its icon."
     },
     "note": {
-      "zh": "OnClose 只通知关闭请求，是否隐藏由应用决定。本例收到请求后隐藏提示，重开时保留操作次数。Close 可配置 ButtonOptions；默认关闭按钮为 MD、Neutral、LinkVariant，关闭图标默认为 X。 将 Color 设为 Neutral、Variant 设为 Solid 后，可用自定义背景开关查看 InvertedBackground 的效果；这只修改示例的局部主题。",
+      "zh": "OnClose 只通知关闭请求，是否隐藏由应用决定。本例收到请求后隐藏提示，重开时保留操作次数。Close 可配置 ButtonOptions；默认关闭按钮为 MD、Neutral、LinkVariant，关闭图标默认为 X。将 Color 设为 Neutral、Variant 设为 Solid 后，可用自定义背景开关查看 InvertedBackground 的效果；这只修改示例的局部主题。",
       "en": "OnClose reports a close request; the application owns visibility. This example hides the notice on request and retains action counts when reopened. Close accepts ButtonOptions; its defaults are MD, Neutral and LinkVariant, with an X icon. Set Color to Neutral and Variant to Solid, then use the custom background toggle to inspect InvertedBackground. This only changes the example’s local theme."
     },
     "symbols": ["Alert"],
@@ -1142,7 +1142,7 @@
         "key": "avatar",
         "label": {
           "zh": "显示头像",
-          "en": "Avatar"
+          "en": "Show avatar"
         },
         "kind": "boolean",
         "default": false
@@ -1151,7 +1151,7 @@
         "key": "closable",
         "label": {
           "zh": "显示关闭按钮",
-          "en": "Close button"
+          "en": "Show close button"
         },
         "kind": "boolean",
         "default": true
@@ -1198,8 +1198,8 @@
       "en": "Display an image, icon or name initials as an avatar."
     },
     "guide": {
-      "zh": "### 基本用法\n\nAvatar 按图片、图标、Text、Alt 首字母的顺序选择内容。图片在组件外加载并解码；加载失败时传 nil，组件继续使用回退内容。需要角标时用 Chip 包裹，Inset 设为 true 可将角标放在头像边缘内侧。\n\n### 在预览中试一试\n\n1. 输入姓名，再设置回退文字和图标，比较内容优先级。\n2. 切换尺寸、颜色和角标。\n3. 在完整参数中为 Image 选择图片，打开 64 DIP 根容器开关，查看图片如何填满自定义尺寸。Body 部件可配置图片透明度等外观。",
-      "en": "### Basic usage\n\nAvatar chooses an image, icon, Text, then initials from Alt. Load and decode images outside the component; pass nil on failure to use fallback content. Wrap it in Chip with Inset set to true to place a status chip inside the avatar edge.\n\n### Try the preview\n\n1. Enter a name, then set fallback text and an icon to compare priority.\n2. Change size, color and the chip.\n3. Choose an Image in the full parameter editor and enable the 64 DIP root to see the image fill the custom size. Body styles control image appearance such as opacity."
+      "zh": "### 基本用法\n\nAvatar 按图片、图标、Text、Alt 首字母的顺序选择内容。图片在组件外加载并解码；加载失败时传 nil，组件继续使用回退内容。需要角标时用 Chip 包裹，Inset 设为 true 可将角标放在头像边缘内侧。\n\n### 在预览中试一试\n\n1. 输入姓名，再设置回退文字和图标，比较内容优先级。\n2. 切换尺寸、颜色和角标。\n3. 在「全部参数」中为 Image 选择图片，打开 64 DIP 根容器开关，查看图片如何填满自定义尺寸。Body 部件可配置图片透明度等外观。",
+      "en": "### Basic usage\n\nAvatar chooses an image, icon, Text, then initials from Alt. Load and decode images outside the component; pass nil on failure to use fallback content. Wrap it in Chip with Inset set to true to place a status chip inside the avatar edge.\n\n### Try the preview\n\n1. Enter a name, then set fallback text and an icon to compare priority.\n2. Change size, color and the chip.\n3. Choose an Image in All fields and enable the 64 DIP root to see the image fill the custom size. Body styles control image appearance such as opacity."
     },
     "note": {
       "zh": "Alt 优先作为图片的可访问名称，没有 Alt 时使用 Text。XS–XL 直径为 24–40 DIP；64 DIP 开关演示自定义根尺寸，文字和图标仍随 Size。网络下载、缓存、失败重试与 HTML 图片属性由应用或对应平台负责。",
@@ -1355,15 +1355,15 @@
     "name": "AvatarGroup",
     "category": "foundations",
     "description": {
-      "zh": "排列多个头像，并显示未展开的人数。",
-      "en": "Arrange several avatars and show how many remain hidden."
+      "zh": "排列多个头像，并显示剩余人数。",
+      "en": "Stack multiple avatars and show how many remain."
     },
     "guide": {
       "zh": "### 基本用法\n\n为每个 AvatarItem 提供稳定、唯一的用户 ID 和头像配置。Max 限制显示数量，超出的头像用 `+n` 表示；Size 和 Color 为未单独配置的头像提供默认值。\n\n### 在预览中试一试\n\n1. 将显示上限设为 1 或 2，观察剩余人数。\n2. 调整尺寸和颜色，查看三个示例头像的组合效果。\n3. 点击 Reverse avatars，检查显示顺序与剩余人数，再打开统一成员样式，比较普通头像和 `+n` 的外框。",
       "en": "### Basic usage\n\nGive each AvatarItem a stable, unique user ID and avatar options. Max limits the visible avatars and represents the rest as `+n`. Size and Color supply defaults for items without their own settings.\n\n### Try the preview\n\n1. Set the visible limit to 1 or 2 and check the remaining count.\n2. Change size and color to compare the three sample avatars.\n3. Click Reverse avatars to check order and the remaining count, then enable Member style to compare regular and `+n` avatar outlines."
     },
     "note": {
-      "zh": "Max 未设置或小于等于 0 时显示全部头像。动态用户列表使用用户 ID，避免使用排序后会变化的下标。 Item 对应各头像根，包括溢出头像；Item.BorderWidth / BorderColor 配置外侧分隔环，显式 BorderWidth=0 可移除。",
+      "zh": "Max 未设置或小于等于 0 时显示全部头像。动态用户列表使用用户 ID，避免使用排序后会变化的下标。Item 对应各头像根，包括溢出头像；Item.BorderWidth / BorderColor 配置外侧分隔环，显式 BorderWidth=0 可移除。",
       "en": "An unset Max or a value at or below zero shows all avatars. Use user IDs rather than positions in a sortable list. Item targets each avatar root, including overflow. Item.BorderWidth and BorderColor control the outer separator ring; explicit BorderWidth=0 removes it."
     },
     "symbols": ["AvatarGroup"],
@@ -1842,7 +1842,7 @@
         "key": "avatar",
         "label": {
           "zh": "显示头像",
-          "en": "Avatar"
+          "en": "Show avatar"
         },
         "kind": "boolean",
         "default": false
@@ -1871,11 +1871,11 @@
       "en": "Display a keyboard shortcut as key labels."
     },
     "guide": {
-      "zh": "### 基本用法\n\n将键名按顺序传给 Kbd，例如 `[]string{\"CmdOrCtrl\", \"K\"}`。CmdOrCtrl 按目标平台显示 Ctrl 或 ⌘；command、win 始终显示 ⌘、⊞。组件只显示提示，不注册快捷键。\n\n### 在预览中试一试\n\n1. 切换目标平台，比较主要修饰键。\n2. 在完整参数的按键列表中输入 command、win 或普通键名，查看符号与大写文字。\n3. 调整颜色、样式和尺寸；SM / MD / LG 是标准尺寸，XS / XL 分别沿用 SM / LG。\n4. 将颜色和样式设为 Neutral / Solid，开启自定义背景。",
+      "zh": "### 基本用法\n\n将键名按顺序传给 Kbd，例如 `[]string{\"CmdOrCtrl\", \"K\"}`。CmdOrCtrl 按目标平台显示 Ctrl 或 ⌘；command、win 始终显示 ⌘、⊞。组件只显示提示，不注册快捷键。\n\n### 在预览中试一试\n\n1. 切换目标平台，比较主要修饰键。\n2. 在「全部参数」的按键列表中输入 command、win 或普通键名，查看符号与大写文字。\n3. 调整颜色、样式和尺寸；SM / MD / LG 是标准尺寸，XS / XL 分别对应 SM / LG。\n4. 将颜色和样式设为 Neutral / Solid，开启自定义背景。",
       "en": "### Basic usage\n\nPass key names in order, such as `[]string{\"CmdOrCtrl\", \"K\"}`. CmdOrCtrl displays Ctrl or ⌘ for the target platform; command and win always display ⌘ and ⊞. Kbd displays hints without registering shortcuts.\n\n### Try the preview\n\n1. Change Platform to compare the primary modifier.\n2. Enter command, win or ordinary key names in the full key-list editor to inspect symbols and uppercase text.\n3. Change color, variant and size. SM / MD / LG are standard sizes; XS / XL reuse SM / LG.\n4. Set Neutral / Solid and enable the custom background."
     },
     "note": {
-      "zh": "Kbd 只显示提示，不注册快捷键。实际按键操作需由应用单独绑定。 将 Color 设为 Neutral、Variant 设为 Solid 后，可用自定义背景开关查看 InvertedBackground 的效果；这只修改示例的局部主题。",
+      "zh": "Kbd 只显示提示，不注册快捷键。实际按键操作需由应用单独绑定。将 Color 设为 Neutral、Variant 设为 Solid 后，可用自定义背景开关查看 InvertedBackground 的效果；这只修改示例的局部主题。",
       "en": "Kbd displays a hint; it does not register the shortcut. Bind keyboard actions separately in the application. Set Color to Neutral and Variant to Solid, then use the custom background toggle to inspect InvertedBackground. This only changes the example’s local theme."
     },
     "symbols": ["Kbd"],
@@ -2121,11 +2121,11 @@
       "en": "Show completed progress or indicate that work is ongoing."
     },
     "guide": {
-      "zh": "### 基本用法\n\n传入完成量，Max 默认为 100。数值先限制在 0 到 Max，视觉百分比四舍五入到整数；Indeterminate 为 true 时忽略完成量，显示半条轨道长的移动指示器。返回元素的 Value 可以提供工作单位等可访问值说明，屏幕上需要百分比文字时由应用组合 Text。\n\n### 在预览中试一试\n\n1. 修改完成量与最大值，比较填充比例。\n2. 切换方向和反向填充；水平布局还会遵循文字方向。\n3. 选择 Neutral 并启用自定义中性背景，比较深浅主题。\n4. 启用进度未知，选择动画预设并开关动画。减少动态效果时，指示器铺满轨道并脉冲；关闭动画时静止在中间。\n\n关闭动画后修改进度，再开启动画，填充保持当前值。",
+      "zh": "### 基本用法\n\n传入完成量，Max 默认为 100。数值先限制在 0 到 Max，视觉百分比四舍五入到整数；Indeterminate 为 true 时忽略完成量，显示半条轨道长的移动指示器。返回元素的 Value 可以提供工作单位等可访问值说明，屏幕上需要百分比文字时由应用组合 Text。\n\n### 在预览中试一试\n\n1. 修改完成量与最大值，比较填充比例。\n2. 切换方向和反向填充；水平布局还会遵循文字方向。\n3. 选择 Neutral 并启用自定义 Neutral 背景，比较深浅主题。\n4. 启用进度未知，选择动画预设并开关动画。减少动态效果时，指示器铺满轨道并脉冲；关闭动画时静止在中间。\n\n关闭动画后修改进度，再开启动画，填充保持当前值。",
       "en": "### Basic usage\n\nPass the completed amount; Max defaults to 100. Values are clamped to 0–Max and visual percentages are rounded to integers. Indeterminate ignores the amount and displays a moving half-track indicator. Use Value on the returned element for accessible work-unit text; compose a Text element when an on-screen percentage is needed.\n\n### Try the preview\n\n1. Change the amount and maximum to compare proportions.\n2. Change orientation and inversion; horizontal progress also follows text direction.\n3. Select Neutral and enable the custom neutral background in both themes.\n4. Enable indeterminate progress, choose an animation preset and toggle animation. Under reduced motion the indicator pulses across the whole track; with animation off it stays still in the center.\n\nDisable animation, change the amount, then enable animation; the fill retains its current value."
     },
     "note": {
-      "zh": "显式 Max 必须是有限正数，否则会 panic；非有限完成量按 0 处理。未知进度使用 Nuxt 的四种两秒动画预设之一（Animation），与 Table 的加载条共用；超出范围的预设会 panic。未提供步骤数组。自定义中性背景只影响 Neutral；Indicator.Background 可直接指定填充色。示例不会启动真实任务。",
+      "zh": "显式 Max 必须是有限正数，否则会 panic；非有限完成量按 0 处理。未知进度使用 Nuxt 的四种两秒动画预设之一（Animation），与 Table 的加载条共用；超出范围的预设会 panic。未提供步骤数组。自定义 Neutral 背景只影响 Neutral；Indicator.Background 可直接指定填充色。示例不会启动真实任务。",
       "en": "An explicit Max must be finite and positive or the component panics. Non-finite amounts become zero. Unknown progress uses one of Nuxt's four two-second presets (Animation), shared with Table's loading bar; an out-of-range preset panics. Step arrays are not provided. The custom background affects Neutral only; Indicator.Background directly sets the fill color. This example does not start a task."
     },
     "symbols": ["Progress"],
@@ -2311,7 +2311,7 @@
       {
         "key": "customNeutral",
         "label": {
-          "zh": "自定义中性背景",
+          "zh": "自定义 Neutral 背景",
           "en": "Custom neutral background"
         },
         "kind": "boolean",
@@ -2328,11 +2328,11 @@
     "name": "ProgressGroup",
     "category": "foundations",
     "description": {
-      "zh": "在同一条进度轨道中展示多项完成量。",
-      "en": "Show several amounts within one progress track."
+      "zh": "在一条进度轨道中展示多项进度。",
+      "en": "Show multiple progress values on a single track."
     },
     "guide": {
-      "zh": "### 基本用法\n\n每个 ProgressSegment 使用唯一、非空 ID，Value 表示完成量，Label 和 Icon 用于图例。没有图标时显示色点；Build 可以自定义图例内容。通过项目 UI 配置 Segment、Item、Leading、Label、Trailing；整个组的 List 配置图例列表，Indicator 配置轨道。\n\n### 在预览中试一试\n\n1. 切换图标和尺寸，比较图例字号、图标与色点。\n2. 修改 Max，查看空余空间和总量超限后的比例。\n3. 选择 Neutral 并启用自定义中性背景；Code 继承组颜色，其他项目保持显式颜色。\n4. 启用自定义分段颜色，将 Tests 轨道改为橙色；项目 UI 不改变其他分段。\n5. 切换方向或隐藏图例，观察轨道布局。",
+      "zh": "### 基本用法\n\n每个 ProgressSegment 使用唯一、非空 ID，Value 表示完成量，Label 和 Icon 用于图例。没有图标时显示色点；Build 可以自定义图例内容。通过项目 UI 配置 Segment、Item、Leading、Label、Trailing；整个组的 List 配置图例列表，Indicator 配置轨道。\n\n### 在预览中试一试\n\n1. 切换图标和尺寸，比较图例字号、图标与色点。\n2. 修改 Max，查看空余空间和总量超限后的比例。\n3. 选择 Neutral 并启用自定义 Neutral 背景；Code 继承组颜色，其他项目保持显式颜色。\n4. 启用自定义分段颜色，将 Tests 轨道改为橙色；项目 UI 不改变其他分段。\n5. 切换方向或隐藏图例，观察轨道布局。",
       "en": "### Basic usage\n\nGive each ProgressSegment a unique non-empty ID. Value is the completed amount; Label and Icon describe it in the legend. Items without an icon show a dot. Build can provide custom legend content. Item UI supports Segment, Item, Leading, Label and Trailing; group List styles the legend and Indicator styles the track.\n\n### Try the preview\n\n1. Toggle icons and sizes to compare legend fonts, icons and dots.\n2. Change Max to inspect unused space and proportional overflow.\n3. Select Neutral and enable the custom background. Code inherits the group color; other items retain explicit colors.\n4. Enable the custom segment color to make the Tests fill orange without changing other segments.\n5. Switch orientation or hide the legend."
     },
     "note": {
@@ -2382,7 +2382,7 @@
         "key": "hideLegend",
         "label": {
           "zh": "隐藏图例",
-          "en": "HideLegend"
+          "en": "Hide legend"
         },
         "kind": "boolean",
         "default": false
@@ -2474,7 +2474,7 @@
       {
         "key": "customNeutral",
         "label": {
-          "zh": "自定义中性背景",
+          "zh": "自定义 Neutral 背景",
           "en": "Custom neutral background"
         },
         "kind": "boolean",
@@ -2500,7 +2500,7 @@
     "name": "Empty",
     "category": "foundations",
     "description": {
-      "zh": "说明当前为何没有内容，并提供下一步操作。",
+      "zh": "展示空状态说明，并提供下一步操作。",
       "en": "Explain an empty state and offer a next action."
     },
     "guide": {
@@ -2607,8 +2607,8 @@
       {
         "key": "avatar",
         "label": {
-          "zh": "使用头像",
-          "en": "Use avatar"
+          "zh": "显示头像",
+          "en": "Show avatar"
         },
         "kind": "boolean",
         "default": false
@@ -2651,8 +2651,8 @@
     "name": "User",
     "category": "foundations",
     "description": {
-      "zh": "一起显示用户头像、姓名和简短说明。",
-      "en": "Show a user’s avatar, name and short description."
+      "zh": "组合展示用户头像、姓名与简介。",
+      "en": "Display a user’s avatar, name, and short description."
     },
     "guide": {
       "zh": "### 基本用法\n\nName 和 Description 展示用户信息，Avatar 配置头像。Avatar 全为空时不显示头像；Chip 仅在默认头像存在时显示，尺寸随 User，位置保持内嵌。Leading 可替换整个头像区域，Body 可替换默认姓名和说明。\n\n提供 OnActivate 后，User 作为原生按钮响应鼠标、Enter 和 Space。悬停或键盘焦点会强调文字并放大头像；减少动态效果会取消缩放过渡。导航目标由应用在回调中处理。\n\n### 在预览中试一试\n\n1. 开关头像和角标，比较显示条件。\n2. 清空姓名，确认说明前没有多余间距。\n3. 启用可激活，点击或按 Enter / Space，观察计数；禁用后再次尝试。\n4. 切换纵向、尺寸和自定义内容，确认计数保留。",
@@ -2779,11 +2779,11 @@
       "en": "Edit one line of text with read-only, clear and loading options."
     },
     "guide": {
-      "zh": "### 基本用法\n\n将字符串指针传给 `Input`，组件会更新绑定的值。字符串应保存在视图函数外，避免每次界面更新都重置输入。Label 提供控件名称，Placeholder 是输入前的提示。\n\n### 在预览中试一试\n\n1. 输入一段文字，查看下方的 Value。\n2. 调整尺寸、主题或网站语言，确认输入仍保留。\n3. 开启只读后尝试选择和复制，再开启禁用比较操作差异。\n4. 开启头像和加载，比较前导加载与尾部加载：前导加载替换头像，尾部加载保留头像。尝试修改加载颜色并继续输入。\n5. 按 Enter 或点击清空，查看提交和清空计数。\n6. 选择 Neutral 并开启自定义 Neutral 背景，聚焦输入框；None 样式也可通过强调边框开关显示颜色。",
+      "zh": "### 基本用法\n\n将字符串指针传给 `Input`，组件会更新绑定的值。字符串应保存在视图函数外，避免每次界面更新都重置输入。Label 提供控件名称，Placeholder 是输入前的提示。\n\n### 在预览中试一试\n\n1. 输入一段文字，查看下方的 Value。\n2. 调整尺寸、主题或网站语言，确认输入仍保留。\n3. 开启只读后尝试选择和复制，再开启禁用比较操作差异。\n4. 开启头像和加载，比较前导加载与尾部加载：前导加载替换头像，尾部加载保留头像。尝试修改加载颜色并继续输入。\n5. 按 Enter 或点击清空，查看提交和清空计数。\n6. 选择 Neutral 并开启自定义 Neutral 背景，聚焦输入框；None 样式也可通过高亮边框开关显示颜色。",
       "en": "### Basic usage\n\nPass a string pointer to `Input`; the component updates that value. Keep the string outside the view function so UI updates do not reset it. Label names the control and Placeholder gives an input hint.\n\n### Try the preview\n\n1. Enter some text and check Value below the input.\n2. Change size, theme or site language and confirm the text remains.\n3. Enable read-only and try selecting or copying, then compare with disabled.\n4. Enable avatar and loading. A leading loader replaces the avatar; a trailing loader keeps it. Change the loader color and keep typing.\n5. Press Enter or clear the value and check the submit and clear counts.\n6. Select Neutral with a custom neutral background and focus the field. Highlight can also show a ring with the None variant."
     },
     "note": {
-      "zh": "ReadOnly 允许选择和复制，但禁止编辑；Disabled 禁止交互。Loading 显示加载图标，输入框仍可编辑。 头像和加载位置切换不会重置文字、焦点或选区。LoadingTrailing 遇到显式 Leading 图标时仍在前方加载。MaxLength 按 UTF-16 单元限制用户插入；外部赋值不会自动截断或触发 OnChange。",
+      "zh": "ReadOnly 允许选择和复制，但禁止编辑；Disabled 禁止交互。Loading 显示加载图标，输入框仍可编辑。头像和加载位置切换不会重置文字、焦点或选区。LoadingTrailing 遇到显式 Leading 图标时仍在前方加载。MaxLength 按 UTF-16 单元限制用户插入；外部赋值不会自动截断或触发 OnChange。",
       "en": "ReadOnly allows selection and copying but prevents editing. Disabled prevents interaction. Loading shows an indicator while allowing editing. Switching avatar or loader placement preserves text, focus and selection. An explicit Leading icon takes priority over LoadingTrailing. MaxLength limits inserted UTF-16 units; external assignments are neither truncated nor reported through OnChange."
     },
     "symbols": ["Input"],
@@ -2936,7 +2936,7 @@
         "key": "readOnly",
         "label": {
           "zh": "只读",
-          "en": "ReadOnly"
+          "en": "Read-only"
         },
         "kind": "boolean",
         "default": false
@@ -2953,8 +2953,8 @@
       {
         "key": "avatar",
         "label": {
-          "zh": "头像",
-          "en": "Avatar"
+          "zh": "显示头像",
+          "en": "Show avatar"
         },
         "kind": "boolean",
         "default": false
@@ -2962,7 +2962,7 @@
       {
         "key": "loadingTrailing",
         "label": {
-          "zh": "尾部加载",
+          "zh": "尾部加载图标",
           "en": "Trailing loader"
         },
         "kind": "boolean",
@@ -2980,8 +2980,8 @@
       {
         "key": "clearable",
         "label": {
-          "zh": "清空按钮",
-          "en": "Clear button"
+          "zh": "可清空",
+          "en": "Clearable"
         },
         "kind": "boolean",
         "default": true
@@ -2989,7 +2989,7 @@
       {
         "key": "highlight",
         "label": {
-          "zh": "强调边框",
+          "zh": "高亮边框",
           "en": "Highlight"
         },
         "kind": "boolean",
@@ -3019,7 +3019,7 @@
       "en": "Edit multiple lines and optionally grow with the content."
     },
     "guide": {
-      "zh": "### 基本用法\n\nTextarea 绑定字符串，通用输入选项放在嵌入的 InputOptions 中。Rows 设置基础行数，AutoResize 允许随换行增长，MaxRows 可限制最高行数。\n\n### 在预览中试一试\n\n1. 输入多行文字，调整基础行数。\n2. 开启自动调整高度，继续换行并观察输入框高度。\n3. 将最多行数设为 4，继续输入，确认达到上限后在框内滚动；0 表示不限。\n4. 开启头像、加载和尾部加载，再修改加载颜色，观察附件与第一行对齐；继续输入或点击清空检查计数。\n5. 选择 Neutral 和自定义 Neutral 背景，比较聚焦外观；切换 None 后开启强调边框。",
+      "zh": "### 基本用法\n\nTextarea 绑定字符串，通用输入选项放在嵌入的 InputOptions 中。Rows 设置基础行数，AutoResize 允许随换行增长，MaxRows 可限制最高行数。\n\n### 在预览中试一试\n\n1. 输入多行文字，调整基础行数。\n2. 开启自动调整高度，继续换行并观察输入框高度。\n3. 将最多行数设为 4，继续输入，确认达到上限后在框内滚动；0 表示不限。\n4. 开启头像、加载和尾部加载，再修改加载颜色，观察附件与第一行对齐；继续输入或点击清空检查计数。\n5. 选择 Neutral 和自定义 Neutral 背景，比较聚焦外观；切换 None 后开启高亮边框。",
       "en": "### Basic usage\n\nTextarea binds a string and takes shared input settings through InputOptions. Rows sets the base line count, AutoResize grows with new lines, and MaxRows can cap that growth.\n\n### Try the preview\n\n1. Enter several lines and change the base row count.\n2. Enable automatic height, then add more lines and watch the field grow.\n3. Set maximum rows to 4 and keep typing; content scrolls inside after the limit. Zero removes the cap.\n4. Enable avatar, loading and trailing loader, then change the loader color. Accessories align with the first line. Keep typing or clear the text to check the counts.\n5. Choose Neutral and a custom neutral background to compare focus styling. Enable Highlight with None to show a ring."
     },
     "note": {
@@ -3176,7 +3176,7 @@
         "key": "readOnly",
         "label": {
           "zh": "只读",
-          "en": "ReadOnly"
+          "en": "Read-only"
         },
         "kind": "boolean",
         "default": false
@@ -3204,8 +3204,8 @@
       {
         "key": "autoResize",
         "label": {
-          "zh": "自动高度",
-          "en": "AutoResize"
+          "zh": "自动调整高度",
+          "en": "Auto resize"
         },
         "kind": "boolean",
         "default": true
@@ -3224,8 +3224,8 @@
       {
         "key": "avatar",
         "label": {
-          "zh": "头像",
-          "en": "Avatar"
+          "zh": "显示头像",
+          "en": "Show avatar"
         },
         "kind": "boolean",
         "default": false
@@ -3233,7 +3233,7 @@
       {
         "key": "loadingTrailing",
         "label": {
-          "zh": "尾部加载",
+          "zh": "尾部加载图标",
           "en": "Trailing loader"
         },
         "kind": "boolean",
@@ -3251,8 +3251,8 @@
       {
         "key": "clearable",
         "label": {
-          "zh": "清空按钮",
-          "en": "Clear button"
+          "zh": "可清空",
+          "en": "Clearable"
         },
         "kind": "boolean",
         "default": true
@@ -3260,7 +3260,7 @@
       {
         "key": "highlight",
         "label": {
-          "zh": "强调边框",
+          "zh": "高亮边框",
           "en": "Highlight"
         },
         "kind": "boolean",
@@ -3294,7 +3294,7 @@
       "en": "### Basic usage\n\nBuild the input inside the `FormField` callback and use the theme passed to that callback. This connects the label and passes size, disabled and error state to the input.\n\n### Try the preview\n\n1. Change the label and error text to see where they appear.\n2. Click the label to focus the input, then toggle required and disabled.\n3. Clear the label, description and hint to remove the heading area, then restore the label and switch to horizontal layout.\n4. Enable region styles to compare Header and Body backgrounds and padding. Edit the value, then change direction or error text and confirm it is preserved."
     },
     "note": {
-      "zh": "Required 显示必填标记，不执行校验。需要检查输入值时，使用 Form.Validate 或应用自己的校验逻辑。 没有 Label 时不单独绘制星号，必填说明仍传给控件。Error 优先于 Help；标签定位第一个绑定的控件。Hint 单独显示是原生扩展。字段名精确匹配，不提供 errorPattern 或字段级延迟校验。",
+      "zh": "Required 显示必填标记，不执行校验。需要检查输入值时，使用 Form.Validate 或应用自己的校验逻辑。没有 Label 时不单独绘制星号，必填说明仍传给控件。Error 优先于 Help；标签定位第一个绑定的控件。Hint 单独显示是原生扩展。字段名精确匹配，不提供 errorPattern 或字段级延迟校验。",
       "en": "Required displays a required marker without validating the value. Use Form.Validate or application validation to check input. Without Label, no isolated asterisk is drawn, while the required description still reaches the control. Error takes priority over Help; the label targets the first bound control. A standalone Hint is a native extension. Field names match exactly; errorPattern and per-field delayed validation are not provided."
     },
     "symbols": ["FormField"],
@@ -3524,7 +3524,7 @@
       "en": "### Basic usage\n\nCheckbox binds a `*bool`; CheckboxTri binds CheckState with Unchecked, Checked and Indeterminate values. CheckedIcon customizes the checked icon and IndeterminateIcon customizes the mixed icon. With a hidden indicator, an explicit CheckedIcon appears above the label; no default icon is inserted.\n\n### Try the preview\n\n1. Enable custom icons to show a plus for the mixed state. Click Mixed selection to check it, then use Reset mixed state to restore it.\n2. Select card and hidden to place icons above text. Turn custom icons off to show text only.\n3. Toggle with the pointer or Space and inspect Enabled and Changes. Icon, appearance and size updates do not increase the change counts.\n\nFormField.Required provides the asterisk and an accessibility description. Submission validation still belongs to FormState validators. UI.Root styles can override card state appearance; Style callbacks run last."
     },
     "note": {
-      "zh": "选择值应保存在视图函数外。父子复选框之间的联动由应用计算。 Loading 是共享类型中的兼容字段，对 Checkbox 不生效；Switch 才使用加载状态。 ChoiceTable 是单个 Checkbox 的 Go 原生扩展。",
+      "zh": "选择值应保存在视图函数外。父子复选框之间的联动由应用计算。Loading 是共享类型中的兼容字段，对 Checkbox 不生效；Switch 才使用加载状态。ChoiceTable 是单个 Checkbox 的 Go 原生扩展。",
       "en": "Keep selection values outside the view function. The application computes relationships between parent and child checkboxes. Loading is retained in the shared options for compatibility and is not used by Checkbox; it applies to Switch. ChoiceTable is a Go native extension for a standalone Checkbox."
     },
     "symbols": ["Checkbox", "CheckboxTri"],
@@ -3631,7 +3631,7 @@
       {
         "key": "loading",
         "label": {
-          "zh": "Loading（不适用）",
+          "zh": "加载中（不生效）",
           "en": "Loading (not used)"
         },
         "kind": "boolean",
@@ -4250,7 +4250,7 @@
       "en": "### Basic usage\n\nSlider binds one `*float64`; RangeSlider binds two pointers for the lower and upper values. Min, Max and Step set the limits and increment. Keep the values outside the view function.\n\n### Try the preview\n\n1. Drag the upper slider, then both ends of the range below it.\n2. Change the step and use arrow keys to compare increments, then try vertical layout.\n3. Set the step to 0.1 and use arrow keys, checking the value tooltip and commit counts.\n4. Select Neutral with a custom background, then compare part colors and field errors. Explicit part colors take priority.\n5. Enable track padding and check that the single-slider tooltip follows its thumb. Set a minimum gap and try moving the range ends together."
     },
     "note": {
-      "zh": "本例范围为 0–100。OnChange 报告实时变化；需要在拖动结束后处理结果时，可使用 OnCommit。 禁用父容器也会取消正在进行的拖拽。Tooltip 为布尔开关，不提供完整 TooltipOptions；仅单滑块的 UI.Root.PaddingX / PaddingY 调整轨道有效区。没有可交互的三端点以上模型。",
+      "zh": "本例范围为 0–100。OnChange 报告实时变化；需要在拖动结束后处理结果时，可使用 OnCommit。禁用父容器也会取消正在进行的拖拽。Tooltip 为布尔开关，不提供完整 TooltipOptions；仅单滑块的 UI.Root.PaddingX / PaddingY 调整轨道有效区。没有可交互的三端点以上模型。",
       "en": "This example uses a 0–100 range. OnChange reports live changes; use OnCommit to handle a completed adjustment. Disabling a parent cancels an active drag. Tooltip is a boolean switch rather than full TooltipOptions. Only the single slider uses UI.Root.PaddingX / PaddingY to set its active track area. Models with three or more interactive thumbs are not provided."
     },
     "symbols": ["Slider", "RangeSlider"],
@@ -4824,7 +4824,7 @@
         "key": "readOnly",
         "label": {
           "zh": "只读",
-          "en": "ReadOnly"
+          "en": "Read-only"
         },
         "kind": "boolean",
         "default": false
@@ -4850,7 +4850,7 @@
       {
         "key": "clearable",
         "label": {
-          "zh": "显示清空按钮",
+          "zh": "可清空",
           "en": "Clearable"
         },
         "kind": "boolean",
@@ -4868,7 +4868,7 @@
       {
         "key": "loadingTrailing",
         "label": {
-          "zh": "尾部加载",
+          "zh": "尾部加载图标",
           "en": "Trailing loader"
         },
         "kind": "boolean",
@@ -4895,8 +4895,8 @@
       {
         "key": "create",
         "label": {
-          "zh": "允许请求创建",
-          "en": "Offer creation"
+          "zh": "允许创建新项",
+          "en": "Allow creating items"
         },
         "kind": "boolean",
         "default": false
@@ -4959,7 +4959,7 @@
         "key": "resetModel",
         "label": {
           "zh": "清空时重置选中值",
-          "en": "Reset model on clear"
+          "en": "Reset selection on clear"
         },
         "kind": "optionalBoolean",
         "default": null
@@ -5021,8 +5021,8 @@
       {
         "key": "dismissible",
         "label": {
-          "zh": "允许 Escape 或外部点击关闭",
-          "en": "Dismiss with Escape or outside click"
+          "zh": "点击外部或 Esc 关闭",
+          "en": "Dismiss on Esc or outside click"
         },
         "kind": "optionalBoolean",
         "default": null
@@ -5049,7 +5049,7 @@
         "key": "reduced",
         "label": {
           "zh": "减少动态效果",
-          "en": "Reduced motion"
+          "en": "Reduce motion"
         },
         "kind": "boolean",
         "default": false
@@ -5261,8 +5261,8 @@
       {
         "key": "dismissible",
         "label": {
-          "zh": "允许 Escape 或外部点击关闭",
-          "en": "Dismiss with Escape or outside click"
+          "zh": "点击外部或 Esc 关闭",
+          "en": "Dismiss on Esc or outside click"
         },
         "kind": "optionalBoolean",
         "default": null
@@ -5270,8 +5270,8 @@
       {
         "key": "closeButton",
         "label": {
-          "zh": "关闭按钮",
-          "en": "CloseButton"
+          "zh": "显示关闭按钮",
+          "en": "Show close button"
         },
         "kind": "optionalBoolean",
         "default": null
@@ -5297,8 +5297,8 @@
       {
         "key": "transition",
         "label": {
-          "zh": "打开动效",
-          "en": "Opening transition"
+          "zh": "打开动画",
+          "en": "Transition"
         },
         "kind": "optionalBoolean",
         "default": null
@@ -5367,8 +5367,8 @@
       {
         "key": "dismissible",
         "label": {
-          "zh": "允许 Escape 或外部点击关闭",
-          "en": "Dismiss with Escape or outside click"
+          "zh": "点击外部或 Esc 关闭",
+          "en": "Dismiss on Esc or outside click"
         },
         "kind": "optionalBoolean",
         "default": null
@@ -5413,8 +5413,8 @@
       {
         "key": "transition",
         "label": {
-          "zh": "进入和退出动效",
-          "en": "Enter and exit transition"
+          "zh": "进出场动画",
+          "en": "Transition"
         },
         "kind": "optionalBoolean",
         "default": null
@@ -5468,8 +5468,8 @@
     "name": "Toast",
     "category": "overlays",
     "description": {
-      "zh": "短暂显示操作结果，不要求用户立即处理。",
-      "en": "Briefly show the result of an action."
+      "zh": "短暂提示操作结果，不打断当前操作。",
+      "en": "Briefly show an action’s result without interrupting work."
     },
     "guide": {
       "zh": "### 基本用法\n\n每个窗口创建一次 ToastViewport，在点击或任务完成后的 UI 处理中调用 Toast。返回的 ID 可交给 CloseToast；同 ID 再次发布会替换内容并重置时长。Actions 使用稳定 ID 后可在更新和重排时保留焦点。\n\n### 在预览中试一试\n\n1. 点击 Show notification，比较头像、关闭按钮、操作方向和进度颜色；更改这些参数后再次发布。\n2. Keep 执行动作并保留通知，Done 执行后关闭。\n3. 聚焦 Keep，再用鼠标点击 Update focused notification，检查方向和顺序变化后仍可操作同一按钮。\n4. 位置、宽度和可见数量立即作用于视口；关闭固定 ID 更新后可发布多条。顶部位置将最新通知放在顶部，RTL 不交换物理左右。\n5. 常驻通知不显示倒计时，Clear notifications 关闭当前窗口的全部通知。",
@@ -5901,7 +5901,7 @@
       "en": "### Basic usage\n\nKeep an independent MenuState for each trigger and stable, unique item IDs. Right-click the target or use the Menu key or Shift+F10. MenuOptions controls size, icons, navigation and filtering. Configure individual submenus through MenuItem.Content.\n\nDefault dividers in menus and submenus paint one device pixel; a larger Separator theme Size retains its DIP width.\n\n### Try the preview\n\n1. Change Size and inspect descriptions, avatars and keyboard badges. Loading changes the icon but leaves Edit selectable; Disabled controls interaction separately.\n2. Select Pinned to retain the menu and inspect callback counts. Choose Reverse actions and press Enter to confirm focus stays with the same action.\n3. Enable filtering, enter copy and press Enter. Escape clears the query before closing. Enable submenu filtering, enter Export and test searching and returning to its parent.\n4. Right-click different points of the target to reposition the open menu. Move target keeps the menu at the original pointer coordinates. After closing, Open at target anchors a new menu to the target.\n5. Disable the menu and left-click the target; Target clicks still increases."
     },
     "note": {
-      "zh": "菜单使用非模态原生弹层，外部点击关闭后继续传给目标。Loop 默认 false；Shortcut 只显示按键，不注册快捷键。筛选按字段做不区分大小写的包含匹配，保留项目顺序；IgnoreFilter=true 时由应用提供结果。MenuState.Query 保存未绑定 SearchTerm 的根查询，子级各自保存查询。本例的操作只更新状态。 筛选框和 Radio 为原生扩展；Nuxt ContextMenu 没有内置筛选框。 根菜单默认向右打开，间隔 2 DIP；Placement 和 Offset 为可选原生扩展。右键坐标保存在窗口内，目标布局移动不会改变该位置。",
+      "zh": "菜单使用非模态原生弹层，外部点击关闭后继续传给目标。Loop 默认 false；Shortcut 只显示按键，不注册快捷键。筛选按字段做不区分大小写的包含匹配，保留项目顺序；IgnoreFilter=true 时由应用提供结果。MenuState.Query 保存未绑定 SearchTerm 的根查询，子级各自保存查询。本例的操作只更新状态。筛选框和 Radio 为原生扩展；Nuxt ContextMenu 没有内置筛选框。根菜单默认向右打开，间隔 2 DIP；Placement 和 Offset 为可选原生扩展。右键坐标保存在窗口内，目标布局移动不会改变该位置。",
       "en": "Menus use non-modal native overlays; outside clicks dismiss and continue to their targets. Loop defaults to false. Shortcut displays keys without registering commands. Filtering uses case-insensitive substring matching and preserves item order; IgnoreFilter leaves results to the application. MenuState.Query stores an unbound root query, with separate drafts per submenu. These actions only update example state. Filtering and Radio items are native extensions; Nuxt ContextMenu has no built-in filter input. Root placement defaults to the right with a 2 DIP gap; Placement and Offset are optional native extensions. Pointer coordinates stay fixed in the window when the target moves."
     },
     "symbols": ["ContextMenu"],
@@ -7715,7 +7715,7 @@
         "key": "readOnly",
         "label": {
           "zh": "只读",
-          "en": "ReadOnly"
+          "en": "Read-only"
         },
         "kind": "boolean",
         "default": false
@@ -7853,7 +7853,7 @@
       {
         "key": "starting",
         "label": {
-          "zh": "空值首次增减的起始值",
+          "zh": "空值起始值",
           "en": "Starting value"
         },
         "kind": "integer",
@@ -8033,7 +8033,7 @@
         "key": "readOnly",
         "label": {
           "zh": "只读",
-          "en": "ReadOnly"
+          "en": "Read-only"
         },
         "kind": "boolean",
         "default": false
@@ -8147,7 +8147,7 @@
       "en": "Enter a verification code or other fixed-length text."
     },
     "guide": {
-      "zh": "### 基本用法\n\nPinInput 绑定字符串并使用一个真实编辑器，Tab 只进入一次。默认五格文本，Numeric 仅保留 ASCII 数字；完成回调只在用户修改后的长度达到要求时调用。\n\n输入光标按 1 DIP 换算并对齐物理像素，在不同单元格中保持相同粗细。\n\n### 在预览中试一试\n\n1. 输入或粘贴验证码，点击某一格替换；方向键、选区、删除和撤销由真实编辑器处理。\n2. 改变长度或 Numeric，观察外部配置的静默规范化；它不会伪装成用户输入事件。\n3. 开启 Highlight、设置分组数量并自定义分隔符，检查字号、间距和整体宽度。\n4. 开启 Mask 或只读，查看显示和可操作状态；下方只显示计数，不回显被遮罩的内容。",
+      "zh": "### 基本用法\n\nPinInput 绑定字符串并使用一个真实编辑器，Tab 只进入一次。默认五格文本，Numeric 仅保留 ASCII 数字；完成回调只在用户修改后的长度达到要求时调用。\n\n输入光标按 1 DIP 换算并对齐物理像素，在不同单元格中保持相同粗细。\n\n### 在预览中试一试\n\n1. 输入或粘贴验证码，点击某一格替换；方向键、选区、删除和撤销由真实编辑器处理。\n2. 改变长度或 Numeric，外部修改会自动规范化当前值，不会触发用户输入事件。\n3. 开启 Highlight、设置分组数量并自定义分隔符，检查字号、间距和整体宽度。\n4. 开启 Mask 或只读，查看显示和可操作状态；下方只显示计数，不回显被遮罩的内容。",
       "en": "### Basic usage\n\nPinInput binds a string and uses one real editor, with a single Tab stop. It defaults to five text cells; Numeric retains ASCII digits only. Completion fires when a user change reaches the required length.\n\nThe 1 DIP caret aligns to whole device pixels and keeps the same thickness across cells.\n\n### Try the preview\n\n1. Type or paste a code and click a cell to replace it. The real editor handles arrows, selection, deletion and undo.\n2. Change length or Numeric to inspect silent external normalization; this does not emit user-input events.\n3. Enable Highlight, configure separator intervals and customize parts to inspect font, gap and total width.\n4. Try Mask and read-only; the summary shows counts without echoing masked content."
     },
     "note": {
@@ -8286,7 +8286,7 @@
         "key": "readOnly",
         "label": {
           "zh": "只读",
-          "en": "ReadOnly"
+          "en": "Read-only"
         },
         "kind": "boolean",
         "default": false
@@ -8467,7 +8467,7 @@
         "key": "readOnly",
         "label": {
           "zh": "只读",
-          "en": "ReadOnly"
+          "en": "Read-only"
         },
         "kind": "boolean",
         "default": false
@@ -8506,7 +8506,7 @@
       {
         "key": "clearable",
         "label": {
-          "zh": "允许清空",
+          "zh": "可清空",
           "en": "Clearable"
         },
         "kind": "boolean",
@@ -8516,7 +8516,7 @@
         "key": "reduceMotion",
         "label": {
           "zh": "减少动态效果",
-          "en": "Reduced motion"
+          "en": "Reduce motion"
         },
         "kind": "boolean",
         "default": false
@@ -8665,7 +8665,7 @@
       {
         "key": "highlight",
         "label": {
-          "zh": "强调边框",
+          "zh": "高亮边框",
           "en": "Highlight"
         },
         "kind": "boolean",
@@ -8718,8 +8718,8 @@
     "name": "SelectMenu",
     "category": "data",
     "description": {
-      "zh": "在弹出的列表中搜索并选择项目。",
-      "en": "Search and choose items in a popup list."
+      "zh": "在弹出列表中搜索并选择选项。",
+      "en": "Search and choose options in a popup list."
     },
     "guide": {
       "zh": "### 基本用法\n\nSelectMenu 组合触发器、搜索框与 Listbox。选中值为 ID 列表，SelectMenuState 保存打开状态、查询和持久焦点 Handle。FilterInput 配置搜索框；FocusSearch 控制打开后聚焦搜索框还是列表。\n\n### 在预览中试一试\n\n1. 打开菜单并搜索 cafe，直接按 Enter。保护开关开启时 Café 取消选择；关闭保护后重试，查看选择与开关通知次数。\n2. 选择 Go，点击尾部清空按钮；关闭清空时重置选中值后，比较查询词与选中值的变化。关闭搜索框不会取消已有查询的筛选。\n3. 开启模拟远程搜索，在 Remote options 中依次输入两个不同查询。点击 Complete stale request，确认旧结果被拒绝；再完成当前请求或取消请求。示例没有网络请求，所有结果都由按钮显式提交。",
@@ -8962,7 +8962,7 @@
       "en": "Choose a date or a date range from a calendar."
     },
     "guide": {
-      "zh": "### 基本用法\n\nCalendar 绑定 DateSelection，CalendarState 保存首个显示月份、当前日期、导航视图和持久焦点。默认允许再次选择同一天来取消；PreventDeselect 可以关闭这一行为。ReadOnly 保留浏览与焦点操作，不修改日期。\n\n### 在预览中试一试\n\n1. 再次点击默认选中的 2024 年 2 月 15 日，观察只通知一次；开启阻止再次点击取消后重试。\n2. 点击标题进入月视图，再点击年份进入年视图。选择月份只切换浏览位置，选择一天才提交日期。\n3. 开启范围选择，在 20 日两侧选起止日期；比较允许经过不可用日期和七天范围限制。\n4. 显示两个月，切换按显示月数翻页、固定六周、周序号及外观。窄容器中各月会换行。\n5. 使用 Reset example date 或 Clear example date 修改应用模型，确认组件不发出用户改值通知。",
+      "zh": "### 基本用法\n\nCalendar 绑定 DateSelection，CalendarState 保存首个显示月份、当前日期、导航视图和持久焦点。默认允许再次选择同一天来取消；PreventDeselect 可以关闭这一行为。ReadOnly 保留浏览与焦点操作，不修改日期。\n\n### 在预览中试一试\n\n1. 再次点击默认选中的 2024 年 2 月 15 日，观察只通知一次；开启「禁止再次点击取消」后重试。\n2. 点击标题进入月视图，再点击年份进入年视图。选择月份只切换浏览位置，选择一天才提交日期。\n3. 开启范围选择，在 20 日两侧选起止日期；比较允许经过不可用日期和七天范围限制。\n4. 显示两个月，切换按显示月数翻页、固定六周、周序号及外观。窄容器中各月会换行。\n5. 使用 Reset example date 或 Clear example date 修改应用模型，确认组件不发出用户改值通知。",
       "en": "### Basic usage\n\nCalendar binds DateSelection. CalendarState keeps the first displayed month, active date, navigation view and persistent focus. Selecting a date again clears it by default; PreventDeselect disables this. ReadOnly retains browsing and focus without changing the value.\n\n### Try the preview\n\n1. Select the initial February 15, 2024 again and check the single notification. Enable prevention and repeat.\n2. Use the heading to open month and year views. Choosing a period navigates; choosing a day commits a date.\n3. Select a range across the 20th, then compare allowing unavailable interior dates and a seven-day limit.\n4. Display two months and change paged navigation, fixed weeks, week numbers and appearance. Months wrap in narrow containers.\n5. Reset or clear the application model and verify that component change notifications are not emitted."
     },
     "note": {
@@ -9114,7 +9114,7 @@
       {
         "key": "prevent",
         "label": {
-          "zh": "阻止再次点击取消",
+          "zh": "禁止再次点击取消",
           "en": "Prevent deselection"
         },
         "kind": "boolean",
@@ -9170,8 +9170,8 @@
       {
         "key": "gaps",
         "label": {
-          "zh": "允许范围经过不可用日期",
-          "en": "Allow unavailable range dates"
+          "zh": "范围可跨不可用日期",
+          "en": "Allow unavailable dates in range"
         },
         "kind": "boolean",
         "default": false
@@ -9179,8 +9179,8 @@
       {
         "key": "maxDays",
         "label": {
-          "zh": "范围最多天数，0 不限制",
-          "en": "Maximum range days, 0 for unlimited"
+          "zh": "范围最多天数（0 为不限）",
+          "en": "Max range days (0 = unlimited)"
         },
         "kind": "integer",
         "default": 0,
@@ -9202,8 +9202,8 @@
       "en": "Edit date segments or choose a date from a calendar."
     },
     "guide": {
-      "zh": "### 基本用法\n\n单日绑定 `Optional[Date]` 与 DateInputState；范围绑定 DateSelection 与 DateRangeInputState。未完成或被拒绝的草稿保留最后有效值。单日用 OnValueChange，范围用 OnRangeChange；清空整个范围只通知一次。\n\n### 操作示例\n\n调整日期步长，用上下键编辑；开启日历后选择日期。限制范围设为 2024 年 2–3 月，可将每月 20 日设为不可用。切换自定义分隔内容、头像、加载位置和高亮，观察外观。",
-      "en": "### Basic usage\n\nBind an Optional[Date] and DateInputState for one date, or DateSelection and DateRangeInputState for a range. Incomplete or rejected drafts retain the last accepted value. Use OnValueChange for one date and OnRangeChange for a range; clearing both endpoints sends one range notification.\n\n### Try the controls\n\nChange the day step and use Up/Down, or enable the calendar. Bounds restrict values to February–March 2024; the 20th can be unavailable. Try the custom separator, avatar, loader position and highlight."
+      "zh": "### 基本用法\n\n单日绑定 `Optional[Date]` 与 DateInputState；范围绑定 DateSelection 与 DateRangeInputState。未完成或被拒绝的草稿保留最后有效值。单日用 OnValueChange，范围用 OnRangeChange；清空整个范围只通知一次。\n\n### 在预览中试一试\n\n调整日期步长，用上下键编辑；开启日历后选择日期。限制范围设为 2024 年 2–3 月，可将每月 20 日设为不可用。切换自定义分隔内容、头像、加载位置和高亮，观察外观。",
+      "en": "### Basic usage\n\nBind an Optional[Date] and DateInputState for one date, or DateSelection and DateRangeInputState for a range. Incomplete or rejected drafts retain the last accepted value. Use OnValueChange for one date and OnRangeChange for a range; clearing both endpoints sends one range notification.\n\n### Try the preview\n\nChange the day step and use Up/Down, or enable the calendar. Bounds restrict values to February–March 2024; the 20th can be unavailable. Try the custom separator, avatar, loader position and highlight."
     },
     "note": {
       "zh": "只读仍允许导航与复制。ShowCalendar 默认 false，HideCalendar 优先；Calendar 的范围规则也用于分段输入。Calendar.OnChange 在范围中保留为兼容通知，单日中仅通知日历操作。PlaceholderValue 用于空段的初始调整；字符串 Placeholder、Password、MaxLength 不适用。仅支持完整公历日期，不含时刻或时区。",
@@ -9350,7 +9350,7 @@
         "key": "readOnly",
         "label": {
           "zh": "只读",
-          "en": "ReadOnly"
+          "en": "Read-only"
         },
         "kind": "boolean",
         "default": false
@@ -9386,7 +9386,7 @@
         "key": "avatar",
         "label": {
           "zh": "显示头像",
-          "en": "Avatar"
+          "en": "Show avatar"
         },
         "kind": "boolean",
         "default": true
@@ -9475,8 +9475,8 @@
       "en": "Edit hours, minutes and seconds in 12- or 24-hour format."
     },
     "guide": {
-      "zh": "### 基本用法\n\n绑定 `Optional[ClockTime]` 与 TimeInputState。TwelveHour 未设置时采用区域小时制，显式 false 使用 24 小时制。Granularity 可选择小时、分钟或秒，未设置时由 Seconds 决定。\n\n### 操作示例\n\n分钟以指定步长循环；开启 StepSnapping 后，离开已编辑分段时对齐步长。显示精度变化保留隐藏单位，并把焦点移到仍可见的分段，不触发值通知。有效范围示例为 09:00–17:30。",
-      "en": "### Basic usage\n\nBind Optional[ClockTime] and TimeInputState. Unset TwelveHour follows the regional hour cycle; explicit false selects 24-hour time. Granularity chooses hours, minutes or seconds; when unset, Seconds determines the precision.\n\n### Try the controls\n\nMinutes cycle by the configured step. With StepSnapping, leaving an edited segment rounds it to the nearest step. Changing precision preserves hidden units and moves focus to a visible segment without notifying a value change. The optional valid interval is 09:00–17:30."
+      "zh": "### 基本用法\n\n绑定 `Optional[ClockTime]` 与 TimeInputState。TwelveHour 未设置时采用区域小时制，显式 false 使用 24 小时制。Granularity 可选择小时、分钟或秒，未设置时由 Seconds 决定。\n\n### 在预览中试一试\n\n分钟以指定步长循环；开启 StepSnapping 后，离开已编辑分段时对齐步长。显示精度变化保留隐藏单位，并把焦点移到仍可见的分段，不触发值通知。有效范围示例为 09:00–17:30。",
+      "en": "### Basic usage\n\nBind Optional[ClockTime] and TimeInputState. Unset TwelveHour follows the regional hour cycle; explicit false selects 24-hour time. Granularity chooses hours, minutes or seconds; when unset, Seconds determines the precision.\n\n### Try the preview\n\nMinutes cycle by the configured step. With StepSnapping, leaving an edited segment rounds it to the nearest step. Changing precision preserves hidden units and moves focus to a visible segment without notifying a value change. The optional valid interval is 09:00–17:30."
     },
     "note": {
       "zh": "越界或不可用时间保留为草稿，不覆盖有效值。Min/Max 包含边界，比较完整时间，包括隐藏单位。仅小时输入使用 HH 或 hh AM/PM；其他精度使用 HH:MM[:SS]。当前提供单个时刻，可用两个 InputTime 和应用校验组合范围；不含日期、毫秒或时区。",
@@ -9623,7 +9623,7 @@
         "key": "readOnly",
         "label": {
           "zh": "只读",
-          "en": "ReadOnly"
+          "en": "Read-only"
         },
         "kind": "boolean",
         "default": false
@@ -9641,7 +9641,7 @@
         "key": "twelveHour",
         "label": {
           "zh": "12 小时制",
-          "en": "TwelveHour"
+          "en": "12-hour format"
         },
         "kind": "optionalBoolean",
         "default": null
@@ -9668,7 +9668,7 @@
         "key": "avatar",
         "label": {
           "zh": "显示头像",
-          "en": "Avatar"
+          "en": "Show avatar"
         },
         "kind": "boolean",
         "default": true
@@ -9755,8 +9755,8 @@
       {
         "key": "stepSnapping",
         "label": {
-          "zh": "离开分段时对齐步长",
-          "en": "Snap on segment blur"
+          "zh": "失焦时对齐步长",
+          "en": "Snap on blur"
         },
         "kind": "boolean",
         "default": true
@@ -9776,11 +9776,11 @@
       "en": "Choose a color from a panel, swatches or numeric values."
     },
     "guide": {
-      "zh": "### 基本用法\n\n绑定 `ui.Color` 与持久的 ColorPickerState。颜色平面、横向色相与透明度滑条、HEX / HEXA、色板及 RGBA 数值共享同一个颜色。五档尺寸改变实际选择区和字段尺寸，默认 MD 为 168 DIP 正方形。\n\n### 操作示例\n\n编辑颜色并比较当前值与最近一次通知。Throttle 默认 50 毫秒，只合并 OnChange，绑定颜色即时更新；设置 0 可接收每次实际变化。外部设置颜色不通知，重新填入原通道值也不通知。可切换部件样式和禁用状态。",
-      "en": "### Basic usage\n\nBind ui.Color and persistent ColorPickerState. The SV area, horizontal hue and opacity tracks, HEX/HEXA, swatches and RGBA fields share one color. Five sizes change the actual picker and fields; MD defaults to a 168 DIP square.\n\n### Try the controls\n\nCompare the current value with the last notification. Throttle defaults to 50 ms and coalesces OnChange only; the bound color updates immediately. Set zero for every actual change. External assignments and restoring an unchanged channel do not notify. Try the part styles and disabled state."
+      "zh": "### 基本用法\n\n绑定 `ui.Color` 与持久的 ColorPickerState。颜色平面、横向色相与透明度滑条、HEX / HEXA、色板及 RGBA 数值共享同一个颜色。五档尺寸改变实际选择区和字段尺寸，默认 MD 为 168 DIP 正方形。\n\n### 在预览中试一试\n\n编辑颜色并比较当前值与最近一次通知。Throttle 默认 50 毫秒，只合并 OnChange，绑定颜色即时更新；设置 0 可接收每次实际变化。外部设置颜色不通知，重新填入原通道值也不通知。可切换部件样式和禁用状态。",
+      "en": "### Basic usage\n\nBind ui.Color and persistent ColorPickerState. The SV area, horizontal hue and opacity tracks, HEX/HEXA, swatches and RGBA fields share one color. Five sizes change the actual picker and fields; MD defaults to a 168 DIP square.\n\n### Try the preview\n\nCompare the current value with the last notification. Throttle defaults to 50 ms and coalesces OnChange only; the bound color updates immediately. Set zero for every actual change. External assignments and restoring an unchanged channel do not notify. Try the part styles and disabled state."
     },
     "note": {
-      "zh": "原生面板保留 MyGo 的横向轨道、透明度和色板布局。Root / Panel / Body / Item / Label 可配置；内部 SV、轨道和 HEX 部件未公开。颜色由 ui.Color 表示，字符串格式化由应用负责。编辑通道会按 sRGB 重建颜色；不提供广色域编辑、HSL/CMYK/Lab 文本输入或屏幕取色。 RTL 下原生颜色面板保持 LTR，使输入位置与渐变、滑块一致；RGBA 字段继承表单方向。",
+      "zh": "原生面板保留 MyGo 的横向轨道、透明度和色板布局。Root / Panel / Body / Item / Label 可配置；内部 SV、轨道和 HEX 部件未公开。颜色由 ui.Color 表示，字符串格式化由应用负责。编辑通道会按 sRGB 重建颜色；不提供广色域编辑、HSL/CMYK/Lab 文本输入或屏幕取色。RTL 下原生颜色面板保持 LTR，使输入位置与渐变、滑块一致；RGBA 字段继承表单方向。",
       "en": "The native panel keeps MyGo’s horizontal tracks, opacity and swatches. Root, Panel, Body, Item and Label are configurable; internal SV, track and HEX parts are not exposed. ui.Color is the model, so string formatting belongs to the application. Channel edits rebuild an sRGB color; wide-gamut editing, HSL/CMYK/Lab text input and screen picking are not provided. In RTL, the native color panel stays LTR so input matches its gradients and thumbs; RGBA fields follow the form direction."
     },
     "symbols": ["ColorPicker"],
@@ -10589,15 +10589,15 @@
     "name": "Drawer",
     "category": "advanced",
     "description": {
-      "zh": "从底部打开面板，并用手柄调整高度。",
-      "en": "Open a bottom panel and adjust its height with a handle."
+      "zh": "从底部弹出的面板，可通过手柄拖动调节高度。",
+      "en": "Open a bottom sheet with a drag handle to adjust height."
     },
     "guide": {
       "zh": "### 基本用法\n\n保存 DrawerState，用 Open 控制显示，Snap 选择停靠点。SnapPoints 是可用窗口高度的递增比例；Inset 会先扣除外边距。关闭状态也要继续调用 Drawer，以便退出动画和焦点恢复。Handle 控制独立手柄，CloseButton 默认 false。\n\n### 在预览中试一试\n\n1. 点击 Open drawer，编辑草稿；拖动手柄，或聚焦后用 Up/Down、Home/End 调整高度。\n2. 在首个或末个停靠点重复按 Home/End，Changes 不会继续增加。\n3. 关闭 Dismissible 后尝试 Escape、外部点击或向下拖动，查看 Prevented 次数；Done 仍可由应用直接关闭。\n4. 切换 Handle、Inset、关闭按钮和自定义指示条；将标题清空后，手柄与面板仍有本地化名称。\n5. 关闭并重新打开，检查草稿、停靠位置与返回焦点。\n6. 切换吸附点后，在面板移动途中拖动手柄：从当前可见高度接续拖动，不跳到目标高度。",
       "en": "### Basic usage\n\nKeep DrawerState persistent: Open controls visibility and Snap selects a stop. SnapPoints are ascending fractions of available window height; Inset subtracts the margins first. Render while closed for exit animation and return focus. Handle controls the independent handle; CloseButton defaults to false.\n\n### Try the preview\n\n1. Click Open drawer and edit the draft. Drag the handle or focus it and use Up/Down and Home/End.\n2. Repeat Home/End at a boundary; Changes does not increase again.\n3. Disable Dismissible and try Escape, an outside click or a closing drag; inspect Prevented. Done still closes directly from the application.\n4. Change Handle, Inset, close button and indicator styling. Clear the title to retain localized panel and handle names.\n5. Close and reopen to check the draft, snap index and return focus.\n6. Change a snap point and grab the handle while it is still moving. Dragging continues from the visible height without jumping to the target."
     },
     "note": {
-      "zh": "这是只能从底部打开、仅由手柄拖动的原生面板。SnapPoints 只接受 (0,1] 的比例，不接受 px 字符串；默认 0.5 / 0.85。完整动态效果下吸附高度在 200 毫秒内过渡，减少动态效果时立即切换；出入场沿用 Slideover。DismissDistance / DismissVelocity 是原生关闭阈值，0 使用默认值；不等同于 Vaul 的 closeThreshold。Overlay=false 只隐藏背景，仍保留模态交互限制。Width、MaxHeight、Fullscreen 在本组件不生效。",
+      "zh": "这是只能从底部打开、仅由手柄拖动的原生面板。SnapPoints 只接受 (0,1] 的比例，不接受 px 字符串；默认 0.5 / 0.85。完整动态效果下吸附高度在 200 毫秒内过渡，减少动态效果时立即切换；打开和关闭动画与 Slideover 一致。DismissDistance / DismissVelocity 是原生关闭阈值，0 使用默认值；不等同于 Vaul 的 closeThreshold。Overlay=false 只隐藏背景，仍保留模态交互限制。Width、MaxHeight、Fullscreen 在本组件不生效。",
       "en": "This native bottom sheet is dragged only by its handle. SnapPoints accepts fractions in (0,1], not px strings; defaults are 0.5/0.85. Snaps ease over 200 ms at full motion and change at once under reduced motion; entrance/exit use Slideover. DismissDistance/DismissVelocity are native thresholds with 0 selecting defaults, not Vaul closeThreshold equivalents. Overlay=false only hides the backdrop, retaining modal interaction rules. Width, MaxHeight and Fullscreen do not apply."
     },
     "symbols": ["Drawer"],
@@ -10615,7 +10615,7 @@
       {
         "key": "dismissible",
         "label": {
-          "zh": "允许手势或 Escape 关闭",
+          "zh": "拖动或 Esc 关闭",
           "en": "Allow dismissal"
         },
         "kind": "optionalBoolean",
@@ -10642,7 +10642,7 @@
       {
         "key": "inset",
         "label": {
-          "zh": "保留外边距",
+          "zh": "保留边缘间距",
           "en": "Inset"
         },
         "kind": "boolean",
@@ -10692,7 +10692,7 @@
       "en": "Select files and display their status and upload progress."
     },
     "guide": {
-      "zh": "### 基本用法\n\nFileUploadState 保存文件队列，应用通过 Begin / Report 管理实际传输。Rules 检查类型、大小和数量，拒绝项保留原因；OnChange 仅在用户选择或移除使队列变化时通知，OnReject 报告本次新增的拒绝项。\n\n### 在预览中试一试\n\n1. 点击 Project files 添加模拟元数据，查看 Changes 和 Rejected。重复选择相同文件不会再次通知。\n2. 将选择结果改成 cancel 或 error，重新选择；取消和错误不改变队列。\n3. 移除文件后，键盘焦点返回选择入口。切换列表、网格和列表位置，检查数据保留。\n4. 关闭 FileImage 只隐藏预览配件；关闭 Preview 隐藏整个文件列表。切换图标、高亮和自定义部件查看外观。",
+      "zh": "### 基本用法\n\nFileUploadState 保存文件队列，应用通过 Begin / Report 管理实际传输。Rules 检查类型、大小和数量，拒绝项保留原因；OnChange 仅在用户选择或移除使队列变化时通知，OnReject 报告本次新增的拒绝项。\n\n### 在预览中试一试\n\n1. 点击 Project files 添加模拟元数据，查看 Changes 和 Rejected。重复选择相同文件不会再次通知。\n2. 将选择结果改成 cancel 或 error，重新选择；取消和错误不改变队列。\n3. 移除文件后，键盘焦点返回选择入口。切换列表、网格和列表位置，检查数据保留。\n4. 关闭 FileImage 仅隐藏文件头像；关闭 Preview 隐藏整个文件列表。切换图标、高亮和自定义部件查看外观。",
       "en": "### Basic usage\n\nFileUploadState holds a queue; the application implements transfers through Begin / Report. Rules checks type, size and count, retaining rejected rows with reasons. OnChange reports user selections or removals that change the queue; OnReject reports newly rejected files.\n\n### Try the preview\n\n1. Click Project files to add simulated metadata and inspect Changes and Rejected. Selecting the same files again does not notify.\n2. Set the selection result to cancel or error and choose again; neither changes the queue.\n3. Remove a file to return focus to the picker. Change the layout and list position while retaining the data.\n4. FileImage hides only the supplied preview accessory; Preview hides the whole list. Try the icon, highlight and custom part settings."
     },
     "note": {
@@ -10923,7 +10923,7 @@
       {
         "key": "fileImage",
         "label": {
-          "zh": "显示文件配件",
+          "zh": "显示文件头像",
           "en": "File avatar"
         },
         "kind": "boolean",
@@ -10967,8 +10967,8 @@
     "name": "Chart",
     "category": "advanced",
     "description": {
-      "zh": "用折线、柱状、面积或扇区图展示数据。",
-      "en": "Display data as lines, bars, areas or slices."
+      "zh": "用折线、柱状、面积或环形图展示数据。",
+      "en": "Display data as line, bar, area, or donut charts."
     },
     "guide": {
       "zh": "### 基本用法\n\n持久保存 ChartState，通过 SetCategories、SetData、SetTimeData 或 SetSlices 更新数据。默认图例只在系列或扇区多于一个时显示；Height 默认 300，未设置高度时可使用 AspectRatio。\n\n网格线固定为一个物理像素；数据线的 LineWidth 仍使用 DIP。\n\n### 在预览中试一试\n\n1. 聚焦图表，用左右键和 Home/End 查看数据，再按 Enter/Space 激活，观察通知次数。\n2. 点击 Views 或 Visits 图例隐藏系列，再在数据配置中调整系列顺序，检查显隐状态仍跟随 ID。\n3. 在数据配置中只保留一个系列，观察自动图例隐藏；显式开启 Legend 可继续显示。\n4. 切换坐标轴、数据点、提示、配色、RTL 与图形类型。圆环可以调整 Thickness，并显示中心内容。\n5. 在数据配置中清空系列，再恢复，检查本地化空状态和键盘操作。",
@@ -10984,8 +10984,8 @@
       {
         "key": "kind",
         "label": {
-          "zh": "图型",
-          "en": "Kind"
+          "zh": "图表类型",
+          "en": "Chart type"
         },
         "kind": "select",
         "default": "line",
@@ -11202,8 +11202,8 @@
       {
         "key": "watch",
         "label": {
-          "zh": "允许拖拽",
-          "en": "Watch drag"
+          "zh": "允许拖动",
+          "en": "Draggable"
         },
         "kind": "boolean",
         "default": true
@@ -11229,8 +11229,8 @@
       {
         "key": "active",
         "label": {
-          "zh": "允许自动播放活动",
-          "en": "Autoplay active"
+          "zh": "开启自动播放",
+          "en": "Enable autoplay"
         },
         "kind": "boolean",
         "default": true
@@ -11238,7 +11238,7 @@
       {
         "key": "disabled",
         "label": {
-          "zh": "禁用容器",
+          "zh": "禁用父容器",
           "en": "Disable parent"
         },
         "kind": "boolean",
@@ -11368,7 +11368,7 @@
       {
         "key": "active",
         "label": {
-          "zh": "允许运动",
+          "zh": "开启滚动",
           "en": "Active"
         },
         "kind": "boolean",
@@ -11485,8 +11485,8 @@
       {
         "key": "step",
         "label": {
-          "zh": "键盘步长（百分点）",
-          "en": "Keyboard step (percentage points)"
+          "zh": "键盘步长（%）",
+          "en": "Keyboard step (%)"
         },
         "kind": "number",
         "default": 5,
@@ -11597,8 +11597,8 @@
       {
         "key": "breakpoint",
         "label": {
-          "zh": "切换弹层的宽度（0 关闭）",
-          "en": "Overlay width threshold (0 disables)"
+          "zh": "窄屏切换宽度（0 关闭）",
+          "en": "Overlay width (0 = off)"
         },
         "kind": "number",
         "default": 0.0,
@@ -11632,7 +11632,7 @@
       {
         "key": "description",
         "label": {
-          "zh": "描述",
+          "zh": "说明",
           "en": "Description"
         },
         "kind": "text",
@@ -11684,7 +11684,7 @@
       "en": "### Basic usage\n\nHeaderLayout renders Title, native Description, Leading and Actions. Leading, Body, Label, Description and Actions are actual style parts. Stable region identities retain action editors when leading content changes.\n\n### Try the preview\n\n1. Edit Header draft and toggle the leading icon or styles without losing the draft.\n2. Open the menu and choose Header menu settings. The page changes, the menu closes and focus returns to its opener.\n3. Compare RTL, long titles and wrapping."
     },
     "note": {
-      "zh": "HeaderLayout 是原生应用标题区，也是窗口的横幅地标（ui.RoleBanner），一个窗口最多一个；嵌套实例可在返回的元素上调用 .Role(ui.RoleGroup) 取消地标。标题默认为空，不自动生成网页首页链接、粘性定位或移动菜单。本例用 Sidebar 组合菜单；断点 2000 DIP 用于在常见预览宽度下展示弹层。mode、menu、open 和路由自动关闭不属于 HeaderOptions，菜单状态由组合的 Sidebar 负责。",
+      "zh": "HeaderLayout 是原生应用标题区，也是窗口的页眉区域（无障碍角色 ui.RoleBanner），一个窗口最多一个；嵌套实例可在返回元素上调用 .Role(ui.RoleGroup) 取消该角色。标题默认为空，不自动生成网页首页链接、粘性定位或移动菜单。本例用 Sidebar 组合菜单；断点 2000 DIP 用于在常见预览宽度下展示弹层。mode、menu、open 和路由自动关闭不属于 HeaderOptions，菜单状态由组合的 Sidebar 负责。",
       "en": "HeaderLayout is a native application header and the window’s banner landmark (ui.RoleBanner); a window has at most one, so call .Role(ui.RoleGroup) on the returned element for nested instances. Its title defaults to empty; it does not create a home link, sticky positioning or a mobile menu automatically. This example composes Sidebar with a 2000-DIP breakpoint to show its overlay at normal preview widths. Mode, menu, open and route auto-close are not HeaderOptions; the composed Sidebar owns menu state."
     },
     "symbols": ["HeaderLayout"],
@@ -11702,7 +11702,7 @@
       {
         "key": "description",
         "label": {
-          "zh": "描述",
+          "zh": "说明",
           "en": "Description"
         },
         "kind": "text",
@@ -11754,7 +11754,7 @@
       "en": "### Basic usage\n\nFooterLayout uses Text for copy and Actions for controls. Root, Label and Actions style the container, text and action region. Actions use a six-DIP gap and wrap when needed.\n\n### Try the preview\n\n1. Activate Review and Help and inspect callback counts and results.\n2. Enable action styling to compare its background, padding and button gap.\n3. Enter longer text and switch RTL to inspect layout."
     },
     "note": {
-      "zh": "原生 API 使用 Text 和 Actions，不提供网页的 left/default/right/top/bottom 插槽或 UContainer 断点重排。需要多区页脚时可用原生布局组合。默认没有顶部边线，Root 内边距为水平 20、垂直 12 DIP。FooterLayout 是窗口的内容信息地标（ui.RoleContentInfo），一个窗口最多一个；嵌套实例可在返回的元素上调用 .Role(ui.RoleGroup) 取消地标。",
+      "zh": "原生 API 使用 Text 和 Actions，不提供网页的 left/default/right/top/bottom 插槽或 UContainer 断点重排。需要多区页脚时可用原生布局组合。默认没有顶部边线，Root 内边距为水平 20、垂直 12 DIP。FooterLayout 是窗口的页脚信息区域（无障碍角色 ui.RoleContentInfo），一个窗口最多一个；嵌套实例可在返回元素上调用 .Role(ui.RoleGroup) 取消该角色。",
       "en": "The native API uses Text and Actions rather than web left/default/right/top/bottom slots or UContainer breakpoint reordering. Compose additional regions with native layouts. The footer has no default top border and uses 20-DIP horizontal and 12-DIP vertical root padding. FooterLayout is the window’s content-information landmark (ui.RoleContentInfo); a window has at most one, so call .Role(ui.RoleGroup) on the returned element for nested instances."
     },
     "symbols": ["FooterLayout"],
@@ -11772,8 +11772,8 @@
       {
         "key": "styled",
         "label": {
-          "zh": "动作部件样式",
-          "en": "Action part style"
+          "zh": "操作区样式",
+          "en": "Action style"
         },
         "kind": "boolean",
         "default": false

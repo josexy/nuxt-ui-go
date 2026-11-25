@@ -12,12 +12,12 @@
     "en": "Choose an appearance such as a border or filled background. Supported variants depend on the component."
   },
   "Label": {
-    "zh": "控件的显示标签或供辅助技术读取的名称，具体用途见组件说明。",
-    "en": "The visible label or the name read by assistive technology, depending on the component."
+    "zh": "控件的显示标签或无障碍名称，具体用途见组件说明。",
+    "en": "Visible label or accessible name, depending on the component."
   },
   "AccessibleLabel": {
-    "zh": "供辅助技术读取的名称。纯图标按钮需要用它说明操作用途。",
-    "en": "The name read by assistive technology. Use it to describe an icon-only button’s action."
+    "zh": "供屏幕阅读器读取的无障碍名称；纯图标按钮需用它说明操作用途。",
+    "en": "Accessible name for screen readers. Use it to describe an icon-only button’s action."
   },
   "Title": {
     "zh": "标题文字。",
@@ -92,8 +92,8 @@
     "en": "Controls loader rotation, on by default. The loader keeps turning under reduced motion; false stops it, and true cannot turn it on when animations are off (Motion.Disabled). Theme.Motion.Transition controls background transitions, which still fade under reduced motion."
   },
   "ButtonOptions.Style": {
-    "zh": "同步配置 root、label、leading、trailing；没有构建的部件为零值 Element。加载图标颜色使用对应 UI 部件的 Foreground，Style.TextColor 不改变自定义绘制颜色。不要保存 Element。",
-    "en": "Synchronously configure root, label, leading and trailing; absent parts are zero Elements. Set loader colors with the corresponding UI part Foreground; Style.TextColor does not change custom drawing colors. Do not retain Elements."
+    "zh": "同步配置 root、label、leading、trailing；未构建的部件为空值 Element。加载图标颜色请通过对应 UI 部件的 Foreground 设置，Style.TextColor 不影响自定义绘制颜色。不要保存 Element。",
+    "en": "Synchronously configure root, label, leading, and trailing; absent parts are zero Elements. Set loader colors via the matching UI part Foreground; Style.TextColor does not change custom drawing colors. Do not retain Elements."
   },
   "LoadingTrailing": {
     "zh": "把加载图标放在内容后方；如果设置了 Leading，优先在前方显示。",
@@ -284,7 +284,7 @@
     "en": "Show a clear action or allow clearing the value."
   },
   "ClearLabel": {
-    "zh": "清空操作的可访问名称。",
+    "zh": "清空操作的无障碍名称。",
     "en": "Accessible name for the clear action."
   },
   "Password": {
@@ -472,7 +472,7 @@
     "en": "Show a close button."
   },
   "CloseLabel": {
-    "zh": "关闭操作的可访问名称。",
+    "zh": "关闭操作的无障碍名称。",
     "en": "Accessible name of the close action."
   },
   "Overlay": {
@@ -824,8 +824,8 @@
     "en": "File list layout."
   },
   "Kind": {
-    "zh": "组件图型或项目种类。",
-    "en": "Chart kind or item kind."
+    "zh": "图表类型或项目类型。",
+    "en": "Chart type or item kind."
   },
   "Curve": {
     "zh": "折线或面积边缘的连接方式，如直线、平滑曲线或阶梯线。",
@@ -920,11 +920,11 @@
     "en": "Sidebar width when collapsed."
   },
   "ToggleLabel": {
-    "zh": "折叠或展开操作的可访问名称。",
+    "zh": "折叠或展开操作的无障碍名称。",
     "en": "Accessible name for the collapse/expand action."
   },
   "ResizeLabel": {
-    "zh": "侧栏调宽手柄的可访问名称；默认跟随当前语言。",
+    "zh": "侧栏调宽手柄的无障碍名称；默认跟随当前语言。",
     "en": "Accessible name for the sidebar resize handle; localized by default."
   },
   "SidebarOptions.Collapsible": {
@@ -1324,15 +1324,15 @@
     "en": "Allows focus and copying but no edits. Each time segment reports read-only, so assistive technology cannot set or step it."
   },
   "InputDateOptions.Placeholder": {
-    "zh": "不适用于分段输入；各段占位符使用组件语言目录中的 Placeholder 键。",
+    "zh": "分段输入不生效；各段占位符使用组件语言目录中的 Placeholder 键。",
     "en": "Not used by segmented inputs; segment placeholders come from the component locale catalog."
   },
   "InputDateOptions.Password": {
-    "zh": "不适用于分段日期／时间输入，不会遮罩字段。",
+    "zh": "分段日期／时间输入不支持密码遮罩。",
     "en": "Not used by segmented date/time inputs; segments are not masked."
   },
   "InputDateOptions.MaxLength": {
-    "zh": "不适用于分段输入；各段按日期／时间范围限制位数和值。",
+    "zh": "分段输入不生效；各段按日期／时间范围限制位数和值。",
     "en": "Not used by segmented inputs; each segment restricts its digits and value to date/time bounds."
   },
   "InputDateOptions.Style": {
@@ -1340,23 +1340,23 @@
     "en": "Synchronously receives root, editor, leading and trailing; editor is the first focusable segment, not a native text editor."
   },
   "InputDateOptions.UI": {
-    "zh": "Root、Editor、Segment、Leading、Trailing 控制外框、分段和配件；日期范围还支持 SeparatorSlot。",
-    "en": "Root, Editor, Segment, Leading and Trailing style the field and its parts; date ranges also support SeparatorSlot."
+    "zh": "Root、Editor、Segment、Leading、Trailing 控制外框、分段和前后图标；日期范围还支持 SeparatorSlot。",
+    "en": "Root, Editor, Segment, Leading, and Trailing style the field and its parts; date ranges also support SeparatorSlot."
   },
   "InputDateOptions.OnChange": {
     "zh": "草稿变化时回调；返回规范格式的草稿或被拒绝的粘贴原文，未完成的输入不会提交业务值。",
     "en": "Called when the draft changes, with canonical draft text or rejected pasted text. Incomplete input does not commit a value."
   },
   "InputTimeOptions.Placeholder": {
-    "zh": "不适用于分段输入；各段占位符使用组件语言目录中的 Placeholder 键。",
+    "zh": "分段输入不生效；各段占位符使用组件语言目录中的 Placeholder 键。",
     "en": "Not used by segmented inputs; segment placeholders come from the component locale catalog."
   },
   "InputTimeOptions.Password": {
-    "zh": "不适用于分段日期／时间输入，不会遮罩字段。",
+    "zh": "分段日期／时间输入不支持密码遮罩。",
     "en": "Not used by segmented date/time inputs; segments are not masked."
   },
   "InputTimeOptions.MaxLength": {
-    "zh": "不适用于分段输入；各段按日期／时间范围限制位数和值。",
+    "zh": "分段输入不生效；各段按日期／时间范围限制位数和值。",
     "en": "Not used by segmented inputs; each segment restricts its digits and value to date/time bounds."
   },
   "InputTimeOptions.Style": {
@@ -1364,8 +1364,8 @@
     "en": "Synchronously receives root, editor, leading and trailing; editor is the first focusable segment, not a native text editor."
   },
   "InputTimeOptions.UI": {
-    "zh": "Root、Editor、Segment、Leading、Trailing 控制外框、分段和配件；日期范围还支持 SeparatorSlot。",
-    "en": "Root, Editor, Segment, Leading and Trailing style the field and its parts; date ranges also support SeparatorSlot."
+    "zh": "Root、Editor、Segment、Leading、Trailing 控制外框、分段和前后图标。",
+    "en": "Root, Editor, Segment, Leading, and Trailing style the field and its parts."
   },
   "InputTimeOptions.OnChange": {
     "zh": "草稿变化时回调；返回规范格式的草稿或被拒绝的粘贴原文，未完成的输入不会提交业务值。",
@@ -1428,8 +1428,8 @@
     "en": "Not used by Checkbox; its unchecked indicator has no icon. This field is used by Switch."
   },
   "CheckboxOptions.Variant": {
-    "zh": "默认 ChoiceList，可选 ChoiceCard。ChoiceTable 是 Go 原生扩展；Nuxt UI 的单个 Checkbox 不提供 table 样式。",
-    "en": "Defaults to ChoiceList; ChoiceCard is also supported. ChoiceTable is a Go native extension, not a variant of the upstream standalone Checkbox."
+    "zh": "默认 ChoiceList，可选 ChoiceCard。ChoiceTable 为 Go 原生扩展，Nuxt UI 的单个 Checkbox 不提供 table 样式。",
+    "en": "Defaults to ChoiceList; ChoiceCard is also supported. ChoiceTable is a Go native extension not offered by Nuxt UI’s standalone Checkbox."
   },
   "SwitchOptions.Loading": {
     "zh": "显示加载图标，并禁止鼠标、键盘和关联字段标签切换值。默认 false。",
@@ -1460,16 +1460,16 @@
     "en": "Unset allows any number of selections; explicit zero prevents additional selections. At the limit, unchecked items remain focusable and selected items can still be cleared."
   },
   "CheckboxGroupOptions.Variant": {
-    "zh": "默认 ChoiceList，可选 ChoiceCard 或 ChoiceTable；ChoiceTable 将相邻选项的边框连在一起。三者均对应上游选项组样式。",
-    "en": "Defaults to ChoiceList; ChoiceCard and ChoiceTable are also supported. ChoiceTable joins adjacent borders. All three correspond to upstream group variants."
+    "zh": "默认 ChoiceList，可选 ChoiceCard 或 ChoiceTable（相邻选项边框相连），三者均对应 Nuxt UI 选项组样式。",
+    "en": "Defaults to ChoiceList; ChoiceCard and ChoiceTable (joined borders) are also supported. All three match Nuxt UI group variants."
   },
   "RadioGroupOptions.Max": {
     "zh": "RadioGroup 不使用此字段；它只允许单选。Max 来自与 CheckboxGroup 共用的选项类型，保留用于配置兼容。",
     "en": "Not used by RadioGroup, which only selects one item. Max belongs to the shared CheckboxGroup options and is retained for configuration compatibility."
   },
   "RadioGroupOptions.Variant": {
-    "zh": "默认 ChoiceList，可选 ChoiceCard 或 ChoiceTable；三者均对应上游单选组样式。",
-    "en": "Defaults to ChoiceList; ChoiceCard and ChoiceTable are also supported. All three correspond to upstream radio group variants."
+    "zh": "默认 ChoiceList，可选 ChoiceCard 或 ChoiceTable，三者均对应 Nuxt UI 单选组样式。",
+    "en": "Defaults to ChoiceList; ChoiceCard and ChoiceTable are also supported. All three match Nuxt UI radio group variants."
   },
   "CheckboxTriOptions.Loading": {
     "zh": "Checkbox 不使用此字段；它来自与 Switch 共用的选项类型。保留此字段以兼容已有配置，不显示加载状态。",
@@ -1484,8 +1484,8 @@
     "en": "Not used by Checkbox; its unchecked indicator has no icon. This field is used by Switch."
   },
   "CheckboxTriOptions.Variant": {
-    "zh": "默认 ChoiceList，可选 ChoiceCard。ChoiceTable 是 Go 原生扩展；Nuxt UI 的单个 Checkbox 不提供 table 样式。",
-    "en": "Defaults to ChoiceList; ChoiceCard is also supported. ChoiceTable is a Go native extension, not a variant of the upstream standalone Checkbox."
+    "zh": "默认 ChoiceList，可选 ChoiceCard。ChoiceTable 为 Go 原生扩展，Nuxt UI 的单个 Checkbox 不提供 table 样式。",
+    "en": "Defaults to ChoiceList; ChoiceCard is also supported. ChoiceTable is a Go native extension not offered by Nuxt UI’s standalone Checkbox."
   },
   "CheckboxTriOptions.IndeterminateIcon": {
     "zh": "部分选中且指示器可见时使用的图标；未设置时使用减号。隐藏指示器时只使用显式 CheckedIcon 作为标签图标。",
@@ -1532,8 +1532,8 @@
     "en": "Defaults to Vertical, with actions below the body. Horizontal puts them beside the body; close stays at the trailing edge."
   },
   "AlertOptions.Actions": {
-    "zh": "同步构建操作区，默认按钮尺寸由调用者设置；与上游示例一致时使用 XS。切换方向保留子控件身份。",
-    "en": "Builds the action area synchronously. The caller chooses button sizes; use XS to match upstream defaults. Child identity is preserved across orientation changes."
+    "zh": "同步构建操作区，按钮尺寸由调用者指定（与 Nuxt UI 默认一致时用 XS）。切换方向时保留子控件身份。",
+    "en": "Builds the action area synchronously. Button sizes are caller-chosen (use XS to match Nuxt UI defaults). Child identity is preserved across orientation changes."
   },
   "AlertOptions.UI": {
     "zh": "部件为 Root、Body、Leading、Label、Description、Actions、Trailing；Body 对应文字容器，Trailing 对应关闭按钮。",
@@ -1548,11 +1548,11 @@
     "en": "Decoded bitmap, preceding Icon, Text and Alt. A nil image uses fallback content. It fills the root with centered cover cropping; Body styles customize the image."
   },
   "AvatarOptions.Alt": {
-    "zh": "可访问名称；没有图片、图标和 Text 时，从空格分词的首字符中取前两个作为回退，保留大小写。",
+    "zh": "无障碍名称；没有图片、图标和 Text 时，从空格分词的首字符中取前两个作为回退，保留大小写。",
     "en": "Accessible name; without an image, icon or Text, uses the first two initials from space-separated words, preserving case."
   },
   "AvatarOptions.Text": {
-    "zh": "原样显示的回退文字，优先于 Alt 首字母；没有 Alt 时也用作可访问名称。",
+    "zh": "原样显示的回退文字，优先于 Alt 首字母；没有 Alt 时也用作无障碍名称。",
     "en": "Literal fallback text, preceding initials from Alt. Also supplies the accessible name when Alt is empty."
   },
   "AvatarOptions.Size": {
@@ -1588,8 +1588,8 @@
     "en": "Defaults to TopRight. Corners use physical left/right and do not mirror in RTL."
   },
   "ChipOptions.Hidden": {
-    "zh": "默认 false；只隐藏角标，主体内容和交互保留。对应上游 show 的反值。",
-    "en": "Defaults to false. Hides only the marker, preserving the host and its interaction. Inverse of upstream show."
+    "zh": "默认 false；仅隐藏角标，保留主体内容与交互（与 Nuxt UI 的 show 相反）。",
+    "en": "Defaults to false. Hides only the marker while keeping the host and its interactions (inverse of Nuxt UI’s show)."
   },
   "ChipOptions.Inset": {
     "zh": "默认 false，角标中心位于主体角点；true 将角标放在主体边界内。独立角标不应用偏移。",
@@ -1624,19 +1624,19 @@
     "en": "Parts: Root, Body, Label, Leading and Indicator. Indicator.Background colors every stroke type; a final Style Background/Material replaces the default stroke painting."
   },
   "ButtonOptions.Color": {
-    "zh": "选择主色、成功、警告等用途的颜色。未指定时采用主题或组件默认颜色。 Neutral / Solid 使用 InvertedBackground 背景和 Inverted 文字。",
+    "zh": "选择主色、成功、警告等用途的颜色。未指定时采用主题或组件默认颜色。Neutral / Solid 使用 InvertedBackground 背景和 Inverted 文字。",
     "en": "Choose a color role such as primary, success or warning. An unspecified value uses the theme or component default. Neutral / Solid uses InvertedBackground for its background and Inverted for text."
   },
   "BadgeOptions.Color": {
-    "zh": "选择主色、成功、警告等用途的颜色。未指定时采用主题或组件默认颜色。 Neutral / Solid 使用 InvertedBackground 背景和 Inverted 文字。",
+    "zh": "选择主色、成功、警告等用途的颜色。未指定时采用主题或组件默认颜色。Neutral / Solid 使用 InvertedBackground 背景和 Inverted 文字。",
     "en": "Choose a color role such as primary, success or warning. An unspecified value uses the theme or component default. Neutral / Solid uses InvertedBackground for its background and Inverted for text."
   },
   "AlertOptions.Color": {
-    "zh": "选择主色、成功、警告等用途的颜色。未指定时采用主题或组件默认颜色。 Neutral / Solid 使用 InvertedBackground 背景和 Inverted 文字。",
+    "zh": "选择主色、成功、警告等用途的颜色。未指定时采用主题或组件默认颜色。Neutral / Solid 使用 InvertedBackground 背景和 Inverted 文字。",
     "en": "Choose a color role such as primary, success or warning. An unspecified value uses the theme or component default. Neutral / Solid uses InvertedBackground for its background and Inverted for text."
   },
   "KbdOptions.Color": {
-    "zh": "选择主色、成功、警告等用途的颜色。未指定时采用主题或组件默认颜色。 Neutral / Solid 使用 InvertedBackground 背景和 Inverted 文字。",
+    "zh": "选择主色、成功、警告等用途的颜色。未指定时采用主题或组件默认颜色。Neutral / Solid 使用 InvertedBackground 背景和 Inverted 文字。",
     "en": "Choose a color role such as primary, success or warning. An unspecified value uses the theme or component default. Neutral / Solid uses InvertedBackground for its background and Inverted for text."
   },
   "KbdOptions.Size": {
@@ -1648,8 +1648,8 @@
     "en": "Defaults to the current GOOS. darwin uses macOS modifier labels; other values use existing desktop labels. command / win always map to ⌘ / ⊞. Does not register shortcuts."
   },
   "KbdOptions.UI": {
-    "zh": "Label 对应各按键的完整外框和文字样式，Root 配置外层组合行；对应上游 ui.base 的是 Label。",
-    "en": "Label styles each complete key surface and its text; Root styles the outer row. Upstream ui.base corresponds to Label."
+    "zh": "Label 控制各按键的外框和文字样式（对应 Nuxt UI 的 ui.base），Root 控制外层组合行。",
+    "en": "Label styles each key’s surface and text (matching Nuxt UI’s ui.base); Root styles the outer row."
   },
   "SkeletonOptions.Width": {
     "zh": "原生尺寸扩展，单位 DIP，未设置时为 160；显式 0 保留。可在返回元素上调用 FillWidth 适应父级宽度。",
@@ -1664,16 +1664,16 @@
     "en": "Native animation switch, enabled by default. The pulse continues under reduced motion; animations off (Motion.Disabled) take precedence over explicit true. Background opacity pulses from 0.5 to 1; offscreen instances stop requesting frames."
   },
   "SkeletonOptions.UI": {
-    "zh": "Root 对应上游 ui.base；Background 设置脉冲颜色，Radius 设置圆角。全局组件样式、实例 UI、Style 依次应用。",
-    "en": "Root corresponds to upstream ui.base. Background sets the pulse color and Radius sets the corner radius. Component defaults, instance UI and Style apply in that order."
+    "zh": "Root 对应 Nuxt UI 的 ui.base；Background 设置脉冲颜色，Radius 设置圆角。按全局组件样式、实例 UI、Style 依次生效。",
+    "en": "Root matches Nuxt UI’s ui.base. Background sets the pulse color and Radius sets the corner radius. Component defaults, instance UI, and Style apply in order."
   },
   "SkeletonOptions.Style": {
     "zh": "同步配置 Root；Radius 可覆盖 UI 圆角。Background 仅改变底层表面，自绘脉冲颜色请用 UI.Root.Background。",
     "en": "Synchronously configures Root; Radius overrides the UI radius. Background affects the underlying surface only. Use UI.Root.Background for the drawn pulse color."
   },
   "ProgressOptions.Max": {
-    "zh": "默认 100；显式值必须是有限正数，否则 panic。只接受数值，没有上游步骤数组形式。",
-    "en": "Defaults to 100; explicit values must be finite and positive or panic. Numeric maxima only; no upstream step-array form."
+    "zh": "默认 100；显式值须为有限正数，否则会 panic。仅接受数值，不支持 Nuxt UI 的步骤数组写法。",
+    "en": "Defaults to 100; explicit values must be finite and positive or panic. Numeric maxima only (no Nuxt UI step-array form)."
   },
   "ProgressOptions.Indeterminate": {
     "zh": "忽略完成量，显示未知进度指示器，按 Animation 预设以两秒为周期运动；减少动态效果时铺满轨道并脉冲，关闭动画时以半条轨道长居中静止。",
@@ -1688,7 +1688,7 @@
     "en": "Compatible native orientation switch; either true or Orientation=Vertical enables vertical progress."
   },
   "ProgressOptions.Label": {
-    "zh": "原生可访问名称，不直接显示在轨道上。工作单位等值说明可用返回元素的 Value 设置。",
+    "zh": "原生无障碍名称，不直接显示在轨道上。工作单位等值说明可用返回元素的 Value 设置。",
     "en": "Native accessible name, not visible track text. Set work-unit value text with Value on the returned element."
   },
   "ProgressOptions.Color": {
@@ -1700,8 +1700,8 @@
     "en": "Enabled by default. Controls the 200ms value transition and the two-second unknown-progress animation. The value moves only at full motion; under reduced motion unknown progress spans the track and pulses; false or animations off keep it still."
   },
   "ProgressOptions.UI": {
-    "zh": "Root 是进度轨道，对应上游 base；Indicator 读取 Background 作为自绘填充色，其他 Indicator 字段不生效。",
-    "en": "Root is the track, corresponding to upstream base. Indicator reads Background for the drawn fill color; other Indicator fields do not apply."
+    "zh": "Root 为进度轨道（对应 Nuxt UI 的 base）；Indicator 仅读取 Background 作为填充色，其余字段不生效。",
+    "en": "Root is the track (matching Nuxt UI’s base). Indicator only reads Background for the fill color; other Indicator fields do not apply."
   },
   "ProgressSegment.ID": {
     "zh": "唯一、非空的稳定项目标识。重排时保留分段和自定义图例控件的身份。",
@@ -1776,8 +1776,8 @@
     "en": "Empty options show no avatar. Missing Alt falls back to Name. User.Size always controls size; nested Avatar.Size is ignored."
   },
   "UserOptions.Chip": {
-    "zh": "仅在默认头像存在时显示。User.Size 覆盖 Chip.Size，Inset 固定为 true；其他颜色、文字、位置和隐藏配置沿用 Chip。Leading 自定义内容自行管理角标。",
-    "en": "Shown only with the default avatar. User.Size overrides Chip.Size and Inset is forced true. Other color, text, position and hidden options follow Chip. Custom Leading content manages its own chip."
+    "zh": "仅在默认头像存在时显示。User.Size 覆盖 Chip.Size，Inset 固定为 true；其余配置使用 Chip 默认值。使用 Leading 自定义内容时需自行管理角标。",
+    "en": "Shown only with the default avatar. User.Size overrides Chip.Size and Inset is forced true; other options follow Chip. Custom Leading content manages its own chip."
   },
   "UserOptions.Orientation": {
     "zh": "默认 Horizontal；设置 Vertical 或兼容字段 Vertical=true 任一成立即为纵向。",
@@ -1792,7 +1792,7 @@
     "en": "Synchronously builds the leading area instead of the default Avatar and Chip; avatar scaling is not applied automatically."
   },
   "UserOptions.Body": {
-    "zh": "同步替换默认姓名和说明，wrapper 的样式通过 Body 部件配置。可激活项仍应提供 Name 作为可访问名称。",
+    "zh": "同步替换默认姓名和说明，wrapper 的样式通过 Body 部件配置。可激活项仍应提供 Name 作为无障碍名称。",
     "en": "Synchronously replaces default name and description. Style its wrapper through Body. Interactive entries should still provide Name as an accessible name."
   },
   "UserOptions.OnActivate": {
@@ -1828,8 +1828,8 @@
     "en": "Show a loader while allowing editing. Set Disabled or ReadOnly separately to prevent editing."
   },
   "InputOptions.Style": {
-    "zh": "同步配置 root、editor、leading、trailing；缺少的部件为零值 Element。通过 editor 绑定持久 Handle；加载颜色使用相应 UI 部件的 Foreground，Style.TextColor 不改变自定义绘制颜色。",
-    "en": "Synchronously configure root, editor, leading and trailing; absent parts are zero Elements. Bind persistent handles to editor. Set loader colors through the relevant UI part Foreground; Style.TextColor does not change custom drawing colors."
+    "zh": "同步配置 root、editor、leading、trailing；未构建的部件为空值 Element。可在 editor 上绑定持久 Handle；加载图标颜色请通过对应 UI 部件的 Foreground 设置，Style.TextColor 不影响自定义绘制颜色。",
+    "en": "Synchronously configure root, editor, leading, and trailing; absent parts are zero Elements. Bind persistent handles on editor. Set loader colors via the matching UI part Foreground; Style.TextColor does not change custom drawing colors."
   },
   "InputOptions.Highlight": {
     "zh": "强制显示颜色边框，包含 None 样式；错误状态优先。默认 false。",
@@ -1840,8 +1840,8 @@
     "en": "Show a loader while allowing editing. Set Disabled or ReadOnly separately to prevent editing."
   },
   "TextareaOptions.Style": {
-    "zh": "同步配置 root、editor、leading、trailing；缺少的部件为零值 Element。通过 editor 绑定持久 Handle；加载颜色使用相应 UI 部件的 Foreground，Style.TextColor 不改变自定义绘制颜色。",
-    "en": "Synchronously configure root, editor, leading and trailing; absent parts are zero Elements. Bind persistent handles to editor. Set loader colors through the relevant UI part Foreground; Style.TextColor does not change custom drawing colors."
+    "zh": "同步配置 root、editor、leading、trailing；未构建的部件为空值 Element。可在 editor 上绑定持久 Handle；加载图标颜色请通过对应 UI 部件的 Foreground 设置，Style.TextColor 不影响自定义绘制颜色。",
+    "en": "Synchronously configure root, editor, leading, and trailing; absent parts are zero Elements. Bind persistent handles on editor. Set loader colors via the matching UI part Foreground; Style.TextColor does not change custom drawing colors."
   },
   "TextareaOptions.Highlight": {
     "zh": "强制显示颜色边框，包含 None 样式；错误状态优先。默认 false。",
@@ -1884,8 +1884,8 @@
     "en": "Show a required mark beside the label and add a required description to the bound control. Without a label, no isolated mark is drawn. This does not validate values."
   },
   "FormFieldOptions.Error": {
-    "zh": "显式错误文字，优先于 Help；为空时可显示已触碰字段的 Form 错误。字符串字段不能表达上游 error=true 的仅强调或 error=false 的隐藏错误。",
-    "en": "Explicit error text, taking priority over Help. Empty may show the Form error for a touched field. This string cannot express upstream error=true for highlight only or error=false to hide errors."
+    "zh": "显式错误文字，优先于 Help；为空时可显示已编辑字段的 Form 错误。字符串字段不区分 Nuxt UI 的 error=true（仅高亮）与 error=false（隐藏错误）。",
+    "en": "Explicit error text, taking priority over Help. Empty may show the Form error for a touched field. Unlike Nuxt UI, a string cannot express error=true (highlight only) or error=false (hide errors)."
   },
   "FormFieldOptions.Orientation": {
     "zh": "默认 Vertical；Set(Horizontal) 横向排列并按首行文字基线对齐，Set(Vertical) 明确恢复纵向。",
@@ -2064,8 +2064,8 @@
     "en": "Default PopoverClick leaves toggling to the anchor action; PopoverHover follows hover or keyboard focus. Invalid modes panic."
   },
   "ScrollAreaOptions.Direction": {
-    "zh": "默认纵向；横向自动使用行布局，双向使用列布局。不识别的值沿用纵向。",
-    "en": "Default vertical; horizontal uses a row and both-axis uses a column. Unknown values fall back to vertical."
+    "zh": "默认纵向；横向使用行布局，双向使用列布局。未知值回退为纵向。",
+    "en": "Defaults to vertical; horizontal uses a row and both-axis uses a column. Unknown values fall back to vertical."
   },
   "ScrollAreaOptions.State": {
     "zh": "可选持久 ui.ScrollState。独立实例使用独立状态；读取或设置 X / Y，MaxX / MaxY 由布局计算，超界值被限制。",
@@ -2120,8 +2120,8 @@
     "en": "Runs synchronously after part-style merging for Panel, Label and Trailing."
   },
   "ModalOptions.Transition": {
-    "zh": "默认 true；false 时立即显示和关闭，不留退出副本。Modal 关闭时面板与遮罩一起在 200 毫秒内淡出（不缩小）；Slideover 滑出，减少动态效果时原地淡入淡出。关闭动画（Motion.Disabled）时同样立即切换。恢复 true 不重播已经完成的入场。",
-    "en": "Defaults to true. False shows and closes immediately, leaving no exit copy. Modal fades its panel and backdrop out together over 200 ms (no scale-out); Slideover slides out, and fades in place under reduced motion. Animations off (Motion.Disabled) also change at once. Re-enabling does not replay a completed entrance."
+    "zh": "默认 true：关闭时面板与遮罩在 200 ms 内淡出（不缩放）；false 或关闭动画（Motion.Disabled）时立即切换。重新设为 true 不会重播已完成的入场动画。",
+    "en": "Defaults to true: panel and backdrop fade out together over 200 ms (no scale-out). False or Motion.Disabled switches immediately. Re-enabling does not replay a completed entrance."
   },
   "ModalOptions.Close": {
     "zh": "可选关闭按钮配置，默认 MD / Neutral / Ghost。CloseButton=false 时不创建按钮；禁用或加载状态阻止按钮关闭。",
@@ -2140,20 +2140,20 @@
     "en": "Called once for the close button or allowed Escape/outside dismissal. Direct application changes to open and custom Footer actions do not trigger it."
   },
   "ModalOptions.CloseLabel": {
-    "zh": "关闭按钮的可访问名称；优先于 Close.AccessibleLabel，均为空时使用本地化关闭名称。",
+    "zh": "关闭按钮的无障碍名称；优先于 Close.AccessibleLabel，均为空时使用本地化关闭名称。",
     "en": "Accessible close-button name, overriding Close.AccessibleLabel. Empty values use the localized close label."
   },
   "ModalOptions.Header": {
-    "zh": "替换标题与说明的内容区；关闭按钮仍按 CloseButton 创建，与上游整体 header 插槽替换不同。",
-    "en": "Replaces the title/description content area; the CloseButton remains independently controlled, unlike replacing the complete upstream header slot."
+    "zh": "替换标题与说明区域；关闭按钮仍由 CloseButton 独立控制（与 Nuxt UI 替换整个 header 插槽不同）。",
+    "en": "Replaces the title and description area; CloseButton remains independently controlled (unlike replacing Nuxt UI’s entire header slot)."
   },
   "ModalOptions.Overlay": {
     "zh": "默认 true；false 隐藏遮罩背景，保留模态焦点限制和外部点击关闭策略。Backdrop 显式样式仍可覆盖颜色。",
     "en": "Defaults to true. False hides the backdrop color while retaining modal focus and outside-dismissal policy. Explicit Backdrop styles can still override the color."
   },
   "SlideoverOptions.Transition": {
-    "zh": "默认 true；false 时立即显示和关闭，不留退出副本。Modal 关闭时面板与遮罩一起在 200 毫秒内淡出（不缩小）；Slideover 滑出，减少动态效果时原地淡入淡出。关闭动画（Motion.Disabled）时同样立即切换。恢复 true 不重播已经完成的入场。",
-    "en": "Defaults to true. False shows and closes immediately, leaving no exit copy. Modal fades its panel and backdrop out together over 200 ms (no scale-out); Slideover slides out, and fades in place under reduced motion. Animations off (Motion.Disabled) also change at once. Re-enabling does not replay a completed entrance."
+    "zh": "默认 true：关闭时面板在 200 ms 内滑出（减少动态效果时改为原地淡出）；false 或关闭动画（Motion.Disabled）时立即切换。重新设为 true 不会重播已完成的入场动画。",
+    "en": "Defaults to true: panel slides out over 200 ms (or fades in place under reduced motion). False or Motion.Disabled switches immediately. Re-enabling does not replay a completed entrance."
   },
   "SlideoverOptions.Close": {
     "zh": "可选关闭按钮配置，默认 MD / Neutral / Ghost。CloseButton=false 时不创建按钮；禁用或加载状态阻止按钮关闭。",
@@ -2172,20 +2172,20 @@
     "en": "Called once for the close button or allowed Escape/outside dismissal. Direct application changes to open and custom Footer actions do not trigger it."
   },
   "SlideoverOptions.CloseLabel": {
-    "zh": "关闭按钮的可访问名称；优先于 Close.AccessibleLabel，均为空时使用本地化关闭名称。",
+    "zh": "关闭按钮的无障碍名称；优先于 Close.AccessibleLabel，均为空时使用本地化关闭名称。",
     "en": "Accessible close-button name, overriding Close.AccessibleLabel. Empty values use the localized close label."
   },
   "SlideoverOptions.Header": {
-    "zh": "替换标题与说明的内容区；关闭按钮仍按 CloseButton 创建，与上游整体 header 插槽替换不同。",
-    "en": "Replaces the title/description content area; the CloseButton remains independently controlled, unlike replacing the complete upstream header slot."
+    "zh": "替换标题与说明区域；关闭按钮仍由 CloseButton 独立控制（与 Nuxt UI 替换整个 header 插槽不同）。",
+    "en": "Replaces the title and description area; CloseButton remains independently controlled (unlike replacing Nuxt UI’s entire header slot)."
   },
   "SlideoverOptions.Overlay": {
     "zh": "默认 true；false 隐藏遮罩背景，保留模态焦点限制和外部点击关闭策略。Backdrop 显式样式仍可覆盖颜色。",
     "en": "Defaults to true. False hides the backdrop color while retaining modal focus and outside-dismissal policy. Explicit Backdrop styles can still override the color."
   },
   "DrawerOptions.Transition": {
-    "zh": "默认 true，出入场沿用 Slideover 的 200 毫秒过渡（减少动态效果时原地淡入淡出）；false 时跳过。完整动态效果下，键盘、DrawerState.Snap 或松开拖动后，高度在 200 毫秒内过渡到吸附点；减少动态效果和关闭动画时吸附高度即时切换。拖动时高度跟随指针。",
-    "en": "Defaults to true with Slideover’s 200 ms entrance/exit (a fade in place under reduced motion); false skips it. At full motion, a snap change by keyboard, DrawerState.Snap or a drag release eases the height over 200 ms; reduced motion and animations off change snap heights immediately. Dragging follows the pointer."
+    "zh": "默认 true：开关动画与 Slideover 一致（200 ms 滑动，减少动态效果时原地淡入淡出），false 跳过。完整动效下吸附高度在 200 ms 内过渡，减少动效或关闭动画时立即到位；拖动时跟随指针。",
+    "en": "Defaults to true with Slideover’s 200 ms enter/exit (fades in place under reduced motion); false skips it. Snap changes ease over 200 ms at full motion and apply at once under reduced motion or Motion.Disabled. Dragging follows the pointer."
   },
   "DrawerOptions.Close": {
     "zh": "关闭按钮配置，默认 MD / Neutral / Ghost；非空时隐式启用，CloseButton=false 可隐藏。",
@@ -2204,7 +2204,7 @@
     "en": "Called once for allowed drag, Escape, outside or close-button dismissal. Direct Open changes and custom Done actions are silent."
   },
   "DrawerOptions.CloseLabel": {
-    "zh": "关闭按钮的可访问名称；优先于 Close.AccessibleLabel，均为空时使用本地化关闭名称。",
+    "zh": "关闭按钮的无障碍名称；优先于 Close.AccessibleLabel，均为空时使用本地化关闭名称。",
     "en": "Accessible close-button name, overriding Close.AccessibleLabel. Empty values use the localized close label."
   },
   "DrawerOptions.Header": {
@@ -2252,12 +2252,12 @@
     "en": "Empty generates an ID. The same ID replaces content/configuration and resets the timeout without calling the previous OnClose. Pass the returned ID to CloseToast."
   },
   "ToastOptions.Timeout": {
-    "zh": "默认 5 秒：0 使用默认值，负值常驻。与 Nuxt UI duration=0 表示常驻不同。悬停，或窗口有焦点时通知内的焦点，会暂停整个队列；窗口在后台或隐藏时计时继续。窗口不可见时不绘制帧，期间到时的通知在窗口再次显示的那一帧关闭并调用 OnClose，不会显示。",
-    "en": "Zero uses the five-second default; negative values persist. This differs from Nuxt UI duration=0. Hover, or focus in the viewport while the window has focus, pauses the whole queue; it keeps running while the window is in the background or hidden. A window out of sight draws no frames, so a toast that expires meanwhile closes, running OnClose, on the frame the window shows again, without showing."
+    "zh": "默认 5 秒：0 使用默认值，负值常驻（与 Nuxt UI 中 duration=0 表示常驻不同）。悬停或窗口内聚焦通知会暂停队列计时；窗口后台或隐藏时继续计时，隐藏期间到时的通知会在窗口重新显示时直接关闭并触发 OnClose，不会闪现。",
+    "en": "Zero uses the 5-second default; negative values stay open (unlike Nuxt UI’s duration=0). Hovering or focusing inside the toast viewport pauses the queue while the window is focused; timers continue when hidden, and expired toasts close with OnClose as soon as the window reappears without flashing."
   },
   "ToastOptions.Avatar": {
-    "zh": "可选头像，优先于 Icon。未设置 Size 时直径 44 DIP，显式尺寸沿用 Avatar。发布时复制配置及 UI。",
-    "en": "Optional avatar preceding Icon. Unset Size gives a 44 DIP diameter; explicit sizes use Avatar sizing. Configuration and UI are copied at publication."
+    "zh": "可选头像，优先于 Icon。未设置 Size 时直径 44 DIP，显式尺寸按 Avatar 规则生效。发布通知时会复制配置与 UI。",
+    "en": "Optional avatar taking precedence over Icon. Unset Size uses a 44 DIP diameter; explicit sizes follow Avatar sizing. Options and UI are copied when published."
   },
   "ToastOptions.Icon": {
     "zh": "默认不显示图标；设置 Avatar 时使用头像。图标默认 20 DIP，并随文字比例变化。",
@@ -2408,8 +2408,8 @@
     "en": "Emits once for user opening or closing through selection, Escape, Tab or outside press. Direct changes to MenuState.Open do not emit."
   },
   "MenuOptions.UI": {
-    "zh": "面板、分组、项目、正文、前后缀、文字、指示器、分隔符、筛选输入和空状态样式；Root 不适用。",
-    "en": "Styles the panel, headings, rows, body, accessories, text, indicators, separators, filter input and empty state. Root is not used."
+    "zh": "配置面板、分组、项目、正文、前后图标、文字、指示器、分隔线、筛选框和空状态样式；Root 不生效。",
+    "en": "Styles the panel, headings, rows, body, leading/trailing icons, text, indicators, separators, filter input, and empty state. Root is unused."
   },
   "MenuOptions.Style": {
     "zh": "同步配置当前构建的菜单部件；筛选输入的精细配置使用 FilterInput.Style。",
@@ -2780,8 +2780,8 @@
     "en": "Accessible group name, without an extra visible heading."
   },
   "PaginationOptions.Total": {
-    "zh": "总条数；小于等于 0 仍保留第 1 页。总数变化会静默限制绑定页码。",
-    "en": "Total item count. Non-positive values retain page 1. Changes silently clamp the bound page."
+    "zh": "总条数；小于等于 0 时仍保留第 1 页。总数变化会自动裁剪绑定页码，不触发通知。",
+    "en": "Total item count. Non-positive values keep page 1. Changes clamp the bound page silently."
   },
   "PaginationOptions.PageSize": {
     "zh": "每页条数；小于等于 0 使用默认 10。",
@@ -2980,8 +2980,8 @@
     "en": "Optional description, defaulting to 14/20 DIP text and line height."
   },
   "TimelineItem.Time": {
-    "zh": "应用格式化后的日期或时间字符串，对应上游 date；默认 12/20 DIP，使用 DateSlot 配置。",
-    "en": "Application-formatted date/time string, mapping to upstream date. Defaults to 12/20 DIP and is styled through DateSlot."
+    "zh": "应用格式化后的日期或时间字符串（对应 Nuxt UI 的 date）；默认 12/20 DIP，可通过 DateSlot 自定义样式。",
+    "en": "Application-formatted date/time string (matching Nuxt UI’s date). Defaults to 12/20 DIP, styled via DateSlot."
   },
   "TimelineItem.Icon": {
     "zh": "标记的图标；Avatar 中显式配置的图标优先。",
@@ -3056,8 +3056,8 @@
     "en": "Synchronously configures current parts. Content is centered from 1024 DIP; Body uses 16/24/32 DIP horizontal padding according to window width."
   },
   "ErrorOptions.Status": {
-    "zh": "可选状态码字符串，对应上游 statusCode/status；默认 16/24 DIP、半粗体、Primary，可通过 StatusSlot 配置。",
-    "en": "Optional status-code string, mapping to upstream statusCode/status. Defaults to 16/24 DIP, semibold and Primary, styled through StatusSlot."
+    "zh": "可选状态码字符串（对应 Nuxt UI 的 statusCode/status）；默认 16/24 DIP、半粗体、Primary，可通过 StatusSlot 自定义样式。",
+    "en": "Optional status-code string (matching Nuxt UI’s statusCode/status). Defaults to 16/24 DIP, semibold, Primary, styled via StatusSlot."
   },
   "ErrorOptions.Title": {
     "zh": "错误标题，空值不显示；窗口宽度小于 640 DIP 时字号 36 DIP，否则为 48 DIP，使用二级标题语义。",
@@ -3216,16 +3216,16 @@
     "en": "Styles Root, Editor, Leading, Trailing and IncrementSlot / DecrementSlot; the latter two target the controls."
   },
   "InputNumberOptions.Style": {
-    "zh": "同步配置整个字段、真实编辑器和前后配件；增减按钮使用各自 Options.Style 或 UI 部件。",
-    "en": "Synchronously styles the whole field, real editor and leading/trailing accessories; configure step controls through their own Options.Style or UI parts."
+    "zh": "同步配置整个字段、真实编辑器和前后图标区域；增减按钮请通过各自的 Options.Style 或 UI 部件配置。",
+    "en": "Synchronously styles the whole field, real editor, and leading/trailing areas; configure step buttons via their own Options.Style or UI parts."
   },
   "InputNumberOptions.Password": {
     "zh": "原生扩展：只遮罩编辑器文字，不改变数值和步进；Nuxt InputNumber 没有对应参数。",
     "en": "Native extension masking editor text without changing values or stepping; Nuxt InputNumber has no equivalent prop."
   },
   "InputNumberOptions.Loading": {
-    "zh": "原生扩展：显示加载配件，不自动禁用数值编辑或增减。",
-    "en": "Native extension showing a loader without automatically disabling editing or stepping."
+    "zh": "原生扩展：显示加载图标，不禁用数值输入或增减按钮。",
+    "en": "Native extension: shows a loading indicator without disabling editing or stepping."
   },
   "InputNumberOptions.Clearable": {
     "zh": "原生扩展：清空草稿并将数值变为未设置；只读时不显示清空按钮。",
@@ -3284,12 +3284,12 @@
     "en": "Reports the draft submitted with Enter after attempting addition. AddOnTab does not emit this callback."
   },
   "InputTagsOptions.UI": {
-    "zh": "Root 为整字段，Body 为标签与编辑器的换行区域；Editor / Leading / Trailing、Item / Label / Close / Indicator 分别配置输入配件和标签部件。",
-    "en": "Root is the whole field and Body the wrapping tag/editor region. Editor / Leading / Trailing style input parts; Item / Label / Close / Indicator style tags."
+    "zh": "Root 为整个字段，Body 为标签与编辑器的换行区；Editor / Leading / Trailing 配置输入区域，Item / Label / Close / Indicator 配置标签部件。",
+    "en": "Root is the whole field and Body the wrapping tag/editor region. Editor / Leading / Trailing style the input area; Item / Label / Close / Indicator style tags."
   },
   "InputTagsOptions.Style": {
-    "zh": "root 现在指整个字段；其余参数为真实编辑器与前后配件。标签部件通过 UI 配置。",
-    "en": "root now refers to the whole field; other arguments are the real editor and accessories. Configure tag parts through UI."
+    "zh": "root 对应整个字段，其余参数为真实编辑器与前后图标区域；标签样式请通过 UI 配置。",
+    "en": "root targets the whole field; other arguments target the real editor and leading/trailing areas. Style tags through UI."
   },
   "InputTagsOptions.Clearable": {
     "zh": "原生扩展：只清空草稿，保留已有标签。",
@@ -3324,12 +3324,12 @@
     "en": "Placeholder for empty cells, omitted in the active editing cell; long text is truncated to one line."
   },
   "InputRatingOptions.Label": {
-    "zh": "评分控件的可访问名称；不会在星标旁额外绘制文字。",
+    "zh": "评分控件的无障碍名称；不会在星标旁额外绘制文字。",
     "en": "Accessible name of the rating; no extra text is drawn beside the icons."
   },
   "InputRatingOptions.Max": {
-    "zh": "0 使用默认 5，其余接受 1–20。模型静默限制到 0–Max；仅支持整数评分，没有半星 step。",
-    "en": "Zero uses 5; other values must be 1–20. The model clamps silently to 0–Max. Only integer ratings are supported, without a fractional step."
+    "zh": "0 使用默认 5，其余须在 1–20 之间。模型会自动限制到 0–Max（不触发通知）；仅支持整数评分，无半星步长。",
+    "en": "Zero uses 5; other values must be 1–20. The model clamps silently to 0–Max. Integer ratings only, without fractional steps."
   },
   "InputRatingOptions.Disabled": {
     "zh": "阻止指针和键盘修改，并继承字段及祖先禁用状态。",
@@ -3364,7 +3364,7 @@
     "en": "Filled icon, defaulting to a star, drawn over the empty icon. When EmptyIcon is unset, both layers use this icon."
   },
   "InputRatingOptions.EmptyIcon": {
-    "zh": "底层未评分图标，默认沿用 Icon；不同图形可能在评分图标周围仍然可见。",
+    "zh": "底层未评分图标，默认与 Icon 相同；使用不同图形时可能在填充图标周围露出边缘。",
     "en": "Background empty icon, defaulting to Icon. A different shape may remain visible around the filled overlay."
   },
   "InputRatingOptions.OnChange": {
@@ -3564,8 +3564,8 @@
     "en": "Defaults to CalendarNoFixedDate. A complete range can fix its start or end; crossing the fixed endpoint updates that endpoint to keep the range ordered."
   },
   "CalendarOptions.WeekStart": {
-    "zh": "沿用原生默认周日，可显式设置 time.Monday 等；不自动随语言切换。",
-    "en": "Retains the native Sunday default. Set time.Monday or another weekday explicitly; locale changes do not reset it."
+    "zh": "默认周日，可显式设为 time.Monday 等；不会随语言切换自动改变。",
+    "en": "Defaults to Sunday; set time.Monday or another weekday explicitly. Locale changes do not reset it."
   },
   "CalendarOptions.WeekdayFormat": {
     "zh": "默认 CalendarWeekdayNarrow；Short 使用 Mon 等缩写，Long 使用完整星期名称。固定列宽下过长文字会裁剪。",
@@ -3684,15 +3684,15 @@
     "en": "Synchronously compute the target page from the first displayed month. Invalid dates disable the button. May run repeatedly during construction; do not perform I/O or submissions."
   },
   "CalendarOptions.BuildDay": {
-    "zh": "同步构建日单元格的非交互内容，接收对应日期；尺寸、可访问名称和操作由容器管理，不能保存 Element 或 Context。",
+    "zh": "同步构建日单元格的非交互内容，接收对应日期；尺寸、无障碍名称和操作由容器管理，不能保存 Element 或 Context。",
     "en": "Synchronously build noninteractive day cell content from its date. The container owns size, accessible name and actions. Do not retain Element or Context."
   },
   "CalendarOptions.BuildMonth": {
-    "zh": "同步构建月导航单元格的非交互内容，接收对应日期；尺寸、可访问名称和操作由容器管理，不能保存 Element 或 Context。",
+    "zh": "同步构建月导航单元格的非交互内容，接收对应日期；尺寸、无障碍名称和操作由容器管理，不能保存 Element 或 Context。",
     "en": "Synchronously build noninteractive month cell content from its date. The container owns size, accessible name and actions. Do not retain Element or Context."
   },
   "CalendarOptions.BuildYear": {
-    "zh": "同步构建年导航单元格的非交互内容，接收对应日期；尺寸、可访问名称和操作由容器管理，不能保存 Element 或 Context。",
+    "zh": "同步构建年导航单元格的非交互内容，接收对应日期；尺寸、无障碍名称和操作由容器管理，不能保存 Element 或 Context。",
     "en": "Synchronously build noninteractive year cell content from its date. The container owns size, accessible name and actions. Do not retain Element or Context."
   },
   "CalendarOptions.BuildWeekday": {
@@ -3728,8 +3728,8 @@
     "en": "Seeds the first adjustment of an empty segment; it is not a placeholder string and does not initialize the model."
   },
   "InputDateOptions.OnValueChange": {
-    "zh": "仅 InputDate：有效单日或空值实际变化时通知一次；外部赋值静默。范围使用 OnRangeChange。",
-    "en": "InputDate only: once for an actual accepted date or empty-value change. External assignments are quiet; ranges use OnRangeChange."
+    "zh": "仅 InputDate 生效：有效单日或空值变化时通知一次，外部赋值不触发。日期范围请用 OnRangeChange。",
+    "en": "InputDate only: fires once when the accepted date or empty state changes; external assignments are silent. Use OnRangeChange for ranges."
   },
   "InputDateOptions.OnRangeChange": {
     "zh": "仅 InputDateRange：分段或日历改变范围时通知一次；清空两端只通知一次。",
@@ -3800,8 +3800,8 @@
     "en": "Unset uses 50 ms; explicit zero notifies every actual change. Must be nonnegative. Only OnChange is coalesced; the model updates immediately and the trailing value is retained. External assignment, disabling, removing the callback or unmounting cancels pending work."
   },
   "ColorPickerOptions.OnChange": {
-    "zh": "报告实际颜色变化，受 Throttle 控制；外部赋值和重新填入原通道值静默。回调接收当前合并后的颜色快照。",
-    "en": "Reports actual color changes subject to Throttle. External assignments and restoring the same channel are quiet. Receives the current coalesced color snapshot."
+    "zh": "颜色实际变化时触发，受 Throttle 合并控制；外部赋值或重新填入相同通道值不触发。回调参数为合并后的当前颜色。",
+    "en": "Fires on actual color changes (throttled by Throttle); external assignments and unchanged channel edits are silent. Receives the current coalesced color."
   },
   "ColorPickerOptions.UI": {
     "zh": "Root 为整体，Panel 为原生面板，Body 为 RGBA 容器，Item 为通道行，Label 为通道字母。内部 SV、轨道和 HEX 没有公开部件。",
@@ -3864,8 +3864,8 @@
     "en": "Notifies once after a user sort change, with an independent sort slice. External changes and invalid-column cleanup do not notify."
   },
   "TableOptions.OnSelectionChange": {
-    "zh": "用户更改选中集合后通知一次，参数为按字符串排序的稳定 ID；外部选择和 SetRows 清理静默。",
-    "en": "Notifies once when user input changes the selected set, with stable IDs sorted lexically. External selection and SetRows pruning remain silent."
+    "zh": "用户更改选中项后通知一次，参数为按字典序排列的稳定 ID；外部修改选中或 SetRows 清理不触发。",
+    "en": "Fires once when user input changes the selection, passing sorted stable IDs; external updates and SetRows pruning are silent."
   },
   "TableOptions.OnActivate": {
     "zh": "Enter 或双击激活行，返回稳定 ID。没有绑定 List.Selected 时自动使用组件内部活动行，它跟随记录：排序或构建前连续调用 SetRows 后仍是同一记录，记录被 SetRows 移除后没有活动行，Enter 不触发。不同于 Nuxt 的单击 select。",
@@ -4108,8 +4108,8 @@
     "en": "Search and action loading icon, default LoaderCircle."
   },
   "CommandPaletteOptions.SelectedIcon": {
-    "zh": "结果列表的选中指示图标；默认沿用 Listbox 的 Check。",
-    "en": "Selected-result indicator; inherits the Listbox Check default."
+    "zh": "结果列表的选中指示图标，默认使用 Listbox 的 Check 图标。",
+    "en": "Selected-result indicator icon, inheriting Listbox’s Check default."
   },
   "CommandPaletteOptions.Loading": {
     "zh": "额外显示搜索框加载外观，不禁用结果；实际搜索未完成时组件会阻止执行旧结果。",
@@ -4132,8 +4132,8 @@
     "en": "Replaces empty content when neither loading nor in error; receives the current query."
   },
   "CommandPaletteOptions.OnSearchTermChange": {
-    "zh": "用户编辑或子级导航清空查询时通知；外部赋值和 SetIndex 静默。",
-    "en": "Notifies query edits and query clearing during nested navigation; external assignments and SetIndex are silent."
+    "zh": "用户编辑或进入子级清空查询时触发；外部赋值和 SetIndex 不触发。",
+    "en": "Fires on user query edits or when nested navigation clears the query; external assignments and SetIndex are silent."
   },
   "CommandPaletteOptions.OnHighlight": {
     "zh": "列表键盘或悬停实际改变高亮 ID 时通知。",
@@ -4264,8 +4264,8 @@
     "en": "Disables navigation and submenus, including inherited and FormField disabled states."
   },
   "NavigationOptions.Compact": {
-    "zh": "仅纵向生效；有图标或头像时隐藏文字，无配件时保留名称。",
-    "en": "Only applies vertically; hides text when an icon or avatar exists, otherwise retains the label."
+    "zh": "仅纵向生效；有图标或头像时隐藏文字，无图标和头像时保留文字。",
+    "en": "Vertical mode only: hides text when an icon or avatar is present, otherwise keeps the label."
   },
   "NavigationOptions.Single": {
     "zh": "默认 false，纵向同级分支可同时展开；true 限制每级展开一项。",
@@ -4308,8 +4308,8 @@
     "en": "Reports successful leaf activation, including repeated activation of the current item; parents only expand."
   },
   "NavigationOptions.OnExpandedChange": {
-    "zh": "用户展开或收起后返回全部已展开 ID，按 ID 排序；初始化与外部改值静默。",
-    "en": "Reports all open IDs sorted by ID after user expansion changes; initialization and external edits are silent."
+    "zh": "用户展开或收起后返回全部已展开 ID（按 ID 排序）；初始化与外部改值不触发。",
+    "en": "Reports all expanded IDs (sorted) after user toggle changes; initialization and external edits are silent."
   },
   "NavigationOptions.UI": {
     "zh": "Root 仅为本组件根；List 为子级列表、Body 为单项容器、Item 为可操作项，Panel 为弹层。",
@@ -4332,8 +4332,8 @@
     "en": "Badge configuration, default SM/Neutral/Outline, combined with Badge text."
   },
   "NavigationItem.Chip": {
-    "zh": "包裹 Icon 的状态圆点，默认 SM；Inset 使用实际字段值，需要上游外观时显式 true。",
-    "en": "Status chip wrapping Icon, default SM; honors Inset. Set it true for upstream inset placement."
+    "zh": "包裹 Icon 的状态圆点，默认 SM；使用实际 Inset 值，需要与 Nuxt UI 一致的内嵌效果时设为 true。",
+    "en": "Status chip wrapping Icon (default SM); honors Inset. Set true to match Nuxt UI’s inset placement."
   },
   "NavigationItem.TrailingIcon": {
     "zh": "单项末端图标；紧凑模式隐藏，优先于根分支图标。",
@@ -4412,8 +4412,8 @@
     "en": "Dismissal velocity threshold, default 900 DIP/s; 0 uses the default and values must be finite and non-negative."
   },
   "DrawerOptions.OnSnap": {
-    "zh": "仅用户操作实际改变停靠索引时通知；边界重复按键、回到原停靠点及外部改值静默。",
-    "en": "Reports actual user changes to the snap index. Repeated boundary keys, returning to the same stop and external changes are silent."
+    "zh": "仅用户操作实际改变停靠点时触发；到达边界后重复按键、回到原停靠点及外部改值均不触发。",
+    "en": "Fires only when user input changes the snap index; repeated boundary keys, returning to the same stop, and external edits are silent."
   },
   "DrawerOptions.CloseButton": {
     "zh": "默认 false；传入 Close 配置时默认显示，显式 false 仍优先。",
@@ -4452,7 +4452,7 @@
     "en": "Zero-based snap index, clamped to the valid range during construction; external assignments do not emit OnSnap."
   },
   "FileUploadOptions.Label": {
-    "zh": "区域标题及可访问名称；空值使用 FormField 标签或本地化选择名称。",
+    "zh": "区域标题及无障碍名称；空值使用 FormField 标签或本地化选择名称。",
     "en": "Area label and accessible name; empty uses the FormField label or localized picker name."
   },
   "FileUploadOptions.ChooseLabel": {
@@ -4568,11 +4568,11 @@
     "en": "Accepted queue count limit; nonpositive means unlimited. Rejected rows do not count; failed/canceled accepted rows still count."
   },
   "UploadFile.Avatar": {
-    "zh": "应用提供的图片、文字或图标配件；FileImage=false 时不显示。组件不自行加载图片。",
-    "en": "Application-provided image, text or icon accessory, hidden by FileImage=false. The component does not load images."
+    "zh": "应用提供的图片、文字或图标头像；FileImage=false 时隐藏。组件不会自行读取文件生成图片。",
+    "en": "Application-provided image, text, or icon avatar, hidden when FileImage=false. The component does not read files to create images."
   },
   "ChartOptions.Label": {
-    "zh": "图表可访问名称；空值使用系列/扇区标签，仍为空则使用本地化图表名称。",
+    "zh": "图表无障碍名称；空值使用系列/扇区标签，仍为空则使用本地化图表名称。",
     "en": "Accessible chart name; defaults to series/slice labels, then the localized chart name."
   },
   "ChartOptions.Description": {
@@ -4660,7 +4660,7 @@
     "en": "Stable radial slice ID; empty for Cartesian charts or no focus."
   },
   "CarouselOptions.Label": {
-    "zh": "轮播的应用名称，用于视口、前后按钮和播放按钮的可访问名称。",
+    "zh": "轮播的应用名称，用于视口、前后按钮和播放按钮的无障碍名称。",
     "en": "Application label used for accessible viewport, navigation and playback names."
   },
   "CarouselOptions.Height": {
@@ -4668,8 +4668,8 @@
     "en": "Viewport height, default 180 DIP; must be finite. Nonpositive uses the default. Controls occupy additional space."
   },
   "CarouselOptions.Active": {
-    "zh": "默认 true，只门控自动播放；false 不禁用手动导航。滚出或被裁剪出可见区域、保持挂载的隐藏面板已会停止自动播放；窗口不活动或应用以其他方式遮挡时使用。不同于 Embla active。",
-    "en": "Defaults to true and only gates autoplay; false preserves manual navigation. Scrolling or clipping out of view and hidden kept-mounted panels already stop autoplay; use it for window inactivity or other hiding, such as covering. Differs from Embla active."
+    "zh": "默认 true，仅控制自动播放，不禁用手动切换。滚出可见区域或隐藏面板已会自动暂停；适用于窗口失焦或被遮挡等场景（不同于 Embla active）。",
+    "en": "Defaults to true and controls autoplay only; false keeps manual navigation enabled. Out-of-view and hidden panels already pause autoplay; use this for inactive or covered windows (differs from Embla active)."
   },
   "CarouselOptions.Autoplay": {
     "zh": "正值为翻页间隔；非正值关闭。悬停、组件内焦点、禁用、不可见、Paused 或减少动态效果时暂停；不会创建后台定时任务。",
@@ -4688,19 +4688,19 @@
     "en": "Defaults to false; one seek button per item with selected state. Native buttons do not implement the full ARIA tablist pattern."
   },
   "CarouselOptions.Prev": {
-    "zh": "前一项按钮配置。默认 Outline / Neutral，未指定尺寸遵循 Button 默认值；边界禁用优先，显式配件可以替代默认箭头。",
-    "en": "Previous button options. Defaults to Outline/Neutral; unspecified size follows Button defaults. Boundary disabling wins; explicit accessories can replace the fallback arrow."
+    "zh": "前一项按钮配置。默认 Outline / Neutral，未指定尺寸时遵循 Button 默认值；边界禁用优先，显式图标或头像可替换默认箭头。",
+    "en": "Previous button options. Defaults to Outline/Neutral and Button’s default size. Boundary disabling takes precedence; explicit icons or avatars replace the default arrow."
   },
   "CarouselOptions.Next": {
     "zh": "后一项按钮配置，默认规则同 Prev。",
     "en": "Next button options with the same defaults as Prev."
   },
   "CarouselOptions.PrevIcon": {
-    "zh": "前一项回退图标；默认 ArrowLeft，RTL 为 ArrowRight，纵向为 ArrowUp。Prev 的显式 Leading / Trailing 优先。 显式图标保持原样，示例自行按方向选择。",
+    "zh": "前一项回退图标；默认 ArrowLeft，RTL 为 ArrowRight，纵向为 ArrowUp。Prev 的显式 Leading / Trailing 优先。显式图标保持原样，示例自行按方向选择。",
     "en": "Previous fallback icon: ArrowLeft, ArrowRight in RTL, ArrowUp vertically. Explicit Leading/Trailing in Prev wins. Explicit icons are rendered as supplied; the example chooses them by direction."
   },
   "CarouselOptions.NextIcon": {
-    "zh": "后一项回退图标；默认 ArrowRight，RTL 为 ArrowLeft，纵向为 ArrowDown。Next 的显式 Leading / Trailing 优先。 显式图标保持原样，示例自行按方向选择。",
+    "zh": "后一项回退图标；默认 ArrowRight，RTL 为 ArrowLeft，纵向为 ArrowDown。Next 的显式 Leading / Trailing 优先。显式图标保持原样，示例自行按方向选择。",
     "en": "Next fallback icon: ArrowRight, ArrowLeft in RTL, ArrowDown vertically. Explicit Leading/Trailing in Next wins. Explicit icons are rendered as supplied; the example chooses them by direction."
   },
   "CarouselOptions.WatchDrag": {
@@ -4736,7 +4736,7 @@
     "en": "Zero-based position, clamped after deletion. The application decides the index after reordering. Direct assignment does not emit OnChange."
   },
   "MarqueeOptions.Label": {
-    "zh": "原生可访问名称；滚动区域可聚焦并按 Space 暂停。",
+    "zh": "原生无障碍名称；滚动区域可聚焦并按 Space 暂停。",
     "en": "Native accessible name; focus the region and press Space to pause."
   },
   "MarqueeOptions.Orientation": {
@@ -4760,8 +4760,8 @@
     "en": "Unset means four; explicit zero builds no content and negative values are invalid. The callback runs Repeat times per build; one copy may leave a gap. Website previews allow 0–100."
   },
   "MarqueeOptions.Speed": {
-    "zh": "原生速度，单位 DIP/秒；非正值采用默认 32，必须有限。上游 CSS 默认每周期 20 秒。暂停请用状态或 Active。",
-    "en": "Native speed in DIP/s; nonpositive values use 32 and values must be finite. Upstream CSS defaults to 20 seconds per cycle. Pause through state or Active."
+    "zh": "原生滚动速度，单位 DIP/秒；非正值默认 32，须为有限数值（Nuxt UI 的 CSS 默认每周期 20 秒）。暂停请通过状态或 Active 控制。",
+    "en": "Native scroll speed in DIP/s; non-positive values default to 32 and must be finite (Nuxt UI CSS defaults to 20 seconds per cycle). Pause via state or Active."
   },
   "MarqueeOptions.Gap": {
     "zh": "内容项目及相邻副本的默认间距，非正值使用主题缩放后的 64 DIP，必须有限。Body.Gap 可单独覆盖内部项目间距。",
@@ -4792,7 +4792,7 @@
     "en": "Synchronously styles Root or Body; do not retain Elements or launch asynchronous work here."
   },
   "SplitterOptions.Label": {
-    "zh": "分隔条的可访问名称；为空时使用本地化 Divider / 分隔条。",
+    "zh": "分隔条的无障碍名称；为空时使用本地化 Divider / 分隔条。",
     "en": "Accessible divider name; empty uses localized Divider."
   },
   "SplitterOptions.Orientation": {
@@ -4824,8 +4824,8 @@
     "en": "Explicit values use the bound unit; zero disables arrow resizing. Unset moves theme-scaled ten DIPs. Home/End still reach limits. Must be finite and nonnegative."
   },
   "SplitterOptions.OnChange": {
-    "zh": "指针或键盘实际改变模型时通知一次。范围边界重复输入和外部赋值后的静默限制不通知。",
-    "en": "Notifies once for an actual pointer/keyboard model change. Repeated boundary input and external-value clamping are silent."
+    "zh": "指针或键盘实际改变面板尺寸时触发一次；到达边界后的重复输入及外部赋值裁剪均不触发。",
+    "en": "Fires once per actual pointer or keyboard resize; repeated boundary input and external-value clamping are silent."
   },
   "SplitterOptions.UI": {
     "zh": "Root、Leading、Trailing、SeparatorSlot、Indicator 分别配置容器、两个面板、8 DIP 拖拽区域和 1 DIP 中间线；拖拽区域不额外占用布局空间。",
@@ -4860,8 +4860,8 @@
     "en": "Replaces the default title and description; desktop Toggle and Actions remain component-owned. Takes precedence over legacy Header."
   },
   "HeaderOptions.Title": {
-    "zh": "标题，默认空；非空时在横幅地标内显示原生一级标题。不会自动链接到网页首页。",
-    "en": "Title, empty by default; nonempty content becomes a native level-one heading inside the banner landmark. No home-page link is created."
+    "zh": "标题，默认空；非空时在页眉区域（ui.RoleBanner）内显示原生一级标题，不会自动生成首页链接。",
+    "en": "Title, empty by default; renders as a native level-one heading inside the banner landmark (ui.RoleBanner). No home-page link is added."
   },
   "HeaderOptions.Description": {
     "zh": "原生扩展说明文字，默认空。",

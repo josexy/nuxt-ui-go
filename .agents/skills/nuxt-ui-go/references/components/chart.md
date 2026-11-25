@@ -2,7 +2,7 @@
 
 # Chart
 
-Display data as lines, bars, areas or slices.
+Display data as line, bar, area, or donut charts.
 
 - Category: Advanced interaction and layout
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)

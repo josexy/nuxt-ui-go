@@ -2,7 +2,7 @@
 
 # AvatarGroup
 
-Arrange several avatars and show how many remain hidden.
+Stack multiple avatars and show how many remain.
 
 - Category: Themes and basic components
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)

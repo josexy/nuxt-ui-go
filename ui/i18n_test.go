@@ -143,7 +143,7 @@ func TestLocaleSwitchRefreshesExistingFormErrors(t *testing.T) {
 			}
 			tt.Frame()
 			english := form.Field("value").Error
-			want := map[string]string{"number": "请输入允许范围内的数字", "date": "请输入可用日期", "time": "请输入有效时间"}[kind]
+			want := map[string]string{"number": "请输入范围内的有效数字", "date": "请输入可用日期", "time": "请输入有效时间"}[kind]
 			before := changes
 			form.BeginAsync()
 			tt.SetLocale("zh-Hans")
@@ -251,7 +251,7 @@ func TestLocaleSwitchUploadErrorsAndActiveJob(t *testing.T) {
 		nui.FileUpload(c, th, &state, nui.FileUploadOptions{Label: "Attachments", ChooseLabel: "Browse my files", Variant: nui.UploadButton})
 	}, 560, 600)
 	tt.SetLocale("zh-Hans")
-	for _, text := range []string{"文件大小超过 10 字节", "Storage denied", "Browse my files", "上传中", "取消ok.txt"} {
+	for _, text := range []string{"文件超过 10 字节", "Storage denied", "Browse my files", "上传中", "取消ok.txt"} {
 		if !tt.HasText(text) {
 			t.Fatalf("missing %q: %v", text, tt.Texts())
 		}

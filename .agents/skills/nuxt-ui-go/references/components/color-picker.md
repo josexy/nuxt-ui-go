@@ -15,10 +15,6 @@ Choose a color from a panel, swatches or numeric values.
 
 Bind ui.Color and persistent ColorPickerState. The SV area, horizontal hue and opacity tracks, HEX/HEXA, swatches and RGBA fields share one color. Five sizes change the actual picker and fields; MD defaults to a 168 DIP square.
 
-#### Try the controls
-
-Compare the current value with the last notification. Throttle defaults to 50 ms and coalesces OnChange only; the bound color updates immediately. Set zero for every actual change. External assignments and restoring an unchanged channel do not notify. Try the part styles and disabled state.
-
 ## Things to know
 
 The native panel keeps MyGo’s horizontal tracks, opacity and swatches. Root, Panel, Body, Item and Label are configurable; internal SV, track and HEX parts are not exposed. ui.Color is the model, so string formatting belongs to the application. Channel edits rebuild an sRGB color; wide-gamut editing, HSL/CMYK/Lab text input and screen picking are not provided. In RTL, the native color panel stays LTR so input matches its gradients and thumbs; RGBA fields follow the form direction.

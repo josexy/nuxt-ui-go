@@ -2,7 +2,7 @@
 
 # User
 
-Show a user’s avatar, name and short description.
+Display a user’s avatar, name, and short description.
 
 - Category: Themes and basic components
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)

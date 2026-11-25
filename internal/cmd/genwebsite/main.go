@@ -247,7 +247,7 @@ func main() {
 		}
 		for _, language := range []string{"zh", "en"} {
 			description, guide, note := demo.Description.ZH, demo.Guide.ZH, demo.Note.ZH
-			noteTitle := "使用时注意"
+			noteTitle := "注意事项"
 			if language == "en" {
 				description, guide, note = demo.Description.EN, demo.Guide.EN, demo.Note.EN
 				noteTitle = "Things to know"

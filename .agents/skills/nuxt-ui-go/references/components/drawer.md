@@ -2,7 +2,7 @@
 
 # Drawer
 
-Open a bottom panel and adjust its height with a handle.
+Open a bottom sheet with a drag handle to adjust height.
 
 - Category: Advanced interaction and layout
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
