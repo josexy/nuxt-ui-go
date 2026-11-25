@@ -2,7 +2,7 @@
 
 # ContextMenu
 
-Show actions for content on right-click.
+Show a contextual action menu when right-clicking a target area.
 
 - Category: Overlays and navigation
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,13 +13,13 @@ Show actions for content on right-click.
 
 ## Usage
 
-Keep an independent MenuState for each trigger and stable, unique item IDs. Right-click the target or use the Menu key or Shift+F10. MenuOptions controls size, icons, navigation and filtering. Configure individual submenus through MenuItem.Content.
-
-Default dividers in menus and submenus paint one device pixel; a larger Separator theme Size retains its DIP width.
+Shares `MenuState` and `MenuOptions` with `DropdownMenu`; give every item a stable, unique `ID`. Right-click the target area, or focus it and press the `Menu` key or `Shift+F10` to open.
 
 ## Things to know
 
-Menus use non-modal native overlays; outside clicks dismiss and continue to their targets. Loop defaults to false. Shortcut displays keys without registering commands. Filtering uses case-insensitive substring matching and preserves item order; IgnoreFilter leaves results to the application. MenuState.Query stores an unbound root query, with separate drafts per submenu. These actions only update example state. Filtering and Radio items are native extensions; Nuxt ContextMenu has no built-in filter input. Root placement defaults to the right with a 2 DIP gap; Placement and Offset are optional native extensions. Pointer coordinates stay fixed in the window when the target moves.
+- Non-modal overlay: outside clicks close the menu and pass through. `Shortcut` only renders key hints.
+- Filtering, `Radio` items, and `Placement` / `Offset` are Go-native extensions (root opens right with a 2 DIP gap by default).
+- Pointer-opened menus stay anchored to the window click point even if the target moves.
 
 ## API
 

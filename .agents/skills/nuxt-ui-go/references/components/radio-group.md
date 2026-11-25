@@ -2,7 +2,7 @@
 
 # RadioGroup
 
-Choose one item from a visible set of options.
+Select a single item from a visible group of options.
 
 - Category: Inputs and selection
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,12 @@ Choose one item from a visible set of options.
 
 ## Usage
 
-RadioGroup binds a `*T` and selects one item. Option.Value must be unique; labels may repeat. Option.Icon customizes item icons, placing them above the label when the indicator is hidden. FormField.Label provides a visible group heading.
+`RadioGroup` binds a `*T` representing the single selected value. `Option.Value` must be unique; when the indicator is hidden, `Option.Icon` renders above each label.
 
 ## Things to know
 
-Max is retained in the shared options but is not used by RadioGroup. Visible indicators remain radio dots; item icons appear only when the indicator is hidden. Loop uses `Optional[bool]` and accepts explicit false. Option.Build is not used by choice groups.
+- `Max` is inherited from the options shared with `CheckboxGroup` and does not apply to `RadioGroup`.
+- Visible indicators always show radio dots (`Option.Icon` appears only when the indicator is hidden). `Option.Build` is unused.
 
 ## API
 

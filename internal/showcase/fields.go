@@ -487,7 +487,7 @@ func componentFields(t reflect.Type, component string) []ValueField {
 		}
 		switch {
 		case owner == "CheckboxOptions" && slices.Contains([]string{"Loading", "LoadingIcon", "UncheckedIcon"}, field.Name), owner == "RadioGroupOptions" && field.Name == "Max":
-			field.Hint = &Text{ZH: "不适用", EN: "Not used"}
+			field.Hint = &Text{ZH: "不生效", EN: "Not used"}
 		case owner == "CheckboxOptions" && field.Name == "Variant":
 			field.Hint = &Text{ZH: "ChoiceTable 为原生扩展", EN: "ChoiceTable is a native extension"}
 		case owner == "SwitchOptions" && (field.Name == "Variant" || field.Name == "Indicator"):

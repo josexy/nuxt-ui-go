@@ -2,7 +2,7 @@
 
 # PinInput
 
-Enter a verification code or other fixed-length text.
+Enter a verification code or fixed-length short code cell by cell.
 
 - Category: Forms and data
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,13 +13,13 @@ Enter a verification code or other fixed-length text.
 
 ## Usage
 
-PinInput binds a string and uses one real editor, with a single Tab stop. It defaults to five text cells; Numeric retains ASCII digits only. Completion fires when a user change reaches the required length.
-
-The 1 DIP caret aligns to whole device pixels and keeps the same thickness across cells.
+`PinInput` binds a `*string` over one real text editor (a single `Tab` stop), defaulting to 5 cells. `Numeric` restricts input to ASCII digits, and `OnComplete` fires once user input reaches `Length`.
 
 ## Things to know
 
-Length is 1–32, default 5, counted in runes. Separator and SeparatorEvery combine without duplicate positions. Root gap/padding and SeparatorSlot font, size and padding contribute to total geometry; coordinate raw Style geometry overrides in the application. Native code does not read SMS, provide browser OTP autofill or create one input node per cell; use PinState.Handle for focus.
+- `Length` supports 1–32 runes (default 5); `Separator` and `SeparatorEvery` merge without duplicates.
+- Changing `Length` or `Numeric` externally normalizes the value silently without firing input callbacks.
+- SMS reading and browser OTP autofill are not available; manage focus with `PinState.Handle`.
 
 ## API
 

@@ -2,7 +2,7 @@
 
 # FormField
 
-Add a label, help text and errors to an input.
+Add a label, required marker, help text, and error message around an input.
 
 - Category: Inputs and selection
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,13 @@ Add a label, help text and errors to an input.
 
 ## Usage
 
-Build the input inside the `FormField` callback and use the theme passed to that callback. This connects the label and passes size, disabled and error state to the input.
+Build the input inside `FormField`'s callback using the theme passed to it. This automatically links label-to-input focus, size inheritance, disabled state, and error styling.
 
 ## Things to know
 
-Required displays a required marker without validating the value. Use Form.Validate or application validation to check input. Without Label, no isolated asterisk is drawn, while the required description still reaches the control. Error takes priority over Help; the label targets the first bound control. A standalone Hint is a native extension. Field names match exactly; errorPattern and per-field delayed validation are not provided.
+- `Required` displays the asterisk and accessible hint without validating; use `Form.Validate` or your own logic to check values.
+- `Error` overrides `Help`. Without a `Label`, no standalone asterisk is drawn, though required semantics still reach the input.
+- Field names match exactly; `errorPattern` and per-field validation delays are not supported.
 
 ## API
 

@@ -2,7 +2,7 @@
 
 # ProgressGroup
 
-Show multiple progress values on a single track.
+Show multiple progress segments together on one track.
 
 - Category: Themes and basic components
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,13 @@ Show multiple progress values on a single track.
 
 ## Usage
 
-Give each ProgressSegment a unique non-empty ID. Value is the completed amount; Label and Icon describe it in the legend. Items without an icon show a dot. Build can provide custom legend content. Item UI supports Segment, Item, Leading, Label and Trailing; group List styles the legend and Indicator styles the track.
+Give each `ProgressSegment` a unique ID, `Value`, and legend `Label` (optional `Icon`, otherwise a colored dot). Use `Build` for custom legend rows, and `UI` on the group or individual segments for colors.
 
 ## Things to know
 
-Each value is clamped to 0–Max. Overflow shrinks segments proportionally while legend percentages remain relative to Max. Unset Max is 100; explicit maxima must be finite and positive. Height≤0 uses 160 DIP. Build synchronously constructs legend content; child controls retain identity by item ID. Hiding the legend unmounts them. Compose status text separately.
+- Each segment clamps to `0–Max`; when the sum exceeds `Max`, segments scale proportionally while legend percentages stay relative to `Max`.
+- `Max` defaults to `100` (explicit values must be finite and positive); vertical tracks default to 160 DIP when `Height <= 0`.
+- Hiding the legend unmounts custom `Build` controls.
 
 ## API
 

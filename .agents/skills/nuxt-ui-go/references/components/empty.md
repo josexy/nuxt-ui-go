@@ -2,7 +2,7 @@
 
 # Empty
 
-Explain an empty state and offer a next action.
+Explain an empty state and guide the user to the next action.
 
 - Category: Themes and basic components
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,13 +13,13 @@ Explain an empty state and offer a next action.
 
 ## Usage
 
-Title and Description explain the empty state. Use Icon or Avatar for leading content, and Actions or Footer for controls and supporting content. Loading uses a spinning icon; it keeps turning under reduced motion and stops when animations are off.
-
-Header replaces the default header, Leading replaces only its leading content, and Body replaces the default action area. Stable section identities preserve action controls when the header changes. Default padding follows window width at 16 / 24 / 32 DIP.
+Use `Title` and `Description` to explain the empty state, add an `Icon` or `Avatar`, and provide buttons via `Actions` and `Footer`. For deeper customization, `Header`, `Leading`, and `Body` replace their respective regions.
 
 ## Things to know
 
-Buttons update a local counter without creating a real project. Avatar.Image takes precedence over icons; explicit Avatar.Icon takes precedence over Empty icons, including the loading icon. Otherwise Loading replaces the regular icon or text avatar. The default title is a level-two heading; native aria-busy metadata is unavailable. Set UI.Leading.Foreground for loading color; a later Style TextColor call does not alter the resolved drawing color.
+- Leading priority: `Avatar.Image` > `Avatar.Icon` > `Loading` spinner > `Empty.Icon` / text avatar.
+- Set spinner color via `UI[Leading].Foreground`. `Loading` does not disable action buttons automatically.
+- Default padding adapts to window width (16 / 24 / 32 DIP), and swapping headers preserves action controls.
 
 ## API
 

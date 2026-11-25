@@ -2,7 +2,7 @@
 
 # FieldGroup
 
-Join related inputs and buttons into one group.
+Join related inputs and buttons into a single connected group.
 
 - Category: Inputs and selection
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,13 @@ Join related inputs and buttons into one group.
 
 ## Usage
 
-Provide FieldGroupItems with stable IDs and Build callbacks. The group coordinates size, disabled state and outer corners while keeping each control’s keyboard order.
+Pass `FieldGroupItem` entries with unique `ID`s and `Build` callbacks. The group coordinates size, disabled state, and outer corners while preserving keyboard tab order.
 
 ## Things to know
 
-Search displays the submitted text without connecting to a search service. Each item needs a unique nonempty ID and a Build function. Size follows the group instance, group theme and enclosing field; explicit child sizes remain independent. Later-painted neighbors can cover the shared edge of a focus ring; MyGo has no public z-index.
+- Every item requires a unique, non-empty `ID` and a `Build` callback.
+- Group size sets the default, while explicit child sizes remain independent.
+- Focus rings along shared edges may be clipped by later-painted neighbors.
 
 ## API
 

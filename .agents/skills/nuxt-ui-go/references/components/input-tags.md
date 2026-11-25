@@ -2,7 +2,7 @@
 
 # InputTags
 
-Turn typed text into removable tags.
+Turn typed or pasted text into removable tags.
 
 - Category: Forms and data
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,13 @@ Turn typed text into removable tags.
 
 ## Usage
 
-Bind a string slice and keep the draft in TagsState.Query. Tags and the editor wrap together. ConvertValue transforms new values; DisplayValue changes labels without replacing their identity.
+Bind a `*[]string` for tags and use `TagsState.Query` for the active input draft; tags and editor wrap together. `ConvertValue` normalizes new values, while `DisplayValue` customizes display labels without changing underlying values.
 
 ## Things to know
 
-Deduplication is case-sensitive after conversion. MaxTags<=0 is unlimited; MaxLength limits draft UTF-16 units, with 0 unlimited. A successful paste batch emits OnTagsChange once and reports each added or rejected non-empty candidate separately. Paste preserves the existing draft; rejected candidates are not inserted as ordinary text. Values are strings, without object models or regex delimiters.
+- Deduplication is case-sensitive and runs after `ConvertValue`. `MaxTags <= 0` is unlimited; `MaxLength` limits draft UTF-16 units.
+- Batch paste emits `OnTagsChange` once; duplicate or over-limit items are rejected instead of inserted as plain text.
+- Supports string slices only (no object models or regex delimiters).
 
 ## API
 

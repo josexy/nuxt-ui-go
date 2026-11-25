@@ -2,7 +2,7 @@
 
 # CommandPalette
 
-Search grouped commands, enter nested actions, and run a result.
+Searchable command launcher with groups, nested sub-commands, and async search.
 
 - Category: Advanced interaction and layout
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,12 @@ Search grouped commands, enter nested actions, and run a result.
 
 ## Usage
 
-Build an immutable index with NewCommandIndex and assign it to persistent CommandPaletteState. Call SetIndex when data changes. Keep rendering CommandPalette while closed so shortcuts and return focus work. OnSelect receives executed IDs; OnSelectEvent can cancel first.
+Build an immutable index with `NewCommandIndex` and store it in a persistent `CommandPaletteState` (call `SetIndex` only when data changes). Keep rendering `CommandPalette` while closed so shortcuts and focus restoration work. `OnSelect` receives executed IDs; `OnSelectEvent` can cancel beforehand.
 
 ## Things to know
 
-This native command launcher closes after execution by default and always virtualizes results. Embedded Vue multiple selection and routing props are not provided. Built-in search covers label, description, suffix and keywords, with up to 200 results. FilterFields/IgnoreFilter affect only built-in search; custom Search handles filtering. SearchDelay delays query edits while canceling old requests immediately. Call Refresh after replacing a custom Search callback, and Close on unmount or window close. The searching message and errors are polite statuses, read once when they appear and again when their text changes; clearing or an unchanged rebuild reads nothing.
+- Built-in search matches `label`, `description`, `suffix`, and `keywords` (up to 200 virtualized results); custom `Search` callbacks own filtering.
+- Call `Refresh` after replacing a custom `Search` callback, and `Close` on unmount or window close.
 
 ## API
 

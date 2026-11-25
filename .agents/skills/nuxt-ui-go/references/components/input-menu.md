@@ -2,7 +2,7 @@
 
 # InputMenu
 
-Search in an input and select from its suggestions.
+Type to filter suggestions inside an input and choose or submit a value.
 
 - Category: Inputs and selection
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,13 @@ Search in an input and select from its suggestions.
 
 ## Usage
 
-SearchState.Query stores the draft, Selected the single ID and SelectedValues the multiple IDs. An initial single value fills an empty draft; external selection updates refresh idle display while active drafts survive until closing or blur. Open is an optional persistent bool pointer.
+`SearchState.Query` holds the input draft, `Selected` / `SelectedValues` store single or multiple IDs, and `Open` optionally controls the popup. Supports both combobox (`InputMenuCombobox`) and autocomplete (`InputMenuAutocomplete`) modes.
 
 ## Things to know
 
-OnChange reports draft edits, OnSelect item activation, OnValuesChange multiple-value changes and OnClear the clear action. Tag deletion does not emit OnSelect. Native filtering keeps input order and ignores case; upstream relevance sorting and locale-sensitive equivalence are not implemented. Changed item data closes the old list; cancellation and stale-result handling belong to the application. SearchSelect retains legacy click-to-open and label-plus-description filtering.
+- Callbacks: `OnChange` tracks draft edits, `OnSelect` item activation, `OnValuesChange` multi-select changes, and `OnClear` clear clicks (removing tags does not fire `OnSelect`).
+- Built-in filtering is case-insensitive and preserves item order without relevance ranking. Updating options closes the old popup.
+- Creating an item only notifies your callback; your app decides whether to add it. `SearchSelect` keeps legacy click-to-open behavior.
 
 ## API
 

@@ -2,7 +2,7 @@
 
 # CheckboxGroup
 
-Choose multiple items from a visible set of options.
+Select multiple items from a visible group of options.
 
 - Category: Inputs and selection
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,12 @@ Choose multiple items from a visible set of options.
 
 ## Usage
 
-CheckboxGroup binds a `*[]T`, appending checked values and removing unchecked values. Option.Value must be unique; labels may repeat. Option.Icon customizes item icons, placing them above the label when the indicator is hidden. FormField.Label provides a visible group heading.
+`CheckboxGroup` binds a `*[]T`, appending checked values and removing unchecked ones. `Option.Value` must be unique (labels may repeat); use `FormField.Label` for a group heading.
 
 ## Things to know
 
-Unset Max has no limit; Set(0) prevents new selections. Items remain focusable at the limit, and unchecking an item allows another selection. Item icons customize checked indicators or hidden-mode labels. Loop uses `Optional[bool]` and accepts explicit false. Option.Build is not used by choice groups.
+- Unset `Max` allows unlimited selections; `nui.Set(0)` blocks new ones. Items stay focusable at the limit and selected items can still be unchecked.
+- `Loop` is an `Optional[bool]` defaulting to `false`. `Option.Build` is not used by choice groups.
 
 ## API
 

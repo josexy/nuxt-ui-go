@@ -2,7 +2,7 @@
 
 # Separator
 
-Separate content with a line, label or icon.
+Separate content with a horizontal or vertical divider, optionally with a label or icon.
 
 - Category: Themes and basic components
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,13 +13,12 @@ Separate content with a line, label or icon.
 
 ## Usage
 
-Use Orientation for a horizontal or vertical line and Label to insert text. Size adjusts line thickness and Color sets its color. The container and component dimensions determine its length.
-
-XS–XL retain 1–5 DIP widths, rounded to whole device pixels when painted. Dash lengths and gaps also align to pixels. Set stroke colors with Indicator.Background.
+Choose horizontal or vertical with `Orientation`, and insert text, icons, avatars, or custom content via `Label`, `Icon`, `Avatar`, or `Content`. `Size` sets line thickness (1–5 DIP for `XS`–`XL`), and `Color` or `UI[Indicator].Background` sets stroke color.
 
 ## Things to know
 
-Content takes precedence over Label, Icon and Avatar. Vertical height defaults to 48 DIP; this example explicitly uses 160 DIP for long labels and editor content. This is a decorative divider: MyGo has no static separator accessibility role, so no ineffective Decorative option is exposed.
+- Embedded content priority: `Content` > `Label` > `Icon` > `Avatar`.
+- Vertical dividers default to 48 DIP high (override with `Height` or parent layout). Dividers are decorative.
 
 ## API
 

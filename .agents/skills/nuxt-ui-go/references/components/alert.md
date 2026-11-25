@@ -2,7 +2,7 @@
 
 # Alert
 
-Display an inline message, warning or error.
+Display an inline notice, warning, or error message.
 
 - Category: Themes and basic components
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,12 @@ Display an inline message, warning or error.
 
 ## Usage
 
-Title, Description and Icon describe the status. Avatar takes precedence over Icon and defaults to 44 DIP. Actions builds controls below the body by default; Horizontal moves them beside it.
+Set `Title`, `Description`, and `Icon` to communicate status; `Avatar` takes priority over `Icon` (44 DIP by default). Add buttons with `Actions`—they sit below the text by default or beside it when `Horizontal`.
 
 ## Things to know
 
-OnClose reports a close request; the application owns visibility. This example hides the notice on request and retains action counts when reopened. Close accepts ButtonOptions; its defaults are MD, Neutral and LinkVariant, with an X icon.
+- `OnClose` only reports the close request; your app controls whether the alert stays visible.
+- Customize the close button via `Close` (`ButtonOptions`); it defaults to `MD`, `Neutral`, `LinkVariant`, and an `X` icon.
 
 ## API
 

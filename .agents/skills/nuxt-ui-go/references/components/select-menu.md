@@ -2,7 +2,7 @@
 
 # SelectMenu
 
-Search and choose options in a popup list.
+Search and select one or more options inside a popup list.
 
 - Category: Forms and data
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,13 @@ Search and choose options in a popup list.
 
 ## Usage
 
-SelectMenu combines a trigger, search input and Listbox. Selected values are IDs; SelectMenuState stores open state, query and persistent focus handles. FilterInput configures the search field, and FocusSearch chooses its initial focus.
+`SelectMenu` combines a trigger, search field, and `Listbox`. Store selected IDs in a slice and keep open state, query, and focus handles in `SelectMenuState`. Customize the search input via `FilterInput` and initial focus via `FocusSearch`.
 
 ## Things to know
 
-Selection and dismissal reset the query by default. Clear always clears the query; ResetModelValueOnClear only controls selection. Loading shows a trigger spinner and native status row while existing choices remain usable. ExternalFilter or IgnoreFilter bypasses local filtering. QueryState rejects stale results; publish real background results through Window.Update.
+- Selection and closing clear the search query by default. The clear button always clears the query; `ResetModelValueOnClear` controls whether selections clear too.
+- `Loading` shows a trigger spinner and status row while existing items stay selectable.
+- For remote search, use `ExternalFilter`/`IgnoreFilter` with `QueryState` to drop stale responses, and publish results on the UI thread via `Window.Update`.
 
 ## API
 

@@ -2,7 +2,7 @@
 
 # Sidebar
 
-Add a collapsible, resizable application sidebar.
+Application sidebar with desktop collapse, drag resizing, and narrow-window overlays.
 
 - Category: Advanced interaction and layout
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,13 +13,13 @@ Add a collapsible, resizable application sidebar.
 
 ## Usage
 
-Sidebar provides a title, description, header actions, scrollable body and footer. Keep collapsed in application state and use SidebarState for width and the narrow-window menu. Actions appear while expanded or mobile; HeaderContent replaces the default title and description.
-
-The resize highlight aligns to the same physical edge as the sidebar border, avoiding adjacent lines at fractional scales.
+`Sidebar` provides a header (title, description, actions), scrollable body, and footer. Keep desktop collapse state in a `*bool` and width/overlay state in `SidebarState`. Use `HeaderContent` to customize the header.
 
 ## Things to know
 
-The component defaults to no breakpoint and no resizing; this example enables 160–360 DIP resizing and a 64-DIP compact width. Desktop collapsed and mobile Open are independent; native icon-width collapse differs from upstream offcanvas. External assignments are silent. Breakpoint remounts retain application models, but not widget-local scrolling or selections. Supply an external opener and ReturnFocus when hiding every internal control. Collapsing animates the width over 200 ms (Transition); dragging follows the pointer. Native floating/inset variants, a click-to-collapse rail and arbitrary menu option objects are not provided.
+- Breakpoints and resizing are off by default (this demo enables 160–360 DIP resizing and a 64 DIP collapsed width).
+- Desktop `collapsed` and narrow-window `Open` are independent; if you hide built-in triggers, supply an external button with `ReturnFocus`.
+- Crossing the breakpoint keeps app data, not widget-local scroll positions. `floating`/`inset` variants and click-to-collapse rails are not provided.
 
 ## API
 

@@ -2,7 +2,7 @@
 
 # Kbd
 
-Display a keyboard shortcut as key labels.
+Display keyboard shortcuts as key caps.
 
 - Category: Themes and basic components
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,11 @@ Display a keyboard shortcut as key labels.
 
 ## Usage
 
-Pass key names in order, such as `[]string{"CmdOrCtrl", "K"}`. CmdOrCtrl displays Ctrl or ⌘ for the target platform; command and win always display ⌘ and ⊞. Kbd displays hints without registering shortcuts.
+Pass key names in order, such as `[]string{"CmdOrCtrl", "K"}`. `CmdOrCtrl` renders `⌘` on macOS and `Ctrl` elsewhere; `command` and `win` always render `⌘` and `⊞`.
 
 ## Things to know
 
-Kbd displays a hint; it does not register the shortcut. Bind keyboard actions separately in the application.
+`Kbd` only displays key hints and does not register shortcuts; bind keyboard handlers separately in your app.
 
 ## API
 

@@ -2,7 +2,7 @@
 
 # Collapsible
 
-Expand or collapse a single section.
+Expand or collapse a single content section on demand.
 
 - Category: Overlays and navigation
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,12 @@ Expand or collapse a single section.
 
 ## Usage
 
-Keep the open state in a persistent `*bool` and build the body in its callback. Disabled affects the heading; an open body remains interactive. KeepMounted preserves hidden controls, including selections and undo history. The caller always owns application drafts.
+Bind a persistent `*bool` for the open state and build the body inside the callback. `Disabled` locks only the trigger heading—an already open body stays interactive. `KeepMounted` keeps local widget state while collapsed.
 
 ## Things to know
 
-Nuxt Collapsible receives its trigger through a slot. Go’s Label, Icon, TrailingIcon and built-in trigger appearance are native extensions. KeepMounted continues building hidden content; closing content immediately stops accepting input. External assignments do not emit OnChange.
+- `Label`, `Icon`, `TrailingIcon`, and the built-in trigger appearance are Go-native extensions.
+- `KeepMounted: true` still runs the body callback while hidden; closing content ignores input immediately, and external state updates do not emit `OnChange`.
 
 ## API
 

@@ -2,7 +2,7 @@
 
 # Form
 
-Validate fields and handle a successful submission.
+Validate multiple form fields together with synchronous or async submission.
 
 - Category: Forms and data
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,13 @@ Validate fields and handle a successful submission.
 
 ## Usage
 
-Keep a FormState and register fields through FormField.Name / Value. Validate returns errors keyed by field name; an empty name represents a form-wide error. Valid submissions call OnSubmit; invalid submissions call OnError once. Submit buttons call form.Submit.
+Keep a `FormState` in app state and register fields via `FormField.Name` and `Value`. `Validate` returns errors keyed by field name (use `""` for a form-wide error). Valid submits call `OnSubmit`; invalid submits call `OnError` once. Trigger submission with `form.Submit()`.
 
 ## Things to know
 
-Explicit buttons simulate completion without network requests. Deliver CompleteAsync on the UI thread. Value, draft, visibility or disabled-state changes reject stale results. Call Cancel before unmounting or closing and cancel actual I/O in the application. Business validation runs on submit or explicit Validate; Required does not validate by itself, and nested forms do not merge validation automatically.
+- Deliver async results on the UI thread via `CompleteAsync`; stale tickets are rejected if field values or state changed.
+- Call `Cancel` before unmounting or closing a window, and cancel your underlying I/O.
+- `FormField.Required` only displays an asterisk and does not validate; nested forms do not merge validation automatically.
 
 ## API
 

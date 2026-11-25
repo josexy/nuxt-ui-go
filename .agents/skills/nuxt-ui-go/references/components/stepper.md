@@ -2,7 +2,7 @@
 
 # Stepper
 
-Display a process and select its current step.
+Guide users through a multi-step flow with linear or free navigation.
 
 - Category: Overlays and navigation
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,13 +13,13 @@ Display a process and select its current step.
 
 ## Usage
 
-Store the current stable step ID. Linear defaults to true, allowing previous steps or the immediately following step. Arrows move focus; Enter/Space activates. StepItem.Content builds the active body, and UI styles individual items.
-
-Connectors retain their 2 DIP width, rounded consistently to whole device pixels when painted.
+Store the active step as a stable `ID` and build its panel in `StepItem.Content`. `Linear` defaults to `true`, allowing previous steps or the next step only. Arrow keys move focus; `Enter` / `Space` activates.
 
 ## Things to know
 
-Changing steps unmounts the previous body; application drafts remain caller-owned. Reordering or changing orientation with the same active ID preserves body identity. Unknown IDs mean not started and do not select the first item automatically. There are no Nuxt-style exposed next/prev methods; update the bound ID from the application.
+- Switching steps unmounts the previous body, so store form drafts in app state.
+- An unknown bound ID means not started and does not auto-select the first step.
+- There are no built-in `next`/`prev` methods; advance steps by updating the bound step ID.
 
 ## API
 

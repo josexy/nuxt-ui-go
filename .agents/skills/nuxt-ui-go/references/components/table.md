@@ -2,7 +2,7 @@
 
 # Table
 
-Display rows and columns with sorting, selection and scrolling.
+Display tabular data with virtual scrolling, single/multi-column sorting, and row selection.
 
 - Category: Forms and data
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,13 +13,13 @@ Display rows and columns with sorting, selection and scrolling.
 
 ## Usage
 
-Set data with TableState.SetRows and stable, unique row IDs. Value supplies text, Compare defines sorting, and Cell customizes cells; Sortable can explicitly disable sorting. Clearing sorting restores the latest SetRows input order. Point List.SortBy at a persistent slice for multi-column sorting; Sort mirrors its first entry. ManualSorting preserves input order so the application can fetch data for the requested sort.
-
-The header divider paints one device pixel. Set its color with SeparatorSlot.Background; header height and scroll geometry remain in DIPs.
+Load data with `TableState.SetRows`, giving each row a stable, unique `ID`. Columns define text via `Value`, local sorting via `Compare`, and custom rendering via `Cell`. Point `List.SortBy` at a persistent slice for multi-column sorting, or enable `ManualSorting` for server-side sorting.
 
 ## Things to know
 
-The header stays above the internal scrolling body and native virtualization is always enabled. Fixed only prevents column movement and resizing. Headers are not separate keyboard stops, so this example provides sorting buttons. OnSelectionChange reports selected IDs; OnActivate runs on Enter or double-click. These differ from Nuxt’s row-click select event. Filtering, pagination and requests belong to the application; pinned columns, grouped headers, expanded rows and aggregation are not provided. With List.RowHeight above 0 every body row takes that height and the header keeps its own; List.EndReached, with NearEnd, asks once for more rows as the user scrolls near the end, never on rebuilds, appends or app scrolling. List.MoveAnimation is not supported yet, because nui's motion levels do not govern it.
+- Headers stay pinned above the virtualized body. `Fixed` locks column reordering and resizing—it does not freeze columns while horizontally scrolling.
+- `OnSelectionChange` reports selected IDs; `OnActivate` fires on `Enter` or double-click (unlike Nuxt UI's single-click `select`).
+- Filtering, pagination, and fetching belong to your app (use `List.EndReached` + `NearEnd` for load-more). Frozen columns, grouped headers, row expansion, and aggregation are not supported.
 
 ## API
 

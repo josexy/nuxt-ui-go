@@ -2,7 +2,7 @@
 
 # Banner
 
-Display a persistent, dismissible message within a page.
+Display a prominent, dismissible banner notice across a page.
 
 - Category: Overlays and navigation
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,13 @@ Display a persistent, dismissible message within a page.
 
 ## Usage
 
-Control visibility with an application-owned `*bool`. A bound state shows the close button by default; CloseButton can hide it, while Close and CloseIcon customize it. OnSelect handles banner activation independently from inner actions.
+Control visibility with an app-owned `*bool`—providing it shows a close button by default (hide with `CloseButton: nui.Set(false)`). `OnSelect` handles clicking the banner itself independently of buttons in `Actions`.
 
 ## Things to know
 
-Content remains on one line. It is centered from a 1024 DIP window width and start-aligned below that breakpoint. A nil state has no close button by default; explicitly enabling it uses local state that resets on unmount. Cross-launch persistence and navigation are application-owned, without localStorage.
+- Banner content stays on one line, centered at window widths ≥ 1024 DIP and start-aligned below.
+- Without a bound `*bool`, no close button is shown by default; enabling it manually uses local state that resets on unmount.
+- Persisting dismissal across launches and handling navigation belong to your app.
 
 ## API
 

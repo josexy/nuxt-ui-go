@@ -2,7 +2,7 @@
 
 # InputTime
 
-Edit hours, minutes and seconds in 12- or 24-hour format.
+Edit hours, minutes, and seconds by segment in 12- or 24-hour format.
 
 - Category: Forms and data
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,12 @@ Edit hours, minutes and seconds in 12- or 24-hour format.
 
 ## Usage
 
-Bind Optional[ClockTime] and TimeInputState. Unset TwelveHour follows the regional hour cycle; explicit false selects 24-hour time. Granularity chooses hours, minutes or seconds; when unset, Seconds determines the precision.
+Bind `Optional[ClockTime]` and `TimeInputState`. Unset `TwelveHour` follows the locale hour cycle (`false` forces 24-hour). `Granularity` picks hour, minute, or second precision (otherwise follows `Seconds`).
 
 ## Things to know
 
-Out-of-range or unavailable edits remain drafts without replacing the accepted value. Min/Max are inclusive and compare the full time, including hidden units. Hour-only input uses HH or hh AM/PM; other precisions use HH:MM[:SS]. The model represents one time of day; compose two InputTime fields with application validation for a range. Dates, milliseconds and time zones are not included.
+- Out-of-range (`Min`/`Max` are inclusive) or unavailable edits stay as drafts without replacing the valid value; bounds compare the full time including hidden units.
+- Represents a single time of day without date, milliseconds, or time zone; combine two `InputTime` controls for a range.
 
 ## API
 

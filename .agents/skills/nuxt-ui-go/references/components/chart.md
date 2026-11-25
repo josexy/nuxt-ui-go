@@ -2,7 +2,7 @@
 
 # Chart
 
-Display data as line, bar, area, or donut charts.
+Visualize data as line, bar, area, or donut charts.
 
 - Category: Advanced interaction and layout
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,13 +13,13 @@ Display data as line, bar, area, or donut charts.
 
 ## Usage
 
-Keep ChartState persistent and update it with SetCategories, SetData, SetTimeData or SetSlices. Automatic legends appear only for multiple series or slices. Height defaults to 300; AspectRatio applies when height is unset.
-
-Grid lines paint one device pixel; data series LineWidth remains in DIPs.
+Keep `ChartState` persistent and populate it with `SetCategories`, `SetData`, `SetTimeData`, or `SetSlices`. Interactive legends appear automatically when there are multiple series or slices. `Height` defaults to 300 DIP (or use `AspectRatio` when height is unset).
 
 ## Things to know
 
-Based on Nuxt UI 4.12.0 with TanStack Charts; Go uses MyGo and retains scatter/pie charts, ordered numeric/time axes and interactive legends. ChartSelection identifies an X row or slice, not raw Web engine point/group objects. YLabel is horizontal above the plot. Explicit DonutInnerRadius overrides Thickness. Height covers the plot and axes; legends, titles and the description line use additional space. The description line is plain text, not a live region: keyboard selection is announced once, and pointer hover is not read aloud.
+- Drawn natively with MyGo; also supports scatter, pie, and numeric/time axes.
+- `Height` covers the plot and axes only, with legends, titles, and the summary line taking extra space. Explicit `DonutInnerRadius` overrides `Thickness`.
+- `ChartSelection` identifies an X column or slice; `YLabel` renders horizontally above the plot.
 
 ## API
 

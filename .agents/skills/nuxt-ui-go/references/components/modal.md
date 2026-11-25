@@ -2,7 +2,7 @@
 
 # Modal
 
-Complete an edit or confirmation in a modal dialog.
+Present an edit form, detail view, or confirmation in a centered modal dialog.
 
 - Category: Overlays and navigation
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,13 @@ Complete an edit or confirmation in a modal dialog.
 
 ## Usage
 
-Keep a persistent open bool and call ModalWithOptions on every build, even while closed. Title and Description name the dialog, the content callback builds a scrolling body, and Footer builds actions.
+Store visibility in a persistent `bool` and call `ModalWithOptions` on every build—even when closed—so exit animations and focus restoration work. Use `Title` and `Description` for the header, the content callback for a scrollable body, and `Footer` for actions.
 
 ## Things to know
 
-Overlay=false hides the backdrop while keeping modal focus containment. CloseButton=false hides the close button. Dismissible=false blocks Escape and outside clicks and calls OnClosePrevent. OnClose counts component dismissal only; Save changes application state directly. Closing fades the panel and backdrop out together over 200 ms (no scale-out) through a copy that takes no input; focus returns at once. There is no keep-mounted option; persistent application drafts remain.
+- `Overlay: false` hides the backdrop while keeping modal focus trapping; `Dismissible: false` blocks `Escape` and outside clicks and calls `OnClosePrevent`.
+- `OnClose` fires only for built-in dismissal, not when custom `Footer` buttons update your state directly.
+- Closing returns focus immediately and unmounts dialog content (no keep-mounted mode), so keep drafts in app state.
 
 ## API
 

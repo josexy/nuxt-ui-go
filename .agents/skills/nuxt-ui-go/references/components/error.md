@@ -2,7 +2,7 @@
 
 # Error (`nui.ErrorView`)
 
-Explain a failure and provide a retry action.
+Present an error status and reason with a retry or recovery action.
 
 - Category: Overlays and navigation
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,12 @@ Explain a failure and provide a retry action.
 
 ## Usage
 
-ErrorView presents Status, Title and Description. The default action requires OnRetry. Clear=false hides it, Retry configures its button, and Actions replaces the action area. The component does not clear Nuxt error state or redirect automatically.
+`ErrorView` displays a `Status` code, `Title`, and `Description`. Passing `OnRetry` shows a default retry button (customize via `Retry` or hide with `Clear: nui.Set(false)`); use `Actions` to replace the action area.
 
 ## Things to know
 
-The icon is 40 DIP. Status, title, description and actions have separate style parts. Native embedding retains padding, a 480 DIP description limit and level-two heading semantics, without forcing full-window height. Error cleanup, retrying and navigation belong to the application.
+- The title scales with window width (36 DIP below 640 DIP, 48 DIP otherwise), and the view uses embedded padding rather than forcing full-window height.
+- Clearing errors, retrying requests, and navigating are handled by your app in `OnRetry` or `Actions`.
 
 ## API
 

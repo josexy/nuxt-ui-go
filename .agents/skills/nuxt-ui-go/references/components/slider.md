@@ -2,7 +2,7 @@
 
 # Slider
 
-Adjust a value or range by dragging sliders.
+Drag a slider to pick a single value or a numeric range.
 
 - Category: Inputs and selection
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,13 @@ Adjust a value or range by dragging sliders.
 
 ## Usage
 
-Slider binds one `*float64`; RangeSlider binds two pointers for the lower and upper values. Min, Max and Step set the limits and increment. Keep the values outside the view function.
+`Slider` binds a single `*float64`; `RangeSlider` binds two pointers for the lower and upper bounds. Configure limits and increments with `Min`, `Max`, and `Step`, keeping values outside the view function.
 
 ## Things to know
 
-This example uses a 0–100 range. OnChange reports live changes; use OnCommit to handle a completed adjustment. Disabling a parent cancels an active drag. Tooltip is a boolean switch rather than full TooltipOptions. Only the single slider uses UI.Root.PaddingX / PaddingY to set its active track area. Models with three or more interactive thumbs are not provided.
+- `OnChange` fires continuously while dragging; use `OnCommit` for the final settled value.
+- Sliders with three or more interactive thumbs are not supported.
+- Disabling a parent cancels active drags; `UI[Root].PaddingX/Y` adjusts only the single slider's active track area.
 
 ## API
 

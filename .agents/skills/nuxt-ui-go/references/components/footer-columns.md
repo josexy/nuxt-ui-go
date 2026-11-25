@@ -2,7 +2,7 @@
 
 # FooterColumns
 
-Arrange footer links into columns.
+Organize footer navigation links into responsive columns.
 
 - Category: Advanced interaction and layout
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,13 @@ Arrange footer links into columns.
 
 ## Usage
 
-Give columns and links stable IDs. Title names a column; Items use Label, Icon, Active, Disabled, OnSelect and item Decoration. OnSelect runs before OnNavigate and PreventDefault cancels navigation. Default gaps are 32 DIP between columns, 24 between titles and lists, and 16 between links.
+Assign unique `ID`s to each column and link. Columns set `Title` and reuse `NavigationItem` for links. Per-item `OnSelect` runs before `OnNavigate` and can call `PreventDefault` to cancel.
 
 ## Things to know
 
-MinColumnWidth defaults to 160 DIP; nonpositive values use the default and nonfinite values are invalid. Columns and links fit available width and long link labels truncate. NavigationItem children, groups, descriptions, avatars, badges, Tooltip and Popover do not apply here. Native links notify the application by ID; URL routing, external-link indicators and extra left/right regions are not included.
+- `MinColumnWidth` defaults to 160 DIP (non-positive uses the default); long link labels truncate on one line.
+- Links use only `NavigationItem`'s `ID`, `Label`, `Icon`, `Active`, `Disabled`, `OnSelect`, `UI`, and `Style`; children, avatars, badges, tooltips, and popovers are ignored.
+- Reports clicks by `ID` without built-in URL opening, routing, or external-link indicators.
 
 ## API
 

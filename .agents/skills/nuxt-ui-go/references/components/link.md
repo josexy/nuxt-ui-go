@@ -2,7 +2,7 @@
 
 # Link
 
-Open a URL or navigate with a link.
+Open an external URL or navigate within the app.
 
 - Category: Themes and basic components
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,11 @@ Open a URL or navigate with a link.
 
 ## Usage
 
-Set URL to open an external address, or use `.OnClick(...)` on the returned element for application navigation. Active marks the current location and Disabled prevents activation.
+Set `URL` to open an external address, or handle `.OnClick(...)` on the returned element for in-app navigation. `Active` highlights the current destination, and `Disabled` blocks clicks.
 
 ## Things to know
 
-This example only increments a count. Use URL or an application callback for navigation. Color controls active text and the focus ring; inactive text uses Muted and hovered text uses Text.
+`Color` applies to active text and the focus ring; inactive text uses `Muted` and hovered text uses `Text`.
 
 ## API
 

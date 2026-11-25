@@ -2,7 +2,7 @@
 
 # Card
 
-Group a title, description, and related content in a card.
+Group a heading, description, and body content in a card.
 
 - Category: Themes and basic components
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,13 +13,11 @@ Group a title, description, and related content in a card.
 
 ## Usage
 
-Use Title and Description for the heading, and the content callback for the body and buttons. Header and Footer callbacks customize the heading area and footer.
-
-Section dividers paint one device pixel while retaining 1 DIP of layout space.
+Set `Title` and `Description` for the header, and build the body inside the content callback. Use `Header` and `Footer` callbacks for custom top or bottom sections.
 
 ## Things to know
 
-Default padding is 16 DIP below a window width of 640 DIP. At 640 and above, horizontal and body vertical padding are 24; header/footer vertical padding stays 16. A description without a title retains its 4 DIP top margin. Removing the header does not remount the body editor.
+Default padding adapts to window width: at 640 DIP and wider, horizontal and body vertical padding grow from 16 DIP to 24 DIP while header/footer vertical padding stays 16 DIP. Toggling the header preserves body input state.
 
 ## API
 

@@ -2,7 +2,7 @@
 
 # Switch
 
-Turn a setting on or off.
+Toggle a setting on or off with a switch.
 
 - Category: Inputs and selection
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,13 @@ Turn a setting on or off.
 
 ## Usage
 
-Switch binds a non-nil `*bool`. CheckedIcon and UncheckedIcon customize each state. Loading displays LoadingIcon, using the default loader when unset, and blocks toggling. Completing loading does not change the value.
+`Switch` binds a non-nil `*bool`, with optional `CheckedIcon` and `UncheckedIcon` for each state. `Loading` displays a spinner and blocks toggling without changing the value when loading finishes.
 
 ## Things to know
 
-The application retains the selected value. Variant and Indicator are Go native extensions. The thumb slides over 200 ms while the track fades, and moves at once under reduced motion; the loader keeps turning under reduced motion and stops when animations are off. FormField provides the required marker, while form validators enforce submission rules.
+- Keep switch state outside the view function. `Variant` and `Indicator` are Go-native extensions.
+- Under reduced motion the thumb snaps immediately while the loader keeps spinning; turning animations off stops everything.
+- `FormField` provides the required marker, while form validators enforce submission rules.
 
 ## API
 

@@ -2,7 +2,7 @@
 
 # Badge
 
-Show a status, category or count as a small label.
+Display a status, category, or count as a compact label.
 
 - Category: Themes and basic components
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,12 @@ Show a status, category or count as a small label.
 
 ## Usage
 
-Pass a short label to `Badge` and choose Color, Variant and Size. Leading and Trailing add icons before or after the text.
+Pass a short label to `Badge`, customize `Color`, `Variant`, and `Size`, and add `Leading`, `Trailing`, or `Avatar` as needed.
 
 ## Things to know
 
-Badge displays information; use Button for actions. An empty label enables Square automatically. Unset avatar Size follows the badge; explicit avatar size takes precedence.
+- `Badge` is display-only; use `Button` for clickable actions.
+- An empty label enables `Square` padding automatically. Unset `Avatar.Size` scales with the badge size.
 
 ## API
 

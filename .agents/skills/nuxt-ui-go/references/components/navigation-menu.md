@@ -2,7 +2,7 @@
 
 # NavigationMenu
 
-Provide primary navigation and nested destinations.
+Render primary app navigation and submenus in horizontal, vertical, or compact layouts.
 
 - Category: Advanced interaction and layout
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,13 +13,13 @@ Provide primary navigation and nested destinations.
 
 ## Usage
 
-Keep the current destination in an active ID and vertical expansion in NavigationState.Expanded. OnNavigate switches pages, OnSelect can cancel leaf navigation, and OnExpandedChange reports user expansion changes. The component does not resolve URLs; parents open their children.
-
-Active indicator widths round from DIPs to whole device pixels so moving selection does not vary thickness.
+Track the active destination by ID and vertical expansion in `NavigationState.Expanded`. Handle page changes in `OnNavigate` (leaf `OnSelect` can call `PreventDefault` to cancel). Parent items expand children; URLs are not resolved automatically.
 
 ## Things to know
 
-Defaults to horizontal, Primary and Soft (pill). Compact only affects vertical navigation. Compact Tooltip/Popover retain the native true defaults, while upstream defaults to false. DefaultOpen initializes new nodes only; external Expanded edits are silent. Single limits sibling expansion; Collapsible only restricts closing in Single mode. Horizontal children use native DropdownMenu rather than a shared web mega-menu viewport, automatic route matching or its hover-delay model.
+- Defaults to horizontal, `Primary`, and `Soft` (pill). `Compact` applies to vertical navigation only, with `Tooltip` and `Popover` enabled by default.
+- `Single` limits sibling expansion and `Collapsible` applies only in `Single` mode; external `Expanded` edits are silent.
+- Horizontal submenus use native `DropdownMenu` rather than a shared mega-menu viewport or automatic route matching.
 
 ## API
 

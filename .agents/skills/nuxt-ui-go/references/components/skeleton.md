@@ -2,7 +2,7 @@
 
 # Skeleton
 
-Show a placeholder while content is loading.
+Show a loading placeholder before real content arrives.
 
 - Category: Themes and basic components
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,12 @@ Show a placeholder while content is loading.
 
 ## Usage
 
-Width and Height are native Go dimensions. Unset values default to 160×16 DIP; default height follows text scaling. Explicit zero remains zero. Call FillWidth on the returned element to use the parent width. The application decides when to show the placeholder.
+Set placeholder dimensions with `Width` and `Height` (160×16 DIP by default, with height following text scale). Call `.FillWidth()` on the returned element to span its parent. Your app controls when to swap in real content.
 
 ## Things to know
 
-Animation changes the placeholder background opacity. The pulse continues under reduced motion, as Nuxt UI's animate-pulse does; Animate=false or turning animations off keeps it still. Leaving the visible area or unmounting stops animation frames. Set the pulse color with UI.Root.Background; Style.Background sets the underlying surface without replacing the drawn pulse color. The native status role does not reproduce Web aria-busy / alert announcements.
+- The pulse animation varies opacity and still runs under reduced motion; set `Animate: nui.Set(false)` or disable animations to keep it static. Offscreen skeletons stop requesting frames.
+- Customize the pulse color via `UI[Root].Background`; `Style.Background` does not replace the drawn pulse color.
 
 ## API
 

@@ -2,7 +2,7 @@
 
 # Carousel
 
-Drag or page through a set of cards.
+Page through cards by dragging, buttons, keyboard, or autoplay.
 
 - Category: Advanced interaction and layout
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,13 @@ Drag or page through a set of cards.
 
 ## Usage
 
-Keep CarouselState persistent and control position through Index. Give items stable IDs and synchronous Build callbacks. Arrows and Dots default to false; this example explicitly shows dots. Wrap loops buttons, keys and autoplay while drags remain bounded.
+Keep `CarouselState` persistent and track the active page via `Index`; each item needs a stable `ID` and synchronous `Build` callback. `Arrows` and `Dots` default to `false` (this demo enables dots). `Wrap` loops buttons, keys, and autoplay while drags remain bounded.
 
 ## Things to know
 
-Pages slide over 200 ms in the direction of travel, and at once under reduced motion; a jump of several pages slides in across one page rather than scrolling through them. This native single-page carousel has no Embla drag-free, slide grouping, media query, physics duration or plugin API. Active gates external activity for autoplay and does not disable manual navigation, unlike Embla active. Build runs for the current item and its neighbors, retaining the outgoing item during a jump; non-current items are disabled. Start business work from actions. Autoplay respects window activity and visibility, and stops under reduced motion and when animations are off.
+- Single-page native carousel without drag-free mode, multi-slide groups, or Embla plugins; transitions snap immediately under reduced motion.
+- `Active` gates autoplay only and never disables manual navigation; autoplay pauses automatically when offscreen, under reduced motion, or with animations off.
+- `Build` runs for the current slide and its neighbors (non-current slides are inert); trigger side effects from actions only.
 
 ## API
 

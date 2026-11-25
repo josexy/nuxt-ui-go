@@ -2,7 +2,7 @@
 
 # Drawer
 
-Open a bottom sheet with a drag handle to adjust height.
+Bottom sheet drawer with a drag handle and customizable snap heights.
 
 - Category: Advanced interaction and layout
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,13 @@ Open a bottom sheet with a drag handle to adjust height.
 
 ## Usage
 
-Keep DrawerState persistent: Open controls visibility and Snap selects a stop. SnapPoints are ascending fractions of available window height; Inset subtracts the margins first. Render while closed for exit animation and return focus. Handle controls the independent handle; CloseButton defaults to false.
+Keep `DrawerState` persistent, controlling visibility with `Open` and height stop with `Snap`. `SnapPoints` are ascending fractions of available height (e.g. `0.5`, `0.85`). Keep calling `Drawer` while closed for exit animation and focus return.
 
 ## Things to know
 
-This native bottom sheet is dragged only by its handle. SnapPoints accepts fractions in (0,1], not px strings; defaults are 0.5/0.85. Snaps ease over 200 ms at full motion and change at once under reduced motion; entrance/exit use Slideover. DismissDistance/DismissVelocity are native thresholds with 0 selecting defaults, not Vaul closeThreshold equivalents. Overlay=false only hides the backdrop, retaining modal interaction rules. Width, MaxHeight and Fullscreen do not apply.
+- Opens from the bottom only and drags via its handle. `SnapPoints` accepts fractions in `(0, 1]` (default `0.5`, `0.85`), not pixel strings.
+- `DismissDistance` and `DismissVelocity` are native dismissal thresholds (`0` uses defaults). `Overlay: false` hides the backdrop while keeping modal focus trapping.
+- Inherited `Width`, `MaxHeight`, and `Fullscreen` from `ModalOptions` do not apply.
 
 ## API
 

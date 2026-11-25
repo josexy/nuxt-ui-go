@@ -2,7 +2,7 @@
 
 # Listbox
 
-Select one or more items from a visible list.
+Filter and select one or more items in an always-visible list.
 
 - Category: Forms and data
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,13 +13,13 @@ Select one or more items from a visible list.
 
 ## Usage
 
-Keep selected IDs in `[]string` and query, highlight and scrolling in ListboxState. Every item, including labels and separators, needs a stable unique ID. Filter shows the search field; FilterInput configures it. Loading displays a spinner and suspends option actions.
-
-Group dividers paint one device pixel without changing DIP spacing.
+Store selected IDs in `[]string` and keep query, highlight, and scroll state in `ListboxState`. Every item—including labels and separators—requires a unique `ID`. `Filter` adds a built-in search box; `Loading` shows a spinner and pauses item actions.
 
 ## Things to know
 
-Filtering defaults to Label, folds case and combining marks, and ranks exact, prefix and substring matches. It does not implement full locale collation. Item Options.OnSelect can call PreventDefault. Hiding the filter keeps the query active; IgnoreFilter bypasses local filtering.
+- Built-in filtering matches `Label` by default (ignoring case and accents) and ranks exact, prefix, then substring matches.
+- Call `PreventDefault` inside an item's `OnSelect` to cancel selection.
+- Hiding the filter keeps an existing query active; set `IgnoreFilter: true` to bypass local filtering.
 
 ## API
 

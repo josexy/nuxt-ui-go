@@ -2,7 +2,7 @@
 
 # Slideover
 
-Open a detail or editing panel from a window edge.
+Slide a detail or editing panel in from a window edge.
 
 - Category: Overlays and navigation
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,13 @@ Open a detail or editing panel from a window edge.
 
 ## Usage
 
-Keep a persistent open bool and keep calling Slideover during closing. Side selects a physical edge and Extent sizes its axis. Inset adds a 16 DIP margin and 8 DIP corners. Top and bottom panels fit content without Extent; an empty body still retains its padding.
+Control visibility with a persistent `bool` and keep calling `Slideover` while closing so exit animations and focus return complete. `Side` picks the edge, `Extent` sizes its axis, and `Inset` adds a 16 DIP margin and rounded corners.
 
 ## Things to know
 
-Inherited Width, MaxHeight and Fullscreen do not affect Slideover layout. As it closes, the leaving panel takes no input, the window behind is live at once and focus returns immediately; the panel unmounts after its exit. Keep-mounted and non-modal modes are unavailable. Side panels default to 448 DIP within available space; Go does not apply the upstream small-screen full-width breakpoint.
+- Inherited `Width`, `MaxHeight`, and `Fullscreen` from `ModalOptions` do not apply; use `Side`, `Extent`, and `Inset` instead.
+- Left/right panels default to 448 DIP (clamped to window space); top/bottom panels fit content when `Extent` is unset.
+- The window becomes interactive and focus returns as soon as closing starts. Keep-mounted and non-modal modes are not supported.
 
 ## API
 

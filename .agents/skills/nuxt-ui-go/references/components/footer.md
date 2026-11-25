@@ -2,7 +2,7 @@
 
 # Footer (`nui.FooterLayout`)
 
-Show explanatory text and secondary actions below the content.
+Show explanatory copy and secondary actions at the bottom of a page.
 
 - Category: Advanced interaction and layout
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,12 @@ Show explanatory text and secondary actions below the content.
 
 ## Usage
 
-FooterLayout uses Text for copy and Actions for controls. Root, Label and Actions style the container, text and action region. Actions use a six-DIP gap and wrap when needed.
+`FooterLayout` renders copy via `Text` and controls via `Actions` (6 DIP default gap, wrapping when space is tight). Customize `Root`, `Label`, and `Actions` through `UI`.
 
 ## Things to know
 
-The native API uses Text and Actions rather than web left/default/right/top/bottom slots or UContainer breakpoint reordering. Compose additional regions with native layouts. The footer has no default top border and uses 20-DIP horizontal and 12-DIP vertical root padding. FooterLayout is the window’s content-information landmark (ui.RoleContentInfo); a window has at most one, so call .Role(ui.RoleGroup) on the returned element for nested instances.
+- Exposes `Text` and `Actions` regions (no default top border, 20×12 DIP padding); compose native layouts for multi-zone footers.
+- Sets the window content-info landmark (`ui.RoleContentInfo`), so a window should have at most one; call `.Role(ui.RoleGroup)` on nested instances.
 
 ## API
 

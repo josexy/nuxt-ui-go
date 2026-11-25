@@ -2,7 +2,7 @@
 
 # Textarea
 
-Edit multiple lines and optionally grow with the content.
+Multiline text input that can grow automatically with content.
 
 - Category: Inputs and selection
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,12 @@ Edit multiple lines and optionally grow with the content.
 
 ## Usage
 
-Textarea binds a string and takes shared input settings through InputOptions. Rows sets the base line count, AutoResize grows with new lines, and MaxRows can cap that growth.
+`Textarea` binds a `*string` and inherits shared settings from `InputOptions`. `Rows` sets the starting height, `AutoResize` grows with new lines, and `MaxRows` caps growth.
 
 ## Things to know
 
-Keep text outside the view function. Changes to rows, avatar or loader placement preserve editing state. Rows≤0 uses 3. MaxRows applies only with AutoResize: ≤0 means unlimited and values below Rows use Rows. Enter and Shift+Enter insert lines without OnSubmit; the shared Password field has no effect on multiline input. There is no drag-to-resize handle.
+- `Rows <= 0` defaults to 3. `MaxRows` applies only with `AutoResize` (`<= 0` means unlimited; values below `Rows` use `Rows`).
+- `Enter` and `Shift+Enter` insert newlines without calling `OnSubmit`. `Password` has no effect on multiline input, and there is no resize handle.
 
 ## API
 

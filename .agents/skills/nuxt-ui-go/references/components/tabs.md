@@ -2,7 +2,7 @@
 
 # Tabs
 
-Switch between related content panels.
+Switch between related content panels using tabs.
 
 - Category: Overlays and navigation
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,13 +13,13 @@ Switch between related content panels.
 
 ## Usage
 
-Stable TabItem IDs identify both selection and widget state. Build panels with Content, and configure labels using Avatar, Badge, BadgeOptions and UI. TabsOptions.Content=false omits panels; KeepMounted controls local state in inactive panels.
-
-Underline widths round from DIPs to whole device pixels and align with the list border edge.
+Each `TabItem` uses a unique `ID` for selection and widget identity, with a `Content` callback for its panel. Supports icons, avatars, badges, and pill or underline styles; `KeepMounted: true` preserves local state in hidden panels.
 
 ## Things to know
 
-Empty, missing or disabled selection falls back to the first enabled item without OnChange. An all-disabled list preserves the business ID. Content=false unmounts all panels even with KeepMounted=true. Badges default to SM / Neutral / Outline, with height depending on font metrics. Panels are focusable tab panels (ui.RoleTabPanel) named after their tab’s Label, and each tab points at its built panel with Controls. The indicator slides between triggers over 200 ms, with label colours in step; under reduced motion it moves at once.
+- Empty, missing, or disabled selection IDs fall back to the first enabled tab without calling `OnChange`; if all tabs are disabled, the bound ID is kept.
+- Setting `Content: false` unmounts all panels even when `KeepMounted` is true.
+- When both `Icon` and `Avatar` are provided on a tab, `Icon` takes precedence.
 
 ## API
 

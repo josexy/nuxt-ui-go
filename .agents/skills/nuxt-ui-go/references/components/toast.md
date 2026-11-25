@@ -2,7 +2,7 @@
 
 # Toast
 
-Briefly show an action’s result without interrupting work.
+Show brief non-blocking notifications in a corner of the window.
 
 - Category: Overlays and navigation
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,13 @@ Briefly show an action’s result without interrupting work.
 
 ## Usage
 
-Build ToastViewport once per window and call Toast from actions or UI handling of completed work. CloseToast accepts the returned ID. Publishing the same ID replaces its content and restarts its timeout. Stable action IDs preserve focus across replacement and reordering.
+Render `ToastViewport` once per window and call `nui.Toast` from actions or UI callbacks. Pass the returned ID to `CloseToast` to dismiss it, or publish with the same ID to update in place and reset the timer.
 
 ## Things to know
 
-This demo uses four seconds. Go Timeout=0 means the five-second default and negative values persist; Nuxt UI duration=0 persists. A notice snapshots its theme and configuration, while its generated close name follows locale changes. MyGo supplies at most three visible notices; older queued notices keep timing and may reappear after newer ones close. Upstream max defaults to five and drops older entries.
+- Default duration is 5 seconds: `Timeout == 0` uses 5s, while a **negative** value stays open (unlike Nuxt UI where `duration=0` persists).
+- MyGo shows up to 3 toasts at once; older queued items keep timing and may appear as slots free up.
+- Each toast snapshots its theme and options when published; give `ToastActionOptions` stable `ID`s to keep button focus across updates.
 
 ## API
 

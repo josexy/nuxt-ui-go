@@ -2,7 +2,7 @@
 
 # Popover
 
-Open related content beside a button or other control.
+Open a floating content panel anchored to a button or control.
 
 - Category: Inputs and selection
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,13 @@ Open related content beside a button or other control.
 
 ## Usage
 
-Create an anchor and pass it with persistent open state to Popover. The content callback receives the local theme. Plain text inherits final Panel typography, color and spacing while native widgets keep that theme. Bind click-mode toggling in the caller.
+Create an anchor control and pass it with a persistent `*bool` open state to `Popover`.
 
 ## Things to know
 
-Unset Width follows content; default MaxHeight is 320 DIP without automatic scrolling. MatchAnchor sets a minimum width and Label is an accessible name. MyGo handles collisions with a 4 DIP window margin, versus upstream collisionPadding 8 px, and keeps the panel no taller than the room on the side it opens; content past that is cut off. Modal, arrow, portal and virtual anchors are not exposed. An outside button keeps its focus; closing from within returns to the current anchor.
+- Unset `Width` fits content; `MaxHeight` defaults to 320 DIP without automatic scrolling (wrap content in `ScrollArea` if needed).
+- Window edge collision uses a 4 DIP margin, and panel height is clipped to available space on the open side.
+- `modal`, `arrow`, `portal`, and virtual anchors are not supported. Clicking an outside button keeps focus on that button.
 
 ## API
 

@@ -2,7 +2,7 @@
 
 # User
 
-Display a user’s avatar, name, and short description.
+Display a user's avatar, name, and short description.
 
 - Category: Themes and basic components
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,13 +13,12 @@ Display a user’s avatar, name, and short description.
 
 ## Usage
 
-Name and Description present user information; Avatar configures the image or fallback. Empty Avatar options show no avatar. Chip appears only with the default avatar, follows User size and stays inset. Leading replaces the avatar area; Body replaces the default name and description.
-
-OnActivate makes User a native button for pointer, Enter and Space activation. Hover or keyboard focus emphasizes text and scales the avatar; reduced motion removes the scale transition. Handle navigation in the application callback.
+Set `Name`, `Description`, and `Avatar` to display a user (an empty `Avatar` hides the avatar slot). `Chip` appears only with the default avatar. Passing `OnActivate` turns the component into a focusable, clickable button.
 
 ## Things to know
 
-User.Size overrides Avatar.Size and Chip.Size; Chip.Inset is always true. The chip does not intercept clicks; include meaningful status in the name, description or accessible name. Interactive custom content should still provide Name. Native User has no Nuxt routing, target or automatic URL opening.
+- `User.Size` controls both avatar and chip sizes, and `Chip.Inset` is always `true`.
+- Keep providing `Name` as an accessible name when combining `Body` with `OnActivate`; handle navigation in the callback.
 
 ## API
 
