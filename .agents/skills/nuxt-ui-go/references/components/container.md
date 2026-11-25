@@ -2,7 +2,7 @@
 
 # Container
 
-Limit content width and add space around it.
+Limit content width and add horizontal breathing room.
 
 - Category: Themes and basic components
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,12 @@ Limit content width and add space around it.
 
 ## Usage
 
-Build content inside `Container` and use `MaxWidth` to limit its width. Unset `Padding` follows the window width; an explicit value uses fixed DIP spacing.
+Place page content inside `Container` and set `MaxWidth` to cap its width. Leave `Padding` unset for responsive horizontal spacing, or provide a fixed DIP value.
 
 ## Things to know
 
-Default horizontal padding is 16, 24 or 32 DIP for window widths below 640, from 640 to 1023, or at least 1024 DIP, scaled by theme Density. Breakpoints use the window width. `Padding: nui.Set(0)` removes padding. Unset maximum width uses Theme.ContainerWidth.
+- Default horizontal padding adapts to window width: 16 DIP below 640 DIP, 24 DIP for 640–1023 DIP, and 32 DIP at 1024 DIP or wider (scaled by theme `Density`).
+- Use `Padding: nui.Set(0)` to remove padding. When `MaxWidth` is unset, `Theme.ContainerWidth` (1280 DIP by default) is used.
 
 ## API
 

@@ -2,7 +2,7 @@
 
 # Input
 
-Edit one line of text with read-only, clear and loading options.
+Single-line text input with icons, clear button, read-only, and loading states.
 
 - Category: Inputs and selection
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,12 @@ Edit one line of text with read-only, clear and loading options.
 
 ## Usage
 
-Pass a string pointer to `Input`; the component updates that value. Keep the string outside the view function so UI updates do not reset it. Label names the control and Placeholder gives an input hint.
+Pass a `*string` pointer to `nui.Input`; the component updates it as the user types. Keep the string outside the view function so rebuilds do not reset it. `Label` names the field and `Placeholder` hints what to enter.
 
 ## Things to know
 
-ReadOnly allows selection and copying but prevents editing. Disabled prevents interaction. Loading shows an indicator while allowing editing. Switching avatar or loader placement preserves text, focus and selection. An explicit Leading icon takes priority over LoadingTrailing. MaxLength limits inserted UTF-16 units; external assignments are neither truncated nor reported through OnChange.
+- `Loading` shows an indicator while keeping the field editable; an explicit `Leading` icon keeps the loader on the leading side.
+- `MaxLength` limits user input by UTF-16 code units; direct external string assignments are not truncated and do not emit `OnChange`.
 
 ## API
 

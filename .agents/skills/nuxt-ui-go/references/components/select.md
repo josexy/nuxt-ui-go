@@ -2,7 +2,7 @@
 
 # Select
 
-Choose one or more values from a dropdown list.
+Open a dropdown list to pick one or more options.
 
 - Category: Inputs and selection
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,13 @@ Choose one or more values from a dropdown list.
 
 ## Usage
 
-Bind one value with Select or a slice with SelectMultiple. Option.Value is the stable ID, Label is display text and Description adds detail. Open points to a persistent bool writable by both the component and application; omit it for internal state.
+Use `Select` for one value or `SelectMultiple` for a slice. `Option.Value` is the unique key, while `Label` and `Description` provide display text. Pass an optional `Open` pointer to control or observe popup visibility.
 
 ## Things to know
 
-Empty strings and zero values can be valid option values. Use Optional[T] or an explicit business value for absence. A missing single value shows the placeholder; multiple selections retain labels for temporarily missing items and omit empty labels from joined text. External assignments, appearance changes and opening do not call OnChange. Closing the popup restores focus to the current trigger. If the highlighted item is removed, the list moves to a valid selected item or the first available item.
+- Empty strings and zero values are valid `Option.Value`s; use `Optional[T]` or a sentinel value to represent unset.
+- Missing single values fall back to the placeholder; multi-select preserves labels for temporarily absent items.
+- External assignments, style updates, and opening/closing do not emit `OnChange`.
 
 ## API
 

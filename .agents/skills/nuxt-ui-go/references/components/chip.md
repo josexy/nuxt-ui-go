@@ -2,7 +2,7 @@
 
 # Chip
 
-Add a count or status marker to the corner of other content.
+Overlay a status dot or count badge on the corner of another control.
 
 - Category: Themes and basic components
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,13 @@ Add a count or status marker to the corner of other content.
 
 ## Usage
 
-Build the host in Chip’s content callback and configure Text, Color, Position and Inset. Hidden removes only the marker. A nil content callback renders a standalone chip. Left and right are physical positions and do not mirror in RTL.
+Build the host control inside `Chip`'s callback and configure `Text`, `Color`, `Position`, and `Inset`. `Hidden` hides only the marker; a `nil` callback renders a standalone chip.
 
 ## Things to know
 
-Text width uses Indicator UI font, size, weight and horizontal padding. Style runs after measurement; size changes made there also need explicit dimensions. This example increases height for Styled text. Include meaningful counts or status in the host’s accessible name; the marker itself does not handle clicks.
+- Chips do not intercept clicks; include meaningful counts or status in the host's accessible name.
+- Left and right positions are physical and do not mirror in RTL.
+- Width is measured from `UI[Indicator]` font and padding; if you change font size in `Style`, adjust dimensions too.
 
 ## API
 

@@ -2,7 +2,7 @@
 
 # Header (`nui.HeaderLayout`)
 
-Show a title, description and primary actions above the content.
+Display a title, description, leading icon, and primary actions at the top of a page.
 
 - Category: Advanced interaction and layout
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,12 @@ Show a title, description and primary actions above the content.
 
 ## Usage
 
-HeaderLayout renders Title, native Description, Leading and Actions. Leading, Body, Label, Description and Actions are actual style parts. Stable region identities retain action editors when leading content changes.
+`HeaderLayout` arranges `Title`, native `Description`, `Leading`, and `Actions`. Each region keeps a stable identity, so toggling leading content does not reset editors inside `Actions`.
 
 ## Things to know
 
-HeaderLayout is a native application header and the window’s banner landmark (ui.RoleBanner); a window has at most one, so call .Role(ui.RoleGroup) on the returned element for nested instances. Its title defaults to empty; it does not create a home link, sticky positioning or a mobile menu automatically. Mode, menu, open and route auto-close are not HeaderOptions; the composed Sidebar owns menu state.
+- `HeaderLayout` sets the window banner landmark (`ui.RoleBanner`), so a window should have at most one; call `.Role(ui.RoleGroup)` on nested instances.
+- Title defaults to empty without automatic home links, sticky positioning, or a built-in mobile menu—compose `Sidebar` when you need a responsive menu.
 
 ## API
 

@@ -2,7 +2,7 @@
 
 # InputDate
 
-Edit date segments or choose a date from a calendar.
+Edit year, month, and day segments directly or pick from a popup calendar.
 
 - Category: Forms and data
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,13 @@ Edit date segments or choose a date from a calendar.
 
 ## Usage
 
-Bind an Optional[Date] and DateInputState for one date, or DateSelection and DateRangeInputState for a range. Incomplete or rejected drafts retain the last accepted value. Use OnValueChange for one date and OnRangeChange for a range; clearing both endpoints sends one range notification.
+Bind `Optional[Date]` + `DateInputState` for a single date, or `DateSelection` + `DateRangeInputState` for a range. Incomplete or rejected drafts keep the last valid value. Use `OnValueChange` for single dates and `OnRangeChange` for ranges.
 
 ## Things to know
 
-Read-only fields still allow navigation and copying. ShowCalendar defaults to false and HideCalendar overrides it. Calendar range constraints also apply to segment edits. Calendar.OnChange remains a legacy range notification; for one date it reports calendar actions only. PlaceholderValue seeds empty segments; string Placeholder, Password and MaxLength do not apply. Values are full Gregorian dates without a time or time zone.
+- `ShowCalendar` defaults to `false` and `HideCalendar` takes precedence; `Calendar` bounds and predicates also govern segment edits.
+- `PlaceholderValue` seeds empty segments when stepping; string `Placeholder`, `Password`, and `MaxLength` do not apply.
+- Represents Gregorian calendar dates only, without time of day or time zone.
 
 ## API
 

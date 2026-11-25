@@ -2,7 +2,7 @@
 
 # Progress
 
-Show completed progress or indicate that work is ongoing.
+Show task completion progress or ongoing activity.
 
 - Category: Themes and basic components
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,13 @@ Show completed progress or indicate that work is ongoing.
 
 ## Usage
 
-Pass the completed amount; Max defaults to 100. Values are clamped to 0–Max and visual percentages are rounded to integers. Indeterminate ignores the amount and displays a moving half-track indicator. Use Value on the returned element for accessible work-unit text; compose a Text element when an on-screen percentage is needed.
+Pass the completed amount (`Max` defaults to `100`; values are clamped to `0–Max`). Enable `Indeterminate` when progress is unknown. Compose a separate `Text` widget if you want an on-screen percentage.
 
 ## Things to know
 
-An explicit Max must be finite and positive or the component panics. Non-finite amounts become zero. Unknown progress uses one of Nuxt's four two-second presets (Animation), shared with Table's loading bar; an out-of-range preset panics. Step arrays are not provided. The custom background affects Neutral only; Indicator.Background directly sets the fill color. This example does not start a task.
+- An explicit `Max` must be finite and positive (otherwise it panics); non-finite values clamp to `0`.
+- Indeterminate mode supports 4 presets (`Animation`, shared with `Table`); reduced motion pulses the full track, and animations off stays centered.
+- Set `UI[Indicator].Background` for custom fill colors. Step arrays from Nuxt UI are not supported.
 
 ## API
 

@@ -2,7 +2,7 @@
 
 # Checkbox
 
-Toggle an option or represent a partially selected state.
+Toggle a single option, including an optional indeterminate (tri-state) mode.
 
 - Category: Inputs and selection
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,13 @@ Toggle an option or represent a partially selected state.
 
 ## Usage
 
-Checkbox binds a `*bool`; CheckboxTri binds CheckState with Unchecked, Checked and Indeterminate values. CheckedIcon customizes the checked icon and IndeterminateIcon customizes the mixed icon. With a hidden indicator, an explicit CheckedIcon appears above the label; no default icon is inserted.
+`Checkbox` binds a `*bool`; use `CheckboxTri` with `CheckState` for unchecked, checked, and indeterminate states. Customize icons via `CheckedIcon` and `IndeterminateIcon`; when the indicator is hidden, an explicit `CheckedIcon` sits above the label.
 
 ## Things to know
 
-Keep selection values outside the view function. The application computes relationships between parent and child checkboxes. Loading is retained in the shared options for compatibility and is not used by Checkbox; it applies to Switch. ChoiceTable is a Go native extension for a standalone Checkbox.
+- Keep selection state outside the view function; parent-child checkbox sync is handled by your app.
+- `Loading` is retained from the options shared with `Switch` and does not apply to `Checkbox`.
+- `ChoiceTable` is a Go-native extension; submission validation belongs to `FormState`.
 
 ## API
 

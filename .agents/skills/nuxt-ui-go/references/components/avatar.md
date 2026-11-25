@@ -2,7 +2,7 @@
 
 # Avatar
 
-Display an image, icon or name initials as an avatar.
+Display a user photo, icon, or name initials.
 
 - Category: Themes and basic components
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,12 @@ Display an image, icon or name initials as an avatar.
 
 ## Usage
 
-Avatar chooses an image, icon, Text, then initials from Alt. Load and decode images outside the component; pass nil on failure to use fallback content. Wrap it in Chip with Inset set to true to place a status chip inside the avatar edge.
+`Avatar` picks content in order: `Image`, `Icon`, `Text`, then initials from `Alt`. Load and decode images outside the component—pass `nil` on failure to fall back automatically. Wrap with `Chip` (`Inset: true`) to add a corner status indicator.
 
 ## Things to know
 
-Alt supplies the accessible image name, falling back to Text. XS–XL diameters range from 24 to 40 DIP. Network loading, caching, retries and HTML image attributes belong to the application or platform.
+- `Alt` provides the accessible name, falling back to `Text`.
+- `XS`–`XL` diameters range from 24 to 40 DIP. Image downloading, caching, and retries belong to your app.
 
 ## API
 

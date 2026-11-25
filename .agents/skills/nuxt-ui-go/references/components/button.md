@@ -2,7 +2,7 @@
 
 # Button
 
-Run an action with support for icons, loading and disabled states.
+Trigger an action with icons, avatars, loading, and disabled states.
 
 - Category: Themes and basic components
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,13 @@ Run an action with support for icons, loading and disabled states.
 
 ## Usage
 
-Set button text and appearance with `Button`, then handle activation with `.OnClick(...)`. Keep values such as a click count outside the view function. Loading and Disabled both prevent activation.
+Configure button text and appearance with `nui.Button`, then attach `.OnClick(...)` to handle clicks. Keep state such as click counts outside the view function. Both `Loading` and `Disabled` block activation.
 
 ## Things to know
 
-An icon-only or avatar-only button requires an `AccessibleLabel`. Leading icons and leading loaders replace Avatar. Set loader colors through `UI[Leading].Foreground` or `UI[Trailing].Foreground`; TextColor in Style does not change their painted color.
+- Icon-only and avatar-only buttons require `AccessibleLabel` for screen readers.
+- Leading icons and leading loaders replace `Avatar`; use `LoadingTrailing` to keep the avatar visible while loading.
+- Set loader colors via `UI[Leading].Foreground` or `UI[Trailing].Foreground`; `Style`'s `TextColor` does not affect custom-drawn loaders.
 
 ## API
 

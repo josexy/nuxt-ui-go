@@ -2,7 +2,7 @@
 
 # Main
 
-Place the main page content in the remaining space.
+Hold the main page content and fill the remaining space.
 
 - Category: Themes and basic components
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -12,11 +12,12 @@ Place the main page content in the remaining space.
 
 ## Usage
 
-Build the main page content in the `Main` callback and combine it with HeaderLayout, Sidebar and FooterLayout. The callback runs again as the UI updates, so keep application data outside the view function.
+Build your primary page content in the `Main` callback alongside `HeaderLayout`, `Sidebar`, and `FooterLayout`. Because the callback runs on every UI rebuild, keep application state outside the view function.
 
 ## Things to know
 
-Main provides layout without scrolling. Add ScrollArea or MyGo Scroll when content needs to scroll.
+- `Main` handles layout only and does not scroll; wrap overflowing content in `ScrollArea` or `Scroll`.
+- `Main` sets the window's main landmark (`ui.RoleMain`), so a window should have only one. Call `.Role(ui.RoleGroup)` on the returned element for nested instances.
 
 ## API
 

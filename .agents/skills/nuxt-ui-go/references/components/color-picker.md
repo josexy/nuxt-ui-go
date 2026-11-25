@@ -2,7 +2,7 @@
 
 # ColorPicker
 
-Choose a color from a panel, swatches or numeric values.
+Pick a color using a spectrum panel, sliders, swatches, or RGBA inputs.
 
 - Category: Forms and data
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,13 @@ Choose a color from a panel, swatches or numeric values.
 
 ## Usage
 
-Bind ui.Color and persistent ColorPickerState. The SV area, horizontal hue and opacity tracks, HEX/HEXA, swatches and RGBA fields share one color. Five sizes change the actual picker and fields; MD defaults to a 168 DIP square.
+Bind `*ui.Color` and a persistent `ColorPickerState`. The spectrum area, hue/opacity sliders, HEX/HEXA input, swatches, and RGBA fields stay in sync. All five `Size` options scale the picker and inputs (`MD` defaults to 168 DIP).
 
 ## Things to know
 
-The native panel keeps MyGo’s horizontal tracks, opacity and swatches. Root, Panel, Body, Item and Label are configurable; internal SV, track and HEX parts are not exposed. ui.Color is the model, so string formatting belongs to the application. Channel edits rebuild an sRGB color; wide-gamut editing, HSL/CMYK/Lab text input and screen picking are not provided. In RTL, the native color panel stays LTR so input matches its gradients and thumbs; RGBA fields follow the form direction.
+- `Throttle` coalesces `OnChange` callbacks only—the bound `ui.Color` updates immediately, and external assignments are silent.
+- `UI` exposes `Root`, `Panel`, `Body`, `Item`, and `Label`; internal spectrum, slider, and HEX parts are not individually styled.
+- Uses sRGB `ui.Color` without wide-gamut, HSL/CMYK/Lab text input, or eyedropper. In RTL, the color panel stays LTR so pointer positions match gradients.
 
 ## API
 

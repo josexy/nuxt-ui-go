@@ -2,7 +2,7 @@
 
 # FileUpload
 
-Select files and display their status and upload progress.
+Pick or drop files, validate them, and display upload status and progress.
 
 - Category: Advanced interaction and layout
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,12 @@ Select files and display their status and upload progress.
 
 ## Usage
 
-FileUploadState holds a queue; the application implements transfers through Begin / Report. Rules checks type, size and count, retaining rejected rows with reasons. OnChange reports user selections or removals that change the queue; OnReject reports newly rejected files.
+Store queued files in `FileUploadState` and drive real transfers via `Begin` and `Report`. `Rules` validates file type, size, and count, keeping rejected entries with reasons. `OnChange` reports queue updates; `OnReject` reports newly rejected files.
 
 ## Things to know
 
-Choose returns simulated metadata: no native dialog, file content reads or uploads. Go keeps a queue; Dialog.Multiple controls one native dialog selection and Rules.MaxFiles limits accepted files in the queue. Position affects UploadArea / UploadList only. The native grid retains names, status and progress, unlike Nuxt’s image grid. The reading message and State.Error use persistent polite status regions; empty regions take no layout space. Adding or changing an exposed message reads it once. Clearing, unchanged rebuilds and hidden updates are silent. Mounting or exposing an existing message makes it accessible without announcing a change.
+- `Dialog.Multiple` only enables multi-select inside one OS dialog; use `Rules.MaxFiles` to cap total queued files.
+- `Position` applies only to `UploadArea` / `UploadList`. The component does not read file bytes or perform network uploads; call `Dispose` on unmount.
 
 ## API
 

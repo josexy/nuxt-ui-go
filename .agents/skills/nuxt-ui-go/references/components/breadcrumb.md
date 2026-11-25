@@ -2,7 +2,7 @@
 
 # Breadcrumb
 
-Show the current page within a navigation hierarchy.
+Show the current page's location within a navigation hierarchy.
 
 - Category: Overlays and navigation
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,12 @@ Show the current page within a navigation hierarchy.
 
 ## Usage
 
-Give each item a stable ID and use OnSelect for application navigation. Items without callbacks are display-only; the final item is actionable when a callback is supplied. Active defaults to the final item, while explicit false removes its active style.
+Give each item a unique `ID` and attach `OnSelect` to make it interactive (items without `OnSelect` render as plain text). The last item is active by default unless overridden via `Active`; `MaxItems` collapses long paths.
 
 ## Things to know
 
-MaxItems is a native extension. Values below 2 do not truncate; larger values retain the first and trailing items with a non-interactive ellipsis. Color defaults to Primary; Neutral uses Highlighted for active text. Routing, URL opening and history remain application-owned.
+- `MaxItems` is a Go-native extension: values below 2 do not truncate; values ≥ 2 keep the first and trailing items with a non-interactive ellipsis.
+- Routing, URL opening, and navigation history are handled by your app inside `OnSelect`.
 
 ## API
 

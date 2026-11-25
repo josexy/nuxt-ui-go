@@ -2,7 +2,7 @@
 
 # ScrollArea
 
-Scroll content that exceeds the visible area.
+Wrap overflowing content in a scrollable viewport with customizable scrollbars.
 
 - Category: Inputs and selection
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,12 @@ Scroll content that exceeds the visible area.
 
 ## Usage
 
-Set Height, Fill or Grow on the returned wrapper to define the viewport. Direction selects vertical, horizontal or both axes. Give each instance its own ui.ScrollState: X / Y are offsets and MaxX / MaxY are the laid-out bounds.
+Give the returned element a `Height`, `Fill`, or `Grow` to establish the viewport. Use `Direction` for vertical, horizontal, or both-axis scrolling, and pass an independent `ui.ScrollState` per instance to read or control scroll offsets.
 
 ## Things to know
 
-All content is built. Nuxt ScrollArea items / virtualization, fading edge shadows and infinite loading are not exposed; use Listbox or Table for virtual lists. Upstream scroll events come from the virtualizer; ui.ScrollState.Scrolling() only reports programmatic smooth scrolling. A transparent thumb retains its hit area.
+- `ScrollArea` builds all children without virtualization, edge fades, or infinite loading; use `Listbox` or `Table` for large datasets.
+- Scrollbar width `0` uses the default 6 DIP; a transparent scrollbar hides visuals while keeping its drag target.
 
 ## API
 

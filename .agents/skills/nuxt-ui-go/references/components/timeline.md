@@ -2,7 +2,7 @@
 
 # Timeline
 
-Display activities or milestones in sequence.
+Display chronological activity logs or project milestones.
 
 - Category: Overlays and navigation
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,13 +13,13 @@ Display activities or milestones in sequence.
 
 ## Usage
 
-Timeline is vertical by default. Current is an optional zero-based index, overridden by a non-empty CurrentID. Reverse changes progress interpretation without reordering items. Time is an application-formatted string, styled independently through DateSlot.
-
-Connectors retain their 2 DIP width, rounded consistently to whole device pixels when painted.
+`Timeline` is vertical by default. Mark progress with `Current` (0-based index) or `CurrentID` (takes priority). `Reverse` flips progress highlighting without reordering items; pass pre-formatted strings to `Time`.
 
 ## Things to know
 
-OnSelect does not change progress automatically. An unmatched CurrentID does not fall back to Current, and invalid indexes highlight no items. Per-item Color and Content are native extensions; sizes are limited to XS–XL.
+- `OnSelect` does not update progress automatically—update your state inside the callback.
+- An unmatched `CurrentID` does not fall back to `Current`, and invalid indexes highlight nothing.
+- Per-item `Color` and `Content` are Go-native extensions; sizes cover `XS`–`XL`.
 
 ## API
 

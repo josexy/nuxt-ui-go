@@ -2,7 +2,7 @@
 
 # Tooltip
 
-Show a short explanation on hover or keyboard focus.
+Show a short text and shortcut hint on hover or keyboard focus.
 
 - Category: Overlays and navigation
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,12 @@ Show a short explanation on hover or keyboard focus.
 
 ## Usage
 
-Pass an anchor from the current build, text and optional Kbds. Bind Open to persistent state. DelayDuration is an Optional[time.Duration]; explicit zero shows immediately. Text and formatted keys append to the anchor description.
+Pass an anchor element from the current build to `Tooltip`, along with text and optional `Kbds`. Bind `Open` for programmatic control, and set `DelayDuration` (an `Optional[time.Duration]`; `0` shows immediately).
 
 ## Things to know
 
-Unset delay preserves MyGo’s 600ms default and a 400ms warm-switch window; Nuxt UI defaults are 700ms and 300ms. Go tips do not receive pointer input or focus and close when the pointer leaves the anchor. Hoverable content and arbitrary content slots are unavailable; use Popover for multiline or interactive content. Kbds remain visible at every window width.
+- Hover delay defaults to 600ms with a 400ms warm-switch window (vs Nuxt UI's 700ms / 300ms).
+- Tooltips cannot be hovered or focused and close on pointer leave; use `Popover` for interactive or rich content.
 
 ## API
 

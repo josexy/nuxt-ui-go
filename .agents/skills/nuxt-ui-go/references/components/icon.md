@@ -2,7 +2,7 @@
 
 # Icon
 
-Display a Lucide vector icon.
+Display a built-in Lucide vector icon.
 
 - Category: Themes and basic components
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,11 @@ Display a Lucide vector icon.
 
 ## Usage
 
-Choose a function from `icons/lucide`, such as `lucide.Check()`, and pass its SVG to `nui.Icon`. Size controls the displayed dimensions. Give a meaningful standalone icon a Label for assistive technology.
+Pick an icon from `icons/lucide` (such as `lucide.Check()`) and pass its SVG to `nui.Icon`. Use `Size` to set dimensions, and provide a `Label` for standalone icons that convey meaning to screen readers.
 
 ## Things to know
 
-Icon size uses DIP. Icon functions return shared SVGs; set color and size on the component rather than modifying the SVG.
+Icon sizes are in DIP. Functions in `icons/lucide` return shared SVGs, so customize color and size through component options rather than mutating the SVG.
 
 ## API
 

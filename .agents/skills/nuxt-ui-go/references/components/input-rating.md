@@ -2,7 +2,7 @@
 
 # InputRating
 
-Choose a whole-number star rating.
+Select a whole-number rating with star icons.
 
 - Category: Forms and data
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,19 +13,12 @@ Choose a whole-number star rating.
 
 ## Usage
 
-InputRating binds an integer; 0 means unrated. Max defaults to 5 and accepts 1–20. External values and maximum changes clamp silently. Clearable and Hoverable default to false.
-
-#### Interaction and appearance
-
-Arrow keys follow orientation and RTL. Home / PageUp selects 1, End / PageDown selects Max, and Space can select the first item or clear the current value. Read-only ratings retain Tab focus, normal colors and the default cursor.
-
-The empty icon remains behind the filled overlay; IconSlot can override the foreground inherited from Indicator. Neutral uses Highlighted for filled icons and InvertedBackground for its focus ring.
-
-Reduced motion keeps hover scaling without a transition. Restoring animation does not revert the scale.
+`InputRating` binds an `*int` (`0` means unrated) with `Max` defaulting to 5 (supports 1–20). Supports arrow keys, `Home`/`End`, and `Space` to select or clear. `Clearable` and `Hoverable` default to `false`.
 
 ## Things to know
 
-The integer binding has no fractional step or arbitrary item builder. Native ratings use one slider focus target while the web version uses a radio group; read-only focus and Space after clearing differ. Applications own validation, persistence and submission.
+- Supports whole-number ratings only (no half-star steps or custom item builders).
+- Uses a single focusable slider role natively (unlike web radio groups); validation and persistence belong to your app.
 
 ## API
 

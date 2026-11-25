@@ -2,7 +2,7 @@
 
 # AvatarGroup
 
-Stack multiple avatars and show how many remain.
+Stack multiple avatars and show the remaining count as +n.
 
 - Category: Themes and basic components
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,12 @@ Stack multiple avatars and show how many remain.
 
 ## Usage
 
-Give each AvatarItem a stable, unique user ID and avatar options. Max limits the visible avatars and represents the rest as `+n`. Size and Color supply defaults for items without their own settings.
+Give each `AvatarItem` a stable, unique ID and avatar options. `Max` caps visible avatars and groups the rest into `+n`. `Size` and `Color` supply defaults for items without their own.
 
 ## Things to know
 
-An unset Max or a value at or below zero shows all avatars. Use user IDs rather than positions in a sortable list. Item targets each avatar root, including overflow. Item.BorderWidth and BorderColor control the outer separator ring; explicit BorderWidth=0 removes it.
+- When `Max` is unset or ≤ 0, all avatars are shown. Use stable user IDs rather than list positions.
+- `UI[Item]` styles both regular and `+n` avatars; set `BorderWidth` to `0` to remove the separator ring.
 
 ## API
 

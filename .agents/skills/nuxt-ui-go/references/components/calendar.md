@@ -2,7 +2,7 @@
 
 # Calendar
 
-Choose a date or a date range from a calendar.
+Pick a single date or a date range from a calendar grid.
 
 - Category: Forms and data
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,13 @@ Choose a date or a date range from a calendar.
 
 ## Usage
 
-Calendar binds DateSelection. CalendarState keeps the first displayed month, active date, navigation view and persistent focus. Selecting a date again clears it by default; PreventDeselect disables this. ReadOnly retains browsing and focus without changing the value.
+`Calendar` binds `DateSelection`, while `CalendarState` tracks the visible month, active date, navigation view, and focus. Clicking the selected date again clears it by default (disable via `PreventDeselect`); `ReadOnly` allows browsing without editing.
 
 ## Things to know
 
-This example fixes today and its initial value at February 15, 2024 and starts weeks on Monday. The component retains its native Sunday WeekStart default; week numbers follow the explicit setting. Unavailable dates can be browsed but not selected as endpoints. AllowNonContiguousRanges permits unavailable interior dates, not disabled dates. Month/year views navigate; values remain Gregorian dates or ranges.
+- This demo pins today and the initial date to Feb 15, 2024 with Monday as week start; the component defaults to Sunday (`WeekStart`), and week numbers follow it.
+- Unavailable dates can be focused but not chosen as endpoints; `AllowNonContiguousRanges` allows crossing unavailable dates, not disabled ones.
+- Month/year views are for navigation only—values are always Gregorian dates or ranges, and external updates do not fire `OnChange`.
 
 ## API
 

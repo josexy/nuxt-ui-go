@@ -2,7 +2,7 @@
 
 # Marquee
 
-Continuously scroll text or other display-only content.
+Continuously scroll display-only text, logos, or badges in a marquee.
 
 - Category: Advanced interaction and layout
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,12 @@ Continuously scroll text or other display-only content.
 
 ## Usage
 
-Repeat defaults to four copies; explicit zero builds no content and a single copy may leave an empty interval. Speed defaults to 32 DIP/s and Gap to 64 DIP. Keep the callback presentation-only; Body styles each content copy.
+`Repeat` sets how many copies are rendered (default 4; `0` builds nothing, and `1` may leave a gap). `Speed` defaults to 32 DIP/s and `Gap` to 64 DIP. Keep the content callback display-only.
 
 ## Things to know
 
-Repeat is the callback count: avoid inputs, buttons and business side effects. Focus, pause, Active=false, disabled ancestors, invisibility (including being scrolled or clipped out of view, or a hidden kept-mounted panel), reduced motion and turning animations off stop animation. The content moves in frames that only repaint, so the view builds about once a second, and MarqueeState.Offset is the phase as of the last build. Native speed uses DIP/s, while upstream CSS defaults to 20 seconds per cycle. Repeated content still requires target screen-reader validation.
+- The callback runs `Repeat` times per build—do not put interactive controls or side effects inside it.
+- Motion pauses automatically on focus, manual pause, `Active: false`, disabled ancestors, offscreen clipping, reduced motion, or animations off.
 
 ## API
 

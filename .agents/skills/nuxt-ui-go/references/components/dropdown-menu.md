@@ -2,7 +2,7 @@
 
 # DropdownMenu
 
-Choose an action from a button’s dropdown menu.
+Open an action menu from a button, with groups, checkboxes, submenus, and filtering.
 
 - Category: Overlays and navigation
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,13 +13,13 @@ Choose an action from a button’s dropdown menu.
 
 ## Usage
 
-Keep an independent MenuState for each trigger and stable, unique item IDs. Pass a button as the anchor; click it or use Up/Down to open. MenuOptions controls size, icons, navigation and filtering. Configure individual submenus through MenuItem.Content.
-
-Default dividers in menus and submenus paint one device pixel; a larger Separator theme Size retains its DIP width.
+Keep a dedicated `MenuState` per trigger and assign every `MenuItem` a stable, unique `ID`. Pass the trigger button as the anchor to `DropdownMenu`—click or press Up/Down to open. Configure submenus via `MenuItem.Content`.
 
 ## Things to know
 
-Menus use non-modal native overlays; outside clicks dismiss and continue to their targets. Loop defaults to false. Shortcut displays keys without registering commands. Filtering uses case-insensitive substring matching and preserves item order; IgnoreFilter leaves results to the application. MenuState.Query stores an unbound root query, with separate drafts per submenu. These actions only update example state.
+- Menus are non-modal overlays: outside clicks close the menu and still reach the clicked target.
+- `Shortcut` displays key labels without registering bindings; `Loading` shows a spinner without disabling the item (use `Disabled` separately).
+- Built-in filtering is case-insensitive and keeps item order; set `IgnoreFilter` to supply your own filtered list.
 
 ## API
 

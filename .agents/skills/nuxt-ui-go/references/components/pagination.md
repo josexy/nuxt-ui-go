@@ -2,7 +2,7 @@
 
 # Pagination
 
-Change data pages and show the current page number.
+Navigate paged datasets with page buttons and customizable controls.
 
 - Category: Overlays and navigation
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,13 @@ Change data pages and show the current page number.
 
 ## Usage
 
-Store the one-based page in a `*int`. PageSize defaults to 10 and Total is the item count. SiblingCount supports explicit zero. OnChange reports user selection only; clamping after a total change is silent.
+Bind a 1-based `*int` for the current page along with `Total` and `PageSize` (defaults to 10). `SiblingCount` controls neighboring page numbers on each side and accepts `nui.Set(0)`.
 
 ## Things to know
 
-PageSize≤0 uses 10, and Total≤0 retains page 1. Siblings are bounded to 0–10. Ellipses are inert. Root/List share a layout element; Item continues styling every button for compatibility, with First, Previous, Next and Last providing more specific control styles.
+- `PageSize <= 0` defaults to 10, `Total <= 0` stays on page 1, and siblings clamp to 0–10; ellipses are non-interactive.
+- `OnChange` fires only on user selection; clamping after `Total` changes is silent.
+- Custom control icons are not automatically mirrored in RTL.
 
 ## API
 

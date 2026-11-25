@@ -2,7 +2,7 @@
 
 # Theme (`nui.Light`)
 
-Set shared colors, sizes and component styles.
+Manage shared colors, sizes, and component defaults.
 
 - Category: Themes and basic components
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -12,11 +12,12 @@ Set shared colors, sizes and component styles.
 
 ## Usage
 
-`Theme` holds colors, typography, spacing and component defaults. Use `WithComponent` to set defaults for a component type, Options to override them on one instance, and `UI` to customize individual parts.
+`Theme` stores colors, typography, spacing, and component defaults. Use `WithComponent` to set defaults for a component type, override them on individual instances with Options, and style specific parts with `UI`.
 
 ## Things to know
 
-Apply `WithBlackPrimary()` to both themes for black in light mode and white in dark mode, including high contrast. ComponentTheme supplies Color, Size, Variant and UI defaults; set other parameters through component Options. The 4.5:1 contrast check for default Solid text covers high-contrast mode. The normal light primary with white text is approximately 2.22:1.
+- Apply `WithBlackPrimary()` to both light and dark themes for a black primary in light mode and white in dark mode.
+- `ComponentTheme` sets defaults for `Color`, `Size`, `Variant`, and `UI`; configure other options on each component.
 
 ## API
 

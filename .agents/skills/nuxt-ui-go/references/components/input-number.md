@@ -2,7 +2,7 @@
 
 # InputNumber
 
-Enter a number or adjust it by a fixed increment.
+Type a number or step it with increment/decrement buttons and keys.
 
 - Category: Forms and data
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,13 @@ Enter a number or adjust it by a fixed increment.
 
 ## Usage
 
-Optional[float64] distinguishes empty from zero; NumberState retains incomplete text. This example explicitly bounds values to 0–100; the library has no default bounds. Valid edits update immediately, while Enter snaps or restores the last valid value.
+Use `Optional[float64]` to distinguish empty from `0`, and `NumberState` to hold unfinished text. Valid edits update the model immediately; `Enter` snaps to `Step` or restores the last valid value (no default bounds; this demo uses 0–100).
 
 ## Things to know
 
-StepSnapping and FocusOnChange default to true; wheel changes are enabled. AllowInvalid permits finite out-of-range numbers, not NaN, Infinity or invalid text; validate business rules in the application. Input uses ASCII decimal or scientific notation without locale, currency or Intl formatting. Native blur retains drafts and controls remain Tab stops, differing from the web commit timing and focus structure.
+- `StepSnapping`, `FocusOnChange`, and mouse wheel stepping are on by default; hold step buttons to repeat.
+- `AllowInvalid` permits finite out-of-range numbers while still rejecting invalid text, `NaN`, and `Inf`.
+- Parses ASCII decimal and scientific notation only (no currency or locale formatting); blur retains drafts.
 
 ## API
 

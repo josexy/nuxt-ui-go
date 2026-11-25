@@ -2,7 +2,7 @@
 
 # Accordion
 
-Organize content into several collapsible sections.
+Organize multiple collapsible sections in single- or multi-open mode.
 
 - Category: Overlays and navigation
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,11 +13,13 @@ Organize content into several collapsible sections.
 
 ## Usage
 
-Use stable, unique item IDs and store open IDs in a `*[]string`. Multiple defaults to false. Collapsible defaults to true; setting it to false in single mode prevents closing the current item but still permits selecting another. Disabled affects headings; body controls keep their own disabled settings.
+Give each section a unique `ID` and store open IDs in a `*[]string`. Single-open mode is the default (`Multiple: false`); set `Collapsible: false` to keep one section open at all times.
 
 ## Things to know
 
-Up/Down, Home and End move between enabled headings. An item’s TrailingIcon overrides the component setting, and UI styles only that item. KeepMounted still calls hidden content builders. Closing bodies are inert, and reduced motion switches immediately.
+- Use Up/Down, `Home`, and `End` to move between enabled headings.
+- `Disabled` affects headings only; per-item `TrailingIcon` and `UI` override component defaults.
+- `KeepMounted: true` continues building hidden bodies; reduced motion switches immediately.
 
 ## API
 

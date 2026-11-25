@@ -2,7 +2,7 @@
 
 # Splitter
 
-Resize two panels by dragging their divider.
+Resize two adjacent panes by dragging their divider or using the keyboard.
 
 - Category: Advanced interaction and layout
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,13 +13,13 @@ Resize two panels by dragging their divider.
 
 ## Usage
 
-Splitter binds the first pane size as float32 in DIP, or a percentage with Percent=true. Orientation or Vertical selects the axis. Min, Max and explicit KeyboardResizeBy use the bound unit; the unset keyboard step moves ten DIPs.
-
-The visible 1 DIP stroke rounds to whole device pixels; the 8 DIP drag target is unchanged.
+`Splitter` binds the first pane's size as `*float32` in DIP, or as a 0–100 percentage when `Percent: true`. `Min`, `Max`, and `KeyboardResizeBy` share that unit (unset keyboard step defaults to 10 DIP).
 
 ## Things to know
 
-Disabled locks only the divider. Two panels and nested splitters are supported; coordinated multi-panel layouts, collapse/docking and auto-save are not provided. Value constraints apply to the model; panes retain the native 40-DIP minimum and shrink in very small layouts. Only the one-DIP line occupies layout space. An eight-DIP hit area overlaps the pane edges without separating them. SeparatorSlot and Indicator style the hit area and line.
+- `Disabled` locks only the divider. Supports two panes and nested splitters, without coordinated multi-pane groups, collapsing/docking, or auto-persistence.
+- Panes keep a 40 DIP minimum. Only the 1 DIP line occupies layout space; the 8 DIP drag target overlaps pane edges.
+- Style the hit area via `UI[SeparatorSlot]` and the visible line via `UI[Indicator]`.
 
 ## API
 

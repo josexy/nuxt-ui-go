@@ -2,7 +2,7 @@
 
 # App
 
-Apply a window theme and share it with its components.
+Configure the window theme and pass it to components.
 
 - Category: Themes and basic components
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -12,11 +12,13 @@ Apply a window theme and share it with its components.
 
 ## Usage
 
-Call `nui.App(c, config)` at the start of the view and pass its theme to buttons, cards and other components. Initialize `config` when creating the window to keep appearance and palette choices. The complete program includes window and language setup.
+Call `nui.App(c, config)` at the start of your view and pass the returned theme to buttons, cards, and other components. Initialize `config` when creating the window to keep appearance and palette settings. See the complete program for window and language setup.
 
 ## Things to know
 
-App configures the current window theme. Create the window with `mygo.NewWindow`. Set the application language with `mygo.App.SetLocale`; AppConfig does not provide a per-window locale. `AppConfig.DisableAnimations` turns off all nui component animation in both the light and dark themes; the system's reduced-motion preference stops only movement, scaling and rotation, while fades, color transitions and loading indicators keep playing.
+- `App` configures only the current window's theme; create windows with `mygo.NewWindow`.
+- Set the app language globally with `mygo.App.SetLocale`; `AppConfig` has no per-window locale option.
+- `AppConfig.DisableAnimations` turns off all component animation in both light and dark themes. System reduced motion only disables movement, scaling, and rotation while keeping fades, color transitions, and spinners.
 
 ## API
 

@@ -2,7 +2,7 @@
 
 # Tree
 
-Expand hierarchical data and select its nodes.
+Display hierarchical tree data with expansion, lazy loading, and linked selection.
 
 - Category: Forms and data
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
@@ -13,13 +13,13 @@ Expand hierarchical data and select its nodes.
 
 ## Usage
 
-SetNodes indexes nodes by stable, unique IDs. Selection stores selection, Outline.Open stores expansion, and Active is the keyboard highlight. Call SetNodes only when data changes. OnSelect/OnToggle can cancel, while OnChange/OnExpandedChange report actual selection and expansion changes.
-
-Indent guides round Indicator.BorderWidth from DIPs to whole device pixels; an explicit zero hides them.
+Call `SetNodes` only when data changes, assigning each node a stable, unique `ID`. `Selection` holds selected IDs, `Outline.Open` holds expanded IDs, and `Active` tracks keyboard highlight. By default, clicking selects and toggles expansion, while `Enter`/`Space` selects and Left/Right expand/collapse; `OnSelect`/`OnToggle` can cancel via `PreventDefault`.
 
 ## Things to know
 
-Linkage covers loaded, enabled nodes, stops at disabled nodes, and does not select children loaded later. Mixed state applies only in multiple mode: BubbleSelect checks mixed descendants; PropagateSelect alone also requires a selected parent. Nested changes guides, backgrounds and hit areas; both modes use native virtualization. Leading/trailing builders replace default icons and should contain display content only; rows and the keyboard retain interaction. Empty branches retain expansion state without fallback folder/chevron icons. Tree builds its own index of visible rows and uses only Outline.Open and Outline.List; setting Outline.Generation has no effect.
+- Parent-child selection applies to loaded, enabled nodes, stops at disabled nodes, and does not auto-select children loaded later.
+- Both `Nested` and flat layouts are natively virtualized. Keep custom leading/trailing builders display-only; rows and keyboard handle interaction.
+- Loaded empty branches keep expanded state without fallback folder or chevron icons.
 
 ## API
 
