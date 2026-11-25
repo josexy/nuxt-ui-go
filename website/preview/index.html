@@ -78,8 +78,8 @@
         status.style.display = 'grid'
         status.textContent =
           document.documentElement.lang === 'zh-Hans'
-            ? '预览加载失败，请点击上方重试。'
-            : 'The preview failed to load. Use Retry above.'
+            ? '预览加载失败，请重试。'
+            : 'Failed to load preview. Please retry.'
         parent.postMessage({ channel: 'nuxt-ui-go', type: 'fatal', message: String(error) }, origin)
       }
       const go = new Go()

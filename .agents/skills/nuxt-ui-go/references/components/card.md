@@ -2,7 +2,7 @@
 
 # Card
 
-Group a title, description and related content in a card.
+Group a title, description, and related content in a card.
 
 - Category: Themes and basic components
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)

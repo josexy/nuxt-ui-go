@@ -2,7 +2,7 @@
 
 # Toast
 
-Briefly show the result of an action.
+Briefly show an action’s result without interrupting work.
 
 - Category: Overlays and navigation
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)

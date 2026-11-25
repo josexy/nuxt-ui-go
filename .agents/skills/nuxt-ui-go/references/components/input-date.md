@@ -15,10 +15,6 @@ Edit date segments or choose a date from a calendar.
 
 Bind an Optional[Date] and DateInputState for one date, or DateSelection and DateRangeInputState for a range. Incomplete or rejected drafts retain the last accepted value. Use OnValueChange for one date and OnRangeChange for a range; clearing both endpoints sends one range notification.
 
-#### Try the controls
-
-Change the day step and use Up/Down, or enable the calendar. Bounds restrict values to February–March 2024; the 20th can be unavailable. Try the custom separator, avatar, loader position and highlight.
-
 ## Things to know
 
 Read-only fields still allow navigation and copying. ShowCalendar defaults to false and HideCalendar overrides it. Calendar range constraints also apply to segment edits. Calendar.OnChange remains a legacy range notification; for one date it reports calendar actions only. PlaceholderValue seeds empty segments; string Placeholder, Password and MaxLength do not apply. Values are full Gregorian dates without a time or time zone.

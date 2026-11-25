@@ -2,7 +2,7 @@
 
 # SelectMenu
 
-Search and choose items in a popup list.
+Search and choose options in a popup list.
 
 - Category: Forms and data
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)

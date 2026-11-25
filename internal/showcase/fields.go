@@ -150,27 +150,27 @@ func fieldSchemas(t reflect.Type) []ValueField {
 			case "MaximumDays", "FixedDate", "AllowNonContiguousRanges", "IsDateHighlightable":
 				editor.When = &FieldCondition{Field: "Range", Value: "true", Label: Text{ZH: "仅范围选择", EN: "Range selection only"}}
 			case "ViewControlOptions":
-				editor.Hint = &Text{ZH: "仅 ViewControl 启用时显示", EN: "Shown while ViewControl is enabled"}
+				editor.Hint = &Text{ZH: "开启 ViewControl 时显示", EN: "Shown when ViewControl is enabled"}
 			case "YearsPerPage", "IsYearDisabled", "IsYearUnavailable":
-				editor.Hint = &Text{ZH: "用于年导航视图", EN: "Used by the year navigation view"}
+				editor.Hint = &Text{ZH: "用于年份视图", EN: "Used in year view"}
 			case "IsMonthDisabled", "IsMonthUnavailable":
-				editor.Hint = &Text{ZH: "用于月导航视图", EN: "Used by the month navigation view"}
+				editor.Hint = &Text{ZH: "用于月份视图", EN: "Used in month view"}
 			}
 		}
 		if t == reflect.TypeFor[nui.TextareaOptions]() {
 			switch field.Name {
 			case "Password":
-				editor.Hint = &Text{ZH: "多行输入不适用", EN: "Not used by multiline input"}
+				editor.Hint = &Text{ZH: "多行输入不支持", EN: "Not used in multiline input"}
 			case "OnSubmit":
-				editor.Hint = &Text{ZH: "Enter 用于换行", EN: "Enter inserts a line"}
+				editor.Hint = &Text{ZH: "Enter 键用于换行", EN: "Enter inserts a newline"}
 			case "MaxRows":
-				editor.Hint = &Text{ZH: "仅 AutoResize=true 时生效", EN: "Only applies with AutoResize=true"}
+				editor.Hint = &Text{ZH: "开启 AutoResize 时生效", EN: "Requires AutoResize=true"}
 			}
 		}
 		if t == reflect.TypeFor[nui.InputDateOptions]() || t == reflect.TypeFor[nui.InputTimeOptions]() {
 			switch field.Name {
 			case "Placeholder", "Password", "MaxLength":
-				editor.Hint = &Text{ZH: "分段输入不适用", EN: "Not used by segments"}
+				editor.Hint = &Text{ZH: "分段输入不支持", EN: "Not used by segmented input"}
 			case "UI":
 				editor.Slots = []string{"root", "editor", "segment", "leading", "trailing"}
 				if t == reflect.TypeFor[nui.InputDateOptions]() {
@@ -183,20 +183,20 @@ func fieldSchemas(t reflect.Type) []ValueField {
 		if t == reflect.TypeFor[nui.InputDateOptions]() {
 			switch field.Name {
 			case "OnRangeChange", "SeparatorIcon", "BuildSeparator":
-				editor.Hint = &Text{ZH: "仅 InputDateRange 使用", EN: "Used only by InputDateRange"}
+				editor.Hint = &Text{ZH: "仅 InputDateRange 生效", EN: "InputDateRange only"}
 			case "OnValueChange":
-				editor.Hint = &Text{ZH: "仅 InputDate 使用；范围使用 OnRangeChange", EN: "InputDate only; ranges use OnRangeChange"}
+				editor.Hint = &Text{ZH: "仅 InputDate 生效；日期范围请用 OnRangeChange", EN: "InputDate only; use OnRangeChange for ranges"}
 			}
 		}
 		if t == reflect.TypeFor[nui.InputTimeOptions]() && field.Name == "Seconds" {
-			editor.Hint = &Text{ZH: "仅 Granularity 未设置时生效", EN: "Applies only when Granularity is unset"}
+			editor.Hint = &Text{ZH: "未设置 Granularity 时生效", EN: "Applies when Granularity is unset"}
 		}
 		if t == reflect.TypeFor[nui.PopoverOptions]() {
 			switch field.Name {
 			case "Label":
 				editor.Hint = &Text{ZH: "无障碍名称", EN: "Accessible name"}
 			case "OpenDelay", "CloseDelay":
-				editor.When = &FieldCondition{Field: "Mode", Value: "nui.PopoverHover", Label: Text{ZH: "仅悬停", EN: "Hover only"}}
+				editor.When = &FieldCondition{Field: "Mode", Value: "nui.PopoverHover", Label: Text{ZH: "仅悬停模式", EN: "Hover mode only"}}
 			case "UI", "Style":
 				editor.Slots = []string{"panel"}
 			}
@@ -206,7 +206,7 @@ func fieldSchemas(t reflect.Type) []ValueField {
 			case "UI", "Style":
 				editor.Slots = []string{"panel", "label", "trailing"}
 			case "DelayDuration":
-				editor.Hint = &Text{ZH: "编辑器单位为毫秒；0 表示立即显示", EN: "Editor uses milliseconds; 0 shows immediately"}
+				editor.Hint = &Text{ZH: "单位为毫秒，0 表示立即显示", EN: "In milliseconds; 0 shows immediately"}
 			}
 		}
 		if t == reflect.TypeFor[nui.ModalOptions]() || t == reflect.TypeFor[nui.SlideoverOptions]() {
@@ -214,15 +214,15 @@ func fieldSchemas(t reflect.Type) []ValueField {
 			case "UI", "Style":
 				editor.Slots = []string{"backdrop", "panel", "header", "label", "description", "close", "body", "footer"}
 			case "Close", "CloseIcon", "CloseLabel":
-				editor.Hint = &Text{ZH: "仅 CloseButton 未关闭时生效", EN: "Applies while CloseButton is enabled"}
+				editor.Hint = &Text{ZH: "开启 CloseButton 时生效", EN: "Applies when CloseButton is enabled"}
 			case "OnClosePrevent":
-				editor.When = &FieldCondition{Field: "Dismissible", Value: "false", Label: Text{ZH: "仅阻止关闭时", EN: "Blocked dismissal only"}}
+				editor.When = &FieldCondition{Field: "Dismissible", Value: "false", Label: Text{ZH: "仅禁止关闭时", EN: "When dismissal is blocked"}}
 			}
 		}
 		if t == reflect.TypeFor[nui.SlideoverOptions]() {
 			switch field.Name {
 			case "Width", "MaxHeight", "Fullscreen":
-				editor.Hint = &Text{ZH: "继承字段，不参与 Slideover 布局；使用 Side / Extent / Inset", EN: "Inherited but unused by Slideover layout; use Side / Extent / Inset"}
+				editor.Hint = &Text{ZH: "不生效；Slideover 请用 Side / Extent / Inset 控制布局", EN: "Unused by Slideover; use Side / Extent / Inset instead"}
 			}
 		}
 		if t == reflect.TypeFor[nui.ToastOptions]() {
@@ -230,11 +230,11 @@ func fieldSchemas(t reflect.Type) []ValueField {
 			case "UI":
 				editor.Slots = []string{"panel", "body", "leading", "label", "description", "actions", "close"}
 			case "Avatar":
-				editor.Hint = &Text{ZH: "优先于 Icon", EN: "Takes precedence over Icon"}
+				editor.Hint = &Text{ZH: "优先于 Icon 显示", EN: "Overrides Icon"}
 			case "CloseOptions", "CloseIcon":
-				editor.Hint = &Text{ZH: "仅 Close 未关闭时使用", EN: "Used while Close is enabled"}
+				editor.Hint = &Text{ZH: "开启 Close 时生效", EN: "Applies when Close is enabled"}
 			case "ProgressOptions":
-				editor.Hint = &Text{ZH: "仅 Progress 开启且通知不是常驻时使用", EN: "Used for enabled progress on timed notices"}
+				editor.Hint = &Text{ZH: "开启 Progress 且自动关闭时生效", EN: "Applies when Progress is on with auto-dismiss"}
 			}
 		}
 		if t == reflect.TypeFor[nui.ToastViewportOptions]() {
@@ -242,7 +242,7 @@ func fieldSchemas(t reflect.Type) []ValueField {
 			case "UI", "Style":
 				editor.Slots = []string{"root"}
 			case "Limit":
-				editor.Hint = &Text{ZH: "MyGo 最多提供 3 条可见通知", EN: "MyGo supplies at most three visible notices"}
+				editor.Hint = &Text{ZH: "MyGo 最多同时显示 3 条通知", EN: "MyGo displays at most 3 notices at once"}
 			}
 		}
 		if t == reflect.TypeFor[nui.ToastProgressOptions]() && field.Name == "UI" {
@@ -253,7 +253,7 @@ func fieldSchemas(t reflect.Type) []ValueField {
 			case "UI", "Style":
 				editor.Slots = []string{"panel", "header", "item", "body", "leading", "label", "description", "trailing", "indicator", "separator", "editor", "empty"}
 			case "FilterFields", "IgnoreFilter", "FilterInput", "SearchTerm", "OnSearchTermChange":
-				editor.Hint = &Text{ZH: "仅 Filter=true 时生效", EN: "Only applies with Filter=true"}
+				editor.Hint = &Text{ZH: "开启 Filter 时生效", EN: "Requires Filter=true"}
 			}
 		}
 		if t == reflect.TypeFor[nui.MenuItem]() && field.Name == "UI" {
@@ -362,22 +362,22 @@ func fieldSchemas(t reflect.Type) []ValueField {
 		if t == reflect.TypeFor[nui.SelectMenuOptions]() {
 			switch field.Name {
 			case "Filter":
-				editor.Hint = &Text{ZH: "不适用；用 SearchInput 控制弹层搜索框", EN: "Not used; SearchInput controls the popup search field"}
+				editor.Hint = &Text{ZH: "不生效；请用 SearchInput 控制搜索框", EN: "Unused; use SearchInput for the popup search box"}
 			case "FilterInput", "FocusSearch", "SearchPlaceholder":
-				editor.Hint = &Text{ZH: "SearchInput 开启时生效", EN: "Used when SearchInput is enabled"}
+				editor.Hint = &Text{ZH: "开启 SearchInput 时生效", EN: "Applies when SearchInput is enabled"}
 			case "ClearIcon", "ClearOptions", "ResetModelValueOnClear", "OnClear":
-				editor.Hint = &Text{ZH: "Clearable 开启且当前有选择时生效", EN: "Used when Clearable is enabled and a selection exists"}
+				editor.Hint = &Text{ZH: "开启 Clearable 且有选中项时生效", EN: "Applies when Clearable is on with a selection"}
 			case "Orientation", "ItemWidth", "SelectionBehavior":
-				editor.Hint = &Text{ZH: "原生列表扩展；单选时使用替换选择", EN: "Native list extension; single mode uses replacement selection"}
+				editor.Hint = &Text{ZH: "原生扩展；单选模式下直接替换选中项", EN: "Native extension; single-select replaces selection"}
 			}
 		}
 		if t == reflect.TypeFor[nui.ListboxOptions]() && field.Name == "FilterInput" {
-			editor.Hint = &Text{ZH: "Filter 开启时生效；不会自动显示筛选框", EN: "Used when Filter is enabled; does not show the field by itself"}
+			editor.Hint = &Text{ZH: "需同时开启 Filter，单独设置不会显示筛选框", EN: "Requires Filter=true; does not show the box on its own"}
 		}
 		if t == reflect.TypeFor[nui.DrawerOptions]() {
 			switch field.Name {
 			case "Width", "MaxHeight", "Fullscreen":
-				editor.Hint = &Text{ZH: "不适用；宽度由窗口决定，高度由 SnapPoints / Snap 控制", EN: "Unused; window width and SnapPoints/Snap determine the dimensions"}
+				editor.Hint = &Text{ZH: "不生效；宽度随窗口，高度由 SnapPoints / Snap 控制", EN: "Unused; width fits window, height uses SnapPoints / Snap"}
 			}
 		}
 		if t == reflect.TypeFor[nui.ChartOptions]() {
@@ -387,11 +387,11 @@ func fieldSchemas(t reflect.Type) []ValueField {
 			case "Points":
 				editor.When = &FieldCondition{Field: "Kind", Value: "nui.ChartLine", Label: Text{ZH: "仅折线图", EN: "Line only"}}
 			case "Stack":
-				editor.Hint = &Text{ZH: "仅柱状图或面积图生效", EN: "Applies to bars and areas only"}
+				editor.Hint = &Text{ZH: "仅柱状图和面积图生效", EN: "Bar and area charts only"}
 			case "Curve":
-				editor.Hint = &Text{ZH: "仅折线图或面积图生效", EN: "Applies to lines and areas only"}
+				editor.Hint = &Text{ZH: "仅折线图和面积图生效", EN: "Line and area charts only"}
 			case "TooltipOptions":
-				editor.Hint = &Text{ZH: "Tooltip 开启时生效；原生文本提示", EN: "Used when Tooltip is enabled; native text tooltip"}
+				editor.Hint = &Text{ZH: "开启 Tooltip 时生效（原生文本提示）", EN: "Applies when Tooltip is enabled (native text)"}
 			}
 		}
 		if t == reflect.TypeFor[nui.CarouselOptions]() {
@@ -399,19 +399,19 @@ func fieldSchemas(t reflect.Type) []ValueField {
 			case "Prev", "Next", "PrevIcon", "NextIcon":
 				editor.When = &FieldCondition{Field: "Arrows", Value: "true", Label: Text{ZH: "显示箭头时生效", EN: "When arrows are enabled"}}
 			case "Active":
-				editor.Hint = &Text{ZH: "仅门控自动播放，不禁用手动操作", EN: "Gates autoplay only; manual navigation remains enabled"}
+				editor.Hint = &Text{ZH: "仅控制自动播放，不影响手动切换", EN: "Controls autoplay only; manual controls stay active"}
 			case "StopOnInteraction":
-				editor.Hint = &Text{ZH: "Autoplay 为正时生效，默认 true", EN: "Used with positive Autoplay; defaults to true"}
+				editor.Hint = &Text{ZH: "Autoplay > 0 时生效，默认 true", EN: "Applies when Autoplay > 0; defaults to true"}
 			}
 		}
 		if t == reflect.TypeFor[nui.FileUploadOptions]() {
 			switch field.Name {
 			case "Position":
-				editor.Hint = &Text{ZH: "仅 UploadArea / UploadList 生效；网格和按钮模式保持外置列表", EN: "Only applies to UploadArea / UploadList; grid and button modes keep files outside"}
+				editor.Hint = &Text{ZH: "仅 UploadArea / UploadList 生效；网格和按钮模式列表始终在外", EN: "UploadArea / UploadList only; grid and button keep list outside"}
 			case "FileImage":
-				editor.Hint = &Text{ZH: "显示应用提供的 Avatar；组件不读取文件内容生成图片", EN: "Shows an application-provided Avatar; does not read files to create images"}
+				editor.Hint = &Text{ZH: "显示自定义 Avatar，组件不会读取文件内容生成缩略图", EN: "Shows a custom Avatar; does not read files for thumbnails"}
 			case "Dialog":
-				editor.Hint = &Text{ZH: "只控制原生选择框；Multiple 不限制队列总数，使用 Rules.MaxFiles 限制数量", EN: "Native picker only; Multiple does not limit the queue, use Rules.MaxFiles for count limits"}
+				editor.Hint = &Text{ZH: "仅控制文件选择框；队列上限请用 Rules.MaxFiles", EN: "Native picker only; use Rules.MaxFiles to limit total files"}
 			}
 		}
 		if t == reflect.TypeFor[nui.NavigationOptions]() {
@@ -419,27 +419,27 @@ func fieldSchemas(t reflect.Type) []ValueField {
 			case "Compact", "Single", "Collapsible", "OnExpandedChange":
 				editor.When = &FieldCondition{Field: "Vertical", Value: "true", Label: Text{ZH: "仅纵向导航", EN: "Vertical navigation only"}}
 			case "Popover", "PopoverOptions", "PopupPlacement":
-				editor.Hint = &Text{ZH: "用于紧凑纵向导航的侧向弹层", EN: "Used by collapsed vertical navigation popovers"}
+				editor.Hint = &Text{ZH: "用于收起后的纵向导航弹层", EN: "For collapsed vertical navigation popovers"}
 			case "Tooltip", "TooltipOptions":
-				editor.Hint = &Text{ZH: "全局开关用于紧凑纵向导航；横向提示由单项 Tooltip 启用", EN: "Global toggle applies to collapsed vertical navigation; horizontal tooltips use item Tooltip"}
+				editor.Hint = &Text{ZH: "收起后的纵向导航用此开关；横向提示请在单项设置 Tooltip", EN: "Global switch for collapsed vertical mode; set item Tooltip for horizontal"}
 			}
 		}
 		if t == reflect.TypeFor[nui.NavigationItem]() && !slices.Contains([]string{"ID", "Label", "Icon", "Disabled", "Active", "OnSelect", "UI", "Style"}, field.Name) {
-			editor.Hint = &Text{ZH: "NavigationMenu 配置；FooterColumns 当前不使用此字段", EN: "NavigationMenu configuration; currently unused by FooterColumns"}
+			editor.Hint = &Text{ZH: "仅用于 NavigationMenu，FooterColumns 不使用", EN: "NavigationMenu only; unused by FooterColumns"}
 		}
 		if t == reflect.TypeFor[nui.NavigationItem]() && (field.Name == "UI" || field.Name == "Style") {
-			editor.Hint = &Text{ZH: "FooterColumns 使用 Item、ItemLeadingSlot、ItemLabelSlot；其他部件用于 NavigationMenu", EN: "FooterColumns uses Item, ItemLeadingSlot and ItemLabelSlot; other parts belong to NavigationMenu"}
+			editor.Hint = &Text{ZH: "FooterColumns 仅用 Item、ItemLeadingSlot、ItemLabelSlot，其余用于 NavigationMenu", EN: "FooterColumns uses Item, ItemLeadingSlot, and ItemLabelSlot; others are for NavigationMenu"}
 		}
 		if t == reflect.TypeFor[nui.InputMenuOptions]() {
 			switch field.Name {
 			case "Multiple", "SelectedIcon", "ResetSearchTermOnSelect", "ResetModelValueOnClear":
 				editor.When = &FieldCondition{Field: "Mode", Value: "nui.InputMenuCombobox", Label: Text{ZH: "仅组合框模式", EN: "Combobox only"}}
 			case "DeleteIcon", "OnValuesChange":
-				editor.Hint = &Text{ZH: "仅多选组合框", EN: "Multiple combobox only"}
+				editor.Hint = &Text{ZH: "仅多选组合框生效", EN: "Multi-select combobox only"}
 			case "AllowCustom":
-				editor.Hint = &Text{ZH: "Autocomplete 始终允许自由文本提交", EN: "Autocomplete always allows free-text submission"}
+				editor.Hint = &Text{ZH: "Autocomplete 模式默认允许提交自由文本", EN: "Autocomplete always allows free text"}
 			case "OnSubmit":
-				editor.Hint = &Text{ZH: "仅 AllowCustom 或 Autocomplete，且未激活候选时调用", EN: "AllowCustom or Autocomplete only, when no suggestion is activated"}
+				editor.Hint = &Text{ZH: "仅开启 AllowCustom 或 Autocomplete 且未选中候选项时触发", EN: "Fires in AllowCustom or Autocomplete when no suggestion is active"}
 			}
 		}
 		fields = append(fields, editor)
@@ -459,7 +459,7 @@ func componentFields(t reflect.Type, component string) []ValueField {
 			}
 			switch fields[i].Name {
 			case "Disabled":
-				fields[i].Description = Text{ZH: "禁用上下文菜单并关闭当前面板；保留锚点自身的点击、输入和焦点能力。", EN: "Disables and closes the context menu while preserving the target’s own click, input and focus behavior."}
+				fields[i].Description = Text{ZH: "禁用并关闭右键菜单，保留目标元素自身的点击、输入和焦点。", EN: "Disables and closes the context menu while keeping the target's click, input, and focus."}
 			case "Placement", "Offset":
 				fields[i].Hint = &Text{ZH: "原生扩展；根菜单默认 RightStart、2 DIP", EN: "Native extension; root defaults to RightStart and 2 DIP"}
 			}

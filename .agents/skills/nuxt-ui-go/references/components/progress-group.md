@@ -2,7 +2,7 @@
 
 # ProgressGroup
 
-Show several amounts within one progress track.
+Show multiple progress values on a single track.
 
 - Category: Themes and basic components
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)

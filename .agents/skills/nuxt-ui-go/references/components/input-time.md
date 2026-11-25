@@ -15,10 +15,6 @@ Edit hours, minutes and seconds in 12- or 24-hour format.
 
 Bind Optional[ClockTime] and TimeInputState. Unset TwelveHour follows the regional hour cycle; explicit false selects 24-hour time. Granularity chooses hours, minutes or seconds; when unset, Seconds determines the precision.
 
-#### Try the controls
-
-Minutes cycle by the configured step. With StepSnapping, leaving an edited segment rounds it to the nearest step. Changing precision preserves hidden units and moves focus to a visible segment without notifying a value change. The optional valid interval is 09:00–17:30.
-
 ## Things to know
 
 Out-of-range or unavailable edits remain drafts without replacing the accepted value. Min/Max are inclusive and compare the full time, including hidden units. Hour-only input uses HH or hh AM/PM; other precisions use HH:MM[:SS]. The model represents one time of day; compose two InputTime fields with application validation for a range. Dates, milliseconds and time zones are not included.
