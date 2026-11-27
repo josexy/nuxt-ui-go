@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	nui "github.com/josexy/nuxt-ui-go/ui"
@@ -64,6 +65,157 @@ func TestListboxCacheStillRejectsChangedDuplicateIDs(t *testing.T) {
 	defer func() {
 		if recover() == nil {
 			t.Fatal("in-place duplicate ID was not rejected")
+		}
+	}()
+	tt.Frame()
+}
+
+// SetItems binds a snapshot the list shows in place of the items passed to
+// it: edits to the slice wait for the next SetItems, and the list chooses,
+// groups and filters as with items passed in each build.
+func TestListboxSetItems(t *testing.T) {
+	items := []nui.ListboxItem{{ID: "a", Label: "Alpha"}, {ID: "b", Label: "Beta"}, {ID: "c", Label: "Gamma", Group: "More"}}
+	var state nui.ListboxState
+	state.SetItems(items)
+	var selected, reported []string
+	var passed []nui.ListboxItem
+	query := ""
+	tt := ui.NewTester(func(c *ui.Context) {
+		nui.Listbox(c, nui.App(c, nui.AppConfig{}), &selected, &state, passed, nui.ListboxOptions{Label: "Choices", SearchTerm: &query, OnChange: func(ids []string) { reported = ids }}).Width(320)
+	}, 400, 300)
+	if !tt.HasText("Alpha") || !tt.HasText("More") || !tt.HasText("Gamma") {
+		t.Fatalf("bound items: %v", tt.Texts())
+	}
+	items[0].Label = "Renamed"
+	tt.Frame()
+	if tt.HasText("Renamed") || !tt.HasText("Alpha") {
+		t.Fatal("an edit to the slice after SetItems showed without SetItems")
+	}
+	state.SetItems(items)
+	tt.Frame()
+	if !tt.HasText("Renamed") || tt.HasText("Alpha") {
+		t.Fatalf("SetItems again did not show the edit: %v", tt.Texts())
+	}
+	click(t, tt, "Beta")
+	if !slices.Equal(selected, []string{"b"}) || !slices.Equal(reported, []string{"b"}) {
+		t.Fatalf("choosing a bound item: selected %v, reported %v", selected, reported)
+	}
+	tt.Key(0, ui.KeyDown)
+	if state.Active != "c" {
+		t.Fatalf("Down from Beta highlighted %q", state.Active)
+	}
+	query = "gam"
+	tt.Frame()
+	if tt.HasText("Beta") || !tt.HasText("Gamma") {
+		t.Fatalf("filtering bound items: %v", tt.Texts())
+	}
+	query = ""
+	// A bad snapshot panics as SetItems takes it, and the list keeps its items.
+	func() {
+		defer func() {
+			if recover() == nil {
+				t.Fatal("SetItems took a duplicate ID")
+			}
+		}()
+		state.SetItems([]nui.ListboxItem{{ID: "x", Label: "Xi"}, {ID: "x", Label: "Xu"}})
+	}()
+	tt.Frame()
+	if !tt.HasText("Renamed") || tt.HasText("Xi") {
+		t.Fatalf("a rejected snapshot changed the list: %v", tt.Texts())
+	}
+	state.ReleaseItems()
+	passed = []nui.ListboxItem{{ID: "z", Label: "Zeta"}}
+	tt.Frame()
+	if !tt.HasText("Zeta") || tt.HasText("Renamed") {
+		t.Fatalf("released, the list shows %v", tt.Texts())
+	}
+	// Items passed while the state holds its own are a mistake.
+	state.SetItems(items)
+	defer func() {
+		if recover() == nil {
+			t.Fatal("items passed while bound were taken")
+		}
+	}()
+	tt.Frame()
+}
+
+func TestSelectMenuRejectsSetItemsOnItsList(t *testing.T) {
+	var state nui.SelectMenuState
+	state.Listbox.SetItems([]nui.ListboxItem{{ID: "a", Label: "Alpha"}})
+	var values []string
+	tt := ui.NewTester(func(c *ui.Context) {
+		nui.SelectMenu(c, nui.App(c, nui.AppConfig{}), &values, &state, []nui.ListboxItem{{ID: "b", Label: "Beta"}}, nui.SelectMenuOptions{Label: "Menu"}).Width(300)
+	}, 400, 350)
+	defer func() {
+		if recover() == nil {
+			t.Fatal("SelectMenu showed the items SetItems gave its list")
+		}
+	}()
+	click(t, tt, "Menu")
+}
+
+// SetItems gives a SelectMenu its items as it gives a Listbox its own: the
+// trigger's label, the popup's rows and the filter read the snapshot, and
+// edits to the slice wait for the next SetItems.
+func TestSelectMenuSetItems(t *testing.T) {
+	items := []nui.ListboxItem{{ID: "a", Label: "Alpha"}, {ID: "b", Label: "Beta"}, {ID: "c", Label: "Gamma"}}
+	values := []string{"a"}
+	var state nui.SelectMenuState
+	state.SetItems(items)
+	var passed []nui.ListboxItem
+	tt := ui.NewTester(func(c *ui.Context) {
+		nui.SelectMenu(c, nui.App(c, nui.AppConfig{DisableAnimations: true}), &values, &state, passed, nui.SelectMenuOptions{Label: "Menu"}).Width(300)
+	}, 400, 350)
+	if !tt.HasText("Alpha") {
+		t.Fatalf("the trigger does not show the bound item's label: %v", tt.Texts())
+	}
+	items[0].Label = "Renamed"
+	tt.Frame()
+	if tt.HasText("Renamed") || !tt.HasText("Alpha") {
+		t.Fatal("an edit to the slice after SetItems showed without SetItems")
+	}
+	state.SetItems(items)
+	tt.Frame()
+	if !tt.HasText("Renamed") || tt.HasText("Alpha") {
+		t.Fatalf("SetItems again did not show the edit: %v", tt.Texts())
+	}
+	click(t, tt, "Menu")
+	if !tt.HasText("Beta") || !tt.HasText("Gamma") {
+		t.Fatalf("the popup does not show the bound items: %v", tt.Texts())
+	}
+	tt.Type("gam")
+	if tt.HasText("Beta") || !tt.HasText("Gamma") {
+		t.Fatalf("filtering bound items: %v", tt.Texts())
+	}
+	click(t, tt, "Gamma")
+	if !slices.Equal(values, []string{"c"}) || state.Open {
+		t.Fatalf("choosing a bound item: values %v, open %v", values, state.Open)
+	}
+	// A chosen item missing from new items keeps its last label.
+	state.SetItems(items[:2])
+	tt.Frame()
+	if !tt.HasText("Gamma") {
+		t.Fatalf("the chosen item lost its label: %v", tt.Texts())
+	}
+	func() {
+		defer func() {
+			if recover() == nil {
+				t.Fatal("SetItems took a duplicate ID")
+			}
+		}()
+		state.SetItems([]nui.ListboxItem{{ID: "x", Label: "Xi"}, {ID: "x", Label: "Xu"}})
+	}()
+	state.ReleaseItems()
+	passed, values = []nui.ListboxItem{{ID: "z", Label: "Zeta"}}, []string{"z"}
+	tt.Frame()
+	if !tt.HasText("Zeta") {
+		t.Fatalf("released, the menu shows %v", tt.Texts())
+	}
+	// Items passed while the state holds its own are a mistake.
+	state.SetItems(items)
+	defer func() {
+		if recover() == nil {
+			t.Fatal("items passed while bound were taken")
 		}
 	}()
 	tt.Frame()
@@ -284,7 +436,7 @@ func TestTreeLazyCompletionAfterCollapseBeforeFrame(t *testing.T) {
 }
 
 func BenchmarkDataComponents(b *testing.B) {
-	for _, kind := range []string{"Listbox", "HorizontalListbox", "SelectMenuClosed", "SelectOpen", "InputMenuOpen", "TreeCollapsed", "TreeExpanded", "TreeFlat"} {
+	for _, kind := range []string{"Listbox", "ListboxSetItems", "HorizontalListbox", "SelectMenuClosed", "SelectMenuOpen", "SelectMenuSetItemsOpen", "SelectOpen", "InputMenuOpen", "TreeCollapsed", "TreeExpanded", "TreeFlat"} {
 		for _, count := range []int{100, 10000, 100000} {
 			b.Run(fmt.Sprintf("%s/%d", kind, count), func(b *testing.B) {
 				items := make([]nui.ListboxItem, count)
@@ -305,6 +457,10 @@ func BenchmarkDataComponents(b *testing.B) {
 				var selected []string
 				single := "0"
 				switch kind {
+				case "ListboxSetItems":
+					list.SetItems(items)
+				case "SelectMenuSetItemsOpen":
+					menu.SetItems(items)
 				case "TreeCollapsed", "TreeExpanded":
 					tree.SetNodes([]nui.TreeNode{{ID: "root", Label: "Root", Children: nodes}})
 					if kind == "TreeExpanded" {
@@ -322,8 +478,14 @@ func BenchmarkDataComponents(b *testing.B) {
 							o.Orientation = nui.Set(nui.Horizontal)
 						}
 						nui.Listbox(c, th, &selected, &list, items, o).Width(640)
+					case "ListboxSetItems":
+						nui.Listbox(c, th, &selected, &list, nil, nui.ListboxOptions{Label: "Choices", Height: 320}).Width(640)
 					case "SelectMenuClosed":
 						nui.SelectMenu(c, th, &values, &menu, items, nui.SelectMenuOptions{Label: "Choices", Multiple: true}).Width(640)
+					case "SelectMenuOpen":
+						nui.SelectMenu(c, th, &selected, &menu, items, nui.SelectMenuOptions{Label: "Choices"}).Width(640)
+					case "SelectMenuSetItemsOpen":
+						nui.SelectMenu(c, th, &selected, &menu, nil, nui.SelectMenuOptions{Label: "Choices"}).Width(640)
 					case "SelectOpen":
 						nui.Select(c, th, &single, options, nui.SelectOptions{Label: "Choices"}).Width(640)
 					case "InputMenuOpen":
@@ -333,11 +495,15 @@ func BenchmarkDataComponents(b *testing.B) {
 					}
 				}, 700, 400)
 				tt.SetPreferences(ui.Preferences{ReduceMotion: true})
-				if kind == "SelectOpen" || kind == "InputMenuOpen" {
+				if kind == "SelectOpen" || kind == "InputMenuOpen" || kind == "SelectMenuOpen" || kind == "SelectMenuSetItemsOpen" {
 					tt.Key(0, ui.KeyTab)
 					tt.Key(0, ui.KeyDown)
 				}
 				tt.Move(690, 390)
+				// Let the popups' entrance fade end (it goes on under reduced
+				// motion): with the clock standing still, each Frame would
+				// otherwise build the 20 frames the Tester settles at most.
+				tt.Advance(time.Second)
 				tt.Frame()
 				b.ReportAllocs()
 				b.ResetTimer()

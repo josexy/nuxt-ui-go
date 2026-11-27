@@ -18,8 +18,18 @@ type listboxItems struct {
 	revision uint64
 }
 
-func (s *listboxItems) update(items []ListboxItem) bool {
+// update takes a snapshot of items when they differ from the last one. An
+// owned slice is a snapshot already, replaced and never edited in place (the
+// items of a SelectMenu, a filter's result, a CommandPalette's rows): it is
+// kept as it is, and the same slice in the next build needs no comparing.
+func (s *listboxItems) update(items []ListboxItem, owned bool) bool {
+	if owned && len(items) == len(s.items) && (len(items) == 0 || &items[0] == &s.items[0]) {
+		return false
+	}
 	if slices.Equal(s.items, items) {
+		if owned {
+			s.items = items // the next build passes this slice again
+		}
 		return false
 	}
 	index := make(map[string]int, len(items))
@@ -32,7 +42,10 @@ func (s *listboxItems) update(items []ListboxItem) bool {
 		}
 		index[item.ID] = i
 	}
-	s.items, s.index = slices.Clone(items), index
+	if !owned {
+		items = slices.Clone(items)
+	}
+	s.items, s.index = items, index
 	s.revision++
 	return true
 }
@@ -58,8 +71,8 @@ type listboxData struct {
 	positions []int
 }
 
-func (s *listboxData) update(items []ListboxItem) {
-	if !s.listboxItems.update(items) {
+func (s *listboxData) update(items []ListboxItem, owned bool) {
+	if !s.listboxItems.update(items, owned) {
 		return
 	}
 	s.rows = make([]listboxRow, 0, len(items))

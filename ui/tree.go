@@ -67,11 +67,15 @@ type TreeState struct {
 	version   uint64
 	RowBuilds int
 	// Active is the keyboard highlight, independent of selection.
-	Active         string
-	rows           []treeRow
-	positions      map[string]int
-	open           map[string]bool
-	dirty          bool
+	Active    string
+	rows      []treeRow
+	positions map[string]int
+	open      map[string]bool
+	dirty     bool
+	// loadsDue tells that a lazy node may have become due to load since the
+	// last look: the open set, the nodes, a retry or a closed view changed.
+	// Without it, every build walked the open set for nodes to load.
+	loadsDue       bool
 	anchor, prefix string
 	typed          time.Time
 	selected       map[string]bool
@@ -144,6 +148,7 @@ func (s *TreeState) Retry(id string) {
 		s.version++
 		n.version = s.version
 		delete(s.loading, id)
+		s.loadsDue = true
 	}
 }
 
@@ -206,6 +211,7 @@ func (s *TreeState) Close() {
 		n.loading = false
 		delete(s.loading, id)
 	}
+	s.loadsDue = true // shown again, the open lazy nodes load anew
 }
 
 func (s *TreeState) expandedPath(id string) bool {
@@ -228,7 +234,10 @@ func (s *TreeState) cancelHiddenLoads() {
 	}
 }
 
-func (s *TreeState) visibleRows() {
+// syncOpen notes a change of Outline.Open since the last build, made through
+// SetExpanded or directly, as dirty. It walks the open set once a build: MyGo
+// keeps a Selection's change stamp to itself, so only comparing tells.
+func (s *TreeState) syncOpen() {
 	changed := s.dirty || len(s.open) != s.Outline.Open.Len()
 	if !changed {
 		for id := range s.Outline.Open.All() {
@@ -238,7 +247,15 @@ func (s *TreeState) visibleRows() {
 			}
 		}
 	}
-	if !changed {
+	if changed {
+		s.dirty, s.loadsDue = true, true
+	}
+}
+
+// visibleRows lists the rows again, and notes the open set they were listed
+// with, once syncOpen or a change of the nodes made them dirty.
+func (s *TreeState) visibleRows() {
+	if !s.dirty {
 		return
 	}
 	s.dirty = false

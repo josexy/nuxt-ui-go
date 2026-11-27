@@ -51,10 +51,30 @@ type optionListState[T comparable] struct {
 	active       Optional[T]
 	descriptions int
 	enabledCount int
+	// revision changes whenever the identities do, so that a list derived
+	// from this one can tell it is current without comparing its rows.
+	revision uint64
 }
 
+// update compares the options with the identities in place, field by field:
+// a build of a select of 100,000 options does no more than that when they
+// did not change, which copying each Option through a function did not.
 func (s *optionListState[T]) update(options []Option[T]) bool {
-	return s.updateRows(len(options), func(i int) Option[T] { return options[i] })
+	if len(options) == len(s.identities) {
+		same := true
+		for i := range options {
+			o, id := &options[i], &s.identities[i]
+			if o.Value != id.value || o.Label != id.label || o.Description != id.description || o.Disabled != id.disabled {
+				same = false
+				break
+			}
+		}
+		if same {
+			return false
+		}
+	}
+	s.rebuild(len(options), func(i int) Option[T] { return options[i] })
+	return true
 }
 
 func (s *optionListState[T]) updateRows(count int, option func(int) Option[T]) bool {
@@ -71,6 +91,12 @@ func (s *optionListState[T]) updateRows(count int, option func(int) Option[T]) b
 	if !changed {
 		return false
 	}
+	s.rebuild(count, option)
+	return true
+}
+
+func (s *optionListState[T]) rebuild(count int, option func(int) Option[T]) {
+	s.revision++
 	s.identities = make([]optionIdentity[T], count)
 	s.index = make(map[T]int, count)
 	s.keys = make([]any, count)
@@ -90,7 +116,6 @@ func (s *optionListState[T]) updateRows(count int, option func(int) Option[T]) b
 			s.enabledCount++
 		}
 	}
-	return true
 }
 
 func (s *optionListState[T]) enabled(value T) (int, bool) {
@@ -158,8 +183,10 @@ func optionList[T comparable](c *ui.Context, t Theme, s *optionListState[T], own
 		if highlighted {
 			owner.ActiveDescendant(item)
 		}
+		// Rows change their highlight at once, as MyGo's list rows do: a
+		// colour fade builds the whole view in each frame it moves, and the
+		// pointer going down a list crosses a row every few frames.
 		optionStyle(item, t, component, decoration, size, highlighted)
-		t.fadeColors(r.Context, item)
 		item.HandleInput(func(ev ui.InputEvent) bool {
 			if highlightOnHover && ev.Kind == ui.InputPointerMove && !o.Disabled && (!s.active.Set || s.active.Value != o.Value) {
 				s.highlight(o.Value, false)

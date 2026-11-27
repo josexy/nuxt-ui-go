@@ -59,6 +59,36 @@ type ListboxState struct {
 	selection       stringSelection
 	source          listboxItems
 	filter          listboxFilter
+	// bound holds the items SetItems took, shown while binding is set.
+	bound   listboxItems
+	binding bool
+}
+
+// SetItems copies items and checks their IDs once, outside rendering, for
+// Listbox to show in place of the items passed to it, which must then be nil.
+// A build then compares no items, however many there are, where items passed
+// in each build are compared with the last ones to see in-place edits.
+//
+// Call it again when the items change: edits to the slice after SetItems do
+// not show. Items equal to the last ones keep the snapshot and the filter's
+// results. A duplicate or empty ID, or an unknown Kind, panics and keeps the
+// items shown before. Call it on the window's UI thread, between builds, and
+// not in every build, where it compares as much as passing the items would.
+// ReleaseItems returns to the items passed in each build.
+//
+// SelectMenu and CommandPalette set the items of their Listbox: do not call
+// SetItems on the ListboxState they hold. SelectMenuState.SetItems gives a
+// SelectMenu its items.
+func (s *ListboxState) SetItems(items []ListboxItem) {
+	s.bound.update(items, false)
+	s.bound.index = nil // checked; Listbox indexes the items it shows
+	s.binding = true
+}
+
+// ReleaseItems drops the items SetItems took: Listbox shows the items passed
+// to it in each build again.
+func (s *ListboxState) ReleaseItems() {
+	s.bound, s.binding = listboxItems{}, false
 }
 
 type listboxActivity struct {
@@ -102,6 +132,12 @@ type ListboxOptions struct {
 	Decoration
 	// embedded lists draw no focus ring of their own, as in SelectMenu's popup.
 	embedded bool
+	// owned tells that items is a snapshot the caller replaces rather than
+	// edits in place, which the list keeps without copying or comparing.
+	owned bool
+	// managed tells that the caller, SelectMenu or CommandPalette, sets the
+	// items, which SetItems on its ListboxState would contradict.
+	managed bool
 	// actionID identifies a focusable action row, excluded from selection and Build.
 	actionID       string
 	activate       func()
@@ -286,11 +322,22 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 			bm := buttonMetrics(t, input.Size)
 			listHeight = max(0, height-bm.Line-2*bm.Y-1)
 		}
-		if !o.IgnoreFilter && *query != "" {
-			s.source.update(items)
-			items = s.filter.apply(&s.source, *query, o.FilterFields)
+		owned := o.owned
+		if s.binding {
+			switch {
+			case o.managed:
+				panic("nui: SelectMenu and CommandPalette set their Listbox's items; do not call SetItems on its ListboxState (SelectMenuState has SetItems of its own)")
+			case items != nil:
+				panic("nui: Listbox shows the items of ListboxState.SetItems; pass nil items, or call ReleaseItems")
+			}
+			// SetItems replaces its snapshot rather than editing it.
+			items, owned = s.bound.items, true
 		}
-		s.data.update(items)
+		if !o.IgnoreFilter && *query != "" {
+			s.source.update(items, owned)
+			items, owned = s.filter.apply(&s.source, *query, o.FilterFields), true
+		}
+		s.data.update(items, owned)
 		items = s.data.items
 		rows, positions := s.data.rows, s.data.positions
 		external := !slices.Equal(s.selection.values, *selected)
@@ -544,9 +591,10 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 				highlight(it.ID)
 				choose(it.ID, o.SelectionBehavior != SelectionReplace)
 			})
+			// The highlight moves at once, as in MyGo's lists: a colour fade
+			// would build the whole view in each frame it moves (optionList).
 			d := listboxItemDecoration(o.Decoration, it.Options)
 			finish(t, ComponentListbox, Item, row, optionItemStyle(t, m, highlighted), d)
-			t.fadeColors(r.Context, row)
 			row.Children(func() { listboxItemContent(r.Context, t, it, o, d, config.Size, chosen, highlighted) })
 		}
 		if vert {
@@ -583,8 +631,10 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 }
 
 // listboxContentHeight is the height a vertical Listbox lays its rows out in:
-// items and their descriptions, group headings, the p-1 inset, or the empty state.
-func listboxContentHeight(t Theme, size Size, items []ListboxItem) float32 {
+// items and their descriptions, group headings, the p-1 inset, or the empty
+// state. It stops counting at limit, so that a popup of a long list measures
+// only the rows that fit it rather than all of them in every build.
+func listboxContentHeight(t Theme, size Size, items []ListboxItem, limit float32) float32 {
 	m := optionRecipe(t, size)
 	label := optionLabelStyle(t, size)
 	heading := 2*m.Pad + label.FontSize.Value*label.LineHeight.Value
@@ -593,6 +643,9 @@ func listboxContentHeight(t Theme, size Size, items []ListboxItem) float32 {
 	}
 	h, group := 2*t.spacing(4), ""
 	for _, it := range items {
+		if h >= limit {
+			return h
+		}
 		if it.Group != "" && it.Group != group {
 			h += heading
 		}
@@ -638,7 +691,35 @@ type SelectMenuState struct {
 	labelIDs    []string
 	label       string
 	filterCache listboxFilter
+	// bound holds the items SetItems took, shown while binding is set.
+	bound   listboxItems
+	binding bool
 }
+
+// SetItems copies items and checks their IDs once, outside rendering, for
+// SelectMenu to show in place of the items passed to it, which must then be
+// nil, as ListboxState.SetItems does for Listbox: a build then compares no
+// items, open or closed, however many there are.
+//
+// Call it again when the items change: edits to the slice after SetItems do
+// not show. Items equal to the last ones keep the snapshot, the selected
+// labels and the filter's results. A duplicate or empty ID, or an unknown
+// Kind, panics and keeps the items shown before. Selected IDs missing from
+// the items keep their last known label, as with items passed in each build.
+// Call it on the window's UI thread, between builds, and not in every build.
+// ReleaseItems returns to the items passed in each build.
+func (s *SelectMenuState) SetItems(items []ListboxItem) {
+	s.bound.update(items, false)
+	s.bound.index = nil // checked; SelectMenu indexes the items it shows
+	s.binding = true
+}
+
+// ReleaseItems drops the items SetItems took: SelectMenu shows the items
+// passed to it in each build again.
+func (s *SelectMenuState) ReleaseItems() {
+	s.bound, s.binding = listboxItems{}, false
+}
+
 type SelectMenuOptions struct {
 	ListboxOptions
 	Color                                          Color
@@ -699,7 +780,16 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 			o.OnSearchTermChange(value)
 		}
 	}
-	dataChanged := s.data.update(items)
+	var dataChanged bool
+	if s.binding {
+		if items != nil {
+			panic("nui: SelectMenu shows the items of SelectMenuState.SetItems; pass nil items, or call ReleaseItems")
+		}
+		// SetItems replaces its snapshot rather than editing it.
+		dataChanged = s.data.update(s.bound.items, true)
+	} else {
+		dataChanged = s.data.update(items, false)
+	}
 	items = s.data.items
 	resetQuery := func() {
 		if *query == "" {
@@ -970,7 +1060,7 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 				// The create entry is a row of the list, which the arrow keys reach,
 				// as in Nuxt; activating it requests creation instead of selecting.
 				createID := "\x00nui:create"
-				for slices.ContainsFunc(items, func(it ListboxItem) bool { return it.ID == createID }) {
+				for _, taken := s.data.index[createID]; taken; _, taken = s.data.index[createID] {
 					createID += "_"
 				}
 				entry := ListboxItem{ID: createID, Label: namedMessage(c, "createItem", *query)}
@@ -994,9 +1084,14 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 			}
 			if opts.Height <= 0 {
 				// The list fits its rows within the popup's maximum height.
-				opts.Height = max(0, min(listboxContentHeight(t, config.Size, filtered), popup.MaxHeight.Value-used))
+				room := popup.MaxHeight.Value - used
+				opts.Height = max(0, min(listboxContentHeight(t, config.Size, filtered, room), room))
 				opts.heightSet = true
 			}
+			// The items are SelectMenu's snapshot or its filter's result, which
+			// change by being replaced; with the create entry they are a new
+			// slice in each build, which the list compares.
+			opts.owned, opts.managed = !create, true
 			Listbox(c.Key("choices"), inner, value, &s.Listbox, filtered, opts).FillWidth()
 		})
 		if panel.Valid() && panel.Dismissed() && !*opened && o.OnOpenChange != nil {

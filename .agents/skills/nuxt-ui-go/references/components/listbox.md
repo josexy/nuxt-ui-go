@@ -15,11 +15,16 @@ Filter and select one or more items in an always-visible list.
 
 Store selected IDs in `[]string` and keep query, highlight, and scroll state in `ListboxState`. Every item—including labels and separators—requires a unique `ID`. `Filter` adds a built-in search box; `Loading` shows a spinner and pauses item actions.
 
+#### Large lists
+
+Items passed to `Listbox` are compared with the last ones in every build, so that in-place edits show; that takes about a millisecond a build per 100,000 items. For a list that large, call `ListboxState.SetItems(items)` when the items change, outside the view, and pass `nil` items: builds then compare no items, however many there are. Edits to the slice show after the next `SetItems`, and `ReleaseItems` returns to passing items in each build.
+
 ## Things to know
 
 - Built-in filtering matches `Label` by default (ignoring case and accents) and ranks exact, prefix, then substring matches.
 - Call `PreventDefault` inside an item's `OnSelect` to cancel selection.
 - Hiding the filter keeps an existing query active; set `IgnoreFilter: true` to bypass local filtering.
+- `SetItems` copies and validates the items once; while it is in effect, pass `nil` items (anything else panics). Do not call it on the `ListboxState` inside a SelectMenu or CommandPalette.
 
 ## API
 
@@ -84,6 +89,27 @@ type ListboxState struct {
 	List        ui.ListState
 	// contains filtered or unexported fields
 }
+
+// ReleaseItems drops the items SetItems took: Listbox shows the items passed
+// to it in each build again.
+func (s *ListboxState) ReleaseItems()
+
+// SetItems copies items and checks their IDs once, outside rendering, for
+// Listbox to show in place of the items passed to it, which must then be nil.
+// A build then compares no items, however many there are, where items passed
+// in each build are compared with the last ones to see in-place edits.
+//
+// Call it again when the items change: edits to the slice after SetItems do
+// not show. Items equal to the last ones keep the snapshot and the filter's
+// results. A duplicate or empty ID, or an unknown Kind, panics and keeps the
+// items shown before. Call it on the window's UI thread, between builds, and
+// not in every build, where it compares as much as passing the items would.
+// ReleaseItems returns to the items passed in each build.
+//
+// SelectMenu and CommandPalette set the items of their Listbox: do not call
+// SetItems on the ListboxState they hold. SelectMenuState.SetItems gives a
+// SelectMenu its items.
+func (s *ListboxState) SetItems(items []ListboxItem)
 ```
 
 ```go
@@ -136,13 +162,13 @@ From the library documentation. Links point to other component references in thi
 
 #### Lifecycle and themes (excerpt)
 
-InputNumber, InputDate, and InputTime share Input's sizes, five field variants, colors, read-only and disabled states, icons, and error settings. InputNumber, InputTags, PinInput cells, the SelectMenu trigger, Listbox and Tree rows, Calendar cells and card-variant CheckboxGroup items fade their background, border and focus ring over `Motion.Transition` (150 ms) at the Full and Reduced motion levels, as Nuxt UI's `transition-colors`; text colours change at once, and the Off motion level shows every change at once. InputDate and InputTime fields do not fade. Other components are configured through their own Options at the end of this page.
+InputNumber, InputDate, and InputTime share Input's sizes, five field variants, colors, read-only and disabled states, icons, and error settings. InputNumber, InputTags, PinInput cells, the SelectMenu trigger, Calendar cells and card-variant CheckboxGroup items fade their background, border and focus ring over `Motion.Transition` (150 ms) at the Full and Reduced motion levels, as Nuxt UI's `transition-colors`; text colours change at once, and the Off motion level shows every change at once. InputDate and InputTime fields do not fade. The rows of Listbox, Tree and the SelectMenu list change their highlight at once at every motion level, as MyGo's own list rows do: in MyGo a colour fade builds the whole view in each frame it moves, and the pointer going down a long list crosses a row every few frames. Other components are configured through their own Options at the end of this page.
 
 #### Listbox, SelectMenu, and async search
 
 ##### Listbox: a selectable list shown inline
 
-Each ListboxItem's ID must be non-empty and unique. Label and Description provide the text, and Group adds a group heading to adjacent items. Kind can be ListboxOption, ListboxLabel, or ListboxSeparator; structural rows also need IDs. The selected value is a `*[]string`, where an empty slice means nothing is selected. ListboxState stores the query, the active item, scroll state, and a persistent QueryHandle.
+Each ListboxItem's ID must be non-empty and unique. Label and Description provide the text, and Group adds a group heading to adjacent items. Kind can be ListboxOption, ListboxLabel, or ListboxSeparator; structural rows also need IDs. The selected value is a `*[]string`, where an empty slice means nothing is selected. ListboxState stores the query, the active item, scroll state, and a persistent QueryHandle, and for long lists the items themselves (see Caching and large data sets).
 
 The default is SelectionToggle: in both single and multiple selection, activating a selected item again deselects it. SelectionReplace replaces the selection on activation, and in multiple selection it also supports Shift range selection. Selected IDs that are temporarily missing from the data source are kept, which helps with async search; your app cleans up IDs that are gone for good.
 
@@ -169,9 +195,19 @@ In both orientations, only the visible items plus a few extra are built. Height 
 
 ##### Caching and large data sets
 
-Listbox caches a snapshot of the data, an ID index, the groups, and the selection set. These structures are not rebuilt when the input has not changed, and in-place changes to the slice are also detected. However, each build still compares the snapshot linearly, and prefix search may scan every item.
+Listbox caches a snapshot of the data, an ID index, the groups, and the selection set. These structures are not rebuilt when the input has not changed, and in-place changes to the slice are also detected. However, each build still compares the items passed with the snapshot linearly, about a millisecond per 100,000 items, and prefix search may scan every item.
 
-SelectMenu caches filter results and selected labels; options that are temporarily missing keep their last label. Processing a large number of selected items for the first time still takes linear work. Virtual lists reduce the amount of UI built, but the cost of processing data still depends on its size.
+For long lists, give the items to the state instead, as Table's SetRows does. `ListboxState.SetItems(items)` copies the items and checks their IDs once, and Listbox, given nil items, shows that snapshot without comparing any items in its builds: with 100,000 items a build takes about as long as with 100. Call SetItems on the UI thread when the items change, not in every build; edits to the slice show only after the next call. Items equal to the last ones keep the snapshot and the filter's cached results, and an invalid snapshot (a duplicate or empty ID, an unknown Kind) panics in SetItems and leaves the items shown before. While the state holds items, passing non-nil items to Listbox panics; ReleaseItems returns to passing them in each build. SelectMenu and CommandPalette set the items of their list, so do not call SetItems on the ListboxState they hold; SelectMenu has a SetItems of its own.
+
+```go
+// When the data arrives, on the UI thread:
+app.members.SetItems(items)
+
+// In the view:
+nui.Listbox(c, t, &app.selected, &app.members, nil, nui.ListboxOptions{Label: "Members"})
+```
+
+SelectMenu caches filter results and selected labels; options that are temporarily missing keep their last label. Processing a large number of selected items for the first time still takes linear work. `SelectMenuState.SetItems(items)` gives a SelectMenu its items in the same way: pass nil items, and the trigger's label, the popup's rows and its filter read the snapshot, with no items compared in a build, open or closed. ReleaseItems returns to passing them in each build, and passing items while the state holds its own panics. With the create entry shown (OnCreate), the list still copies and compares the filtered items in each build. Virtual lists reduce the amount of UI built, but the cost of processing data still depends on its size.
 
 ##### QueryState: reject stale search results
 
@@ -230,11 +266,17 @@ Listbox builds only the visible items plus a few extra in either orientation. Ho
 
 Separator's `Size` maps XS–XL to line widths of 1–5 DIP. Painting rounds the width to whole device pixels before aligning its position, so equal widths remain equal at fractional DPI and UI zoom. Dashed and dotted segments use whole-pixel lengths and gaps; the last segment may be shorter. Card section dividers and default menu/Listbox separators paint one device pixel while preserving DIP layout spacing. `Type` is one of the Solid, Dashed, and Dotted constants, and `Position` is Center, Start, or End. Content precedence is `Content → Label → Icon → Avatar`. The default label is 14 DIP, the icon 20 DIP, and the avatar 20 DIP; an explicit Avatar.Size takes precedence. Leading refers to the icon or avatar root. Vertical labels can wrap. A vertical separator is 48 DIP tall by default, which you can change on the returned element; give long labels and interactive content enough height. The content container keeps its identity when the position or orientation changes, but controls inside it still need stable keys.
 
+#### Components and parts › Progress and animation (excerpt)
+
+**When animations stop:** Continuous animations request the next frame only while a visible component actually draws. They stop when the component scrolls out of view, unmounts, has Animate turned off, or at the Off motion level; spinners and the Skeleton pulse go on under reduced motion. Button's colour transition follows `Motion.Transition` at Full and Reduced and is immediate at Off, and `Animate: nui.Set(false)` controls the loading spinner. Once a transition ends, no more frames are requested. Indeterminate Progress and Table's loading bar pulse under reduced motion. In MyGo a colour transition builds the view in each frame while the colour moves (about ten builds for 150 ms), so an app with an expensive view can set `Motion.Transition` to 0 or turn animation off. The rows of the virtual lists (Listbox, Select, SelectMenu, InputMenu, CommandPalette and Tree) never fade, so that moving the pointer down a long list does not build the view in every frame; Tree paints its row hover without building the view at all. Components do not use timer goroutines for animation.
+
 ### Inputs, selection, and fields
 
 #### Select and InputMenu › Option row appearance (excerpt)
 
 Select, InputMenu, SelectMenu, Listbox, menus, and CommandPalette share the same option row style:
+
+Rows have a 6 DIP corner radius. A row highlighted by keyboard or pointer uses Elevated at 50% as its background and Highlighted for its text, and its leading icon changes from Dimmed to Text. In the virtual lists of Select, InputMenu, SelectMenu, Listbox and CommandPalette the highlight moves at once at every motion level, unlike Nuxt UI's `transition-colors`, as MyGo's own list rows do: in MyGo a colour fade builds the whole view in each frame it moves, and the pointer going down a long list crosses a row every few frames. A held arrow key highlights, scrolls and reports the same rows at every motion level. The rows of DropdownMenu and ContextMenu, which are built whole, fade their background over `Motion.Transition`, also under reduced motion, so moving the highlight cross-fades the two rows; their text colour changes at once. Selected items are marked with a check mark at the end of the row, without an extra background.
 
 #### Popover and ScrollArea › ScrollArea: give content a scrolling region (excerpt)
 

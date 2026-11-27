@@ -428,6 +428,9 @@ func (p Palette) Shade(shade int) ui.Color
 ```go
 type Palettes struct{ Primary, Secondary, Success, Info, Warning, Error, Neutral Palette }
 
+// DefaultPalettes returns the built-in palettes. They are converted from
+// Oklch once: a zero AppConfig resolves Light and Dark in every build, and
+// converting 154 colours each time cost more than a small view.
 func DefaultPalettes() Palettes
 ```
 

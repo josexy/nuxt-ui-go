@@ -16,7 +16,7 @@ Keep business values and component state per window. Do not reinitialize them on
 
 FormTicket, QueryTicket, and TreeTicket identify async operations and carry the instance identity and a version. Return each result to the state object that started the request; old results are rejected if the data has changed or the request was canceled. Background work should operate only on data snapshots and return to the UI thread through `Window.Update`. Cancel business tasks when the window closes.
 
-InputNumber, InputDate, and InputTime share Input's sizes, five field variants, colors, read-only and disabled states, icons, and error settings. InputNumber, InputTags, PinInput cells, the SelectMenu trigger, Listbox and Tree rows, Calendar cells and card-variant CheckboxGroup items fade their background, border and focus ring over `Motion.Transition` (150 ms) at the Full and Reduced motion levels, as Nuxt UI's `transition-colors`; text colours change at once, and the Off motion level shows every change at once. InputDate and InputTime fields do not fade. Other components are configured through their own Options; see the [style part index](#style-part-index) at the end of this page.
+InputNumber, InputDate, and InputTime share Input's sizes, five field variants, colors, read-only and disabled states, icons, and error settings. InputNumber, InputTags, PinInput cells, the SelectMenu trigger, Calendar cells and card-variant CheckboxGroup items fade their background, border and focus ring over `Motion.Transition` (150 ms) at the Full and Reduced motion levels, as Nuxt UI's `transition-colors`; text colours change at once, and the Off motion level shows every change at once. InputDate and InputTime fields do not fade. The rows of Listbox, Tree and the SelectMenu list change their highlight at once at every motion level, as MyGo's own list rows do: in MyGo a colour fade builds the whole view in each frame it moves, and the pointer going down a long list crosses a row every few frames. Other components are configured through their own Options; see the [style part index](#style-part-index) at the end of this page.
 
 ## Form
 
@@ -194,7 +194,7 @@ Inside a FormField, clicking the label focuses the first thumb, and the field's 
 
 ### Listbox: a selectable list shown inline
 
-Each ListboxItem's ID must be non-empty and unique. Label and Description provide the text, and Group adds a group heading to adjacent items. Kind can be ListboxOption, ListboxLabel, or ListboxSeparator; structural rows also need IDs. The selected value is a `*[]string`, where an empty slice means nothing is selected. ListboxState stores the query, the active item, scroll state, and a persistent QueryHandle.
+Each ListboxItem's ID must be non-empty and unique. Label and Description provide the text, and Group adds a group heading to adjacent items. Kind can be ListboxOption, ListboxLabel, or ListboxSeparator; structural rows also need IDs. The selected value is a `*[]string`, where an empty slice means nothing is selected. ListboxState stores the query, the active item, scroll state, and a persistent QueryHandle, and for long lists the items themselves (see [Caching and large data sets](#caching-and-large-data-sets)).
 
 The default is SelectionToggle: in both single and multiple selection, activating a selected item again deselects it. SelectionReplace replaces the selection on activation, and in multiple selection it also supports Shift range selection. Selected IDs that are temporarily missing from the data source are kept, which helps with async search; your app cleans up IDs that are gone for good.
 
@@ -244,9 +244,19 @@ With nothing selected, the trigger shows placeholder text in Dimmed. A Subtle tr
 
 ### Caching and large data sets
 
-Listbox caches a snapshot of the data, an ID index, the groups, and the selection set. These structures are not rebuilt when the input has not changed, and in-place changes to the slice are also detected. However, each build still compares the snapshot linearly, and prefix search may scan every item.
+Listbox caches a snapshot of the data, an ID index, the groups, and the selection set. These structures are not rebuilt when the input has not changed, and in-place changes to the slice are also detected. However, each build still compares the items passed with the snapshot linearly, about a millisecond per 100,000 items, and prefix search may scan every item.
 
-SelectMenu caches filter results and selected labels; options that are temporarily missing keep their last label. Processing a large number of selected items for the first time still takes linear work. Virtual lists reduce the amount of UI built, but the cost of processing data still depends on its size.
+For long lists, give the items to the state instead, as Table's SetRows does. `ListboxState.SetItems(items)` copies the items and checks their IDs once, and Listbox, given nil items, shows that snapshot without comparing any items in its builds: with 100,000 items a build takes about as long as with 100. Call SetItems on the UI thread when the items change, not in every build; edits to the slice show only after the next call. Items equal to the last ones keep the snapshot and the filter's cached results, and an invalid snapshot (a duplicate or empty ID, an unknown Kind) panics in SetItems and leaves the items shown before. While the state holds items, passing non-nil items to Listbox panics; ReleaseItems returns to passing them in each build. SelectMenu and CommandPalette set the items of their list, so do not call SetItems on the ListboxState they hold; SelectMenu has a SetItems of its own.
+
+```go
+// When the data arrives, on the UI thread:
+app.members.SetItems(items)
+
+// In the view:
+nui.Listbox(c, t, &app.selected, &app.members, nil, nui.ListboxOptions{Label: "Members"})
+```
+
+SelectMenu caches filter results and selected labels; options that are temporarily missing keep their last label. Processing a large number of selected items for the first time still takes linear work. `SelectMenuState.SetItems(items)` gives a SelectMenu its items in the same way: pass nil items, and the trigger's label, the popup's rows and its filter read the snapshot, with no items compared in a build, open or closed. ReleaseItems returns to passing them in each build, and passing items while the state holds its own panics. With the create entry shown (OnCreate), the list still copies and compares the filtered items in each build. Virtual lists reduce the amount of UI built, but the cost of processing data still depends on its size.
 
 ### QueryState: reject stale search results
 
@@ -549,11 +559,13 @@ Nodes can be Disabled, and OnSelect and OnToggle can cancel the current action. 
 
 Nested defaults to true, which shows ancestor guide lines and indents each child's background and click area by level. With `nui.Set(false)`, the background and click area span the full row while the content stays indented. Switching keeps the selection, expansion, focus, and scroll position.
 
-Both modes use a native virtual list that builds only the rows near the viewport. The index of visible nodes is rebuilt when the data or the expansion state changes. Tree builds that index itself rather than through `ui.Outline`, so of `state.Outline` it uses only `Outline.Open` and `Outline.List`: setting `Outline.Generation` has no effect on Tree. Because apps may edit the public collections directly, every build still checks the expanded IDs, and also the selected IDs when indeterminate states are needed. Customize row content with Build.
+Both modes use a native virtual list that builds only the rows near the viewport. The index of visible nodes is rebuilt when the data or the expansion state changes. Tree builds that index itself rather than through `ui.Outline`, so of `state.Outline` it uses only `Outline.Open` and `Outline.List`: setting `Outline.Generation` has no effect on Tree. Because apps may edit the public collections directly, every build still compares the expanded IDs with those the index was built from (MyGo keeps a Selection's change count to itself), and also the selected IDs when indeterminate states are needed; nothing else in a build grows with the size of the tree. Customize row content with Build.
+
+A row shows the pointer over it with an Elevated/50 background, painted as the window paints, as MyGo's own rows show their hover: the pointer going from row to row repaints the rows without building the view, where Nuxt UI also turns the row's text Highlighted and fades both. A selected row keeps its Elevated background, and a disabled row shows no hover.
 
 ### Lazy loading
 
-A node with Lazy=true and Children=nil calls `OnLoad(id, ticket)` once when it is visible and expanded. Your app starts loading in the background and returns the result in `Window.Update` with `CompleteLoad(ticket, children, err)`.
+A node with Lazy=true and Children=nil calls `OnLoad(id, ticket)` once when it is visible and expanded, and waits while the tree is disabled or has no OnLoad. Tree looks for such nodes only in the builds after the expansion, the nodes, a Retry or Close changed, not in every build. Your app starts loading in the background and returns the result in `Window.Update` with `CompleteLoad(ticket, children, err)`.
 
 A failed load shows Retry. Collapsing the node or an ancestor with SetExpanded, replacing the data, retrying, or calling Close all invalidate the old ticket. A true result from CompleteLoad only means the result was accepted; it may still contain an error.
 

@@ -227,8 +227,8 @@ func TestCardCheckboxFadesToChecked(t *testing.T) {
 	}
 }
 
-// Holding Down in a long list keeps colour fades on the rows that change
-// and does the same as with animations off.
+// Holding Down in a long list does the same as with animations off: the
+// rows change at once at every motion level.
 func TestHeldKeyInLongSelectMenuMatchesOff(t *testing.T) {
 	items := make([]nui.ListboxItem, 500)
 	for i := range items {
@@ -269,8 +269,8 @@ func TestHeldKeyInLongSelectMenuMatchesOff(t *testing.T) {
 	if full.active != "29" && full.active != "30" {
 		t.Fatalf("held Down reached item %q", full.active)
 	}
-	// About a second of keys at 60 Hz: at most a build a frame while rows
-	// fade, and none once they arrive.
+	// About a second of keys at 60 Hz: at most a build a frame while the
+	// keys move the highlight, and few once they stop.
 	if full.builds > 66 || full.settled > 12 {
 		t.Fatalf("held Down built %d times, and %d more after the keys (Off: %d)", full.builds, full.settled, off.builds)
 	}
@@ -407,8 +407,12 @@ func TestTextOnlyHoverShowsAtOnce(t *testing.T) {
 }
 
 // Items highlight, hover or select with a colour fade at Full and Reduced,
-// and at once at Off.
+// and at once at Off. The rows of the virtual lists change at once at every
+// level, as MyGo's list rows do: a fade builds the whole view in each frame
+// it moves, and the pointer going down a long list crosses a row every few
+// frames.
 func TestItemSurfacesFadeTheirColors(t *testing.T) {
+	instant := map[string]bool{"Listbox": true, "Select rows": true, "InputMenu rows": true, "SelectMenu rows": true, "CommandPalette rows": true, "Tree rows": true}
 	type item struct {
 		name    string
 		view    func(c *ui.Context, th nui.Theme)
@@ -497,7 +501,14 @@ func TestItemSurfacesFadeTheirColors(t *testing.T) {
 				m := newMotionTester(l, 700, 560, it.view)
 				it.prepare(t, m)
 				m.Move(695, 555)
-				checkFade(t, m, !l.off, func() { it.act(t, m) })
+				acted := 0
+				checkFade(t, m, !l.off && !instant[it.name], func() { it.act(t, m); acted = m.builds })
+				// A fade builds in each frame it moves, about ten times in
+				// 150 ms. The menus' search field takes the focus, and the
+				// blink of its caret, half a second on, builds once more.
+				if n := m.builds - acted; instant[it.name] && n > 2 {
+					t.Fatalf("the row's change built the view %d more times after it showed", n)
+				}
 				if l.off && it.name == "Calendar cells" {
 					m.idle(t, time.Second, "a hovered Calendar cell at Off")
 				}

@@ -50,7 +50,9 @@ func Tree(c *ui.Context, t Theme, s *TreeState, o TreeOptions) ui.Element {
 	}
 	root := ui.Column(c).MinWidth(0).MinHeight(0).Height(height).Disabled(disabled)
 	disabled = root.IsDisabled()
-	if !disabled && o.OnLoad != nil {
+	s.syncOpen()
+	if s.loadsDue && !disabled && o.OnLoad != nil {
+		s.loadsDue = false
 		for id := range s.Outline.Open.All() {
 			n := s.nodes[id]
 			if n != nil && !n.node.Disabled && !n.loaded && !n.loading && n.err == "" && s.expandedPath(id) {
@@ -319,7 +321,9 @@ func Tree(c *ui.Context, t Theme, s *TreeState, o TreeOptions) ui.Element {
 					toggleItem(id)
 				}
 			})
-			style := optionItemStyle(t, m, row.Hovered())
+			// The row is built without its hover, which its surface paints
+			// (below): the pointer going from row to row then only paints.
+			style := optionItemStyle(t, m, false)
 			style.PaddingX = Set(pad)
 			if chosen {
 				style.Background, style.Foreground = Set(t.Elevated), Set(t.color(config.Color))
@@ -333,8 +337,20 @@ func Tree(c *ui.Context, t Theme, s *TreeState, o TreeOptions) ui.Element {
 				// height, and inset only its styled surface. Guides stay continuous.
 				style.PaddingY = Set(max(0, m.Pad-1))
 				surface := ui.Row(r.Context.Key("surface")).MinWidth(0).AlignItems(ui.Center).Margin(1, 0).Role(ui.RoleNone)
-				finishTreeItem(t, Item, surface, style, o.Decoration, n.node.Decoration)
-				t.fadeColors(r.Context, surface)
+				applied := finishTreeItem(t, Item, surface, style, o.Decoration, n.node.Decoration)
+				if !chosen {
+					// Read as the window paints, the row's hover repaints the
+					// last frame's rows, as MyGo's own rows do, where reading it
+					// as the view builds, or fading its colours, would build the
+					// whole view anew for each row the pointer crosses. The
+					// highlight takes Elevated/50 behind the row's content.
+					hover, radius := t.Elevated.Alpha(.5), applied.Radius.Value
+					surface.Draw(func(p *ui.Painter, r ui.Rect) {
+						if row.Hovered() {
+							p.Fill(r, hover, radius)
+						}
+					})
+				}
 				surface.Children(func() {
 					if !nested && entry.depth > 0 {
 						// The row's gap after this spacer is part of the indentation.

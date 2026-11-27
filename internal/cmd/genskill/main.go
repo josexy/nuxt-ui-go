@@ -473,7 +473,11 @@ func (g *generator) apiSection(d showcase.Demo) (string, map[string]string) {
 				linked[ref] = owners[0]
 				continue
 			}
-			depth[ref] = depth[name] + 1
+			// A type queued already keeps the shortest path to it: a longer
+			// one found later must not stop its own types from showing.
+			if d, ok := depth[ref]; !ok || depth[name]+1 < d {
+				depth[ref] = depth[name] + 1
+			}
 			queue = append(queue, ref)
 		}
 	}

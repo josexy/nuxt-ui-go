@@ -4,6 +4,7 @@ package nui
 
 import (
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/egoist/mygo/ui"
@@ -27,9 +28,14 @@ func (p Palette) Shade(shade int) ui.Color {
 
 type Palettes struct{ Primary, Secondary, Success, Info, Warning, Error, Neutral Palette }
 
-func DefaultPalettes() Palettes {
+// DefaultPalettes returns the built-in palettes. They are converted from
+// Oklch once: a zero AppConfig resolves Light and Dark in every build, and
+// converting 154 colours each time cost more than a small view.
+func DefaultPalettes() Palettes { return defaultPalettes() }
+
+var defaultPalettes = sync.OnceValue(func() Palettes {
 	return Palettes{GreenPalette(), BluePalette(), GreenPalette(), BluePalette(), YellowPalette(), RedPalette(), SlatePalette()}
-}
+})
 
 type Mode uint8
 

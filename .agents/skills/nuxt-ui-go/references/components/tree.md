@@ -164,7 +164,7 @@ From the library documentation. Links point to other component references in thi
 
 #### Lifecycle and themes (excerpt)
 
-InputNumber, InputDate, and InputTime share Input's sizes, five field variants, colors, read-only and disabled states, icons, and error settings. InputNumber, InputTags, PinInput cells, the SelectMenu trigger, Listbox and Tree rows, Calendar cells and card-variant CheckboxGroup items fade their background, border and focus ring over `Motion.Transition` (150 ms) at the Full and Reduced motion levels, as Nuxt UI's `transition-colors`; text colours change at once, and the Off motion level shows every change at once. InputDate and InputTime fields do not fade. Other components are configured through their own Options at the end of this page.
+InputNumber, InputDate, and InputTime share Input's sizes, five field variants, colors, read-only and disabled states, icons, and error settings. InputNumber, InputTags, PinInput cells, the SelectMenu trigger, Calendar cells and card-variant CheckboxGroup items fade their background, border and focus ring over `Motion.Transition` (150 ms) at the Full and Reduced motion levels, as Nuxt UI's `transition-colors`; text colours change at once, and the Off motion level shows every change at once. InputDate and InputTime fields do not fade. The rows of Listbox, Tree and the SelectMenu list change their highlight at once at every motion level, as MyGo's own list rows do: in MyGo a colour fade builds the whole view in each frame it moves, and the pointer going down a long list crosses a row every few frames. Other components are configured through their own Options at the end of this page.
 
 #### Tree
 
@@ -186,11 +186,13 @@ Nodes can be Disabled, and OnSelect and OnToggle can cancel the current action. 
 
 Nested defaults to true, which shows ancestor guide lines and indents each child's background and click area by level. With `nui.Set(false)`, the background and click area span the full row while the content stays indented. Switching keeps the selection, expansion, focus, and scroll position.
 
-Both modes use a native virtual list that builds only the rows near the viewport. The index of visible nodes is rebuilt when the data or the expansion state changes. Tree builds that index itself rather than through `ui.Outline`, so of `state.Outline` it uses only `Outline.Open` and `Outline.List`: setting `Outline.Generation` has no effect on Tree. Because apps may edit the public collections directly, every build still checks the expanded IDs, and also the selected IDs when indeterminate states are needed. Customize row content with Build.
+Both modes use a native virtual list that builds only the rows near the viewport. The index of visible nodes is rebuilt when the data or the expansion state changes. Tree builds that index itself rather than through `ui.Outline`, so of `state.Outline` it uses only `Outline.Open` and `Outline.List`: setting `Outline.Generation` has no effect on Tree. Because apps may edit the public collections directly, every build still compares the expanded IDs with those the index was built from (MyGo keeps a Selection's change count to itself), and also the selected IDs when indeterminate states are needed; nothing else in a build grows with the size of the tree. Customize row content with Build.
+
+A row shows the pointer over it with an Elevated/50 background, painted as the window paints, as MyGo's own rows show their hover: the pointer going from row to row repaints the rows without building the view, where Nuxt UI also turns the row's text Highlighted and fades both. A selected row keeps its Elevated background, and a disabled row shows no hover.
 
 ##### Lazy loading
 
-A node with Lazy=true and Children=nil calls `OnLoad(id, ticket)` once when it is visible and expanded. Your app starts loading in the background and returns the result in `Window.Update` with `CompleteLoad(ticket, children, err)`.
+A node with Lazy=true and Children=nil calls `OnLoad(id, ticket)` once when it is visible and expanded, and waits while the tree is disabled or has no OnLoad. Tree looks for such nodes only in the builds after the expansion, the nodes, a Retry or Close changed, not in every build. Your app starts loading in the background and returns the result in `Window.Update` with `CompleteLoad(ticket, children, err)`.
 
 A failed load shows Retry. Collapsing the node or an ancestor with SetExpanded, replacing the data, retrying, or calling Close all invalidate the old ticket. A true result from CompleteLoad only means the result was accepted; it may still contain an error.
 
@@ -225,6 +227,12 @@ A loaded empty branch keeps its expansion state but does not get the default fol
 #### Common options by component (excerpt)
 
 Tree's OnSelect and OnToggle can cancel an operation; OnChange and OnExpandedChange report actual changes to selection and expansion. TreeNode.UI and Style style an individual node's parts, and BuildLeading and BuildTrailing replace the non-interactive leading and trailing content. For indeterminate states with multiple selection, lazy loading, and empty branches, see Tree.
+
+### Themes and basic components
+
+#### Components and parts › Progress and animation (excerpt)
+
+**When animations stop:** Continuous animations request the next frame only while a visible component actually draws. They stop when the component scrolls out of view, unmounts, has Animate turned off, or at the Off motion level; spinners and the Skeleton pulse go on under reduced motion. Button's colour transition follows `Motion.Transition` at Full and Reduced and is immediate at Off, and `Animate: nui.Set(false)` controls the loading spinner. Once a transition ends, no more frames are requested. Indeterminate Progress and Table's loading bar pulse under reduced motion. In MyGo a colour transition builds the view in each frame while the colour moves (about ten builds for 150 ms), so an app with an expensive view can set `Motion.Transition` to 0 or turn animation off. The rows of the virtual lists (Listbox, Select, SelectMenu, InputMenu, CommandPalette and Tree) never fade, so that moving the pointer down a long list does not build the view in every frame; Tree paints its row hover without building the view at all. Components do not use timer goroutines for animation.
 
 ### Compatibility and known limitations
 

@@ -255,7 +255,8 @@ func commandRows(c *ui.Context, t Theme, s *CommandPaletteState, o CommandPalett
 	if empty == "" && strings.TrimSpace(s.Query) != "" {
 		empty = emptyMessage(c, "noMatch", "noResults")
 	}
-	Listbox(c.Key("results"), t, &s.selected, &s.list, items, ListboxOptions{Label: namedMessage(c, "resultsNamed", title), Size: size, Height: 280, Disabled: disabled, Loading: pending, LoadingIcon: o.LoadingIcon, EmptyText: empty, Loop: o.Loop, HighlightOnHover: o.HighlightOnHover, SelectionBehavior: SelectionReplace, SelectedIcon: o.SelectedIcon, OnSelect: func(id string) {
+	// The rows are commandItems' snapshot, made anew when the results change.
+	Listbox(c.Key("results"), t, &s.selected, &s.list, items, ListboxOptions{owned: true, managed: true, Label: namedMessage(c, "resultsNamed", title), Size: size, Height: 280, Disabled: disabled, Loading: pending, LoadingIcon: o.LoadingIcon, EmptyText: empty, Loop: o.Loop, HighlightOnHover: o.HighlightOnHover, SelectionBehavior: SelectionReplace, SelectedIcon: o.SelectedIcon, OnSelect: func(id string) {
 		// The row's OnSelect kept the choice from before this selection.
 		previous := s.previous
 		s.previous = nil

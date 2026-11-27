@@ -68,7 +68,7 @@ MyGo calls the view again after input, after `Window.Update`, and while somethin
 - Keep each window's editing and interaction state separate, and give every component instance its own state object. Do not copy a state value after a component has used it; pass pointers.
 - Components bind through pointers to model fields (`&a.Name`). Binding to a local variable loses edits, as does binding to the copy that `for _, item := range` makes.
 - Elements may be used right away in the same build, for example `.FillWidth()` or passing an anchor element to `nui.Popover` or `nui.Tooltip`, but they expire afterwards.
-- In MyGo, a color transition (hover, focus, row highlight) rebuilds the view in each frame it moves, about ten builds per 150 ms fade. Keep views cheap. If a view is expensive, set `Motion.Transition` to 0 in both themes so color changes are immediate, or turn animation off with `config.DisableAnimations`.
+- In MyGo, a color transition (hover, focus, menu row highlight) rebuilds the view in each frame it moves, about ten builds per 150 ms fade. The rows of the virtual lists (Listbox, Select, SelectMenu, InputMenu, CommandPalette, Tree) change at once instead, and Tree paints its row hover without rebuilding. Keep views cheap. If a view is expensive, set `Motion.Transition` to 0 in both themes so color changes are immediate, or turn animation off with `config.DisableAnimations`.
 
 ## 3. Identity and lists
 

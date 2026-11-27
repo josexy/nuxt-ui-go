@@ -64,3 +64,28 @@ func TestBuiltInPalettesMatchPinnedTailwind(t *testing.T) {
 		}
 	}
 }
+
+// A zero AppConfig resolves both built-in themes in every build: their
+// palettes are converted once, and stay the generated ones.
+func TestDefaultPalettesAreConvertedOnce(t *testing.T) {
+	want := nui.Palettes{nui.GreenPalette(), nui.BluePalette(), nui.GreenPalette(), nui.BluePalette(), nui.YellowPalette(), nui.RedPalette(), nui.SlatePalette()}
+	got := nui.DefaultPalettes()
+	if got != want {
+		t.Fatal("the default palettes differ from the generated ones")
+	}
+	got.Primary[0] = ui.RGB(1, 2, 3) // a copy: no caller changes another's
+	if nui.DefaultPalettes() != want {
+		t.Fatal("changing a returned copy changed the defaults")
+	}
+	if n := testing.AllocsPerRun(10, func() { _ = nui.AppConfig{}.Resolve(false, ui.Preferences{}) }); n != 0 {
+		t.Fatalf("resolving a zero AppConfig allocated %.0f times", n)
+	}
+}
+
+// BenchmarkZeroAppConfig is the theme a zero AppConfig resolves in each build.
+func BenchmarkZeroAppConfig(b *testing.B) {
+	b.ReportAllocs()
+	for b.Loop() {
+		_ = nui.AppConfig{}.Resolve(false, ui.Preferences{})
+	}
+}

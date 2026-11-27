@@ -607,3 +607,87 @@ func TestTreeAdjacentSelectionSurfaceGap(t *testing.T) {
 		}
 	}
 }
+
+// A lazy node asks to load once as it shows open, and waits while the tree is
+// disabled or has no OnLoad; builds in between do not ask again.
+func TestTreeLazyLoadAsksOnceWhenItCan(t *testing.T) {
+	var s nui.TreeState
+	s.SetNodes([]nui.TreeNode{{ID: "lazy", Label: "Lazy", Lazy: true, DefaultExpanded: true}, {ID: "other", Label: "Other", Lazy: true}})
+	var asked []string
+	o := nui.TreeOptions{Label: "Files", Disabled: true}
+	tt := treeTester(&s, &o)
+	o.OnLoad = func(id string, _ nui.TreeTicket) { asked = append(asked, id) }
+	tt.Frame()
+	if len(asked) != 0 {
+		t.Fatalf("a disabled tree asked to load %v", asked)
+	}
+	o.Disabled = false
+	tt.Frame()
+	tt.Frame()
+	if !slices.Equal(asked, []string{"lazy"}) {
+		t.Fatalf("enabled, the tree asked to load %v", asked)
+	}
+	// Opened by a direct edit of the open set, as by the app's own command.
+	s.Outline.Open.Add("other")
+	tt.Frame()
+	tt.Frame()
+	if !slices.Equal(asked, []string{"lazy", "other"}) {
+		t.Fatalf("a node opened directly asked to load %v", asked)
+	}
+	s.Close()
+	tt.Frame()
+	if len(asked) != 4 {
+		t.Fatalf("shown again after Close, the open lazy nodes asked %v", asked)
+	}
+}
+
+// The pointer over a row paints its highlight at once, without a colour fade
+// building the view in the frames after, and a frame built anew shows it the
+// same.
+func TestTreeRowHoverPaintsAtOnce(t *testing.T) {
+	var s nui.TreeState
+	s.SetNodes([]nui.TreeNode{{ID: "a", Label: "Alpha"}, {ID: "b", Label: "Beta"}, {ID: "c", Label: "Gamma", Disabled: true}})
+	builds := 0
+	tt := ui.NewTester(func(c *ui.Context) {
+		builds++
+		nui.Tree(c, nui.App(c, nui.AppConfig{Mode: nui.LightMode}), &s, nui.TreeOptions{Label: "Files"}).Width(360)
+	}, 400, 300)
+	tt.Move(395, 295)
+	tt.Advance(time.Second)
+	// In the padding of the row, before its label.
+	at := func(label string) (float32, float32) {
+		r := bounds(t, tt, label)
+		return r.X + 4, r.Y + r.H/2
+	}
+	x, y := at("Beta")
+	idle := tt.Image().RGBAAt(int(x), int(y))
+	tt.Move(x, y)
+	hovered := tt.Image().RGBAAt(int(x), int(y))
+	th := nui.Light()
+	want := ui.Hex("#ffffff").Mix(th.Elevated, .5)
+	if hovered == idle || absDiff(hovered.G, want.G) > 3 || absDiff(hovered.B, want.B) > 3 {
+		t.Fatalf("the hovered row shows %v, want Elevated/50 (%v) over %v", hovered, want, idle)
+	}
+	if n := buildsDuring(tt, &builds, 500*time.Millisecond); n != 0 {
+		t.Fatalf("the hover built the view %d times after it showed", n)
+	}
+	tt.Frame()
+	if got := tt.Image().RGBAAt(int(x), int(y)); got != hovered {
+		t.Fatalf("a frame built anew shows %v, the hover painted %v", got, hovered)
+	}
+	gx, gy := at("Gamma")
+	tt.Move(gx, gy)
+	if got := tt.Image().RGBAAt(int(x), int(y)); got != idle {
+		t.Fatalf("the row left keeps %v, want %v", got, idle)
+	}
+	if got := tt.Image().RGBAAt(int(gx), int(gy)); got != idle {
+		t.Fatalf("a disabled row highlights on hover: %v", got)
+	}
+}
+
+func absDiff(a, b uint8) uint8 {
+	if a > b {
+		return a - b
+	}
+	return b - a
+}

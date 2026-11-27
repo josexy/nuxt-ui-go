@@ -237,6 +237,10 @@ The empty message and the loading indicator are polite status regions with stabl
 
 ### Inputs, selection, and fields
 
+#### Select and InputMenu › Option row appearance (excerpt)
+
+Rows have a 6 DIP corner radius. A row highlighted by keyboard or pointer uses Elevated at 50% as its background and Highlighted for its text, and its leading icon changes from Dimmed to Text. In the virtual lists of Select, InputMenu, SelectMenu, Listbox and CommandPalette the highlight moves at once at every motion level, unlike Nuxt UI's `transition-colors`, as MyGo's own list rows do: in MyGo a colour fade builds the whole view in each frame it moves, and the pointer going down a long list crosses a row every few frames. A held arrow key highlights, scrolls and reports the same rows at every motion level. The rows of DropdownMenu and ContextMenu, which are built whole, fade their background over `Motion.Transition`, also under reduced motion, so moving the highlight cross-fades the two rows; their text colour changes at once. Selected items are marked with a check mark at the end of the row, without an extra background.
+
 #### Popover and ScrollArea › Popover: show content next to a control (excerpt)
 
 By default, a generic Popover has the theme background, a 1 DIP border, a 6 DIP corner radius, an 8 DIP content gap, a shadow, and 16 DIP of padding. To make content reach the edges, set the padding of UI[Panel] to 0. Select, InputMenu, and menus use the same base style but usually with a 240 DIP maximum height, 4 DIP of padding, no gap, and at least the trigger's width. Their lists shrink with the panel and scroll, so in a short window every option can still be scrolled into view. For the menus' own height options, see DropdownMenu and ContextMenu.

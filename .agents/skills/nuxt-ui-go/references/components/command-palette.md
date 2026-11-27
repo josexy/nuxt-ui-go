@@ -251,11 +251,33 @@ The query field is affected by the IME cancel issue, and the full screen reader 
 | --- | --- | --- |
 | CommandPalette | CommandPaletteState, CommandIndex | Root (modal), Editor, BackSlot, Panel, List, Label, Item, Body, ItemLeadingSlot, ItemLabelSlot, ItemLabelPrefixSlot, ItemLabelSuffixSlot, Description, ItemTrailingSlot, Indicator, EmptySlot, LoadingSlot, LoadingIconSlot |
 
+### Forms, dates, and data components
+
+#### Listbox, SelectMenu, and async search › Caching and large data sets (excerpt)
+
+For long lists, give the items to the state instead, as Table's SetRows does. `ListboxState.SetItems(items)` copies the items and checks their IDs once, and Listbox, given nil items, shows that snapshot without comparing any items in its builds: with 100,000 items a build takes about as long as with 100. Call SetItems on the UI thread when the items change, not in every build; edits to the slice show only after the next call. Items equal to the last ones keep the snapshot and the filter's cached results, and an invalid snapshot (a duplicate or empty ID, an unknown Kind) panics in SetItems and leaves the items shown before. While the state holds items, passing non-nil items to Listbox panics; ReleaseItems returns to passing them in each build. SelectMenu and CommandPalette set the items of their list, so do not call SetItems on the ListboxState they hold; SelectMenu has a SetItems of its own.
+
+```go
+// When the data arrives, on the UI thread:
+app.members.SetItems(items)
+
+// In the view:
+nui.Listbox(c, t, &app.selected, &app.members, nil, nui.ListboxOptions{Label: "Members"})
+```
+
+### Themes and basic components
+
+#### Components and parts › Progress and animation (excerpt)
+
+**When animations stop:** Continuous animations request the next frame only while a visible component actually draws. They stop when the component scrolls out of view, unmounts, has Animate turned off, or at the Off motion level; spinners and the Skeleton pulse go on under reduced motion. Button's colour transition follows `Motion.Transition` at Full and Reduced and is immediate at Off, and `Animate: nui.Set(false)` controls the loading spinner. Once a transition ends, no more frames are requested. Indeterminate Progress and Table's loading bar pulse under reduced motion. In MyGo a colour transition builds the view in each frame while the colour moves (about ten builds for 150 ms), so an app with an expensive view can set `Motion.Transition` to 0 or turn animation off. The rows of the virtual lists (Listbox, Select, SelectMenu, InputMenu, CommandPalette and Tree) never fade, so that moving the pointer down a long list does not build the view in every frame; Tree paints its row hover without building the view at all. Components do not use timer goroutines for animation.
+
 ### Inputs, selection, and fields
 
 #### Select and InputMenu › Option row appearance (excerpt)
 
 Select, InputMenu, SelectMenu, Listbox, menus, and CommandPalette share the same option row style:
+
+Rows have a 6 DIP corner radius. A row highlighted by keyboard or pointer uses Elevated at 50% as its background and Highlighted for its text, and its leading icon changes from Dimmed to Text. In the virtual lists of Select, InputMenu, SelectMenu, Listbox and CommandPalette the highlight moves at once at every motion level, unlike Nuxt UI's `transition-colors`, as MyGo's own list rows do: in MyGo a colour fade builds the whole view in each frame it moves, and the pointer going down a long list crosses a row every few frames. A held arrow key highlights, scrolls and reports the same rows at every motion level. The rows of DropdownMenu and ContextMenu, which are built whole, fade their background over `Motion.Transition`, also under reduced motion, so moving the highlight cross-fades the two rows; their text colour changes at once. Selected items are marked with a check mark at the end of the row, without an extra background.
 
 ### Compatibility and known limitations
 

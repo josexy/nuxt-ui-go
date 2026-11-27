@@ -478,6 +478,11 @@ type menuMemory struct {
 	filterQuery    string
 	filterFields   []string
 	filterKnown    bool
+	filterRevision uint64
+	// The popup's rows follow from the data, the filter's result and the
+	// create entry alone: while those stay, its rows need no comparing.
+	rowsFrom       menuRowsSource
+	rowsKnown      bool
 	initialized    bool
 	focused        bool
 	open           bool
@@ -489,6 +494,12 @@ type menuMemory struct {
 	editor         ui.Handle
 	focusRequested bool
 	lastSelected   string
+}
+
+type menuRowsSource struct {
+	data, filter                  uint64
+	filtered, create, createAtTop bool
+	createLabel                   string
 }
 
 func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[string], o InputMenuOptions) ui.Element {
@@ -681,6 +692,7 @@ func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[stri
 				}
 			}
 			memory.filterQuery, memory.filterFields, memory.filterKnown = query, slices.Clone(o.FilterFields), true
+			memory.filterRevision++
 		}
 		count := len(options)
 		if filter {
@@ -709,7 +721,13 @@ func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[stri
 			}
 			return options[i]
 		}
-		if memory.list.updateRows(count, optionAt) {
+		source := menuRowsSource{memory.data.revision, memory.filterRevision, filter, create, o.CreateAtTop, entry.Label}
+		rowsChanged := !memory.rowsKnown || memory.rowsFrom != source
+		if rowsChanged {
+			memory.rowsFrom, memory.rowsKnown = source, true
+			rowsChanged = memory.list.updateRows(count, optionAt)
+		}
+		if rowsChanged {
 			if _, ok := memory.list.enabled(memory.list.active.Value); !memory.list.active.Set || !ok {
 				memory.list.active = Optional[string]{}
 				if memory.filtering {

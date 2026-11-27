@@ -149,7 +149,7 @@ Select, InputMenu, SelectMenu, Listbox, menus, and CommandPalette share the same
 | Font size / line height (DIP) | 12/16 | 12/16 | 14/20 | 14/20 | 16/24 |
 | Icon size (DIP) | 16 | 16 | 20 | 20 | 24 |
 
-Rows have a 6 DIP corner radius. A row highlighted by keyboard or pointer uses Elevated at 50% as its background and Highlighted for its text, and its leading icon changes from Dimmed to Text. The background fades in and out over `Motion.Transition`, also under reduced motion, so moving the highlight cross-fades the two rows; the text colour changes at once. In virtual lists the fade is on each row's content, so it never moves rows, and a held arrow key highlights, scrolls and reports the same rows as with animations off. Selected items are marked with a check mark at the end of the row, without an extra background.
+Rows have a 6 DIP corner radius. A row highlighted by keyboard or pointer uses Elevated at 50% as its background and Highlighted for its text, and its leading icon changes from Dimmed to Text. In the virtual lists of Select, InputMenu, SelectMenu, Listbox and CommandPalette the highlight moves at once at every motion level, unlike Nuxt UI's `transition-colors`, as MyGo's own list rows do: in MyGo a colour fade builds the whole view in each frame it moves, and the pointer going down a long list crosses a row every few frames. A held arrow key highlights, scrolls and reports the same rows at every motion level. The rows of DropdownMenu and ContextMenu, which are built whole, fade their background over `Motion.Transition`, also under reduced motion, so moving the highlight cross-fades the two rows; their text colour changes at once. Selected items are marked with a check mark at the end of the row, without an extra background.
 
 The description appears on the line below the label, at the same font size, in the Muted color. Group headings are semibold and one size smaller than items. The empty state is centered and uses the Muted color.
 
@@ -176,6 +176,12 @@ The empty message and the loading indicator are polite status regions with stabl
 #### Calendar, InputDate, and InputTime › Calendar: pick a date by clicking (excerpt)
 
 Dates and ranges are always complete Gregorian dates. There is no discrete multi-date model and no separate whole-month or whole-year value model. The month and year navigation views do not implement Nuxt UI's `type="month"` or `type="year"`; manage those values with app controls such as Select or InputNumber. Other calendars, time zones, and browser DOM slots are outside this native model.
+
+### Themes and basic components
+
+#### Components and parts › Progress and animation (excerpt)
+
+**When animations stop:** Continuous animations request the next frame only while a visible component actually draws. They stop when the component scrolls out of view, unmounts, has Animate turned off, or at the Off motion level; spinners and the Skeleton pulse go on under reduced motion. Button's colour transition follows `Motion.Transition` at Full and Reduced and is immediate at Off, and `Animate: nui.Set(false)` controls the loading spinner. Once a transition ends, no more frames are requested. Indeterminate Progress and Table's loading bar pulse under reduced motion. In MyGo a colour transition builds the view in each frame while the colour moves (about ten builds for 150 ms), so an app with an expensive view can set `Motion.Transition` to 0 or turn animation off. The rows of the virtual lists (Listbox, Select, SelectMenu, InputMenu, CommandPalette and Tree) never fade, so that moving the pointer down a long list does not build the view in every frame; Tree paints its row hover without building the view at all. Components do not use timer goroutines for animation.
 
 ### Overlays, menus, and navigation
 
