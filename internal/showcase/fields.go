@@ -68,6 +68,10 @@ type Binding struct {
 }
 
 func goType(t reflect.Type) string {
+	// Preserve existing option-editor IDs and copyable code for the string alias.
+	if t == reflect.TypeFor[nui.TableOptions]() {
+		return "nui.TableOptions"
+	}
 	if t.PkgPath() == nuiPackagePath {
 		return "nui." + strings.NewReplacer(nuiPackagePath+".", "nui.", "github.com/egoist/mygo/ui.", "ui.").Replace(t.Name())
 	}
@@ -138,7 +142,7 @@ func fieldSchemas(t reflect.Type) []ValueField {
 			choices = fieldFunctionModes(field.Type, field.Name)
 		}
 		description := notes[field.Name]
-		owner, _, _ := strings.Cut(t.Name(), "[")
+		owner, _, _ := strings.Cut(strings.TrimPrefix(goType(t), "nui."), "[")
 		if specific, ok := notes[owner+"."+field.Name]; ok {
 			description = specific
 		}
@@ -783,7 +787,10 @@ func (d Demo) bindingsFor(body string) []Binding {
 		for _, arg := range call.Args {
 			if lit := literalOf(arg); lit != nil {
 				if typ := expressionType(lit.Type); typ != nil {
-					name := typ.Name()
+					name := ""
+					if typ.Name() != "" {
+						name = strings.TrimPrefix(goType(typ), "nui.")
+					}
 					if name == "" {
 						name = fun.Sel.Name + "Items"
 					}

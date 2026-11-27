@@ -9884,15 +9884,25 @@
       "en": "Display tabular data with virtual scrolling, single/multi-column sorting, and row selection."
     },
     "guide": {
-      "zh": "### 基本用法\n\n通过 `TableState.SetRows` 传入数据，每行必须有唯一且稳定的 `ID`。列定义中 `Value` 提供纯文本、`Compare` 提供本地排序规则、`Cell` 可自定义单元格内容；将 `List.SortBy` 指向持久切片即可启用多列排序，`ManualSorting: true` 则保留输入顺序交由外部服务端排序。\n\n### 在预览中试一试\n\n1. 点击表头 `Project` 切换排序，选中行后按 `Enter` 查看激活 ID；开启「多列排序」后按住 `Shift` 点击 `Length`。\n2. 开启「加载中」或「空数据」，观察加载条、已有数据保留和空状态提示。\n3. 调整表格高度、列宽、RTL 和可见标题，确认选择状态得以保留。",
-      "en": "### Basic usage\n\nLoad data with `TableState.SetRows`, giving each row a stable, unique `ID`. Columns define text via `Value`, local sorting via `Compare`, and custom rendering via `Cell`. Point `List.SortBy` at a persistent slice for multi-column sorting, or enable `ManualSorting` for server-side sorting.\n\n### Try the preview\n\n1. Click the `Project` header to sort, select a row and press `Enter` to activate it; enable `Multi-column sorting` and Shift-click `Length`.\n2. Toggle `Loading` and `Empty data` to see the loading indicator and empty state.\n3. Adjust height, column widths, RTL, and visible caption."
+      "zh": "### 基本用法\n\n通过 `TableState.SetRows` 传入数据，每行必须有唯一且稳定的 `ID`。列定义中 `Value` 提供纯文本、`Compare` 提供本地排序规则、`Cell` 可自定义单元格内容；将 `List.SortBy` 指向持久切片即可启用多列排序，`ManualSorting: true` 则保留输入顺序交由外部服务端排序。\n\n### 在预览中试一试\n\n1. 点击表头 `Project` 切换排序，选中行后按 `Enter` 查看激活 ID；开启「多列排序」后按住 `Shift` 点击 `Length`。\n2. 开启「加载中」或「空数据」，观察加载条、已有数据保留和空状态提示。\n3. 调整表格高度、列宽、RTL 和可见标题，确认选择状态得以保留。\n\n### 借用行数据与数值 ID\n\n开启「借用行数据」可使用同一个表格渲染器而不复制行值，排序也不会修改应用持有的数组。借用模式要求调用方保证 ID 唯一、稳定，在主线程修改数据后重新绑定；清空数据会释放借用视图。数值 ID 使用 `KeyedTableState[Request, uint64]`、`SetBorrowedRows(requests, func(row Request) uint64 { return row.ID })` 和 `KeyedTableOptions[uint64]`，回调保留数值类型，支持零和大于 2^63 的 ID。`TableState[T]` 与 `TableOptions` 保持原有字符串接口。自定义单元格装饰可使用 `BuildCell`，通过 `TableCell[T]` 获取行索引、行值、选择状态，另一个参数 `Element` 是仅当前构建有效的容器。",
+      "en": "### Basic usage\n\nLoad data with `TableState.SetRows`, giving each row a stable, unique `ID`. Columns define text via `Value`, local sorting via `Compare`, and custom rendering via `Cell`. Point `List.SortBy` at a persistent slice for multi-column sorting, or enable `ManualSorting` for server-side sorting.\n\n### Try the preview\n\n1. Click the `Project` header to sort, select a row and press `Enter` to activate it; enable `Multi-column sorting` and Shift-click `Length`.\n2. Toggle `Loading` and `Empty data` to see the loading indicator and empty state.\n3. Adjust height, column widths, RTL, and visible caption.\n\n### Borrowing and typed IDs\n\nToggle `Borrowed rows` to use the same table renderer without copying row values. Sorting still leaves the application array unchanged. Borrowed rows require caller-validated unique stable IDs and main-thread rebinding after changes; clearing data releases the borrowed view. For numeric IDs, use `KeyedTableState[Request, uint64]`, `SetBorrowedRows(requests, func(row Request) uint64 { return row.ID })`, and `KeyedTableOptions[uint64]`; callbacks keep numeric IDs, including zero and values above 2^63. `TableState[T]` and `TableOptions` retain the existing string API. Use `BuildCell` with `TableCell[T].Index`, `.Value`, `.Selected`, and the separate current-build Element parameter when custom cell decoration needs row context."
     },
     "note": {
-      "zh": "- 表头固定在滚动区上方，始终启用原生虚拟列表；`Fixed` 仅禁止拖拽换列和调宽，不是「冻结列」。\n- `OnSelectionChange` 报告选中 ID，`OnActivate` 在 `Enter` 或双击时触发（不同于 Nuxt UI 的单击行 `select`）。\n- 筛选、分页、数据请求需由应用自行实现（可用 `List.EndReached` 配合 `NearEnd` 实现触底加载）；暂不支持冻结列、多级表头、行展开和分组聚合。",
-      "en": "- Headers stay pinned above the virtualized body. `Fixed` locks column reordering and resizing—it does not freeze columns while horizontally scrolling.\n- `OnSelectionChange` reports selected IDs; `OnActivate` fires on `Enter` or double-click (unlike Nuxt UI's single-click `select`).\n- Filtering, pagination, and fetching belong to your app (use `List.EndReached` + `NearEnd` for load-more). Frozen columns, grouped headers, row expansion, and aggregation are not supported."
+      "zh": "- 表头固定在滚动区上方，始终启用原生虚拟列表；`Fixed` 仅禁止拖拽换列和调宽，不是「冻结列」。\n- `OnSelectionChange` 报告选中 ID，`OnActivate` 在 `Enter` 或双击时触发（不同于 Nuxt UI 的单击行 `select`）。\n- 筛选、分页、数据请求需由应用自行实现（可用 `List.EndReached` 配合 `NearEnd` 实现触底加载）；暂不支持冻结列、多级表头、行展开和分组聚合。\n- `SetRows` 复制并校验数据；`SetBorrowedRows` 信任调用方的数据和唯一键，不保留完整成员表。不要持有 `BuildCell` 提供的 Element。",
+      "en": "- Headers stay pinned above the virtualized body. `Fixed` locks column reordering and resizing—it does not freeze columns while horizontally scrolling.\n- `OnSelectionChange` reports selected IDs; `OnActivate` fires on `Enter` or double-click (unlike Nuxt UI's single-click `select`).\n- Filtering, pagination, and fetching belong to your app (use `List.EndReached` + `NearEnd` for load-more). Frozen columns, grouped headers, row expansion, and aggregation are not supported.\n- `SetRows` copies and validates. `SetBorrowedRows` trusts caller-owned data and unique keys; it does not retain a membership map. Never retain the Element supplied to BuildCell."
     },
-    "symbols": ["Table"],
-    "types": ["TableOptions", "TableColumn", "TableState"],
+    "symbols": [
+      "Table"
+    ],
+    "types": [
+      "TableOptions",
+      "TableColumn",
+      "TableState",
+      "KeyedTableState",
+      "KeyedTableOptions",
+      "TableKey",
+      "TableCell"
+    ],
     "controls": [
       {
         "key": "disabled",
@@ -9928,6 +9938,15 @@
         "label": {
           "zh": "空数据",
           "en": "Empty data"
+        },
+        "kind": "boolean",
+        "default": false
+      },
+      {
+        "key": "borrowed",
+        "label": {
+          "zh": "借用行数据",
+          "en": "Borrowed rows"
         },
         "kind": "boolean",
         "default": false
@@ -9997,9 +10016,9 @@
         ]
       }
     ],
-    "state": "Table nui.TableState[string]\nOrders []ui.SortOrder\nEmpty, Multiple bool\nSortChanges, SelectionChanges int\nActivated string",
-    "setup": "s.Table.SetRows([]string{\"NuxtUI Go\",\"MyGo\",\"Documentation\"},func(v string)string{return v});s.Activated=\"None\"",
-    "body": "if s.Empty!={{empty}} {s.Empty={{empty}};rows:=[]string{\"NuxtUI Go\",\"MyGo\",\"Documentation\"};if s.Empty{rows=nil};s.Table.SetRows(rows,func(v string)string{return v})}\nif s.Multiple!={{multiple}} {s.Multiple={{multiple}};if s.Multiple {s.Orders=nil;if s.Table.Sort.Column!=\"\"{s.Orders=append(s.Orders,s.Table.Sort)};s.Table.List.SortBy=&s.Orders}else{s.Table.List.SortBy=nil}}\nvar caption func(*ui.Context,nui.Theme)\nif {{caption}} {caption=func(c *ui.Context,t nui.Theme){ui.Text(c,\"Project records\").TextColor(t.Highlighted)}}\ndirection:=ui.LeftToRight\nif {{rtl}} {direction=ui.RightToLeft}\nui.Row(c).Wrap().Gap(8).Children(func(){\n nui.Button(c.Key(\"sort\"),t,\"Sort Project descending\",nui.ButtonOptions{Variant:nui.Outline}).OnClick(func(){s.Table.Sort=ui.SortOrder{Column:\"name\",Descending:true};if s.Multiple{s.Orders=[]ui.SortOrder{s.Table.Sort}}})\n nui.Button(c.Key(\"restore\"),t,\"Restore input order\",nui.ButtonOptions{Variant:nui.Outline}).OnClick(func(){s.Table.Sort=ui.SortOrder{};s.Orders=nil})\n})\nui.Column(c.Key(\"direction\")).Direction(direction).Children(func(){\n nui.Table(c.Key(\"table\"),t,&s.Table,[]nui.TableColumn[string]{\n  {ID:\"name\",Title:\"Project\",Width:240,MinWidth:100,Value:func(v string)string{return v},Compare:func(a,b string)int{return strings.Compare(a,b)}},\n  {ID:\"length\",Title:\"Length\",Width:100,MinWidth:80,Value:func(v string)string{return fmt.Sprint(len(v))},Compare:func(a,b string)int{return cmp.Compare(len(a),len(b))}},\n },nui.TableOptions{Label:\"Projects\",Caption:\"Project records\",Height:float32({{height}}),Disabled:{{disabled}},ManualSorting:{{manual}},Loading:{{loading}},LoadingAnimation:{{animation}},BuildCaption:caption,BuildLoading:func(c *ui.Context,_ nui.Theme){ui.Text(c,\"Loading projects\")},OnSortChange:func([]ui.SortOrder){s.SortChanges++},OnSelectionChange:func([]string){s.SelectionChanges++},OnActivate:func(id string){s.Activated=id}})\n})\nfirst:=\"None\"\nif s.Table.Len()>0 {first=s.Table.RowID(0)}\nui.Textf(c,\"First: %s · Selected: %d\",first,s.Table.Selection.Len())\nui.Textf(c,\"Sort changes: %d · Selection changes: %d · Activated: %s\",s.SortChanges,s.SelectionChanges,s.Activated)",
+    "state": "Table nui.TableState[string]\nOrders []ui.SortOrder\nEmpty, Multiple, Borrowed bool\nRows []string\nSortChanges, SelectionChanges int\nActivated string",
+    "setup": "s.Rows=[]string{\"NuxtUI Go\",\"MyGo\",\"Documentation\"};s.Table.SetRows(s.Rows,func(v string)string{return v});s.Activated=\"None\"",
+    "body": "if s.Empty!={{empty}} || s.Borrowed!={{borrowed}} {s.Empty={{empty}};s.Borrowed={{borrowed}};rows:=s.Rows;if s.Empty{rows=nil};if s.Borrowed{s.Table.SetBorrowedRows(rows,func(v string)string{return v})}else{s.Table.SetRows(rows,func(v string)string{return v})}}\nif s.Multiple!={{multiple}} {s.Multiple={{multiple}};if s.Multiple {s.Orders=nil;if s.Table.Sort.Column!=\"\"{s.Orders=append(s.Orders,s.Table.Sort)};s.Table.List.SortBy=&s.Orders}else{s.Table.List.SortBy=nil}}\nvar caption func(*ui.Context,nui.Theme)\nif {{caption}} {caption=func(c *ui.Context,t nui.Theme){ui.Text(c,\"Project records\").TextColor(t.Highlighted)}}\ndirection:=ui.LeftToRight\nif {{rtl}} {direction=ui.RightToLeft}\nui.Row(c).Wrap().Gap(8).Children(func(){\n nui.Button(c.Key(\"sort\"),t,\"Sort Project descending\",nui.ButtonOptions{Variant:nui.Outline}).OnClick(func(){s.Table.Sort=ui.SortOrder{Column:\"name\",Descending:true};if s.Multiple{s.Orders=[]ui.SortOrder{s.Table.Sort}}})\n nui.Button(c.Key(\"restore\"),t,\"Restore input order\",nui.ButtonOptions{Variant:nui.Outline}).OnClick(func(){s.Table.Sort=ui.SortOrder{};s.Orders=nil})\n})\nui.Column(c.Key(\"direction\")).Direction(direction).Children(func(){\n nui.Table(c.Key(\"table\"),t,&s.Table,[]nui.TableColumn[string]{\n  {ID:\"name\",Title:\"Project\",Width:240,MinWidth:100,Value:func(v string)string{return v},Compare:func(a,b string)int{return strings.Compare(a,b)}},\n  {ID:\"length\",Title:\"Length\",Width:100,MinWidth:80,Value:func(v string)string{return fmt.Sprint(len(v))},Compare:func(a,b string)int{return cmp.Compare(len(a),len(b))}},\n },nui.TableOptions{Label:\"Projects\",Caption:\"Project records\",Height:float32({{height}}),Disabled:{{disabled}},ManualSorting:{{manual}},Loading:{{loading}},LoadingAnimation:{{animation}},BuildCaption:caption,BuildLoading:func(c *ui.Context,_ nui.Theme){ui.Text(c,\"Loading projects\")},OnSortChange:func([]ui.SortOrder){s.SortChanges++},OnSelectionChange:func([]string){s.SelectionChanges++},OnActivate:func(id string){s.Activated=id}})\n})\nfirst:=\"None\"\nif s.Table.Len()>0 {first=s.Table.RowID(0)}\nui.Textf(c,\"First: %s · Selected: %d\",first,s.Table.Selection.Len())\nui.Textf(c,\"Sort changes: %d · Selection changes: %d · Activated: %s\",s.SortChanges,s.SelectionChanges,s.Activated)",
     "height": 620
   },
   {

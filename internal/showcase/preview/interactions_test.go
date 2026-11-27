@@ -346,6 +346,13 @@ func TestExampleSelectionAndDisclosure(t *testing.T) {
 		if !tester.HasText("First: NuxtUI Go · Selected: 1") {
 			t.Fatal("table restore lost input order or selection")
 		}
+		for _, borrowed := range []bool{true, false, true} {
+			cfg.Values["borrowed"] = borrowed
+			tester.Frame()
+			if !tester.HasText("First: NuxtUI Go · Selected: 1") {
+				t.Fatal("changing row ownership lost order or selection")
+			}
+		}
 		cfg.Values["loading"], cfg.Values["empty"] = true, true
 		tester.Frame()
 		if !tester.HasText("Loading projects") {

@@ -4938,5 +4938,21 @@
   "SidebarOptions.Transition": {
     "zh": "默认开启：桌面侧边栏折叠/展开时宽度平滑过渡 200ms；设为 false、减少动态效果或关闭动画时立即切换（拖拽调宽和跨断点切换始终立即生效）。",
     "en": "On by default: animates desktop collapse/expand width over 200ms; false, reduced motion, or animations off switch immediately (drag resize and breakpoint switches are always immediate)."
+  },
+  "TableColumn.BuildCell": {
+    "en": "Builds a cell with its displayed index, row value, selected state, and existing styled container. Overrides Cell and Value. The Element is valid only during the synchronous callback.",
+    "zh": "使用显示行索引、行值、选择状态和现有样式容器构建单元格，优先于 Cell 和 Value。Element 仅在同步回调期间有效。"
+  },
+  "TableCell.Index": {
+    "en": "Displayed row index after sorting.",
+    "zh": "排序后的显示行索引。"
+  },
+  "TableCell.Value": {
+    "en": "The current row value.",
+    "zh": "当前行值。"
+  },
+  "TableCell.Selected": {
+    "en": "Whether this row is selected.",
+    "zh": "当前行是否已选中。"
   }
 }

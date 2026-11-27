@@ -396,7 +396,7 @@ The color value is a ui.Color; your app handles serialization to HEX, RGB, or an
 
 ### Prepare rows and columns
 
-TableState[T] stores the current row data, sorting, selection, and column layout. Call SetRows when the data changes; do not set the rows again on every view build.
+TableState[T] stores the current row data, sorting, selection, and column layout. Call SetRows when the data changes; do not set the rows again on every view build. It is the string-keyed alias of `KeyedTableState[T, K]`; `TableOptions` likewise aliases `KeyedTableOptions[string]`. Existing string-keyed calls remain source-compatible.
 
 ```go
 // Declare the type and state in your app model.
@@ -436,6 +436,7 @@ SetRows copies the row values and checks that each ID is non-empty and unique. I
 | `TableColumn.Compare` | Stable local sorting; returns the comparison of two rows |
 | `TableColumn.Sortable` | When unset, determined by Compare. An explicit false prevents sorting the column; true without Compare requires ManualSorting |
 | `TableColumn.Cell` | A custom cell that receives the Context, the Theme, the row value, and whether it is selected |
+| `TableColumn.BuildCell` | Takes precedence over Cell/Value; receives the existing styled Element and a `TableCell[T]` with Value, displayed Index, and Selected. Decorate that container and build content synchronously; never retain Element or capture it in deferred callbacks |
 | `Selection` / `Sort` | A `ui.Selection[string]` and a `ui.SortOrder`, respectively |
 | `state.List.SortBy` | Point it at a persistent `[]ui.SortOrder` to enable multi-column sorting; Sort mirrors the first entry |
 | `ManualSorting` | Keeps the input order from SetRows; your app loads or computes the data based on the sort state |
@@ -466,6 +467,55 @@ nui.Table(c.Key("files"), t, &app.files, columns, nui.TableOptions{
 Restore it by assigning the saved `ui.TableLayout` to `List.Columns` before the first build. The internal active row that OnActivate reads follows its record: after sorting or several SetRows calls before the next build, Enter activates the same record even though its row moved. When SetRows removes that record, no row is active and Enter does nothing until the user chooses another row.
 
 Table sets List.Key, Selection, Sort, and Label; do not override these bindings in your app. List.SortBy, Columns, Selected, KeepOffset, FollowEnd, RowHeight, EndReached, NearEnd, HeaderMenu, CellMenu, and similar fields follow MyGo's rules. List.MoveAnimation is not supported through Table yet: nui's motion levels do not govern it, and MyGo turns it off only for the desktop's reduced-motion setting, so rows would still glide when `AppConfig.DisableAnimations` turns nui's motion off. List.CellSelect is a native extension, and this wrapper has no RowHeader column. Full cell selection semantics differ from row selection notifications.
+
+### Borrowed rows and numeric identities
+
+Use `KeyedTableState[T, K]` and `KeyedTableOptions[K]` for string or integer IDs,
+including named types, numeric zero, and the full uint64 range. Selection,
+RowID, OnActivate and OnSelectionChange retain that type; selection notifications
+are sorted by key value. Only accessible display labels format numeric IDs.
+
+`SetRows` copies values and validates identities before replacing a snapshot.
+`SetBorrowedRows` is an explicit trusted-data path: the app guarantees unique,
+stable keys (nonempty strings), a pure key function, and the lifetime of its
+source slice. It retains no row-value copy, full membership map or validation
+scratch. Validate untrusted input before binding; borrowed binding does not
+perform the copying API's duplicate-ID validation. Update data only on the main
+thread between builds, then rebind before rendering, including when values
+change under the same IDs. Neither setter belongs in an unconditional view build.
+
+```go
+type Request struct {
+    ID uint64
+    Path string
+}
+
+// Persistent application fields:
+var requests []Request
+var table nui.KeyedTableState[Request, uint64]
+
+// After loading/filtering, on the main thread:
+table.SetBorrowedRows(requests, func(row Request) uint64 { return row.ID })
+
+// During the view build:
+nui.Table(c, theme, &table, []nui.TableColumn[Request]{
+    {ID: "path", Title: "Path", Value: func(row Request) string { return row.Path }},
+}, nui.KeyedTableOptions[uint64]{
+    Label: "Requests", ManualSorting: true,
+    OnActivate: func(id uint64) { fmt.Println(id) },
+})
+```
+
+Borrowed state keeps one ordered-ID snapshot so reusing the source array cannot
+hide identity changes. The setter reports whether input IDs/order changed and
+removes selections for absent IDs. Local sorting uses a separate index
+permutation, leaving the source untouched; `ManualSorting` uses the supplied
+order without that extra array. Clearing sorting releases the permutation.
+Shrinking compacts oversized identity/selection storage; binding nil releases
+borrowed data. `ClearSelection` immediately releases the selection map while
+preserving the native binding and navigation state. A mounted Table also compacts
+selection after native input. These releases permit collection without forcing GC.
+Copied and borrowed setters can replace one another on the same state.
 
 ### Filtering and scope
 

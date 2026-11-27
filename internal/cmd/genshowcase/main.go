@@ -126,7 +126,26 @@ import (
 var optionTypes = map[string]reflect.Type{
 `)
 	for _, name := range keys(names) {
-		fmt.Fprintf(&out, "%q:reflect.TypeFor[nui.%s](),\n", "nui."+name, name)
+		reference := name
+		if spec := types[name]; spec != nil && spec.TypeParams.NumFields() > 0 {
+			// A generic Options API can share the editor of a concrete public
+			// alias, while keeping both names in the extracted API reference.
+			for _, alias := range keys(types) {
+				candidate := types[alias]
+				if candidate.Assign.IsValid() && candidate.TypeParams.NumFields() == 0 {
+					if instance, ok := candidate.Type.(*ast.IndexExpr); ok {
+						if target, ok := instance.X.(*ast.Ident); ok && target.Name == name {
+							reference = alias
+							break
+						}
+					}
+				}
+			}
+			if reference == name {
+				log.Fatalf("generic options %s need a concrete alias for the editor", name)
+			}
+		}
+		fmt.Fprintf(&out, "%q:reflect.TypeFor[nui.%s](),\n", "nui."+name, reference)
 	}
 	out.WriteString("}\nvar enumValues = map[reflect.Type][]enumValue{\n")
 	for _, name := range keys(enums) {

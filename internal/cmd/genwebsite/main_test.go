@@ -51,6 +51,23 @@ func TestAPISourcePathsAreRepositoryRelative(t *testing.T) {
 	}
 }
 
+func TestTableOptionsAliasHasConcreteCallbackFields(t *testing.T) {
+	e := extract("../../..")
+	fields := e.fields(e.types["TableOptions"], map[string]bool{}, "TableOptions")
+	want := map[string]string{"OnActivate": "func(string)", "OnSelectionChange": "func([]string)"}
+	for _, field := range fields {
+		if kind, ok := want[field.Name]; ok {
+			if field.Type != kind || field.Description != e.notes["TableOptions."+field.Name] {
+				t.Fatalf("alias field %s: %+v", field.Name, field)
+			}
+			delete(want, field.Name)
+		}
+	}
+	if len(want) != 0 {
+		t.Fatalf("generic alias lost callback fields: %v", want)
+	}
+}
+
 func TestSidebarDescriptionsDoNotInheritAccordionMeaning(t *testing.T) {
 	e := extract("../../..")
 	for _, name := range []string{"SidebarOptions", "AccordionOptions"} {
