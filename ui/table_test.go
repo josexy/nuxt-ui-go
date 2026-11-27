@@ -352,7 +352,8 @@ func TestPlainTableCellsMatchDecoratedRendering(t *testing.T) {
 				t.Run(fmt.Sprintf("dark=%v/scale=%g/align=%d", dark, scale, align), func(t *testing.T) {
 					var state nui.TableState[string]
 					state.SetRows([]string{"A short cell", "中文与 café — a long line that exceeds the column width"}, func(v string) string { return v })
-					decorated, styled := false, false
+					decorated := false
+					var styles nui.Styles
 					tt := ui.NewTester(func(c *ui.Context) {
 						th := nui.Light()
 						if dark {
@@ -360,12 +361,9 @@ func TestPlainTableCellsMatchDecoratedRendering(t *testing.T) {
 						}
 						th.TextScale = scale
 						th = nui.App(c, nui.AppConfig{Mode: nui.LightMode, Light: th, DisableAnimations: true})
-						o := nui.TableOptions{Label: "Rows"}
+						o := nui.TableOptions{Label: "Rows", Decoration: nui.Decoration{UI: styles}}
 						if decorated {
 							o.Style = func(nui.Slot, ui.Element) {}
-						}
-						if styled {
-							o.UI = nui.Styles{nui.Label: {Foreground: nui.Set(ui.RGB(220, 0, 0))}, nui.Item: {PaddingY: nui.Set(float32(3))}}
 						}
 						nui.Table(c.Key("table"), th, &state, []nui.TableColumn[string]{{ID: "text", Title: "Text", Width: 190, Align: align, Value: func(v string) string { return v }}}, o).Width(220)
 					}, 300, 400)
@@ -376,7 +374,19 @@ func TestPlainTableCellsMatchDecoratedRendering(t *testing.T) {
 					if !bytes.Equal(plain, tt.Image().Pix) {
 						t.Fatal("plain value cells changed pixels versus the decorated path")
 					}
-					styled, decorated = true, false
+					// Label styling alone keeps the direct text, styled as decorated text.
+					styles, decorated = nui.Styles{nui.Label: {Foreground: nui.Set(ui.RGB(220, 0, 0)), Weight: nui.Set(700)}}, false
+					tt.Frame()
+					label := append([]byte(nil), tt.Image().Pix...)
+					if bytes.Equal(plain, label) || redPixels(tt.Image(), ui.Rect{W: 300, H: 400}) == 0 {
+						t.Fatal("a Label override did not style direct value cells")
+					}
+					decorated = true
+					tt.Frame()
+					if !bytes.Equal(label, tt.Image().Pix) {
+						t.Fatal("Label-styled value cells changed pixels versus the decorated path")
+					}
+					styles, decorated = nui.Styles{nui.Label: {Foreground: nui.Set(ui.RGB(220, 0, 0))}, nui.Item: {PaddingY: nui.Set(float32(3))}}, false
 					tt.Frame()
 					if bytes.Equal(plain, tt.Image().Pix) || redPixels(tt.Image(), ui.Rect{W: 300, H: 400}) == 0 {
 						t.Fatal("adding a part override did not restore decorated rendering")

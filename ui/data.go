@@ -351,7 +351,7 @@ func Table[T any, K TableKey](c *ui.Context, t Theme, s *KeyedTableState[T, K], 
 	}
 	seen := map[string]bool{}
 	native := make([]ui.TableColumn, len(columns))
-	plain := make([]bool, len(columns))
+	cellStyles := make([]tableCellStyle, len(columns))
 	for i, col := range columns {
 		checkID(seen, col.ID, "Table columns")
 		sortable := !col.RowHeader && valueOr(col.Sortable, col.Compare != nil)
@@ -359,7 +359,7 @@ func Table[T any, K TableKey](c *ui.Context, t Theme, s *KeyedTableState[T, K], 
 			panic("nui: sortable Table columns require Compare or ManualSorting")
 		}
 		native[i] = ui.TableColumn{ID: col.ID, Title: col.Title, Width: col.Width, MinWidth: col.MinWidth, MaxWidth: col.MaxWidth, Align: col.Align, Sortable: sortable, Fixed: col.Fixed, RowHeader: col.RowHeader}
-		plain[i] = col.Value != nil && col.Cell == nil && col.BuildCell == nil && plainTableCell(t, o.Decoration, col.Decoration)
+		cellStyles[i] = newTableCellStyle(t, o.Decoration, col)
 	}
 	s.sort(columns, o.ManualSorting)
 	s.List.Key = func(i int) any { return s.RowID(i) }
@@ -408,14 +408,14 @@ func Table[T any, K TableKey](c *ui.Context, t Theme, s *KeyedTableState[T, K], 
 				}
 				s.CellBuilds++
 				value := s.Row(row)
-				column := columns[col]
-				if plain[col] {
-					ui.Text(c, column.Value(value)).SingleLine()
+				column, style := columns[col], &cellStyles[col]
+				if style.direct {
+					style.label.apply(ui.Text(c, column.Value(value)).SingleLine())
 					return
 				}
 				chosen := s.Selection.Has(s.RowID(row))
 				cell := ui.Row(c).MinWidth(0).AlignItems(ui.Center)
-				finishTableCell(t, Item, cell, PartStyle{Gap: Set(t.spacing(6))}, o.Decoration, column.Decoration)
+				finishTableCell(Item, cell, style.item, o.Decoration, column.Decoration)
 				cell.Children(func() {
 					if column.BuildCell != nil {
 						column.BuildCell(c, t, cell, TableCell[T]{Value: value, Index: row, Selected: chosen})
@@ -423,7 +423,7 @@ func Table[T any, K TableKey](c *ui.Context, t Theme, s *KeyedTableState[T, K], 
 						column.Cell(c, t, value, chosen)
 					} else if column.Value != nil {
 						label := ui.Text(c, column.Value(value)).SingleLine()
-						finishTableCell(t, Label, label, PartStyle{}, o.Decoration, column.Decoration)
+						finishTableCell(Label, label, style.label, o.Decoration, column.Decoration)
 					}
 				})
 			}).Fill().Label(o.Label).Description(o.Caption)

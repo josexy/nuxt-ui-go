@@ -28,6 +28,7 @@ Compare the median and spread of the five samples, not a single run. Keep the ma
 | `BenchmarkPerformanceBulkSelection` | Ctrl+A, then clearing the selection from code |
 | `BenchmarkPerformanceTree`, `BenchmarkPerformanceTreeFoldedSelection` | Flat, folded, and expanded trees, with and without linked selection |
 | `BenchmarkPerformanceTable`, `BenchmarkPerformanceTableCursor` | 100k rows with 5, 50, or 200 columns; restoring the cursor after new rows |
+| `BenchmarkPerformanceTableCells` | 100k rows with 5 or 50 columns of plain, Label-styled, or Item-styled text, a Style callback, or custom text and Badge cells |
 | `BenchmarkPerformanceMenu` | Rich menus with 100 to 100k items over one or three open levels |
 | `BenchmarkPerformanceUploadAdmission`, `BenchmarkPerformanceUploadPreviews` | Adding files with duplicates and limits; building the List and Grid previews |
 | `BenchmarkPerformanceBookkeeping` | InputTags, Accordion, Tabs, CheckboxGroup, and Form, which are not virtualized |

@@ -427,6 +427,52 @@ func BenchmarkPerformanceTable(b *testing.B) {
 	}
 }
 
+// Cell content and styling choose between the direct text path and the
+// decorated cell, which adds a container, Style callbacks or custom content.
+func BenchmarkPerformanceTableCells(b *testing.B) {
+	for _, columns := range []int{5, 50} {
+		for _, cells := range []string{"Value", "LabelStyle", "ItemStyle", "Style", "Cell", "Badge"} {
+			b.Run(fmt.Sprintf("N=100000/Columns=%d/Cells=%s", columns, cells), func(b *testing.B) {
+				rows := make([]int, 100000)
+				for i := range rows {
+					rows[i] = i
+				}
+				var state KeyedTableState[int, int]
+				state.SetBorrowedRows(rows, func(v int) int { return v })
+				cols := make([]TableColumn[int], columns)
+				for i := range cols {
+					cols[i] = TableColumn[int]{ID: strconv.Itoa(i), Title: "Column", Width: 120, Value: strconv.Itoa}
+					switch cells {
+					case "Cell":
+						cols[i].Cell = func(c *ui.Context, _ Theme, v int, _ bool) { ui.Text(c, strconv.Itoa(v)).SingleLine() }
+					case "Badge":
+						cols[i].Cell = func(c *ui.Context, t Theme, v int, _ bool) {
+							Badge(c, t, strconv.Itoa(v), BadgeOptions{Color: Success, Variant: Soft})
+						}
+					}
+				}
+				o := KeyedTableOptions[int]{Height: 320}
+				switch cells {
+				case "LabelStyle":
+					o.UI = Styles{Label: {Foreground: Set(ui.RGB(220, 0, 0))}}
+				case "ItemStyle":
+					o.UI = Styles{Item: {PaddingX: Set(float32(2))}}
+				case "Style":
+					o.Style = func(Slot, ui.Element) {}
+				}
+				var builds performanceBuilds
+				tt := ui.NewTester(func(c *ui.Context) {
+					builds.views++
+					Table(c.Key("table"), App(c, AppConfig{DisableAnimations: true}), &state, cols, o).Width(640)
+					builds.rows += state.CellBuilds / columns
+				}, 700, 400)
+				builds.steady(b, tt)
+				b.ReportMetric(float64(state.CellBuilds), "cells/build")
+			})
+		}
+	}
+}
+
 func performanceMenu(n, levels int) ([]MenuItem, []string) {
 	var items []MenuItem
 	var path []string

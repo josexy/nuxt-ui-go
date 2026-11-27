@@ -114,6 +114,19 @@ func TestBorrowedTableStableUpdatesAllocateNoRowStorage(t *testing.T) {
 	}); got != 0 {
 		t.Fatalf("stable borrowed update allocated %g times", got)
 	}
+	// Reconciling a selection whose IDs are all still bound needs no scratch set.
+	for _, row := range rows {
+		state.Selection.Add(row.id)
+	}
+	if got := testing.AllocsPerRun(5, func() {
+		rows[0].value++
+		state.SetBorrowedRows(rows, borrowedKey)
+	}); got != 0 {
+		t.Fatalf("stable borrowed update with every row chosen allocated %g times", got)
+	}
+	if state.Selection.Len() != len(rows) {
+		t.Fatalf("stable borrowed update changed the selection to %d rows", state.Selection.Len())
+	}
 }
 
 func TestBorrowedTableRetainedStorageExcludesCallerRows(t *testing.T) {
