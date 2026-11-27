@@ -291,7 +291,7 @@ func TestModalSlideoverFocusAndDismiss(t *testing.T) {
 	dismissible := false
 	outside, closed := 0, 0
 	value := "a"
-	selectState1 := submittedSelect([]nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}})
+	selectState := submittedSelect([]nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}})
 	tt := ui.NewTester(func(c *ui.Context) {
 		theme := nui.App(c, nui.AppConfig{})
 		ui.Column(c).Padding(16).Gap(12).Children(func() {
@@ -301,7 +301,7 @@ func TestModalSlideoverFocusAndDismiss(t *testing.T) {
 			nui.ModalWithOptions(c, theme, &modal, nui.ModalOptions{Title: "Edit workspace", Description: "Changes stay local", Dismissible: nui.Set(dismissible), OnClose: func() { closed++ }, Footer: func(c *ui.Context, t nui.Theme) {
 				nui.Button(c, t, "Done", nui.ButtonOptions{}).OnClick(func() { modal = false })
 			}}, func(t nui.Theme) {
-				nui.Select(c, t, &value, selectState1, nui.SelectOptions{Label: "Plan"})
+				nui.Select(c, t, &value, selectState, nui.SelectOptions{Label: "Plan"})
 			})
 			nui.Slideover(c, theme, &side, nui.SlideoverOptions{Title: "Filters", Extent: nui.Set(float32(300))}, func(t nui.Theme) { nui.Button(c, t, "Apply", nui.ButtonOptions{}).OnClick(func() { side = false }) })
 		})

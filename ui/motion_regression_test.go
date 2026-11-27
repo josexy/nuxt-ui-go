@@ -149,8 +149,8 @@ func TestOffCancelsPopupExits(t *testing.T) {
 				var selected []string
 				var selectMenu nui.SelectMenuState
 				var menu nui.MenuState
-				selectState11 := submittedSelect([]nui.Option[string]{{Value: "a", Label: "Alpha"}})
-				listSelection1 := chosenSelection(selected)
+				selectState := submittedSelect([]nui.Option[string]{{Value: "a", Label: "Alpha"}})
+				listSelection := chosenSelection(selected)
 				selectMenu.SetItems([]nui.ListboxItem{{ID: "a", Label: "Alpha"}})
 				menu.SetItems([]nui.MenuItem{{ID: "a", Label: "Alpha"}})
 				m := newMotionTester(motionFull, 700, 500, func(c *ui.Context, th nui.Theme) {
@@ -162,10 +162,10 @@ func TestOffCancelsPopupExits(t *testing.T) {
 					case "modal":
 						nui.ModalWithOptions(c, th, &open, nui.ModalOptions{Title: "Panel", UI: redPanel}, func(nui.Theme) { ui.Box(c).Height(100) })
 					case "select":
-						nui.Select(c, th, &choice, selectState11, nui.SelectOptions{Label: "Choice", Open: &open, Popup: nui.PopoverOptions{UI: redPanel}}).Width(240)
+						nui.Select(c, th, &choice, selectState, nui.SelectOptions{Label: "Choice", Open: &open, Popup: nui.PopoverOptions{UI: redPanel}}).Width(240)
 					case "select-menu":
 						selectMenu.Open = open
-						nui.SelectMenu(c, th, listSelection1, &selectMenu, nui.SelectMenuOptions{Label: "Choice", Popup: nui.PopoverOptions{UI: redPanel}}).Width(240)
+						nui.SelectMenu(c, th, listSelection, &selectMenu, nui.SelectMenuOptions{Label: "Choice", Popup: nui.PopoverOptions{UI: redPanel}}).Width(240)
 					case "menu":
 						menu.Open = open
 						nui.DropdownMenu(c, th, a, &menu, nui.MenuOptions{UI: redPanel})
@@ -209,9 +209,9 @@ func TestOffCancelsPopupExits(t *testing.T) {
 
 func TestClosedSelectDoesNotLookLikeAnExitCopy(t *testing.T) {
 	choice := "a"
-	selectState12 := submittedSelect([]nui.Option[string]{{Value: "a", Label: "Alpha"}})
+	selectState := submittedSelect([]nui.Option[string]{{Value: "a", Label: "Alpha"}})
 	m := newMotionTester(motionFull, 700, 500, func(c *ui.Context, th nui.Theme) {
-		nui.Select(c, th, &choice, selectState12, nui.SelectOptions{Label: "Choice", Popup: nui.PopoverOptions{UI: redPanel}}).Width(240)
+		nui.Select(c, th, &choice, selectState, nui.SelectOptions{Label: "Choice", Popup: nui.PopoverOptions{UI: redPanel}}).Width(240)
 	})
 	if box, _ := redExtent(m.Image(), ui.Rect{W: 700, H: 500}); box.W != 0 {
 		t.Fatalf("a closed, never-opened select looks like an exit copy: %v", box)
@@ -273,9 +273,9 @@ func TestModalAfterCancelledExitRestoresNewOpener(t *testing.T) {
 func TestCancelledPopupDoesNotRekeyFollowingControl(t *testing.T) {
 	open, choice, draft := false, "a", "kept"
 	var id uint64
-	selectState13 := submittedSelect([]nui.Option[string]{{Value: "a", Label: "Alpha"}})
+	selectState := submittedSelect([]nui.Option[string]{{Value: "a", Label: "Alpha"}})
 	m := newMotionTester(motionOff, 500, 300, func(c *ui.Context, th nui.Theme) {
-		nui.Select(c.Key("select"), th, &choice, selectState13, nui.SelectOptions{Label: "Choice", Open: &open})
+		nui.Select(c.Key("select"), th, &choice, selectState, nui.SelectOptions{Label: "Choice", Open: &open})
 		// Positional identity must not inherit a key from a closed popup.
 		id = ui.TextInput(c, &draft).Label("Draft").ID()
 	})

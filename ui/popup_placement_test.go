@@ -152,7 +152,7 @@ func TestPopupPlacementContextMenu(t *testing.T) {
 func TestPopupPlacementSelectionLists(t *testing.T) {
 	popup := nui.PopoverOptions{Label: "List panel"}
 	// Each case returns the view of one component, over state of its own.
-	selectState11 := submittedSelect(placementOptions(20))
+	selectState := submittedSelect(placementOptions(20))
 	cases := []struct {
 		name string
 		view func() func(c *ui.Context, th nui.Theme)
@@ -161,16 +161,16 @@ func TestPopupPlacementSelectionLists(t *testing.T) {
 		{"Select", func() func(*ui.Context, nui.Theme) {
 			value := ""
 			return func(c *ui.Context, th nui.Theme) {
-				nui.Select(c, th, &value, selectState11, nui.SelectOptions{Placeholder: "Pick one", Popup: popup})
+				nui.Select(c, th, &value, selectState, nui.SelectOptions{Placeholder: "Pick one", Popup: popup})
 			}
 		}, "Pick one"},
 		{"SelectMenu", func() func(*ui.Context, nui.Theme) {
 			var value []string
 			var state nui.SelectMenuState
-			listSelection1 := chosenSelection(value)
+			listSelection := chosenSelection(value)
 			state.SetItems(placementListboxItems(20))
 			return func(c *ui.Context, th nui.Theme) {
-				nui.SelectMenu(c, th, listSelection1, &state, nui.SelectMenuOptions{Placeholder: "Pick some", Popup: popup})
+				nui.SelectMenu(c, th, listSelection, &state, nui.SelectMenuOptions{Placeholder: "Pick some", Popup: popup})
 			}
 		}, "Pick some"},
 		{"InputMenu", func() func(*ui.Context, nui.Theme) {
@@ -268,11 +268,11 @@ func TestPopupPlacementFittingPopupKeepsItsSize(t *testing.T) {
 	})
 	t.Run("MaxHeight in a tall window", func(t *testing.T) {
 		value := ""
-		selectState1 := submittedSelect(placementOptions(40))
+		selectState := submittedSelect(placementOptions(40))
 		tt := ui.NewTester(func(c *ui.Context) {
 			th := placementTheme(c)
 			ui.Box(c).Absolute().Left(20).Top(20).Width(200).Children(func() {
-				nui.Select(c, th, &value, selectState1, nui.SelectOptions{Placeholder: "Pick one", Popup: nui.PopoverOptions{Label: "List panel"}})
+				nui.Select(c, th, &value, selectState, nui.SelectOptions{Placeholder: "Pick one", Popup: nui.PopoverOptions{Label: "List panel"}})
 			})
 		}, 500, 800)
 		click(t, tt, "Pick one")

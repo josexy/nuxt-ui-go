@@ -247,9 +247,9 @@ func inputComponentsPage(id string) *componentPage {
 			nui.Slider(c, t, &value, nui.SliderOptions{Label: "Progress slider", Min: nui.Set(float64(10)), Max: nui.Set(float64(90)), Step: 5, Tooltip: true})
 			ui.Textf(c, "Value: %.0f", value)
 		})
-		selectState11 := submittedSelect([]nui.Option[nui.Orientation]{{Value: nui.Horizontal, Label: "horizontal"}, {Value: nui.Vertical, Label: "vertical"}})
+		selectState1 := submittedSelect([]nui.Option[nui.Orientation]{{Value: nui.Horizontal, Label: "horizontal"}, {Value: nui.Vertical, Label: "vertical"}})
 		add("range", "Range with minimum gap", "The two thumbs stay at least two 5-unit steps apart. Commit feedback updates on release or a key step.", func(c *ui.Context, t nui.Theme) {
-			nui.Select(c, t, &rangeDirection, selectState11, nui.SelectOptions{Label: "Range orientation"})
+			nui.Select(c, t, &rangeDirection, selectState1, nui.SelectOptions{Label: "Range orientation"})
 			nui.Switch(c, t, &inverted, nui.SwitchOptions{Label: "Reverse range"})
 			rangeElement := nui.RangeSlider(c, t, &lo, &hi, nui.RangeSliderOptions{Label: "Workspace range", Min: 0, Max: 100, Step: 5, MinStepsBetweenThumbs: 2, Inverted: inverted, Orientation: rangeDirection, Tooltip: true, OnCommit: func(l, h float64) { committed = fmt.Sprintf("Confirmed: %g – %g", l, h) }})
 			if rangeDirection == nui.Vertical {
@@ -307,27 +307,27 @@ func inputComponentsPage(id string) *componentPage {
 		multiple.Set([]string{"alpha"})
 		multipleOptions := submittedSelect(propsOptions)
 		options := append(append([]nui.Option[string]{}, plans...), nui.Option[string]{Value: "locked", Label: "Enterprise", Disabled: true})
-		selectState12 := submittedSelect(plans)
+		selectState2 := submittedSelect(plans)
 		add("single", "Single selection", "Arrow keys and Enter select a value; Escape returns focus to the trigger.", func(c *ui.Context, t nui.Theme) {
-			nui.Select(c, t, &basic, selectState12, nui.SelectOptions{Label: "Plan"}).FillWidth()
+			nui.Select(c, t, &basic, selectState2, nui.SelectOptions{Label: "Plan"}).FillWidth()
 			ui.Text(c, "Selected ID: "+basic)
 		})
-		selectState13 := submittedSelect(options)
+		selectState3 := submittedSelect(options)
 		add("identity", "Repeated labels and disabled options", "Both Team rows have different values. Enterprise cannot be selected.", func(c *ui.Context, t nui.Theme) {
-			nui.Select(c, t, &duplicate, selectState13, nui.SelectOptions{Label: "Regional plan"}).FillWidth()
+			nui.Select(c, t, &duplicate, selectState3, nui.SelectOptions{Label: "Regional plan"}).FillWidth()
 			ui.Text(c, "Regional ID: "+duplicate)
 		})
 		add("multiple", "Typed multiple selection", "The selected string IDs are independent of single selection.", func(c *ui.Context, t nui.Theme) {
 			nui.SelectMultiple(c, t, &multiple, multipleOptions, nui.SelectOptions{Label: "Multiple teams", Placeholder: "Select teams"}).FillWidth()
 			ui.Textf(c, "Team IDs: %v", multiple.Values())
 		})
-		selectState14 := submittedSelect(plans)
-		selectState15 := submittedSelect([]nui.Option[string](nil))
+		selectState4 := submittedSelect(plans)
+		selectState5 := submittedSelect([]nui.Option[string](nil))
 		add("empty", "Empty selection and list", "An empty value shows a placeholder; an empty list has no selectable items.", func(c *ui.Context, t nui.Theme) {
 			ui.Text(c, "Available options, no initial selection").TextColor(t.Muted)
-			nui.Select(c, t, &unselected, selectState14, nui.SelectOptions{Label: "Unselected plan", Placeholder: "Choose a plan"}).FillWidth()
+			nui.Select(c, t, &unselected, selectState4, nui.SelectOptions{Label: "Unselected plan", Placeholder: "Choose a plan"}).FillWidth()
 			ui.Text(c, "No available options").TextColor(t.Muted)
-			nui.Select(c, t, &empty, selectState15, nui.SelectOptions{Label: "Empty select", Placeholder: "No options available"}).FillWidth()
+			nui.Select(c, t, &empty, selectState5, nui.SelectOptions{Label: "Empty select", Placeholder: "No options available"}).FillWidth()
 		})
 		accessory := "alpha"
 		var accessoryMany nui.SelectionState[string]
@@ -336,7 +336,7 @@ func inputComponentsPage(id string) *componentPage {
 		open, manyOpen, changes, manyChanges := false, false, 0, 0
 		items := []nui.Option[string]{{Value: "alpha", Label: "Alpha team", Description: "Design and research", Icon: lucide.Users()}, {Value: "blocked", Label: "Blocked team", Description: "Unavailable", Disabled: true}, {Value: "beta", Label: "Beta team", Description: "Application development", Icon: lucide.Code()}}
 		manyOptions := submittedSelect(items)
-		selectState16 := submittedSelect(items)
+		selectState6 := submittedSelect(items)
 		add("accessories", "Trigger content and controlled opening", "Loading remains selectable. Type a prefix in the single trigger; in an open list, type a prefix and press Enter. Escape restores trigger focus. Description icons align with the first line.", func(c *ui.Context, t nui.Theme) {
 			t.InvertedBackground = ui.Hex("#7e22ce")
 			if t.Dark {
@@ -353,7 +353,7 @@ func inputComponentsPage(id string) *componentPage {
 			}
 			ui.Column(c.Key("accessory-fields")).FillWidth().Gap(8).Disabled(parentDisabled).Children(func() {
 				o.Label, o.Open, o.OnChange = "Accessory team", &open, func() { changes++ }
-				nui.Select(c.Key("one"), t, &accessory, selectState16, o).FillWidth()
+				nui.Select(c.Key("one"), t, &accessory, selectState6, o).FillWidth()
 				ui.Textf(c, "Accessory: %s · Changes: %d · Open: %v", accessory, changes, open).Role(ui.RoleStatus)
 				o.Label, o.Open, o.OnChange = "Accessory teams", &manyOpen, func() { manyChanges++ }
 				nui.SelectMultiple(c.Key("many"), t, &accessoryMany, manyOptions, o).FillWidth()
@@ -419,14 +419,14 @@ func inputComponentsPage(id string) *componentPage {
 		}{{"click", "Click popover", true, nui.PopoverClick}, {"policy", "Explicit close only", false, nui.PopoverClick}, {"hover", "Hover and nested controls", true, nui.PopoverHover}} {
 			open := false
 			plan := "personal"
-			selectState17 := submittedSelect(plans)
+			selectState7 := submittedSelect(plans)
 			add(v.id, v.title, "The trigger regains focus on close. The policy scene requires its close button; hover uses a short delay.", func(c *ui.Context, t nui.Theme) {
 				anchor := nui.Button(c, t, "Open "+v.id+" popover", nui.ButtonOptions{Variant: nui.Outline})
 				if v.mode == nui.PopoverClick {
 					anchor.OnClick(func() { open = !open })
 				}
 				nui.Popover(c, t, anchor, &open, nui.PopoverOptions{Label: v.title, Mode: v.mode, Dismissible: nui.Set(v.dismissible), OpenDelay: 200 * time.Millisecond, CloseDelay: 150 * time.Millisecond, Width: nui.Set(float32(300))}, func(inner nui.Theme) {
-					nui.Select(c, inner, &plan, selectState17, nui.SelectOptions{Label: v.id + " popover plan"}).FillWidth()
+					nui.Select(c, inner, &plan, selectState7, nui.SelectOptions{Label: v.id + " popover plan"}).FillWidth()
 					nui.Button(c, inner, "Close "+v.id+" popover", nui.ButtonOptions{}).OnClick(func() { open = false })
 				})
 			})
@@ -476,9 +476,9 @@ func inputComponentsPage(id string) *componentPage {
 		var position ui.ScrollState
 		wide, hidden := false, false
 		direction := nui.ScrollBoth
-		selectState18 := submittedSelect([]nui.Option[nui.ScrollDirection]{{Value: nui.ScrollVertical, Label: "Vertical"}, {Value: nui.ScrollHorizontal, Label: "Horizontal"}, {Value: nui.ScrollBoth, Label: "Both axes"}})
+		selectState8 := submittedSelect([]nui.Option[nui.ScrollDirection]{{Value: nui.ScrollVertical, Label: "Vertical"}, {Value: nui.ScrollHorizontal, Label: "Horizontal"}, {Value: nui.ScrollBoth, Label: "Both axes"}})
 		add("state", "Rounded viewport and retained offsets", "Scroll in both directions, change thumb styling, or set the stored position. Changing direction preserves the available axis and clamps the other. Root corners clip the content.", func(c *ui.Context, t nui.Theme) {
-			nui.Select(c.Key("direction"), t, &direction, selectState18, nui.SelectOptions{Label: "Scroll direction"})
+			nui.Select(c.Key("direction"), t, &direction, selectState8, nui.SelectOptions{Label: "Scroll direction"})
 			nui.Switch(c.Key("width"), t, &wide, nui.SwitchOptions{Label: "Wide scroll thumb"})
 			nui.Switch(c.Key("color"), t, &hidden, nui.SwitchOptions{Label: "Transparent scroll thumb"})
 			width := float32(6)

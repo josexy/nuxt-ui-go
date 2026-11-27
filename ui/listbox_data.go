@@ -1,7 +1,6 @@
 package nui
 
 import (
-	"slices"
 	"strings"
 )
 
@@ -45,18 +44,6 @@ func (s *listboxItems) prepareSearch() {
 		}
 		s.search.records[i] = choiceSearchRecord{id: item.ID, label: item.Label, description: item.Description, group: item.Group, structural: item.Kind != ListboxOption, disabled: item.Disabled}
 	}
-}
-
-func (s *listboxItems) update(items []ListboxItem) bool {
-	if slices.Equal(s.items, items) {
-		return false
-	}
-	index := indexListboxItems(items)
-	s.items, s.index = slices.Clone(items), index
-	s.revision++
-	s.prepareRows()
-	s.prepareSearch()
-	return true
 }
 
 func indexListboxItems(items []ListboxItem) map[string]int {
@@ -241,9 +228,6 @@ func (s *listboxFilter) visible(data *listboxItems, query string, fields []strin
 	return &s.result
 }
 
-func (s *listboxFilter) apply(data *listboxItems, query string, fields []string) {
-	s.visible(data, query, fields, SearchImmediate)
-}
 func (s *listboxFilter) reset() { s.search.reset(); s.result = listboxItems{} }
 
 var emptyChoiceItems listboxItems

@@ -13,15 +13,15 @@ Search and select one or more options inside a popup list.
 
 ## Usage
 
-`SelectMenu` combines a trigger, search field, and `Listbox`. Store selected IDs in a slice and keep open state, query, and focus handles in `SelectMenuState`. Customize the search input via `FilterInput` and initial focus via `FocusSearch`.
+`SelectMenu` combines a trigger, search field, and `Listbox`. Store selected IDs in a `SelectionState[string]` and keep open state, query, and focus handles in `SelectMenuState`. Customize the search input via `FilterInput` and initial focus via `FocusSearch`.
 
 #### Submitted data
 
-Keep one state per instance and call SetItems during setup, data replacement, or accepted async completion. The setter owns its descriptors; resubmit after edits, and use nil to release the data without clearing selection or query. Render with the selection state and component state, without a slice argument. OnChange is parameterless and fires once per accepted user change. External selection mutations are silent; Values() explicitly copies the ordered selection. Unchanged builds do not scan all candidates or selected values.
+Call SetItems during setup or when the data changes, not in the view; it copies the items, so call it again after editing them. Passing nil clears the items but keeps the selection and query. OnChange takes no arguments and fires once per user change; call Values() there when you need the selected IDs. Selection changes made from code are silent.
 
 #### Local search execution
 
-Try Local search execution = background and type into the filter. SearchAuto (default) searches at most 2,048 candidates immediately and uses a worker above that count; SearchImmediate always runs synchronously and SearchBackground always runs nonempty local queries in the background. Both first normalization and matching run there, with cached fields reused for later queries. Pending results show loading and cannot activate or create a value; the query remains editable. Empty queries and ExternalFilter/IgnoreFilter bypass local work. Query/data/configuration changes, close, unmount and window shutdown cancel obsolete work. Keep state per instance/window and call Close() when disposing the owner; Searching() reports local pending work. Each mounted search surface retains one active worker and one latest pending request. Submission and full matching still cost O(N), while steady rendering builds visible rows. App callbacks and UI builders run on the UI thread. In browser previews, background goroutines cooperatively yield between batches on the shared JavaScript event loop; they are not dedicated Web Workers.
+Set Local search execution to background and type into the filter to watch a background search. SearchAuto, the default, searches in the background above 2,048 items. While a search runs, the list shows a loading message and the query stays editable, but Enter and clicks are ignored so that a stale result cannot be chosen. A newer query, closing, or unmounting cancels the search; call Close() when you dispose of the state yourself.
 
 ## Things to know
 
@@ -180,7 +180,7 @@ InputNumber, InputDate, and InputTime share Input's sizes, five field variants, 
 
 ##### SelectMenu: searchable popup
 
-SelectMenu combines a trigger with a search field and a Listbox inside a popup. Keep SelectMenuState and SelectionState[string] per instance, submit with state.SetItems(items), and render SelectMenu(c, theme, &selected, &state, options). SelectMenuState stores Open, Query, the Listbox state, the trigger Handle, and the search field's QueryHandle. Size and Color apply to all three areas. SearchTerm can bind an external query pointer; assigning it from outside does not fire OnQuery or OnSearchTermChange.
+SelectMenu combines a trigger with a search field and a Listbox inside a popup. Submit items with `state.SetItems(items)` and call `SelectMenu(c, theme, &selected, &state, options)`. SelectMenuState stores Open, Query, the Listbox state, the trigger Handle, and the search field's QueryHandle. Size and Color apply to all three areas. SearchTerm can bind an external query pointer; assigning it from outside does not fire OnQuery or OnSearchTermChange.
 
 By default, both ↑ and ↓ open the menu from the trigger and focus the search field. With FocusSearch=false, SearchInput=false, or a disabled search field, the list receives focus instead. In the search field, Enter activates the highlighted item directly, ↑↓ move into the list, and Escape closes the menu and returns to the trigger. Single selection closes the menu; multiple selection keeps it open. If your selection callback moves focus deliberately, that target is kept.
 
@@ -203,11 +203,9 @@ With nothing selected, the trigger shows placeholder text in Dimmed. A Subtle tr
 
 ##### Caching and large data sets
 
-Listbox and SelectMenu own data submitted through SetItems; changing the caller's slice has no effect until it is resubmitted. Submission prepares the ID index, groups, enabled positions and stable row keys once. SelectionState provides revisioned ordered membership. Unchanged revision checks do not enumerate N options or S selections; only visible rows and overscan are built. Submission remains O(N), explicit Values() snapshots and bulk selection depend on the selected count, and prefix search may scan every item.
+SetItems prepares the ID index, groups, and row keys once, so a build that changes nothing does not walk the items or the selection, and only visible rows are built. Submitting, filtering, Select All, prefix search, and `Values()` still take time proportional to the data or selection size. SelectMenu also caches its filter results and the trigger's joined labels.
 
-SelectMenu caches filter results and joined selected labels by data and selection revision; temporarily missing options retain their last known labels. Updating those labels can take O(S) work, and local filtering takes O(N) work when the query or configuration changes. Automatic popup sizing stops once its maximum viewport height is filled.
-
-Both components use parameterless OnChange, called once for an accepted selection change; external Set/Add/Remove/Clear calls stay silent. Read selected.Values() inside the callback only when a snapshot is needed. OnSelect still reports activation, including an unchanged value; per-item PreventDefault cancels both selection and activation notifications.
+OnChange takes no arguments and fires once per user change to the selection; changes made from code are silent. OnSelect reports activation, including activating the item that is already selected. An item's PreventDefault cancels both.
 
 ##### QueryState: reject stale search results
 
@@ -226,7 +224,7 @@ go func() {
 }()
 ```
 
-`fetchItems` is your app's request function. In the next build, pass queryState's Items, Loading, and Error to the menu. Remote search is usually combined with ExternalFilter.
+`fetchItems` is your app's request function. In the view, pass queryState's Loading and Error to the menu. Remote search is usually combined with ExternalFilter.
 
 Start cancels the previous context. Complete clones the result slice and rejects tickets that are stale or come from another instance. Call `queryState.Cancel()` when leaving the view or closing the window. The library creates no network tasks and does not prescribe debounce timing, fuzzy matching, or remote paging.
 
@@ -274,9 +272,15 @@ FieldGroup rounds the outer corners of Input, Textarea, InputMenu, InputTags, Se
 
 Disabled is passed down to the items. Size comes from the instance first, then the ComponentFieldGroup default, then the enclosing FormField; if none is set, each child uses its own default size. Popups opened by child controls keep their own corner radius, such as SelectMenu's search field and InputDate's calendar.
 
-#### Select and InputMenu › Select: single selection and empty values (excerpt)
+#### Select and InputMenu › Submitted data and SelectionState (excerpt)
 
-The parts are Root, Label, Leading, Trailing, Panel, Item, and EmptySlot; SelectMultiple maps the Root style to the trigger. Option.Build can compose row content such as avatars and chips, and must not keep build-time elements. The current model has no label or separator item types and no nested groups. Popup has no arrow, no DOM portal, and no upstream item-aligned positioning. Single selection does not use Popup.Mode, OpenDelay, or CloseDelay; multiple selection keeps SelectMenu's native hover extension.
+| Component | Submit data with | Selection |
+| --- | --- | --- |
+| Listbox, SelectMenu | `SetItems` on their state | `*SelectionState[string]` |
+
+#### Select and InputMenu › Search in large lists (excerpt)
+
+Listbox, SelectMenu, InputMenu, DropdownMenu, and ContextMenu filter their submitted data locally. SearchExecution chooses where that runs:
 
 #### Select and InputMenu › Option row appearance (excerpt)
 

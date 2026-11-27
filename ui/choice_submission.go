@@ -66,8 +66,7 @@ func (s *SearchState) SetOptions(options []Option[string]) {
 	s.memory.search.reset()
 	if len(options) == 0 {
 		s.memory.data.optionMetadata, s.memory.list.optionMetadata = optionMetadata[string]{}, optionMetadata[string]{}
-		s.memory.filtered, s.memory.pending = nil, Optional[string]{}
-		s.memory.search.reset()
+		s.memory.pending = Optional[string]{}
 	}
 }
 
@@ -200,16 +199,14 @@ func (s *submittedMenu) own(items []MenuItem, parent string, depth int) []MenuIt
 			enabled = append(enabled, i)
 		}
 	}
-	if len(owned) > 0 {
-		search := &choiceSearchData{kind: searchMenu, records: make([]choiceSearchRecord, len(owned))}
-		for i, item := range owned {
-			if item.Kind == MenuAction {
-				search.candidates++
-			}
-			search.records[i] = choiceSearchRecord{id: item.ID, label: item.Label, description: item.Description, shortcut: item.Shortcut, structural: item.Kind != MenuAction, disabled: item.Disabled}
+	search := &choiceSearchData{kind: searchMenu, records: make([]choiceSearchRecord, len(owned))}
+	for i, item := range owned {
+		if item.Kind == MenuAction {
+			search.candidates++
 		}
-		s.levels[parent] = submittedMenuLevel{items: owned, menuMetadata: menuMetadata{index: index, enabled: enabled}, search: search}
+		search.records[i] = choiceSearchRecord{id: item.ID, label: item.Label, description: item.Description, shortcut: item.Shortcut, structural: item.Kind != MenuAction, disabled: item.Disabled}
 	}
+	s.levels[parent] = submittedMenuLevel{items: owned, menuMetadata: menuMetadata{index: index, enabled: enabled}, search: search}
 	return owned
 }
 

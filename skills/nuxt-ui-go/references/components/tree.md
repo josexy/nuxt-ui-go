@@ -189,7 +189,7 @@ Nested defaults to true, which shows ancestor guide lines and indents each child
 
 Both modes use a native virtual list that builds only the rows near the viewport. The index of visible nodes is rebuilt when the data or the expansion state changes. Tree builds that index itself rather than through `ui.Outline`, so of `state.Outline` it uses only `Outline.Open` and `Outline.List`: setting `Outline.Generation` has no effect on Tree. Because apps may edit the public collections directly, every build still checks the expanded IDs, and also the selected IDs when indeterminate states are needed. Customize row content with Build.
 
-Build, BuildLeading, and BuildTrailing alone do not trigger descendant selection analysis. In single selection or unlinked multiple selection, custom parts receive Indeterminate=false without walking folded descendants. Leaving linked selection discards its derived summaries before any custom part runs; returning to linking recomputes from the current nodes and selection, without a synthetic OnChange. This does not remove expanded-ID reconciliation or the data-dependent work of linked selection. The performance fixtures measure changing selection with folded descendants separately from many open branches and large linked selections.
+Indeterminate states are computed only for linked multiple selection (BubbleSelect or PropagateSelect), so custom Build, BuildLeading, and BuildTrailing parts receive Indeterminate=false otherwise. Turning linking on again recomputes them from the current nodes and selection without firing OnChange.
 
 ##### Lazy loading
 

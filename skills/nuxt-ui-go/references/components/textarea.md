@@ -19,7 +19,7 @@ Multiline text input that can grow automatically with content.
 
 - `Rows <= 0` defaults to 3. `MaxRows` applies only with `AutoResize` (`<= 0` means unlimited; values below `Rows` use `Rows`).
 - `Enter` and `Shift+Enter` insert newlines without calling `OnSubmit`. `Password` has no effect on multiline input, and there is no resize handle.
-- MaxLength is enforced inside native editing: rejected insertions preserve the caret and undo history and emit no change. Nonpositive limits are unlimited; external assignments remain unchanged. The documented selected-composition cancellation limitation still applies.
+- `MaxLength` limits user input in UTF-16 code units. A rejected insertion keeps the caret and undo history and fires no `OnChange`; assigning the string from code does not truncate it.
 
 ## API
 
@@ -92,7 +92,7 @@ The value argument must be a non-nil `*string`. An empty string is a valid value
 | Avatar | A leading avatar; Leading or a leading loading spinner takes precedence |
 | Loading / LoadingIcon / LoadingTrailing | Shows a loading spinner; the input stays editable. LoadingTrailing moves the spinner to the end, but an explicit Leading keeps it at the start |
 | Clearable / ClearLabel | Enables the clear button and sets its name |
-| MaxLength | Native insertion limit in UTF-16 code units; values at or below 0 mean no limit |
+| MaxLength | Limits how many UTF-16 code units the user can insert; 0 or less means no limit |
 | Highlight / Color / Variant / Size | Highlight state, color, variant, and size |
 | OnChange / OnSubmit / OnClear | Callbacks for input changes, submission, and clearing |
 
@@ -104,7 +104,7 @@ With the Neutral color, the focus and highlight borders use InvertedBackground. 
 
 ##### Editing and clearing
 
-MyGo's TextInputBase and TextAreaBase handle text editing, selection, copy and paste, undo, and IME. MaxLength is passed to the native editor, so an insertion is limited inside the editing operation before OnChange runs. Replacing a selection uses the freed capacity and preserves the untouched suffix; a partially accepted paste never splits a surrogate pair. A fully rejected insertion leaves the caret and undo history unchanged and emits no OnChange. For example, with limit 4 at `ab|cd`, typing `X` is rejected and the following Backspace produces `acd`. Values assigned from outside are not truncated and do not fire input notifications. Changing the limit, theme, or language preserves the current editor's draft and caret; the new limit governs subsequent input. Input-shell consumers, including InputTags and InputMenu, share these native editing semantics.
+MyGo's TextInputBase and TextAreaBase handle text editing, selection, copy and paste, undo, and IME. The native editor applies MaxLength while it inserts text, before OnChange runs. Replacing a selection can use the freed space, and a partly accepted paste never splits a character. An insertion that is rejected entirely leaves the caret and undo history unchanged and fires no OnChange. Values assigned from outside are not truncated and do not fire input notifications. Changing the limit applies to the next input without resetting the draft or caret. InputTags and InputMenu use the same editor.
 
 The clear button appears only when there is content and the input is not read-only, and it inherits the disabled state. Each clear updates the bound value, calls OnChange and OnClear once each, and returns focus to the editor. Clearing changes the value programmatically, so it is not guaranteed to be a single undoable edit. If your app needs to undo a clear, save and restore the data yourself.
 

@@ -263,9 +263,9 @@ func newGenerator(root, skillDir string) (*generator, error) {
 		if e.IsDir() || !strings.HasSuffix(e.Name(), ".md") || e.Name() == "README.md" {
 			continue
 		}
-		// Investigation reports, benchmark protocols and migration guides are
-		// maintenance material; the standalone reference documents current use.
-		if e.Name() == "dip-line-rendering.md" || e.Name() == "performance.md" || strings.HasSuffix(e.Name(), "-migration.md") {
+		// Investigation reports and benchmark notes are maintenance material;
+		// the standalone reference documents current use.
+		if e.Name() == "dip-line-rendering.md" || e.Name() == "performance.md" {
 			continue
 		}
 		data, err := os.ReadFile(filepath.Join(docDir, e.Name()))

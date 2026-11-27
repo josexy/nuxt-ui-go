@@ -155,7 +155,7 @@ func (s *MenuState) close(restore bool, notify func(bool)) {
 		notify(false)
 	}
 }
-func (s *MenuState) prepare(c *ui.Context, items []MenuItem) {
+func (s *MenuState) prepare(c *ui.Context) {
 	if s.handles == nil {
 		s.handles = map[string]*ui.Handle{}
 		s.levels = map[string]*menuLevel{}
@@ -269,8 +269,7 @@ func menu(c *ui.Context, t Theme, anchor ui.Element, s *MenuState, o MenuOptions
 	if s == nil {
 		panic("nui: menu requires state")
 	}
-	items := s.source.items
-	s.prepare(c, items)
+	s.prepare(c)
 	s.pop.update(c, t, s.Open, s)
 	for _, parent := range s.activeLevels {
 		level := s.levels[parent]
@@ -369,7 +368,7 @@ func menu(c *ui.Context, t Theme, anchor ui.Element, s *MenuState, o MenuOptions
 	s.activeLevels = s.activeLevels[:0]
 	panel := ui.PopoverBase(c.Key(s.pop.key(s)), target, &s.Open, func(panel ui.Element) {
 		panel.Bind(&s.panel)
-		menuPanel(c, t, panel, target, s, items, o, id, "", 0, decorate)
+		menuPanel(c, t, panel, target, s, o, id, "", 0, decorate)
 	})
 	// A context-menu press on its trigger moves the existing popup. The
 	// virtual point is not the whole trigger, so PopoverBase sees that press
@@ -392,7 +391,7 @@ func menu(c *ui.Context, t Theme, anchor ui.Element, s *MenuState, o MenuOptions
 	s.focus, s.focusID = nil, ""
 	return panel
 }
-func menuPanel(c *ui.Context, t Theme, panel, anchor ui.Element, s *MenuState, original []MenuItem, o MenuOptions, id Component, parent string, depth int, decorate menuDecoration) {
+func menuPanel(c *ui.Context, t Theme, panel, anchor ui.Element, s *MenuState, o MenuOptions, id Component, parent string, depth int, decorate menuDecoration) {
 	if s.levels[parent] == nil {
 		s.levels[parent] = &menuLevel{}
 	}
@@ -681,7 +680,7 @@ func menuPanel(c *ui.Context, t Theme, panel, anchor ui.Element, s *MenuState, o
 			childVisible := true
 			childOptions := submenuOptions(o, it)
 			child := ui.PopoverBase(c.Key(s.handles[it.ID]), row, &childVisible, func(child ui.Element) {
-				menuPanel(c, t, child, row, s, it.Children, childOptions, id, it.ID, depth+1, decorate)
+				menuPanel(c, t, child, row, s, childOptions, id, it.ID, depth+1, decorate)
 			})
 			if child.Dismissed() && len(s.path) > depth {
 				s.path = s.path[:depth]

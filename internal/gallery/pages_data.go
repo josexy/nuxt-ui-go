@@ -131,10 +131,10 @@ func dataPage(id string) *componentPage {
 			if kind == "states" {
 				description = "The first number is read-only. The second is disabled and marked invalid. Both preserve their initial values."
 			}
-			selectState11 := submittedSelect([]nui.Option[nui.Orientation]{{Value: nui.Horizontal, Label: "horizontal"}, {Value: nui.Vertical, Label: "vertical"}})
+			selectState := submittedSelect([]nui.Option[nui.Orientation]{{Value: nui.Horizontal, Label: "horizontal"}, {Value: nui.Vertical, Label: "vertical"}})
 			add(kind, "Number · "+kind, description, func(c *ui.Context, t nui.Theme) {
 				if kind == "bounded" {
-					nui.Select(c, t, &direction, selectState11, nui.SelectOptions{Label: "Number orientation"})
+					nui.Select(c, t, &direction, selectState, nui.SelectOptions{Label: "Number orientation"})
 				}
 				o := nui.InputNumberOptions{Label: kind + " seats", ReadOnly: kind == "states", Orientation: direction, Min: nui.Set(0.0), Max: nui.Set(10.0), Step: .5, OnValueChange: func(nui.Optional[float64]) { changes++ }}
 				if kind == "vertical" {

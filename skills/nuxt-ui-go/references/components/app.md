@@ -109,7 +109,7 @@ nui.Button(c.Key("save"), theme, "Save", nui.ButtonOptions{
 | `Radius` | Base corner radius of 6 DIP. Set it to 0 for square corners. Each component derives its radius from this base |
 | `ContainerWidth` | Maximum content width, 1280 DIP by default |
 | `Shadow` | `ShadowTokens{Color, Blur, OffsetY}`. Apply it to a part with `Shadow: nui.Set(theme.Shadow)`. Card has no outer shadow by default |
-| `Motion` | `Transition` controls surface color transitions and User/InputRating scale poses (150 ms by default; 0 or less makes them immediate), `Spin` is a loading spinner's turn (1 s) and `Pulse` a Skeleton pulse (2 s). `Reduce` asks for reduced motion and `Disabled` turns animation off; see Motion levels |
+| `Motion` | `Transition` is how long color transitions and the User and InputRating hover scale take (150 ms by default; 0 or less makes them immediate), `Spin` is a loading spinner's turn (1 s) and `Pulse` a Skeleton pulse (2 s). `Reduce` asks for reduced motion and `Disabled` turns animation off; see Motion levels |
 
 Windows uses Segoe UI and Consolas by default; other platforms use system-ui and monospace. The library does not bundle fonts, and fonts and fallback fonts can affect the actual control height.
 
@@ -188,7 +188,7 @@ Black changes with the color mode and has no 11-shade palette, so it does not ap
 
 #### Table › Sorting, selection, and custom cells (excerpt)
 
-Table sets List.Key, Selection, Sort, and Label; do not override these bindings in your app. List.SortBy, Columns, Selected, KeepOffset, FollowEnd, RowHeight, EndReached, NearEnd, HeaderMenu, CellMenu, and similar fields follow MyGo's rules. List.MoveAnimation is not supported through Table yet: nui's motion levels do not govern it, and MyGo turns it off only for the desktop's reduced-motion setting, so rows would still glide when `AppConfig.DisableAnimations` turns nui's motion off. List.CellSelect/Cells are native extensions, with TableColumn.RowHeader for whole-row/table selection. Combined OnChange includes cell/cursor changes; it is not a selection-only notification.
+Table sets List.Key, Selection, Sort, and Label; do not override these bindings in your app. List.SortBy, Columns, Selected, KeepOffset, FollowEnd, RowHeight, EndReached, NearEnd, HeaderMenu, CellMenu, and similar fields follow MyGo's rules. List.MoveAnimation is not supported through Table yet: nui's motion levels do not govern it, and MyGo turns it off only for the desktop's reduced-motion setting, so rows would still glide when `AppConfig.DisableAnimations` turns nui's motion off. List.CellSelect and Cells are native extensions; CellSelect and DragSelect cannot be combined with row reordering or external row dragging. With CellSelect, a column with `RowHeader: true` selects whole rows, its header selects the whole table, and it never sorts, even with Compare.
 
 ### Compatibility and known limitations
 

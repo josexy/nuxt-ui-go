@@ -61,6 +61,12 @@ From the library documentation. Links point to other component references in thi
 
 Empty's default padding is 16, 24, or 32 DIP depending on the window width, with breakpoints at 640 and 1024 DIP. The header, body, and footer are at most 384 DIP wide. The avatar defaults to 32, 36, 40, 44, or 48 DIP for Empty sizes XS–XL; an explicit Avatar.Size takes precedence. Avatar.Image always takes precedence over an icon, and an explicit Avatar.Icon takes precedence over Empty.Icon and the loading icon.
 
+### Inputs, selection, and fields
+
+#### Select and InputMenu › Search in large lists (excerpt)
+
+While a background search runs, the list shows a loading message and the query stays editable; Enter, clicks, and creation are ignored so that a stale result cannot be chosen. A new query cancels the previous search. The state's `Searching()` reports pending work. Closing the popup, removing the control, or closing the window cancels the search; call the state's `Close()` when you dispose of it yourself, and set an external Open pointer to false. Empty queries, IgnoreFilter, and ExternalFilter skip local search. On the browser backend, background search runs on the JavaScript event loop in short slices, not in a Web Worker.
+
 ### Overlays, menus, and navigation
 
 #### Tabs, Collapsible, and Accordion › Appearance (excerpt)

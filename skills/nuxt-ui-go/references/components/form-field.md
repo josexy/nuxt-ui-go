@@ -139,7 +139,7 @@ A focused empty cell hides its Placeholder and shows a blinking cursor. It blink
 
 #### Numbers, tags, PINs, and ratings › InputRating (excerpt)
 
-Stars are 12/16/20/24/28 DIP for sizes XS to XL, 2 DIP apart, and the component is as wide as its content. When interactive, the hovered star scales to 1.1×. With Hoverable on, hovering only previews the rating; the preview stays while the pointer crosses gaps between stars and is canceled when the pointer leaves or the rating is cleared. When FormField has an error, filled stars and the focus ring use the Error color.
+Stars are 12/16/20/24/28 DIP for sizes XS to XL, 2 DIP apart, and the component is as wide as its content. When interactive, the hovered star scales to 1.1× over Motion.Transition; under reduced motion, at Off, or with a zero Transition the final scale shows at once. With Hoverable on, hovering only previews the rating; the preview stays while the pointer crosses gaps between stars and is canceled when the pointer leaves or the rating is cleared. When FormField has an error, filled stars and the focus ring use the Error color.
 
 #### Numbers, tags, PINs, and ratings › RangeSlider (excerpt)
 

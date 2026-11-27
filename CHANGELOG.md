@@ -6,10 +6,45 @@
 - Anchored popups fit the window on the side they open. Under MyGo v0.10.0, a DropdownMenu, Popover or Select, SelectMenu or InputMenu popup opened above or below its trigger is no taller than the room between the trigger and the window edge, and does not cover the trigger; a ContextMenu stays inside the window. In a short window the last items of a long DropdownMenu, Select or SelectMenu list were out of reach before, past the window edge even when scrolled to the end; now the list scrolls inside the window. Popover content taller than the room is cut off at the panel's edge, as it was at the window's. New regression tests cover each popup.
 - Fix InputMenu's popup in short windows: its option list now shrinks with the panel and scrolls, so every option can be reached.
 - Documented that nui does not support phones yet, because MyGo's iOS and Android targets build with cgo, and that touchscreen scrolling on Windows, new in MyGo v0.10.0, has not been verified with nui.
+- Choice controls keep their data in persistent state. Select, SelectMultiple, InputMenu, Listbox, SelectMenu, DropdownMenu and ContextMenu read options submitted once with `SetOptions` or `SetItems`, so a build that changes nothing no longer compares the whole data set or walks the selection. Multi-selection uses the new `SelectionState[K]`, an ordered set with `Set`, `Add`, `Remove`, `Clear`, `Has`, `Len` and `Values`.
+- Listbox, SelectMenu, InputMenu and the rich menus can filter in the background. `SearchExecution` defaults to `SearchAuto`, which searches more than 2,048 items off the UI thread; a newer query, closing or unmounting cancels the search, and a pending search shows a loading message and cannot accept a stale result. `Searching()` and `Close()` are new on each state.
+- DropdownMenu and ContextMenu levels, InputMenu's selected tags and FileUpload's file list are virtualized and build only the rows in view. InputMenu's tags scroll inside a 96 DIP area, and Tab, the arrow keys, Home and End move between them. FileUpload has a new `PreviewHeight` option (320 DIP by default).
+- SelectMultiple shares Select's native list instead of wrapping SelectMenu.
+- Table: add `TableColumn.RowHeader` for native whole-row selection with `List.CellSelect`; plain Value columns draw their text directly; restoring the active row after new rows is faster. A new example, `examples/table-manual-sorting`, sorts large tables in the background with ManualSorting.
+- Input and Textarea pass MaxLength to MyGo's native editor, so a rejected insertion keeps the caret and undo history.
+- User and InputRating animate their hover scale with a native pose, which repaints without rebuilding the view.
+- Fewer allocations and scans in InputTags, Accordion, Tabs, CheckboxGroup, Form, CommandPalette highlighting and FileUpload's Add.
+- Move the agent skill to `skills/nuxt-ui-go` and add `docs/performance.md`, which lists the benchmarks and how to run them.
 
 ### Migration notes
 
 - **`mygo.Version` is "0.10.0".** Apps that compare MyGo's version constant see the new value. No other MyGo API that nui or its examples use changed incompatibly.
+- **BREAKING: choice controls take persistent state instead of a slice.** Submit data during setup or when it changes, never in the view, and pass the state to the component:
+
+  ```go
+  // Before
+  nui.Select(c, theme, &app.Value, options, nui.SelectOptions{})
+  nui.SelectMultiple(c, theme, &app.Values, options, nui.SelectOptions{})
+  nui.Listbox(c, theme, &app.IDs, &app.List, items, nui.ListboxOptions{OnChange: func(ids []string) { save(ids) }})
+  nui.DropdownMenu(c, theme, anchor, &app.Menu, commands, nui.MenuOptions{})
+
+  // After: in setup
+  app.Single.SetOptions(options)   // nui.SelectState[T], one per control
+  app.Multiple.SetOptions(options)
+  app.List.SetItems(items)         // nui.ListboxState
+  app.Menu.SetItems(commands)      // nui.MenuState
+  // After: in the view
+  nui.Select(c, theme, &app.Value, &app.Single, nui.SelectOptions{})
+  nui.SelectMultiple(c, theme, &app.Values, &app.Multiple, nui.SelectOptions{}) // app.Values is a nui.SelectionState[T]
+  nui.Listbox(c, theme, &app.IDs, &app.List, nui.ListboxOptions{OnChange: func() { save(app.IDs.Values()) }})
+  nui.DropdownMenu(c, theme, anchor, &app.Menu, nui.MenuOptions{})
+  ```
+
+  The same applies to `InputMenu(c, t, &search, o)` and `SearchSelect(c, t, &search, label)` with `SearchState.SetOptions`, `SelectMenu(c, t, &selected, &state, o)` with `SelectMenuState.SetItems`, and `ContextMenu`. The setters copy their input, so editing your slice later has no effect until you call the setter again. Invalid data panics and keeps the previous data. Passing nil clears the data but keeps the selection and the query. Keep one state per control and per window.
+- **BREAKING: multi-selections are `SelectionState` values and change callbacks take no arguments.** `SelectMultiple`, `Listbox` and `SelectMenu` bind a `*SelectionState[T]` (`*SelectionState[string]` for the string-keyed ones) instead of a slice pointer, and `SearchState.SelectedValues` is a `SelectionState[string]`. `ListboxOptions.OnChange` (also used by SelectMenu) and `InputMenuOptions.OnValuesChange` are now `func()`; read `Values()` inside them when you need the keys. Changing a selection from code still fires no callback.
+- **BREAKING: Table's `OnSelectionChange` is removed.** Use `OnChange`, which also fires for cursor moves, sorting and column changes, and read the selection there: `OnChange: func() { use(slices.Sorted(state.Selection.All())) }`. Prefer `Selection.Len()` or `Selection.Has(id)` when they are enough, since a sorted copy costs time in proportion to the selection.
+- **An explicit empty `FilterFields` matches nothing in DropdownMenu and ContextMenu.** Before, an empty list fell back to matching labels, as nil does. Leave the field nil to match labels.
+- **SelectMultiple parts.** SelectMultiple no longer wraps SelectMenu, so its UI and Style use Select's parts (Root, Label, Leading, Trailing, Panel, Item and EmptySlot); SelectMenu-only parts such as List and ItemLabelSlot no longer apply.
 
 ## v0.1.1 - 2026-11-16
 

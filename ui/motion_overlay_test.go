@@ -41,7 +41,7 @@ func redSurfacePixel(im *image.RGBA, x, y int) bool {
 // The overlay exits rely on MyGo copying a PopoverBase panel, built
 // directly in the overlay layer, as it leaves: the copy paints for its
 // ExitDuration and takes no input (design D6).
-func TestPopoverBaseExitCopySpike(t *testing.T) {
+func TestUpstreamPopoverBaseExitCopy(t *testing.T) {
 	open, behind := true, 0
 	tt := ui.NewTester(func(c *ui.Context) {
 		ui.Column(c).Padding(20).Gap(8).Children(func() {
@@ -472,17 +472,17 @@ func TestPopupExitsAtEachLevel(t *testing.T) {
 		var menu nui.SelectMenuState
 		var picked []string
 		var context nui.MenuState
-		selectState11 := submittedSelect(options)
-		listSelection1 := chosenSelection(picked)
+		selectState := submittedSelect(options)
+		listSelection := chosenSelection(picked)
 		menu.SetItems([]nui.ListboxItem{{ID: "a", Label: "Alpha"}})
 		search.SetOptions(options)
 		context.SetItems([]nui.MenuItem{{ID: "a", Label: "Alpha"}})
 		return []popup{
 			{"Select", func(c *ui.Context, th nui.Theme) {
-				nui.Select(c, th, &choice, selectState11, nui.SelectOptions{Label: "Choice", Popup: nui.PopoverOptions{UI: redPanel}}).Width(240)
+				nui.Select(c, th, &choice, selectState, nui.SelectOptions{Label: "Choice", Popup: nui.PopoverOptions{UI: redPanel}}).Width(240)
 			}, func(t *testing.T, m *motionTester) { click(t, m.Tester, "Choice") }, escape},
 			{"SelectMenu", func(c *ui.Context, th nui.Theme) {
-				nui.SelectMenu(c, th, listSelection1, &menu, nui.SelectMenuOptions{Label: "Menu", Popup: nui.PopoverOptions{UI: redPanel}}).Width(240)
+				nui.SelectMenu(c, th, listSelection, &menu, nui.SelectMenuOptions{Label: "Menu", Popup: nui.PopoverOptions{UI: redPanel}}).Width(240)
 			}, func(t *testing.T, m *motionTester) { click(t, m.Tester, "Menu") }, escape},
 			{"InputMenu", func(c *ui.Context, th nui.Theme) {
 				nui.InputMenu(c, th, &search, nui.InputMenuOptions{Label: "Search", Popup: nui.PopoverOptions{UI: redPanel}}).Width(240)

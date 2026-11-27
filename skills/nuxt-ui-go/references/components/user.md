@@ -64,7 +64,7 @@ If every field of User's `AvatarOptions` is empty, no avatar is shown. To show i
 
 User.Size sets the size of the avatar and its chip, overriding the nested Avatar.Size and Chip.Size. Chip.Inset is always true; the other chip settings (position, color, text, and Hidden) are passed through. Without an avatar, no chip is shown. Leading replaces the default avatar area and Body replaces the name and description. Each region is built with a stable identity.
 
-An activatable User emphasizes its text and scales the avatar to 1.15× on hover or keyboard focus. The scale transition follows Motion.Transition and uses native AnimatePose: changing its target may build once, while animation ticks only paint. Reduced motion, Off and nonpositive duration show the final scale immediately. Disabling the User or a parent prevents activation. OnActivate does not route or open URLs; your app implements those actions.
+An activatable User emphasizes its text and scales the avatar to 1.15× on hover or keyboard focus. The scale follows Motion.Transition; under reduced motion, at Off, or with a zero Transition the final scale shows at once. Disabling the User or a parent prevents activation. OnActivate does not route or open URLs; your app implements those actions.
 
 #### Components and parts › Images, avatars, and icons (excerpt)
 

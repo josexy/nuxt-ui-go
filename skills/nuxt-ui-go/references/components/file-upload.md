@@ -17,7 +17,7 @@ Store queued files in `FileUploadState` and drive real transfers via `Begin` and
 
 #### Bounded file previews
 
-Load 10,000 previews to try scrolling, switch list/grid, and resize the viewport. Add uses temporary sets from the current Files collection, preserving duplicate-path suppression and rejected-file order in O(existing + incoming) admission work; direct external Files edits are respected. Report and current-job lookup still scan files.
+PreviewHeight sets the height of the scrolling file list (320 DIP by default; 0 hides it). Click Load 10,000 previews to try scrolling and switching between list and grid.
 
 List mode measures visible rows. Grid mode uses fixed cards sized from the theme/text scale, single-line names/status and at most two error lines. Complete names/errors remain in accessibility text; the error can receive keyboard focus and its tooltip contains the full message. Try Show long error. The native grid updates its columns after layout; file action focus is restored across layout changes and removal/cancel returns focus to the picker. Custom FileDeleteOptions, component Style callbacks or row typography/spacing overrides use the measured List fallback. Grid Avatar decorations must fit the declared avatar size; use UploadList for arbitrary avatar sizing. Builders only create visible previews and native overscan.
 
@@ -183,7 +183,7 @@ FileUpload provides file selection, rule checks, a file list, and progress displ
 
 FileUploadState.Files stores file metadata, not open file handles. UploadFile contains Path, Name, MIME, Size, a status, a Progress from 0 to 1, Error, and an app-supplied Avatar. Add assigns stable IDs that do not collide with existing entries and ignores entries with an identical Path. If you assign Files directly, your app must provide unique IDs. The component does not load or decode preview images itself.
 
-Batch admission builds temporary path/ID sets and an accepted count from the current Files collection, then processes incoming files in order: O(existing + incoming) work, including after direct external edits. Duplicate nonempty paths are ignored; rejected entries remain in order and do not count toward MaxFiles. Report/current-job lookup still scans Files.
+Add processes incoming files in order against the current Files, including entries your app assigned directly. Rejected entries stay in the list and do not count toward MaxFiles.
 
 | Option | Purpose |
 | --- | --- |
@@ -196,7 +196,7 @@ Batch admission builds temporary path/ID sets and an accepted count from the cur
 | FileIcon / FileImage / UploadFile.Avatar | The fallback file icon and the app-supplied preview accessory. FileImage=false shows only FileIcon |
 | FileDelete / FileDeleteOptions / FileDeleteIcon | Whether the delete button is shown, its options, and its icon. Defaults to Neutral / LinkVariant / component size in the list, and Neutral / Solid / XS in the grid |
 | Preview | Default true; false hides the file list but keeps the data and tasks. See [Sidebar, navigation, and file selection](sidebar.md) |
-| PreviewHeight | Optional viewport height in DIP: unset is 320, explicit zero builds no preview widgets, negative/nonfinite values panic |
+| PreviewHeight | Height of the scrolling file list in DIP. Unset is 320, and 0 hides the list; a negative or non-finite value panics |
 
 Files that exceed a limit or cannot be read are shown as Rejected with the reason, and the user can remove them. A non-positive MaxBytes or MaxFiles means no limit. Rejected files do not count toward the limit, while accepted files that later fail or are canceled still count. The component inherits Disabled from its parent container and FormField, as well as FormField's Size, label, and error message. The default color and size come from ComponentFileUpload.
 
@@ -204,9 +204,9 @@ OnChange fires once, with a copy of the list, only when a selection or removal a
 
 Go keeps an upload queue model. Dialog.Multiple only controls whether one native dialog accepts several files; you cannot use it to limit the queue size. Nuxt UI's single-file modelValue replacement, `multiple` forcing the area variant, and the web input reset have no direct equivalent. The grid shows file names, status, and progress and does not claim to match upstream's image grid exactly.
 
-Previews now occupy a bounded native List/GridView viewport instead of expanding for every file. List rows are measured. Grid cards have a fixed height derived from the theme/text scale, single-line names/status and at most two error lines. Complete names/errors remain available to assistive technology; error text is keyboard-focusable in the grid and has a full-message tooltip. The native grid commits column measurement after layout. Layout switches restore the focused file action, and removal/cancellation returns focus to the picker.
+The file list scrolls inside PreviewHeight and builds only the files in view; an offscreen file's progress shows once it scrolls into view. Grid cards have a fixed height that fits a one-line name and status, two lines of error text, and a progress bar. The full name and error stay available to assistive technology, and in the grid the error text takes keyboard focus and shows the whole message as a tooltip. Switching layouts keeps focus on the focused file action, and removing or cancelling a file returns focus to the picker.
 
-Custom FileDeleteOptions, component Style callbacks, or row typography/spacing overrides use measured List rows rather than exceeding the grid cell contract. Caller-supplied avatar decorations in the grid must fit their declared avatar size; use UploadList for arbitrary avatar sizing. Color-only row overrides preserve the grid. Only visible previews and native overscan are built; an offscreen progress update is reflected when its file appears.
+Because grid cards have a fixed height, custom FileDeleteOptions, a Style callback, or part overrides that change fonts, padding, or gaps switch the grid to list rows that size to their content; color-only overrides keep the grid. A custom file avatar in the grid must fit its declared Avatar.Size; use UploadList for other sizes.
 
 ##### How files are checked
 
@@ -257,7 +257,7 @@ Canceling the context cannot force an open native file dialog to close, but its 
 | --- | --- |
 | Carousel, FileUpload | Carousel: Arrows=false. FileUpload: Layout=UploadGrid |
 
-FileUpload's `Dropzone`, `Interactive`, `FileDelete`, and `Preview` all default to true. PreviewHeight is 320 DIP when unset; explicit zero builds no preview viewport, while negative/nonfinite values are invalid. The zero value of `UploadLayout` is `UploadLayoutDefault`; use the enum names in options rather than relying on the underlying numbers.
+FileUpload's `Dropzone`, `Interactive`, `FileDelete`, and `Preview` all default to true. PreviewHeight is 320 DIP when unset, and an explicit 0 hides the file list. The zero value of `UploadLayout` is `UploadLayoutDefault`; use the enum names in options rather than relying on the underlying numbers.
 
 #### Common options by component › Sidebar, navigation, and file selection (excerpt)
 

@@ -140,7 +140,7 @@ func TestDIPComponentStrokes(t *testing.T) {
 					var list nui.ListboxState
 					var selected []string
 					count := 0
-					listSelection1 := chosenSelection(selected)
+					listSelection := chosenSelection(selected)
 					list.SetItems([]nui.ListboxItem{{ID: "a", Label: "Alpha"}, {ID: "line1", Kind: nui.ListboxSeparator}, {ID: "b", Label: "Beta", Description: "Details"}, {ID: "line2", Kind: nui.ListboxSeparator}, {ID: "c", Label: "Gamma"}})
 					tt := ui.NewTester(func(c *ui.Context) {
 						count = 0
@@ -171,7 +171,7 @@ func TestDIPComponentStrokes(t *testing.T) {
 							case "timeline":
 								nui.Timeline(c, th, []nui.TimelineItem{{ID: "a", Title: "Alpha", Description: "Details"}, {ID: "b", Title: "Beta"}, {ID: "c", Title: "Gamma"}}, nui.TimelineOptions{Horizontal: !vertical, Decoration: d}).Fill()
 							case "listbox":
-								nui.Listbox(c, th, listSelection1, &list, nui.ListboxOptions{Decoration: d}).Fill()
+								nui.Listbox(c, th, listSelection, &list, nui.ListboxOptions{Decoration: d}).Fill()
 							}
 						})
 					}, 510, 410)

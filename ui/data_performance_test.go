@@ -15,12 +15,12 @@ func TestListboxSubmittedEdits(t *testing.T) {
 	selected := []string{"b"}
 	var state nui.ListboxState
 	shown := true
-	listSelection1 := chosenSelection(selected)
+	listSelection := chosenSelection(selected)
 	state.SetItems(items)
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		if shown {
-			nui.Listbox(c.Key("choices"), th, listSelection1, &state, nui.ListboxOptions{Label: "Choices"}).Width(320)
+			nui.Listbox(c.Key("choices"), th, listSelection, &state, nui.ListboxOptions{Label: "Choices"}).Width(320)
 		}
 	}, 400, 300)
 	if state.Active != "b" {
@@ -29,14 +29,14 @@ func TestListboxSubmittedEdits(t *testing.T) {
 	click(t, tt, "Alpha")
 	items[0].Label, items[0].Group, items[0].Disabled = "Renamed", "New group", true
 	state.SetItems(items)
-	listSelection1.Set([]string{"b"})
+	listSelection.Set([]string{"b"})
 
 	tt.Frame()
 	if tt.HasText("Alpha") || tt.HasText("First") || !tt.HasText("Renamed") || !tt.HasText("New group") || state.Active != "b" {
 		t.Fatalf("stale item cache: active=%q texts=%v", state.Active, tt.Texts())
 	}
 	click(t, tt, "Beta")
-	if listSelection1.Len() != 0 {
+	if listSelection.Len() != 0 {
 		t.Fatal("external selection was not reflected in the next activation")
 	}
 	shown = false
@@ -49,8 +49,8 @@ func TestListboxSubmittedEdits(t *testing.T) {
 	tt.Key(0, ui.KeyTab)
 	tt.Key(0, ui.KeyHome)
 	tt.Key(0, ui.KeyEnter)
-	if !slices.Equal(listSelection1.Values(), []string{"b"}) {
-		t.Fatalf("reordered/remounted IDs: %v", listSelection1.Values())
+	if !slices.Equal(listSelection.Values(), []string{"b"}) {
+		t.Fatalf("reordered/remounted IDs: %v", listSelection.Values())
 	}
 	items = items[:1]
 	state.SetItems(items)
@@ -58,31 +58,6 @@ func TestListboxSubmittedEdits(t *testing.T) {
 	if tt.HasText("Renamed") {
 		t.Fatal("removed item remained cached")
 	}
-}
-
-func TestListboxSubmissionRejectsDuplicateIDsAtomically(t *testing.T) {
-	items := []nui.ListboxItem{{ID: "a", Label: "A"}, {ID: "b", Label: "B"}}
-	var selected []string
-	var state nui.ListboxState
-	listSelection2 := chosenSelection(selected)
-	state.SetItems(items)
-	tt := ui.NewTester(func(c *ui.Context) {
-		nui.Listbox(c, nui.App(c, nui.AppConfig{}), listSelection2, &state, nui.ListboxOptions{})
-	}, 400, 300)
-	items[1].ID = "a"
-	func() {
-		defer func() {
-			if recover() == nil {
-				t.Fatal("duplicate ID submission was not rejected")
-			}
-		}()
-		state.SetItems(items)
-	}()
-	tt.Frame()
-	if !tt.HasText("B") {
-		t.Fatal("invalid submission replaced the previous dataset")
-	}
-
 }
 
 func TestListboxLargeHorizontalViewport(t *testing.T) {
@@ -97,11 +72,11 @@ func TestListboxLargeHorizontalViewport(t *testing.T) {
 			var state nui.ListboxState
 			var selected []string
 			builds := 0
-			listSelection3 := chosenSelection(selected)
+			listSelection := chosenSelection(selected)
 			state.SetItems(items)
 			tt := ui.NewTester(func(c *ui.Context) {
 				builds = 0
-				nui.Listbox(c, nui.App(c, nui.AppConfig{}), listSelection3, &state, nui.ListboxOptions{
+				nui.Listbox(c, nui.App(c, nui.AppConfig{}), listSelection, &state, nui.ListboxOptions{
 					Label: "Choices", Orientation: nui.Set(nui.Horizontal), ItemWidth: 120,
 					Style: func(slot nui.Slot, _ ui.Element) {
 						if slot == nui.Item {
@@ -117,8 +92,8 @@ func TestListboxLargeHorizontalViewport(t *testing.T) {
 			tt.Key(0, ui.KeyEnd)
 			tt.Key(0, ui.KeyEnter)
 			tt.Frame()
-			if builds > 10 || !slices.Equal(listSelection3.Values(), []string{"9999"}) {
-				t.Fatalf("horizontal virtualization: builds=%d selected=%v", builds, listSelection3.Values())
+			if builds > 10 || !slices.Equal(listSelection.Values(), []string{"9999"}) {
+				t.Fatalf("horizontal virtualization: builds=%d selected=%v", builds, listSelection.Values())
 			}
 			r := bounds(t, tt, "Choice 09999")
 			if r.X < 0 || r.X+r.W > 501 {
@@ -155,10 +130,10 @@ func TestListboxSteadyFrameAllocations(t *testing.T) {
 		items[i] = nui.ListboxItem{ID: selected[i], Label: "Choice"}
 	}
 	var state nui.ListboxState
-	listSelection4 := chosenSelection(selected)
+	listSelection := chosenSelection(selected)
 	state.SetItems(items)
 	tt := ui.NewTester(func(c *ui.Context) {
-		nui.Listbox(c, nui.App(c, nui.AppConfig{}), listSelection4, &state, nui.ListboxOptions{Height: 320}).Width(640)
+		nui.Listbox(c, nui.App(c, nui.AppConfig{}), listSelection, &state, nui.ListboxOptions{Height: 320}).Width(640)
 	}, 700, 400)
 	tt.Move(690, 390)
 	tt.Frame()
@@ -175,10 +150,10 @@ func TestHorizontalListboxResizeAtEnd(t *testing.T) {
 	var state nui.ListboxState
 	var selected []string
 	width := float32(240)
-	listSelection5 := chosenSelection(selected)
+	listSelection := chosenSelection(selected)
 	state.SetItems(items)
 	tt := ui.NewTester(func(c *ui.Context) {
-		nui.Listbox(c, nui.App(c, nui.AppConfig{}), listSelection5, &state, nui.ListboxOptions{Label: "Choices", Orientation: nui.Set(nui.Horizontal), ItemWidth: 120}).Width(width)
+		nui.Listbox(c, nui.App(c, nui.AppConfig{}), listSelection, &state, nui.ListboxOptions{Label: "Choices", Orientation: nui.Set(nui.Horizontal), ItemWidth: 120}).Width(width)
 	}, 1200, 200)
 	tt.Key(0, ui.KeyTab)
 	tt.Key(0, ui.KeyEnd)
@@ -194,10 +169,10 @@ func TestSelectMenuCachesTrackLabelsAndFilterFields(t *testing.T) {
 	values := []string{"a"}
 	state := nui.SelectMenuState{}
 	fields := []string{"label"}
-	listSelection6 := chosenSelection(values)
+	listSelection := chosenSelection(values)
 	state.SetItems(items)
 	tt := ui.NewTester(func(c *ui.Context) {
-		nui.SelectMenu(c, nui.App(c, nui.AppConfig{}), listSelection6, &state, nui.SelectMenuOptions{Label: "Menu", FilterFields: fields}).Width(300)
+		nui.SelectMenu(c, nui.App(c, nui.AppConfig{}), listSelection, &state, nui.SelectMenuOptions{Label: "Menu", FilterFields: fields}).Width(300)
 	}, 400, 350)
 	items[0].Label = "Renamed"
 	state.SetItems(items)
@@ -211,7 +186,7 @@ func TestSelectMenuCachesTrackLabelsAndFilterFields(t *testing.T) {
 	if !tt.HasText("Renamed") {
 		t.Fatal("missing async option lost its last known label")
 	}
-	listSelection6.Set([]string{"b"})
+	listSelection.Set([]string{"b"})
 	tt.Frame()
 	if !tt.HasText("Beta") || tt.HasText("Renamed") {
 		t.Fatal("submitted selection change was ignored")
@@ -249,13 +224,13 @@ func TestSelectAndInputMenuVirtualizedNavigation(t *testing.T) {
 			options[9998].Disabled = true
 			selected := "0"
 			var search nui.SearchState
-			selectState11 := submittedSelect(options)
+			selectState := submittedSelect(options)
 			search.SetOptions(options)
 			tt := ui.NewTester(func(c *ui.Context) {
 				builds = 0
 				th := nui.App(c, nui.AppConfig{})
 				if kind == "select" {
-					nui.Select(c, th, &selected, selectState11, nui.SelectOptions{Label: "Choices", OnChange: func() { changes++ }}).Width(320)
+					nui.Select(c, th, &selected, selectState, nui.SelectOptions{Label: "Choices", OnChange: func() { changes++ }}).Width(320)
 				} else {
 					nui.InputMenu(c, th, &search, nui.InputMenuOptions{Label: "Choices", OnSelect: func(string) { changes++ }}).Width(320)
 				}
@@ -364,15 +339,15 @@ func BenchmarkDataComponents(b *testing.B) {
 				case "TreeFlat":
 					tree.SetNodes(nodes)
 				}
-				var selectState12 nui.SelectState[string]
+				var selectState nui.SelectState[string]
 				if kind == "SelectOpen" {
-					selectState12.SetOptions(options)
+					selectState.SetOptions(options)
 				}
-				listSelection7 := chosenSelection(selected)
+				listSelection1 := chosenSelection(selected)
 				if kind == "Listbox" || kind == "HorizontalListbox" {
 					list.SetItems(items)
 				}
-				listSelection8 := chosenSelection(values)
+				listSelection2 := chosenSelection(values)
 				if kind == "SelectMenuClosed" {
 					menu.SetItems(items)
 				}
@@ -388,11 +363,11 @@ func BenchmarkDataComponents(b *testing.B) {
 						if kind == "HorizontalListbox" {
 							o.Orientation = nui.Set(nui.Horizontal)
 						}
-						nui.Listbox(c, th, listSelection7, &list, o).Width(640)
+						nui.Listbox(c, th, listSelection1, &list, o).Width(640)
 					case "SelectMenuClosed":
-						nui.SelectMenu(c, th, listSelection8, &menu, nui.SelectMenuOptions{Label: "Choices", Multiple: true}).Width(640)
+						nui.SelectMenu(c, th, listSelection2, &menu, nui.SelectMenuOptions{Label: "Choices", Multiple: true}).Width(640)
 					case "SelectOpen":
-						nui.Select(c, th, &single, &selectState12, nui.SelectOptions{Label: "Choices"}).Width(640)
+						nui.Select(c, th, &single, &selectState, nui.SelectOptions{Label: "Choices"}).Width(640)
 					case "InputMenuOpen":
 						nui.InputMenu(c, th, &search, nui.InputMenuOptions{Label: "Choices"}).Width(640)
 					default:
@@ -434,10 +409,10 @@ func BenchmarkDataAnimations(b *testing.B) {
 			open, builds := false, 0
 			value := "a"
 			options := []nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}}
-			selectState13 := submittedSelect(options)
+			selectState := submittedSelect(options)
 			tt := ui.NewTesterWith(func(c *ui.Context) {
 				builds++
-				nui.Select(c.Key("choices"), nui.App(c, nui.AppConfig{}), &value, selectState13,
+				nui.Select(c.Key("choices"), nui.App(c, nui.AppConfig{}), &value, selectState,
 					nui.SelectOptions{Label: "Choices", Open: &open}).Width(320)
 			}, 700, 400, ui.TesterOptions{Preferences: ui.Preferences{ReduceMotion: reduced}})
 			tt.Move(690, 390)

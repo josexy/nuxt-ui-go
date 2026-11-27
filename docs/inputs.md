@@ -99,7 +99,7 @@ The value argument must be a non-nil `*string`. An empty string is a valid value
 | Avatar | A leading avatar; Leading or a leading loading spinner takes precedence |
 | Loading / LoadingIcon / LoadingTrailing | Shows a loading spinner; the input stays editable. LoadingTrailing moves the spinner to the end, but an explicit Leading keeps it at the start |
 | Clearable / ClearLabel | Enables the clear button and sets its name |
-| MaxLength | Native insertion limit in UTF-16 code units; values at or below 0 mean no limit |
+| MaxLength | Limits how many UTF-16 code units the user can insert; 0 or less means no limit |
 | Highlight / Color / Variant / Size | Highlight state, color, variant, and size |
 | OnChange / OnSubmit / OnClear | Callbacks for input changes, submission, and clearing |
 
@@ -111,7 +111,7 @@ With the Neutral color, the focus and highlight borders use InvertedBackground. 
 
 ### Editing and clearing
 
-MyGo's TextInputBase and TextAreaBase handle text editing, selection, copy and paste, undo, and IME. MaxLength is passed to the native editor, so an insertion is limited inside the editing operation before OnChange runs. Replacing a selection uses the freed capacity and preserves the untouched suffix; a partially accepted paste never splits a surrogate pair. A fully rejected insertion leaves the caret and undo history unchanged and emits no OnChange. For example, with limit 4 at `ab|cd`, typing `X` is rejected and the following Backspace produces `acd`. Values assigned from outside are not truncated and do not fire input notifications. Changing the limit, theme, or language preserves the current editor's draft and caret; the new limit governs subsequent input. Input-shell consumers, including InputTags and InputMenu, share these native editing semantics.
+MyGo's TextInputBase and TextAreaBase handle text editing, selection, copy and paste, undo, and IME. The native editor applies MaxLength while it inserts text, before OnChange runs. Replacing a selection can use the freed space, and a partly accepted paste never splits a character. An insertion that is rejected entirely leaves the caret and undo history unchanged and fires no OnChange. Values assigned from outside are not truncated and do not fire input notifications. Changing the limit applies to the next input without resetting the draft or caret. InputTags and InputMenu use the same editor.
 
 The clear button appears only when there is content and the input is not read-only, and it inherits the disabled state. Each clear updates the bound value, calls OnChange and OnClear once each, and returns focus to the editor. Clearing changes the value programmatically, so it is not guaranteed to be a single undoable edit. If your app needs to undo a clear, save and restore the data yourself.
 
@@ -269,7 +269,49 @@ For dual thumbs, inversion, value tooltips, and vertical assistive technology li
 
 Select and InputMenu share `Option[T comparable]`, which has Value, Label, Description, Disabled, Icon, and Build. Value is the stable identity: it must be unique and equal to itself (so NaN is not allowed). Labels can repeat. Even with a custom Build, fill in Label for search and assistive technology.
 
-Disabled items are still shown but cannot be reached with the keyboard. The list is virtualized and calls Build only for the visible rows plus a few extra, so do not run business logic that must see all the data inside a row builder. Select and SelectMultiple read an owned snapshot submitted with `SelectState.SetOptions` outside the view. Unchanged builds do not compare the full dataset or enumerate the selected values. Submission is O(N); changing or explicitly snapshotting S selected values is separate work. Your app handles remote paging and network requests.
+Disabled items are still shown but cannot be reached with the keyboard. The list is virtualized and calls Build only for the visible rows plus a few extra, so do not run business logic that must see all the data inside a row builder. Your app handles remote paging and network requests.
+
+### Submitted data and SelectionState
+
+Choice controls read their data from a persistent state instead of taking a slice on every build:
+
+| Component | Submit data with | Selection |
+| --- | --- | --- |
+| Select | `SelectState[T].SetOptions` | `*T` |
+| SelectMultiple | `SelectState[T].SetOptions` | `*SelectionState[T]` |
+| InputMenu, SearchSelect | `SearchState.SetOptions` | `SearchState.Selected`, or `SelectedValues` with Multiple |
+| [Listbox, SelectMenu](forms-data.md#listbox-selectmenu-and-async-search) | `SetItems` on their state | `*SelectionState[string]` |
+| [DropdownMenu, ContextMenu](overlays-navigation.md#dropdownmenu-and-contextmenu) | `MenuState.SetItems` | None |
+
+Call the setter during setup, or in the action or request completion that changes the data, never unconditionally in the view. The setter copies what you pass, so later edits to your slice have no effect until you call it again. Callbacks and icons are kept as references; they run later, so capture app state in them, never an Element or the build Context. Invalid data (a duplicate ID, a NaN value, or an empty string ID in the string-keyed components) panics and leaves the previous data in place. Passing nil clears the data but keeps the selection and the query. Keep one state per control and per window, and do not copy a state after it has been used.
+
+`SelectionState[K]` is an ordered set of selected keys whose zero value is empty. Set, Add, Remove, and Clear return whether the selection changed; Has and Len read it without copying; Values returns a copy. Selected keys that are missing from the current data stay selected and keep their last known labels. Changing a selection from code never fires component callbacks. A user change fires the parameterless OnChange (OnValuesChange for InputMenu) once; call `Values()` there only when you need the keys.
+
+```go
+// Persistent app state: Status nui.SelectionState[int], StatusOptions nui.SelectState[int].
+// In app setup, or an action that replaces the options:
+app.StatusOptions.SetOptions([]nui.Option[int]{{Value: 0, Label: "Draft"}, {Value: 1, Label: "Published"}})
+
+// In the view:
+nui.SelectMultiple(c, theme, &app.Status, &app.StatusOptions, nui.SelectOptions{
+    Label: "Status",
+    OnChange: func() { app.SaveStatus(app.Status.Values()) },
+})
+```
+
+### Search in large lists
+
+Listbox, SelectMenu, InputMenu, DropdownMenu, and ContextMenu filter their submitted data locally. SearchExecution chooses where that runs:
+
+| Value | Behavior |
+| --- | --- |
+| `SearchAuto` (default) | In the background for more than 2,048 items, otherwise immediately |
+| `SearchImmediate` | Always during the build, on the UI thread |
+| `SearchBackground` | Always in the background |
+
+While a background search runs, the list shows a loading message and the query stays editable; Enter, clicks, and creation are ignored so that a stale result cannot be chosen. A new query cancels the previous search. The state's `Searching()` reports pending work. Closing the popup, removing the control, or closing the window cancels the search; call the state's `Close()` when you dispose of it yourself, and set an external Open pointer to false. Empty queries, IgnoreFilter, and ExternalFilter skip local search. On the browser backend, background search runs on the JavaScript event loop in short slices, not in a Web Worker.
+
+For FilterFields, nil means the default (label only), and an explicit empty list matches nothing for a non-empty query.
 
 ### Select: single selection and empty values
 
@@ -303,27 +345,21 @@ Open is an optional persistent `*bool`. Without it, Select uses `SelectState.Ope
 
 When the select is open, use the arrow keys, Home, End, or type a prefix to move the highlight; press Enter or Space to select and Escape to close. Repeating a letter cycles through matches and skips disabled items. When a single select is closed, typing a prefix changes the selection directly, as a native convenience. In multiple selection, prefix navigation works inside the open list. Reordering keeps the highlight by ID. If the highlighted item is removed, the highlight moves to the current valid selection or the first available item. Multiple selection shows the selected names joined by commas, skipping empty labels; selected items that are temporarily missing keep their previous names.
 
-The parts are Root, Label, Leading, Trailing, Panel, Item, and EmptySlot; SelectMultiple maps the Root style to the trigger. Option.Build can compose row content such as avatars and chips, and must not keep build-time elements. The current model has no label or separator item types and no nested groups. Popup has no arrow, no DOM portal, and no upstream item-aligned positioning. Single selection does not use Popup.Mode, OpenDelay, or CloseDelay; multiple selection keeps SelectMenu's native hover extension.
+The parts are Root (the trigger), Label, Leading, Trailing, Panel, Item, and EmptySlot. Option.Build can compose row content such as avatars and chips, and must not keep build-time elements. The current model has no label or separator item types and no nested groups. Popup has no arrow, no DOM portal, and no upstream item-aligned positioning. Select ignores Popup.Mode, OpenDelay, and CloseDelay; SelectMultiple supports them.
 
-### SelectMultiple: submitted options and ordered selection
+### SelectMultiple: several values
 
-Keep one `SelectState[T]` and one `SelectionState[T]` per control and window. Call `SetOptions` during setup or a data change, then render `SelectMultiple(c, theme, &app.Selected, &app.Choices, options)`. SetOptions owns its input and rejects duplicate or nonreflexive identities atomically; `SetOptions(nil)` releases the options without clearing the selection. Resubmit to publish label or callback changes.
-
-`SelectionState.Set`, `Add`, `Remove`, and `Clear` update ordered unique membership; `Has`, `Len`, and `Revision` do not copy it. `Values()` explicitly returns an owned snapshot. External updates remain silent; parameterless `OnChange` runs once for an accepted selection change. The trigger caches its joined labels by data and selection revision, retains last-known labels for missing selected values, and preserves typed zero keys. Ctrl/Cmd+A selects enabled options and leaves the final option active; Enter or Space toggles that option while keeping the popup open.
+SelectMultiple takes the same SelectOptions as Select. Enter, Space, or a click toggles an option and keeps the popup open. Ctrl/Cmd+A selects every enabled option. The trigger shows the selected labels joined by commas. See [Submitted data and SelectionState](#submitted-data-and-selectionstate) for the example.
 
 ### InputMenu: drafts versus selected values
 
-InputMenuOptions.SearchExecution defaults to SearchAuto: nonempty local queries use a worker above 2,048 candidates; SearchImmediate always runs synchronously and SearchBackground always uses a worker. First normalization and matching run off the UI path in background mode, and later queries reuse normalized fields. Pending results show loading and cannot activate/create values, while the draft remains editable. Local matching is bypassed for empty queries or when ExternalFilter is enabled. SearchState.Searching reports pending work; Close cancels it while retaining data/draft/selection. Unmount and window closure also cancel. For an external Open binding, set that binding false when disposing. See [choice migration](choice-migration.md#local-search-execution-and-cleanup).
-
-SearchState.Query holds the text being edited and Selected holds the single selected ID. An empty Selected means nothing is selected, so InputMenu option IDs cannot be empty strings. Submit option snapshots with `SearchState.SetOptions` outside the view and call `InputMenu(c, theme, &state, inputOptions)` (or `SearchSelect(c, theme, &state, label)`). SetOptions owns its data; resubmit to publish edits. Nil/empty clears options while keeping the query and selection. In multiple selection, `SelectedValues` is a `SelectionState[string]`: use Set/Add/Remove/Clear to mutate it and Values() for an explicit owned snapshot. Removing an option from the data source does not clean up the app's selection. For ordinary single selection, if the initial draft is empty, the selected name is shown. If Selected changes from outside while the user is not editing, the display updates; a draft being edited is kept until the menu closes or loses focus.
+SearchState.Query holds the text being edited and Selected holds the single selected ID. An empty Selected means nothing is selected, so InputMenu option IDs cannot be empty strings. Submit options with `SearchState.SetOptions` (see [Submitted data and SelectionState](#submitted-data-and-selectionstate)), then call `InputMenu(c, theme, &state, options)` or `SearchSelect(c, theme, &state, label)`. In multiple selection, `SelectedValues` is a `SelectionState[string]`. Removing an option from the data does not remove it from the selection. For ordinary single selection, if the initial draft is empty, the selected name is shown. If Selected changes from outside while the user is not editing, the display updates; a draft being edited is kept until the menu closes or loses focus.
 
 By default, the search is a case-insensitive substring match on Label. FilterFields changes which fields are searched; the older SearchSelect convenience function searches Label and Description. The local filter result is recomputed only when the data, the query, or the filter fields change.
 
 InputMenuOptions embeds InputOptions and adds options such as EmptyText, Popup, AllowCustom, and OnSelect. By default, clicking only focuses the input; typing, arrow keys, or the trailing arrow open the panel. Set OpenOnClick=true to open on click. The input keeps focus. Trailing can change the icon. Loading does not disable editing or selection. Avatar, LoadingTrailing, and Highlight work as in Input.
 
-Selected tags occupy a native virtual list capped at 96 text-scaled DIP, shrinking for small selections. The query editor stays visible below the scrolling tags. Labels wrap in full, and missing options retain their last known selected labels. Unchanged builds construct only visible tags and bounded overscan, without enumerating S selected values. Revising selection or data can update O(S) label metadata; snapshot and bulk-action costs remain explicit.
-
-Tab enters the first visible tag removal control; arrows, Home/End, and Tab move through logical tags, scrolling before focus. Shift+Tab from the editor reveals the last selected tag. Enter/Space, Delete or Backspace on a tag removes it and returns focus to the editor; empty-query Backspace removes the last selected value directly. Scrolling, tag navigation and removal preserve the draft. Disabled and read-only tags cannot be removed. `OnValuesChange` is parameterless and fires once per accepted selection change; external mutations stay silent and do not emit OnSelect or query-change notifications.
+In multiple selection, the selected values appear as tags above the editor. The tag area scrolls once it is taller than 96 DIP (scaled with the text size), and labels wrap in full. Tab, Shift+Tab, the arrow keys, Home, and End move between tags and scroll to them; Shift+Tab from the editor goes to the last tag. Enter, Space, Delete, or Backspace on a tag removes it and returns focus to the editor, and Backspace in an empty editor removes the last value. Moving between and removing tags keeps the draft. Disabled and read-only tags cannot be removed.
 
 Clearable shows a clear button whenever there is a draft or a selection, so you can clear all tags in multiple selection even with an empty draft. ResetModelValueOnClear defaults to true; an explicit false clears only the draft and keeps the selection. Deleting ordinary text does not clear the selected ID. SelectedIcon, DeleteIcon, and ClearIcon replace the check mark, the X for deleting a tag, and the X for clearing. Autocomplete has no selection mark and no multi-select tags. After a tag is deleted with the keyboard, focus returns to the input.
 
@@ -335,13 +371,13 @@ Open takes a persistent bool pointer; nil uses internal state. Opening it from o
 | Choosing a suggestion | Calls OnSelect once and does not also submit free text |
 | Pressing Enter with AllowCustom=true and no suggestion chosen | Calls InputOptions.OnSubmit(Query). Does not set Selected and does not fire OnSelect |
 | Clear button | Clears Query, clears the selection depending on ResetModelValueOnClear, and calls OnClear. OnValuesChange fires if the multiple selection actually changed |
-| Removing in multiple selection | Click a tag's × or press Backspace on an empty draft. Selection changes are reported through OnValuesChange |
+| Removing in multiple selection | Click a tag's ×, press Delete or Backspace on a tag, or press Backspace on an empty draft. OnValuesChange reports the change |
 
-By default, only suggestions can be selected and free text is not submitted. In multiple selection, values appear as small tags. Only the × button removes a tag, and the × is still in the Tab order. There is currently no arrow-key navigation between tags.
+By default, only suggestions can be selected and free text is not submitted.
 
 When nothing matches, or all suggestions are disabled, EmptyText is shown; the default messages distinguish "no data" from "no matching data". Up and Down can move to suggestions that are scrolled out of view, and focus stays in the input after a selection. Escape or blur closes the panel. The empty state cannot be selected, does not take focus, and does not intercept outside clicks.
 
-When an option's ID, Label, Description, or Disabled changes, the open panel closes, and it uses the new data when reopened. This prevents accepting a stale suggestion. The component does not cancel network requests itself. For multiple selection, creating options, autocomplete, and reset policies, see [InputMenu values and search](options.md#inputmenu-values-and-search).
+Submitting new options while the panel is open closes it, so a stale suggestion cannot be accepted; it shows the new data when reopened. The component does not cancel network requests itself. For multiple selection, creating options, autocomplete, and reset policies, see [InputMenu values and search](options.md#inputmenu-values-and-search).
 
 InputMenu supports Input's four parts plus Panel, Item, and EmptySlot. Icons in rows with a description align with the first line. The empty message appears only when nothing matches; suggestions that are all disabled are still shown normally. The inherited Style receives only the input and its icons; style the panel with Popup.Decoration.Style. New code should use InputMenu with its full Options directly. SearchSelect keeps the older behavior of filtering by name and description and opening on click.
 

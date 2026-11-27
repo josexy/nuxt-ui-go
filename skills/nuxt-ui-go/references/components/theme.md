@@ -558,7 +558,7 @@ nui.Button(c.Key("save"), theme, "Save", nui.ButtonOptions{
 | `Radius` | Base corner radius of 6 DIP. Set it to 0 for square corners. Each component derives its radius from this base |
 | `ContainerWidth` | Maximum content width, 1280 DIP by default |
 | `Shadow` | `ShadowTokens{Color, Blur, OffsetY}`. Apply it to a part with `Shadow: nui.Set(theme.Shadow)`. Card has no outer shadow by default |
-| `Motion` | `Transition` controls surface color transitions and User/InputRating scale poses (150 ms by default; 0 or less makes them immediate), `Spin` is a loading spinner's turn (1 s) and `Pulse` a Skeleton pulse (2 s). `Reduce` asks for reduced motion and `Disabled` turns animation off; see Motion levels |
+| `Motion` | `Transition` is how long color transitions and the User and InputRating hover scale take (150 ms by default; 0 or less makes them immediate), `Spin` is a loading spinner's turn (1 s) and `Pulse` a Skeleton pulse (2 s). `Reduce` asks for reduced motion and `Disabled` turns animation off; see Motion levels |
 
 Windows uses Segoe UI and Consolas by default; other platforms use system-ui and monospace. The library does not bundle fonts, and fonts and fallback fonts can affect the actual control height.
 

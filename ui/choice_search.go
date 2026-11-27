@@ -298,7 +298,3 @@ type choiceSearchCache struct {
 	known              bool
 	revision           uint64
 }
-
-func (s *choiceSearchCache) apply(data *choiceSearchData, query string, fields []string) bool {
-	return s.execute(data, query, fields, SearchImmediate)
-}

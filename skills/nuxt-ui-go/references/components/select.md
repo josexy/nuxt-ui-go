@@ -162,7 +162,49 @@ Both group types use ChoiceGroupOptions, which adds Horizontal, Loop, and a para
 
 Select and InputMenu share `Option[T comparable]`, which has Value, Label, Description, Disabled, Icon, and Build. Value is the stable identity: it must be unique and equal to itself (so NaN is not allowed). Labels can repeat. Even with a custom Build, fill in Label for search and assistive technology.
 
-Disabled items are still shown but cannot be reached with the keyboard. The list is virtualized and calls Build only for the visible rows plus a few extra, so do not run business logic that must see all the data inside a row builder. Select and SelectMultiple read an owned snapshot submitted with `SelectState.SetOptions` outside the view. Unchanged builds do not compare the full dataset or enumerate the selected values. Submission is O(N); changing or explicitly snapshotting S selected values is separate work. Your app handles remote paging and network requests.
+Disabled items are still shown but cannot be reached with the keyboard. The list is virtualized and calls Build only for the visible rows plus a few extra, so do not run business logic that must see all the data inside a row builder. Your app handles remote paging and network requests.
+
+##### Submitted data and SelectionState
+
+Choice controls read their data from a persistent state instead of taking a slice on every build:
+
+| Component | Submit data with | Selection |
+| --- | --- | --- |
+| Select | `SelectState[T].SetOptions` | `*T` |
+| SelectMultiple | `SelectState[T].SetOptions` | `*SelectionState[T]` |
+| InputMenu, SearchSelect | `SearchState.SetOptions` | `SearchState.Selected`, or `SelectedValues` with Multiple |
+| [Listbox, SelectMenu](listbox.md) | `SetItems` on their state | `*SelectionState[string]` |
+| [DropdownMenu, ContextMenu](dropdown-menu.md) | `MenuState.SetItems` | None |
+
+Call the setter during setup, or in the action or request completion that changes the data, never unconditionally in the view. The setter copies what you pass, so later edits to your slice have no effect until you call it again. Callbacks and icons are kept as references; they run later, so capture app state in them, never an Element or the build Context. Invalid data (a duplicate ID, a NaN value, or an empty string ID in the string-keyed components) panics and leaves the previous data in place. Passing nil clears the data but keeps the selection and the query. Keep one state per control and per window, and do not copy a state after it has been used.
+
+`SelectionState[K]` is an ordered set of selected keys whose zero value is empty. Set, Add, Remove, and Clear return whether the selection changed; Has and Len read it without copying; Values returns a copy. Selected keys that are missing from the current data stay selected and keep their last known labels. Changing a selection from code never fires component callbacks. A user change fires the parameterless OnChange (OnValuesChange for InputMenu) once; call `Values()` there only when you need the keys.
+
+```go
+// Persistent app state: Status nui.SelectionState[int], StatusOptions nui.SelectState[int].
+// In app setup, or an action that replaces the options:
+app.StatusOptions.SetOptions([]nui.Option[int]{{Value: 0, Label: "Draft"}, {Value: 1, Label: "Published"}})
+
+// In the view:
+nui.SelectMultiple(c, theme, &app.Status, &app.StatusOptions, nui.SelectOptions{
+    Label: "Status",
+    OnChange: func() { app.SaveStatus(app.Status.Values()) },
+})
+```
+
+##### Search in large lists
+
+Listbox, SelectMenu, InputMenu, DropdownMenu, and ContextMenu filter their submitted data locally. SearchExecution chooses where that runs:
+
+| Value | Behavior |
+| --- | --- |
+| `SearchAuto` (default) | In the background for more than 2,048 items, otherwise immediately |
+| `SearchImmediate` | Always during the build, on the UI thread |
+| `SearchBackground` | Always in the background |
+
+While a background search runs, the list shows a loading message and the query stays editable; Enter, clicks, and creation are ignored so that a stale result cannot be chosen. A new query cancels the previous search. The state's `Searching()` reports pending work. Closing the popup, removing the control, or closing the window cancels the search; call the state's `Close()` when you dispose of it yourself, and set an external Open pointer to false. Empty queries, IgnoreFilter, and ExternalFilter skip local search. On the browser backend, background search runs on the JavaScript event loop in short slices, not in a Web Worker.
+
+For FilterFields, nil means the default (label only), and an explicit empty list matches nothing for a non-empty query.
 
 ##### Select: single selection and empty values
 
@@ -196,13 +238,11 @@ Open is an optional persistent `*bool`. Without it, Select uses `SelectState.Ope
 
 When the select is open, use the arrow keys, Home, End, or type a prefix to move the highlight; press Enter or Space to select and Escape to close. Repeating a letter cycles through matches and skips disabled items. When a single select is closed, typing a prefix changes the selection directly, as a native convenience. In multiple selection, prefix navigation works inside the open list. Reordering keeps the highlight by ID. If the highlighted item is removed, the highlight moves to the current valid selection or the first available item. Multiple selection shows the selected names joined by commas, skipping empty labels; selected items that are temporarily missing keep their previous names.
 
-The parts are Root, Label, Leading, Trailing, Panel, Item, and EmptySlot; SelectMultiple maps the Root style to the trigger. Option.Build can compose row content such as avatars and chips, and must not keep build-time elements. The current model has no label or separator item types and no nested groups. Popup has no arrow, no DOM portal, and no upstream item-aligned positioning. Single selection does not use Popup.Mode, OpenDelay, or CloseDelay; multiple selection keeps SelectMenu's native hover extension.
+The parts are Root (the trigger), Label, Leading, Trailing, Panel, Item, and EmptySlot. Option.Build can compose row content such as avatars and chips, and must not keep build-time elements. The current model has no label or separator item types and no nested groups. Popup has no arrow, no DOM portal, and no upstream item-aligned positioning. Select ignores Popup.Mode, OpenDelay, and CloseDelay; SelectMultiple supports them.
 
-##### SelectMultiple: submitted options and ordered selection
+##### SelectMultiple: several values
 
-Keep one `SelectState[T]` and one `SelectionState[T]` per control and window. Call `SetOptions` during setup or a data change, then render `SelectMultiple(c, theme, &app.Selected, &app.Choices, options)`. SetOptions owns its input and rejects duplicate or nonreflexive identities atomically; `SetOptions(nil)` releases the options without clearing the selection. Resubmit to publish label or callback changes.
-
-`SelectionState.Set`, `Add`, `Remove`, and `Clear` update ordered unique membership; `Has`, `Len`, and `Revision` do not copy it. `Values()` explicitly returns an owned snapshot. External updates remain silent; parameterless `OnChange` runs once for an accepted selection change. The trigger caches its joined labels by data and selection revision, retains last-known labels for missing selected values, and preserves typed zero keys. Ctrl/Cmd+A selects enabled options and leaves the final option active; Enter or Space toggles that option while keeping the popup open.
+SelectMultiple takes the same SelectOptions as Select. Enter, Space, or a click toggles an option and keeps the popup open. Ctrl/Cmd+A selects every enabled option. The trigger shows the selected labels joined by commas. See Submitted data and SelectionState for the example.
 
 ##### Option row appearance
 
@@ -228,7 +268,7 @@ By default, a generic Popover has the theme background, a 1 DIP border, a 6 DIP 
 
 | Component or option | Behavior |
 | --- | --- |
-| `Select(*T)` / `SelectMultiple(*SelectionState[T])` | Bind a scalar or revisioned ordered selection, with a persistent SelectState whose SetOptions owns the dataset. Both share SelectOptions, typed stable IDs, custom Option.Build, and a joined-label trigger |
+| `Select(*T)` / `SelectMultiple(*SelectionState[T])` | Bind a single value or a selection set. Both read options from a SelectState and share SelectOptions, typed stable IDs, and custom Option.Build |
 
 Single and multiple Select both inherit Color, Variant, Size, and UI from ComponentSelect; instance options take precedence. Listbox also supports Loop and HighlightOnHover.
 
@@ -237,6 +277,10 @@ Single and multiple Select both inherit Color, Variant, Size, and UI from Compon
 #### Listbox, SelectMenu, and async search › Listbox: a selectable list shown inline (excerpt)
 
 The empty message and the loading indicator are polite status regions with stable identities, as are the empty messages of Select, InputMenu, SelectMenu, and filtered DropdownMenu and ContextMenu, and SelectMenu's loading and error rows. A status is not read when it first appears. If its text changes while it stays shown, for example from "No data" to "No matching data" as the user types, the new text is read once; rebuilding without a change reads nothing.
+
+#### Listbox, SelectMenu, and async search › Caching and large data sets (excerpt)
+
+SetItems prepares the ID index, groups, and row keys once, so a build that changes nothing does not walk the items or the selection, and only visible rows are built. Submitting, filtering, Select All, prefix search, and `Values()` still take time proportional to the data or selection size. SelectMenu also caches its filter results and the trigger's joined labels.
 
 #### Calendar, InputDate, and InputTime › Calendar: pick a date by clicking (excerpt)
 

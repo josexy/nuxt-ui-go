@@ -460,12 +460,12 @@ func TestSelectMenuFlatPopup(t *testing.T) {
 	var values []string
 	var s nui.SelectMenuState
 	created := ""
-	listSelection1 := chosenSelection(values)
+	listSelection := chosenSelection(values)
 	s.SetItems([]nui.ListboxItem{{ID: "a", Label: "Alpha"}, {ID: "b", Label: "Beta"}})
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
 		ui.Column(c).Padding(20).Children(func() {
-			nui.SelectMenu(c, th, listSelection1, &s, nui.SelectMenuOptions{Label: "Letters", Clearable: true, OnCreate: func(v string) { created = v }, Popup: nui.PopoverOptions{Label: "Letters popup"}}).Width(260)
+			nui.SelectMenu(c, th, listSelection, &s, nui.SelectMenuOptions{Label: "Letters", Clearable: true, OnCreate: func(v string) { created = v }, Popup: nui.PopoverOptions{Label: "Letters popup"}}).Width(260)
 		})
 	}, 400, 400)
 	th := nui.Light()
@@ -490,16 +490,16 @@ func TestSelectMenuFlatPopup(t *testing.T) {
 	tt.Type("Gamma")
 	tt.Key(0, ui.KeyDown)
 	tt.Key(0, ui.KeyEnter)
-	if created != "Gamma" || listSelection1.Len() != 0 {
-		t.Fatalf("create row: created %q, values %v", created, listSelection1.Values())
+	if created != "Gamma" || listSelection.Len() != 0 {
+		t.Fatalf("create row: created %q, values %v", created, listSelection.Values())
 	}
-	listSelection1.Set([]string{"a"})
+	listSelection.Set([]string{"a"})
 
 	s.Open = false
 	tt.Frame()
 	click(t, tt, "Clear selection")
-	if listSelection1.Len() != 0 || s.Open {
-		t.Fatalf("trigger clear: values %v, open %v", listSelection1.Values(), s.Open)
+	if listSelection.Len() != 0 || s.Open {
+		t.Fatalf("trigger clear: values %v, open %v", listSelection.Values(), s.Open)
 	}
 }
 

@@ -268,22 +268,22 @@ func TestQueryCancellationAndListbox(t *testing.T) {
 	items := []nui.ListboxItem{{ID: "a", Label: "Alpha"}, {ID: "b", Label: "Blocked", Disabled: true}, {ID: "c", Label: "Charlie"}}
 	var s nui.ListboxState
 	selected := []string{}
-	listSelection1 := chosenSelection(selected)
+	listSelection := chosenSelection(selected)
 	s.SetItems(items)
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.Listbox(c, th, listSelection1, &s, nui.ListboxOptions{Label: "Options", Multiple: true})
+		nui.Listbox(c, th, listSelection, &s, nui.ListboxOptions{Label: "Options", Multiple: true})
 	}, 400, 300)
 	tt.Key(0, ui.KeyTab)
 	tt.Key(0, ui.KeyHome)
 	tt.Key(0, ui.KeyDown)
 	tt.Key(0, ui.KeyEnter)
-	if !slices.Contains(listSelection1.Values(), "c") {
-		t.Fatalf("disabled skip %v active=%s", listSelection1.Values(), s.Active)
+	if !slices.Contains(listSelection.Values(), "c") {
+		t.Fatalf("disabled skip %v active=%s", listSelection.Values(), s.Active)
 	}
 	tt.Key(0, ui.KeyHome)
 	tt.Key(0, ui.KeySpace)
-	if listSelection1.Len() != 2 {
+	if listSelection.Len() != 2 {
 		t.Fatal("multiple selection")
 	}
 	items = items[1:]
@@ -504,12 +504,12 @@ func TestLargeListboxKeyboardVirtualization(t *testing.T) {
 			var state nui.ListboxState
 			var selected []string
 			calls := 0
-			listSelection2 := chosenSelection(selected)
+			listSelection := chosenSelection(selected)
 			state.SetItems(items)
 			tt := ui.NewTester(func(c *ui.Context) {
 				th := nui.App(c, nui.AppConfig{})
 				calls = 0
-				nui.Listbox(c, th, listSelection2, &state, nui.ListboxOptions{Label: "Large choices", Style: func(slot nui.Slot, e ui.Element) {
+				nui.Listbox(c, th, listSelection, &state, nui.ListboxOptions{Label: "Large choices", Style: func(slot nui.Slot, e ui.Element) {
 					if slot == nui.Item {
 						calls++
 					}
@@ -518,8 +518,8 @@ func TestLargeListboxKeyboardVirtualization(t *testing.T) {
 			tt.Key(0, ui.KeyTab)
 			tt.Key(0, ui.KeyEnd)
 			tt.Key(0, ui.KeyEnter)
-			if !slices.Equal(listSelection2.Values(), []string{fmt.Sprint(count - 1)}) {
-				t.Fatalf("offscreen selected %v", listSelection2.Values())
+			if !slices.Equal(listSelection.Values(), []string{fmt.Sprint(count - 1)}) {
+				t.Fatalf("offscreen selected %v", listSelection.Values())
 			}
 			if calls > 15 {
 				t.Fatalf("built %d rows", calls)

@@ -243,15 +243,15 @@ func TestSliderStepOrientationAndDisabled(t *testing.T) {
 func TestSelectStableHighlightDisabledAndEmptyValue(t *testing.T) {
 	value := nui.Optional[string]{}
 	options := []nui.Option[nui.Optional[string]]{{Value: nui.Optional[string]{}, Label: "None"}, {Value: nui.Set("a"), Label: "Same", Description: "Asia"}, {Value: nui.Set("b"), Label: "Blocked", Disabled: true}, {Value: nui.Set("c"), Label: "Same", Description: "Europe"}}
-	selectState1 := submittedSelect(options)
+	selectState := submittedSelect(options)
 	tt := ui.NewTester(func(c *ui.Context) {
 		theme := nui.App(c, nui.AppConfig{})
-		ui.Column(c).Padding(12).Children(func() { nui.Select(c, theme, &value, selectState1, nui.SelectOptions{Label: "Region"}).Width(250) })
+		ui.Column(c).Padding(12).Children(func() { nui.Select(c, theme, &value, selectState, nui.SelectOptions{Label: "Region"}).Width(250) })
 	}, 400, 340)
 	click(t, tt, "Region")
 	tt.Key(0, ui.KeyDown)
 	options[1], options[3] = options[3], options[1]
-	selectState1.SetOptions(options)
+	selectState.SetOptions(options)
 	tt.Frame()
 	tt.Key(0, ui.KeyEnter)
 	if value != nui.Set("a") {
@@ -270,7 +270,7 @@ func TestSelectStableHighlightDisabledAndEmptyValue(t *testing.T) {
 		t.Fatal("disabled keyboard filtering")
 	}
 	options = nil
-	selectState1.SetOptions(options)
+	selectState.SetOptions(options)
 	tt.Frame()
 	click(t, tt, "Region")
 	if !tt.HasText("No data") {
@@ -347,7 +347,7 @@ func TestPopoverNestedDismissAndEdgePosition(t *testing.T) {
 	dialog := false
 	chosen := "a"
 	outside := 0
-	selectState2 := submittedSelect([]nui.Option[string]{{Value: "a", Label: "Option A"}, {Value: "b", Label: "Option B"}})
+	selectState := submittedSelect([]nui.Option[string]{{Value: "a", Label: "Option A"}, {Value: "b", Label: "Option B"}})
 	search.SetOptions(nil)
 	tt := ui.NewTester(func(c *ui.Context) {
 		theme := nui.App(c, nui.AppConfig{})
@@ -362,7 +362,7 @@ func TestPopoverNestedDismissAndEdgePosition(t *testing.T) {
 			})
 			nui.Modal(c, theme, &dialog, "Nested dialog", func(inner nui.Theme) {
 				nui.InputMenu(c, inner, &search, nui.InputMenuOptions{Label: "Empty search"})
-				nui.Select(c, inner, &chosen, selectState2, nui.SelectOptions{Label: "Nested select"})
+				nui.Select(c, inner, &chosen, selectState, nui.SelectOptions{Label: "Nested select"})
 			})
 		})
 	}, 500, 380)

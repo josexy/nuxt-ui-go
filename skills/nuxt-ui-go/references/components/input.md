@@ -18,8 +18,7 @@ Pass a `*string` pointer to `nui.Input`; the component updates it as the user ty
 ## Things to know
 
 - `Loading` shows an indicator while keeping the field editable; an explicit `Leading` icon keeps the loader on the leading side.
-- `MaxLength` limits user input by UTF-16 code units; direct external string assignments are not truncated and do not emit `OnChange`.
-- MaxLength is enforced inside native editing: rejected insertions preserve the caret and undo history and emit no change. Nonpositive limits are unlimited; external assignments remain unchanged. The documented selected-composition cancellation limitation still applies.
+- `MaxLength` limits user input in UTF-16 code units. A rejected insertion keeps the caret and undo history and fires no `OnChange`; assigning the string from code does not truncate it.
 
 ## API
 
@@ -109,7 +108,7 @@ The value argument must be a non-nil `*string`. An empty string is a valid value
 | Avatar | A leading avatar; Leading or a leading loading spinner takes precedence |
 | Loading / LoadingIcon / LoadingTrailing | Shows a loading spinner; the input stays editable. LoadingTrailing moves the spinner to the end, but an explicit Leading keeps it at the start |
 | Clearable / ClearLabel | Enables the clear button and sets its name |
-| MaxLength | Native insertion limit in UTF-16 code units; values at or below 0 mean no limit |
+| MaxLength | Limits how many UTF-16 code units the user can insert; 0 or less means no limit |
 | Highlight / Color / Variant / Size | Highlight state, color, variant, and size |
 | OnChange / OnSubmit / OnClear | Callbacks for input changes, submission, and clearing |
 
@@ -121,7 +120,7 @@ With the Neutral color, the focus and highlight borders use InvertedBackground. 
 
 ##### Editing and clearing
 
-MyGo's TextInputBase and TextAreaBase handle text editing, selection, copy and paste, undo, and IME. MaxLength is passed to the native editor, so an insertion is limited inside the editing operation before OnChange runs. Replacing a selection uses the freed capacity and preserves the untouched suffix; a partially accepted paste never splits a surrogate pair. A fully rejected insertion leaves the caret and undo history unchanged and emits no OnChange. For example, with limit 4 at `ab|cd`, typing `X` is rejected and the following Backspace produces `acd`. Values assigned from outside are not truncated and do not fire input notifications. Changing the limit, theme, or language preserves the current editor's draft and caret; the new limit governs subsequent input. Input-shell consumers, including InputTags and InputMenu, share these native editing semantics.
+MyGo's TextInputBase and TextAreaBase handle text editing, selection, copy and paste, undo, and IME. The native editor applies MaxLength while it inserts text, before OnChange runs. Replacing a selection can use the freed space, and a partly accepted paste never splits a character. An insertion that is rejected entirely leaves the caret and undo history unchanged and fires no OnChange. Values assigned from outside are not truncated and do not fire input notifications. Changing the limit applies to the next input without resetting the draft or caret. InputTags and InputMenu use the same editor.
 
 The clear button appears only when there is content and the input is not read-only, and it inherits the disabled state. Each clear updates the bound value, calls OnChange and OnClear once each, and returns focus to the editor. Clearing changes the value programmatically, so it is not guaranteed to be a single undoable edit. If your app needs to undo a clear, save and restore the data yourself.
 
@@ -157,7 +156,7 @@ The date and time inputs share Input's five sizes, five variants, colors, avatar
 
 #### DropdownMenu and ContextMenu › Filtering and controlled state (excerpt)
 
-Filter defaults to false. When enabled, a native Input is shown and receives focus when the root menu opens. SearchTerm can bind a persistent string; when nil, MenuState.Query is used. FilterFields defaults to `label` only and also supports `description`, `id`, and `shortcut`. Matching is a case-insensitive substring match that keeps the original order. With IgnoreFilter=true, the list is shown as passed in and your app supplies results based on the query. Group labels and separators are not matched. When no action matches, a localized empty state is shown. Submenus that are not open are not searched.
+Filter defaults to false. When enabled, a native Input is shown and receives focus when the root menu opens. SearchTerm can bind a persistent string; when nil, MenuState.Query is used. FilterFields defaults to `label` only and also supports `description`, `id`, and `shortcut`; an explicit empty list matches nothing for a non-empty query. Matching is a case-insensitive substring match that keeps the original order. With IgnoreFilter=true, the list is shown as passed in and your app supplies results based on the query. Group labels and separators are not matched. When no action matches, a localized empty state is shown. Submenus that are not open are not searched.
 
 ### Compatibility and known limitations
 

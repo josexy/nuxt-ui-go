@@ -17,11 +17,11 @@ Store selected IDs in `SelectionState[string]` and keep query, highlight, and sc
 
 #### Submitted data
 
-Keep one state per instance and call SetItems during setup, data replacement, or accepted async completion. The setter owns its descriptors; resubmit after edits, and use nil to release the data without clearing selection or query. Render with the selection state and component state, without a slice argument. OnChange is parameterless and fires once per accepted user change. External selection mutations are silent; Values() explicitly copies the ordered selection. Unchanged builds do not scan all candidates or selected values.
+Call SetItems during setup or when the data changes, not in the view; it copies the items, so call it again after editing them. Passing nil clears the items but keeps the selection and query. OnChange takes no arguments and fires once per user change; call Values() there when you need the selected IDs. Selection changes made from code are silent.
 
 #### Local search execution
 
-Try Local search execution = background and type into the filter. SearchAuto (default) searches at most 2,048 candidates immediately and uses a worker above that count; SearchImmediate always runs synchronously and SearchBackground always runs nonempty local queries in the background. Both first normalization and matching run there, with cached fields reused for later queries. Pending results show loading and cannot activate or create a value; the query remains editable. Empty queries and ExternalFilter/IgnoreFilter bypass local work. Query/data/configuration changes, close, unmount and window shutdown cancel obsolete work. Keep state per instance/window and call Close() when disposing the owner; Searching() reports local pending work. Each mounted search surface retains one active worker and one latest pending request. Submission and full matching still cost O(N), while steady rendering builds visible rows. App callbacks and UI builders run on the UI thread. In browser previews, background goroutines cooperatively yield between batches on the shared JavaScript event loop; they are not dedicated Web Workers.
+Set Local search execution to background and type into the filter to watch a background search. SearchAuto, the default, searches in the background above 2,048 items. While a search runs, the list shows a loading message and the query stays editable, but Enter and clicks are ignored so that a stale result cannot be chosen. A newer query, closing, or unmounting cancels the search; call Close() when you dispose of the state yourself.
 
 ## Things to know
 
@@ -214,7 +214,7 @@ InputNumber, InputDate, and InputTime share Input's sizes, five field variants, 
 
 ##### Listbox: a selectable list shown inline
 
-Each ListboxItem's ID must be non-empty and unique. Label and Description provide the text, and Group adds a group heading to adjacent items. Kind can be ListboxOption, ListboxLabel, or ListboxSeparator; structural rows also need IDs. The selected value is a `*SelectionState[string]`, whose zero value is empty. ListboxState stores an owned dataset, query, active item, scroll state, and a persistent QueryHandle. Call `state.SetItems(items)` during setup or a data update, then render `Listbox(c, theme, &selected, &state, options)`. SetItems validates before replacing the snapshot, owns nested descriptors and mutable style maps, and accepts nil to release the options. It preserves the app selection and draft.
+Each ListboxItem's ID must be non-empty and unique. Label and Description provide the text, and Group adds a group heading to adjacent items. Kind can be ListboxOption, ListboxLabel, or ListboxSeparator; structural rows also need IDs. The selection is a `*SelectionState[string]`. ListboxState stores the submitted items, the query, the active item, scroll state, and a persistent QueryHandle. Submit items with `state.SetItems(items)` (see [Submitted data and SelectionState](select.md)), then call `Listbox(c, theme, &selected, &state, options)`.
 
 The default is SelectionToggle: in both single and multiple selection, activating a selected item again deselects it. SelectionReplace replaces the selection on activation, and in multiple selection it also supports Shift range selection. Selected IDs that are temporarily missing from the data source are kept, which helps with async search; your app cleans up IDs that are gone for good.
 
@@ -222,7 +222,7 @@ Icon, Avatar, and Chip are checked in that order for the leading content, which 
 
 Size and Color default to MD and Primary. Instance options take precedence over the component theme, and the size can also be inherited from FormField. Highlight keeps a colored border visible. Keyboard focus shows a focus ring, which uses InvertedBackground with Neutral. When embedded in SelectMenu, the list follows the menu's size and color.
 
-SearchExecution defaults to SearchAuto: at most 2,048 candidates run immediately, larger datasets normalize and match in the background. SearchImmediate and SearchBackground override this policy. Pending results show loading and cannot activate or create values; the editor stays usable. Normalized fields are cached by submitted data and field configuration, and immutable source indices/row metadata publish only for the current request and mount. Each search surface retains one active worker and one latest request. Searching() reports pending work; close/unmount/window shutdown cancel it, and owners can call Close() when disposing. Local matching is bypassed for empty queries or when IgnoreFilter/ExternalFilter is enabled.
+SearchExecution chooses whether filtering runs immediately or in the background; see [Search in large lists](select.md).
 
 Filter defaults to false. When enabled, configure the search input through FilterInput. SearchTerm takes a persistent string pointer; when unset, State.Query is used. FilterFields defaults to matching label only and also supports description, value/id, and group; an explicit empty list matches nothing for a non-empty query. Filtering ignores case and combining diacritical marks. Within each run of options between groups and structural rows, results are ordered by exact match, then prefix match, then substring match. Full locale collation rules are not implemented.
 
@@ -243,11 +243,9 @@ In both orientations, only the visible items plus a few extra are built. Height 
 
 ##### Caching and large data sets
 
-Listbox and SelectMenu own data submitted through SetItems; changing the caller's slice has no effect until it is resubmitted. Submission prepares the ID index, groups, enabled positions and stable row keys once. SelectionState provides revisioned ordered membership. Unchanged revision checks do not enumerate N options or S selections; only visible rows and overscan are built. Submission remains O(N), explicit Values() snapshots and bulk selection depend on the selected count, and prefix search may scan every item.
+SetItems prepares the ID index, groups, and row keys once, so a build that changes nothing does not walk the items or the selection, and only visible rows are built. Submitting, filtering, Select All, prefix search, and `Values()` still take time proportional to the data or selection size. SelectMenu also caches its filter results and the trigger's joined labels.
 
-SelectMenu caches filter results and joined selected labels by data and selection revision; temporarily missing options retain their last known labels. Updating those labels can take O(S) work, and local filtering takes O(N) work when the query or configuration changes. Automatic popup sizing stops once its maximum viewport height is filled.
-
-Both components use parameterless OnChange, called once for an accepted selection change; external Set/Add/Remove/Clear calls stay silent. Read selected.Values() inside the callback only when a snapshot is needed. OnSelect still reports activation, including an unchanged value; per-item PreventDefault cancels both selection and activation notifications.
+OnChange takes no arguments and fires once per user change to the selection; changes made from code are silent. OnSelect reports activation, including activating the item that is already selected. An item's PreventDefault cancels both.
 
 ##### QueryState: reject stale search results
 
@@ -266,7 +264,7 @@ go func() {
 }()
 ```
 
-`fetchItems` is your app's request function. In the next build, pass queryState's Items, Loading, and Error to the menu. Remote search is usually combined with ExternalFilter.
+`fetchItems` is your app's request function. In the view, pass queryState's Loading and Error to the menu. Remote search is usually combined with ExternalFilter.
 
 Start cancels the previous context. Complete clones the result slice and rejects tickets that are stale or come from another instance. Call `queryState.Cancel()` when leaving the view or closing the window. The library creates no network tasks and does not prescribe debounce timing, fuzzy matching, or remote paging.
 
@@ -309,6 +307,16 @@ Listbox builds only the visible items plus a few extra in either orientation. Ho
 Separator's `Size` maps XS–XL to line widths of 1–5 DIP. Painting rounds the width to whole device pixels before aligning its position, so equal widths remain equal at fractional DPI and UI zoom. Dashed and dotted segments use whole-pixel lengths and gaps; the last segment may be shorter. Card section dividers and default menu/Listbox separators paint one device pixel while preserving DIP layout spacing. `Type` is one of the Solid, Dashed, and Dotted constants, and `Position` is Center, Start, or End. Content precedence is `Content → Label → Icon → Avatar`. The default label is 14 DIP, the icon 20 DIP, and the avatar 20 DIP; an explicit Avatar.Size takes precedence. Leading refers to the icon or avatar root. Vertical labels can wrap. A vertical separator is 48 DIP tall by default, which you can change on the returned element; give long labels and interactive content enough height. The content container keeps its identity when the position or orientation changes, but controls inside it still need stable keys.
 
 ### Inputs, selection, and fields
+
+#### Select and InputMenu › Submitted data and SelectionState (excerpt)
+
+| Component | Submit data with | Selection |
+| --- | --- | --- |
+| Listbox, SelectMenu | `SetItems` on their state | `*SelectionState[string]` |
+
+#### Select and InputMenu › Search in large lists (excerpt)
+
+Listbox, SelectMenu, InputMenu, DropdownMenu, and ContextMenu filter their submitted data locally. SearchExecution chooses where that runs:
 
 #### Select and InputMenu › Option row appearance (excerpt)
 

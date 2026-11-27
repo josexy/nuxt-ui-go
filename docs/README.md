@@ -111,7 +111,5 @@ In Go, `Error` is already the name of a semantic color, so the error display com
 | Lucide icon names and usage | [Icon docs](../icons/lucide/README.md) |
 | Platform support, differences from Nuxt UI, IME, and accessibility limits | [Compatibility and known limitations](compatibility.md) |
 | Runnable examples and development checks | [Run the examples](../README.md#run-the-examples), [Taskfile.yml](../Taskfile.yml) |
-| Reproducible UI benchmark matrix and evidence limits | [Performance evidence](performance.md) |
-| Moving choice controls to submitted data and revisioned selection | [Choice migration](choice-migration.md) |
-| Native Table notification and sorting changes | [Table migration](table-migration.md) |
-| Version changes | [Changelog](../CHANGELOG.md) |
+| Benchmarks and how to compare performance | [Performance benchmarks](performance.md) |
+| Version changes and migration notes | [Changelog](../CHANGELOG.md) |

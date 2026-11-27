@@ -110,6 +110,8 @@ FileUploadState.Files stores file metadata, not open file handles. UploadFile co
 | --- | --- |
 | FileIcon / FileImage / UploadFile.Avatar | The fallback file icon and the app-supplied preview accessory. FileImage=false shows only FileIcon |
 
+Because grid cards have a fixed height, custom FileDeleteOptions, a Style callback, or part overrides that change fonts, padding, or gaps switch the grid to list rows that size to their content; color-only overrides keep the grid. A custom file avatar in the grid must fit its declared Avatar.Size; use UploadList for other sizes.
+
 ### Forms, dates, and data components
 
 #### Listbox, SelectMenu, and async search › Listbox: a selectable list shown inline (excerpt)

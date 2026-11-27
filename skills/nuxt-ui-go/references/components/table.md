@@ -260,9 +260,15 @@ Columns can also set Width, MinWidth, MaxWidth, and Align. Sorting changes row p
 
 Clearing the sort restores the input order from the latest SetRows, which is also kept for rows that compare as equal. With multi-column sorting, Shift-click or Ctrl-click (Cmd-click on macOS) on a header adds a sort column; further clicks switch it to descending and then remove it. An ordinary click toggles that column between ascending and descending. Removing a column or disabling its sorting removes the invalid sort entries.
 
-Table uses a combined OnChange notification for native cursor, selection, sort and completed column-layout changes. OnSelectionChange has been removed for explicit selected-key snapshots and their cost. Ctrl+Down can notify while leaving the selected set unchanged. OnSortChange reports only effective user sort changes. OnActivate returns the typed row ID on Enter or double-click. External data/selection/layout assignments and rebuilds stay silent. List.Selected is an optional native active-row index; when absent, OnActivate binds the wrapper's internal cursor. Use stable IDs for business actions.
+OnChange fires once for each user change: a cursor move, a selection change, a sort, or a finished column move, resize, or fit (double-clicking a column edge). A drag reports nothing until it ends, and a gesture that leaves the layout unchanged, or one on a Fixed column, reports nothing. A sort also fires OnSortChange once. OnActivate returns the typed row ID on Enter or double-click. Rebuilding, and changing rows, selection, or layout from code, fire no callbacks. These semantics differ from Nuxt UI's select event on row click. List.Selected is an optional active-row index; when it is not bound, OnActivate uses an internal index. Still use IDs when acting on business data.
 
-Completed effective column resize/reorder/fitting gestures emit OnChange once, with no sort or activation event; held or no-op gestures emit nothing. Save the column layout from OnChange:
+OnChange is not selection-specific: Ctrl+Down moves the cursor without changing the selected rows. Read the selection in OnChange only when you need it, and prefer `Selection.Len()` or `Selection.Has(id)` over a sorted copy, which costs time in proportion to the selection:
+
+```go
+OnChange: func() { app.useIDs(slices.Sorted(app.files.Selection.All())) },
+```
+
+Save the column layout from OnChange:
 
 ```go
 nui.Table(c.Key("files"), t, &app.files, columns, nui.TableOptions{
@@ -276,23 +282,13 @@ nui.Table(c.Key("files"), t, &app.files, columns, nui.TableOptions{
 
 Restore it by assigning the saved `ui.TableLayout` to `List.Columns` before the first build. The internal active row that OnActivate reads follows its record: after sorting or several SetRows calls before the next build, Enter activates the same record even though its row moved. When SetRows removes that record, no row is active and Enter does nothing until the user chooses another row.
 
-Table sets List.Key, Selection, Sort, and Label; do not override these bindings in your app. List.SortBy, Columns, Selected, KeepOffset, FollowEnd, RowHeight, EndReached, NearEnd, HeaderMenu, CellMenu, and similar fields follow MyGo's rules. List.MoveAnimation is not supported through Table yet: nui's motion levels do not govern it, and MyGo turns it off only for the desktop's reduced-motion setting, so rows would still glide when `AppConfig.DisableAnimations` turns nui's motion off. List.CellSelect/Cells are native extensions, with TableColumn.RowHeader for whole-row/table selection. Combined OnChange includes cell/cursor changes; it is not a selection-only notification.
+Table sets List.Key, Selection, Sort, and Label; do not override these bindings in your app. List.SortBy, Columns, Selected, KeepOffset, FollowEnd, RowHeight, EndReached, NearEnd, HeaderMenu, CellMenu, and similar fields follow MyGo's rules. List.MoveAnimation is not supported through Table yet: nui's motion levels do not govern it, and MyGo turns it off only for the desktop's reduced-motion setting, so rows would still glide when `AppConfig.DisableAnimations` turns nui's motion off. List.CellSelect and Cells are native extensions; CellSelect and DragSelect cannot be combined with row reordering or external row dragging. With CellSelect, a column with `RowHeader: true` selects whole rows, its header selects the whole table, and it never sorts, even with Compare.
 
 ##### Borrowed rows and numeric identities
 
-Use `KeyedTableState[T, K]` and `KeyedTableOptions[K]` for string or integer IDs,
-including named types, numeric zero, and the full uint64 range. Selection,
-RowID and OnActivate retain that type; applications can explicitly sort selected-key snapshots
-by key value. Only accessible display labels format numeric IDs.
+Use `KeyedTableState[T, K]` and `KeyedTableOptions[K]` for string or integer IDs, including named types, numeric zero, and the full uint64 range. Selection, RowID, and OnActivate use that key type; only accessible labels format numeric IDs as text.
 
-`SetRows` copies values and validates identities before replacing a snapshot.
-`SetBorrowedRows` is an explicit trusted-data path: the app guarantees unique,
-stable keys (nonempty strings), a pure key function, and the lifetime of its
-source slice. It retains no row-value copy, full membership map or validation
-scratch. Validate untrusted input before binding; borrowed binding does not
-perform the copying API's duplicate-ID validation. Update data only on the main
-thread between builds, then rebind before rendering, including when values
-change under the same IDs. Neither setter belongs in an unconditional view build.
+`SetRows` copies the rows and checks their IDs before replacing the previous snapshot. `SetBorrowedRows` keeps a reference to your slice instead, for large trusted data: the keys must be unique, stable, and (for strings) non-empty, the key function must be pure, and the slice must stay valid while bound. It does not check for duplicate IDs, so validate untrusted input first. Change the data on the main thread between builds, then call SetBorrowedRows again before the next build, also when values change under the same IDs. Neither setter belongs in the view.
 
 ```go
 type Request struct {
@@ -316,16 +312,7 @@ nui.Table(c, theme, &table, []nui.TableColumn[Request]{
 })
 ```
 
-Borrowed state keeps one ordered-ID snapshot so reusing the source array cannot
-hide identity changes. The setter reports whether input IDs/order changed and
-removes selections for absent IDs. Local sorting uses a separate index
-permutation, leaving the source untouched; `ManualSorting` uses the supplied
-order without that extra array. Clearing sorting releases the permutation.
-Shrinking compacts oversized identity/selection storage; binding nil releases
-borrowed data. `ClearSelection` immediately releases the selection map while
-preserving the native binding and navigation state. A mounted Table also compacts
-selection after native input. These releases permit collection without forcing GC.
-Copied and borrowed setters can replace one another on the same state.
+SetBorrowedRows returns whether the IDs or their order changed, and drops selected IDs that are no longer present. Local sorting keeps its own index order and never reorders your slice; with ManualSorting, your order is used as is. Binding nil releases the borrowed data, and `ClearSelection` releases the selection's memory. Copied and borrowed setters can replace each other on the same state.
 
 ##### Filtering and scope
 
@@ -335,7 +322,7 @@ To load more rows as the user scrolls, set `state.List.EndReached`, and `NearEnd
 
 EmptyText and BuildEmpty set the empty content below the header. Loading shows a loading bar and keeps the existing data. With no data, BuildLoading's content is shown if provided; otherwise the empty content is still shown. LoadingColor defaults to Primary. LoadingAnimation can be Carousel, CarouselInverse, Swing, or Elastic, the same presets as Progress's Animation (`TableLoadingAnimation` is an alias of `LoadingAnimation`). Under reduced motion the bar spans the header and pulses its opacity, as Nuxt's `motion-reduce:animate-pulse`; at the Off motion level it is a static full-width bar. Caption is the table's description for assistive technology, and BuildCaption can show a visible title. Height defaults to 320 DIP, including the title; the header stays fixed and the body scrolls inside.
 
-Virtualization is always on. It reduces only the number of cells built; generating data, validating IDs, sorting, and filtering still scale with the data size. MyGo handles row layout. Cells can override Item and Label through a column's UI and Style, and column overrides are applied after table-level overrides.
+Virtualization is always on, for rows only: each visible row builds all of its cells, so wide tables cost more per row. Generating data, validating IDs, sorting, and filtering still scale with the data size. MyGo handles row layout. Cells can override Item and Label through a column's UI and Style, and column overrides are applied after table-level overrides. A column with only a Value function and no Item or Label styling draws its text directly, which is cheaper; any style or cell callback uses the decorated cell.
 
 `Fixed` **only prevents moving and resizing the column**; it does not freeze the column during scrolling. Frozen columns, multi-level headers, arbitrary row-builder replacement, expandable rows, grouping/aggregation and full TanStack semantics are not supported. List.HeaderCell can customize each existing native header cell; HeaderMenu and CellMenu retain their native index mappings. Native headers have no keyboard focus of their own; to support keyboard sorting, provide buttons that change Sort or SortBy. The underlying List measures row heights, so custom cells can be taller; your app should still verify complex dynamic content.
 

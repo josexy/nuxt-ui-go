@@ -70,13 +70,13 @@ func TestHiddenHorizontalListboxWaitsAndShowsRows(t *testing.T) {
 	var state nui.ListboxState
 	var selected []string
 	active, builds := "shown", 0
-	listSelection1 := chosenSelection(selected)
+	listSelection := chosenSelection(selected)
 	state.SetItems(items)
 	tt := ui.NewTester(func(c *ui.Context) {
 		builds++
 		th := nui.App(c, nui.AppConfig{})
 		keptTabs(c, th, &active, func(c *ui.Context, th nui.Theme) {
-			nui.Listbox(c, th, listSelection1, &state, nui.ListboxOptions{Label: "Choices", Orientation: nui.Set(nui.Horizontal), ItemWidth: 120}).Width(360)
+			nui.Listbox(c, th, listSelection, &state, nui.ListboxOptions{Label: "Choices", Orientation: nui.Set(nui.Horizontal), ItemWidth: 120}).Width(360)
 		})
 	}, 1200, 300)
 	if n := buildsDuring(tt, &builds, 2*time.Second); n > 2 {
