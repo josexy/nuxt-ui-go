@@ -1,8 +1,6 @@
 package nui
 
 import (
-	"fmt"
-	"slices"
 	"strings"
 	"time"
 
@@ -35,13 +33,15 @@ type SelectOptions struct {
 	Decoration
 }
 type selectionMemory[T comparable] struct {
-	list    optionListState[T]
-	open    bool
-	wasOpen bool
-	pop     popState
-	prefix  string
-	typed   time.Time
-	pending Optional[T]
+	list           optionListState[T]
+	open           bool
+	wasOpen        bool
+	pop            popState
+	prefix         string
+	typed          time.Time
+	pending        Optional[T]
+	sourceRevision uint64
+	userChanged    bool
 }
 type optionKey[T comparable] struct{ Value T }
 
@@ -132,13 +132,8 @@ func optionContent[T comparable](c *ui.Context, t Theme, o Option[T], chosen, hi
 	}
 }
 
-// tagChip is Nuxt's tag: an elevated chip with an accented inset ring, sized
-// with its field, whose x alone removes it. Pressing the x keeps the focus
-// in the editor; it stays a keyboard stop, as MyGo has no arrow keys between tags.
-func tagChip(c *ui.Context, t Theme, label, removeLabel string, size Size, disabled bool, deleteIcon *ui.SVG, remove func()) (chip, del ui.Element) {
-	return tagChipStyled(c, t, label, removeLabel, size, disabled, deleteIcon, remove, nil)
-}
-
+// tagChipStyled builds an elevated tag and its independent removal control.
+// The caller owns navigation between tags and focus after removal.
 func tagChipStyled(c *ui.Context, t Theme, label, removeLabel string, size Size, disabled bool, deleteIcon *ui.SVG, remove func(), decorate func(Slot, ui.Element)) (chip, del ui.Element) {
 	i := sizeIndex(size)
 	font := t.text([5]float32{10, 10, 12, 12, 14}[i])
@@ -193,44 +188,77 @@ func optionStyle(e ui.Element, t Theme, id Component, d Decoration, size Size, h
 }
 
 // Select never reserves a T zero value. Optional[T] or an explicit option models absence.
-func Select[T comparable](c *ui.Context, t Theme, selected *T, options []Option[T], o SelectOptions) ui.Element {
-	if selected == nil {
-		panic("nui: Select requires a value pointer")
+func Select[T comparable](c *ui.Context, t Theme, selected *T, s *SelectState[T], o SelectOptions) ui.Element {
+	if selected == nil || s == nil {
+		panic("nui: Select requires a value pointer and state")
 	}
+	return selectControl(c, t, selected, nil, s, o)
+}
+
+func selectControl[T comparable](c *ui.Context, t Theme, selected *T, multiple *SelectionState[T], s *SelectState[T], o SelectOptions) ui.Element {
+	options := s.source.items
 	e := ui.ButtonBase(c).Role(ui.RolePopUpButton).Disabled(o.Disabled || t.field.Disabled).FocusRing(false).MinWidth(0)
-	memory := ui.Local(e, "selection-memory", func() selectionMemory[T] { return selectionMemory[T]{} })
-	opened := &memory.open
+	memory := &s.memory
+	opened := &s.Open
 	if o.Open != nil {
 		opened = o.Open
 	}
 	memory.pop.note(c, *opened)
 	defer func() { memory.pop.note(c, *opened) }()
-	changed := memory.list.update(options)
+	changed := memory.sourceRevision != s.source.revision
+	if changed {
+		memory.list.optionMetadata, memory.sourceRevision = s.source.metadata, s.source.revision
+	}
 	if memory.pending.Set {
 		v := memory.pending.Value
 		memory.pending = Optional[T]{}
-		if _, ok := memory.list.enabled(v); ok && !e.IsDisabled() && *selected != v {
-			*selected = v
-			e.SetChanged()
+		if _, ok := memory.list.enabled(v); ok && !e.IsDisabled() {
+			if multiple != nil {
+				if multiple.Has(v) {
+					multiple.Remove(v)
+				} else {
+					multiple.Add(v)
+				}
+				e.SetChanged()
+			} else if *selected != v {
+				*selected = v
+				e.SetChanged()
+			}
 		}
+	}
+	if memory.userChanged {
+		memory.userChanged = false
+		e.SetChanged()
+	}
+	preferred := Optional[T]{}
+	if multiple != nil {
+		s.updateSelectionLabel(multiple)
+		preferred = s.preferred
+	} else {
+		preferred = Set(*selected)
 	}
 	initialize := func() {
 		memory.prefix = ""
 		memory.list.active = Optional[T]{}
-		memory.list.highlight(*selected, true)
+		if preferred.Set {
+			memory.list.highlight(preferred.Value, true)
+		}
 		if !memory.list.active.Set {
 			memory.list.move(ui.KeyHome)
 		}
 	}
 	if *opened && !memory.wasOpen {
 		initialize()
+		if !e.IsDisabled() {
+			e.Focus()
+		}
 	}
 	open := func() {
 		*opened = true
 		initialize()
 		memory.wasOpen = true
 	}
-	choose := func(value T) { memory.pending, *opened = Set(value), false }
+	choose := func(value T) { memory.pending, *opened = Set(value), multiple != nil }
 	e.OnClick(func() {
 		if *opened {
 			*opened = false
@@ -260,20 +288,37 @@ func Select[T comparable](c *ui.Context, t Theme, selected *T, options []Option[
 		})
 	}
 	disabled := e.IsDisabled()
+	if multiple != nil && *opened {
+		for _, mods := range []ui.Modifiers{ui.Ctrl, ui.Super} {
+			e.OnShortcut(mods, ui.KeyA, func() {
+				next := make([]T, 0, memory.list.enabledCount)
+				for _, option := range options {
+					if !option.Disabled {
+						next = append(next, option.Value)
+					}
+				}
+				memory.userChanged = multiple.Set(next) || memory.userChanged
+				memory.list.move(ui.KeyEnd)
+			})
+		}
+		for _, key := range []ui.Key{ui.KeyDown, ui.KeyUp, ui.KeyHome, ui.KeyEnd} {
+			e.OnShortcut(ui.Shift, key, func() { memory.list.move(key) })
+		}
+	}
 	e.HandleInput(func(ev ui.InputEvent) bool {
-		if disabled || ev.Kind != ui.InputText || ev.Text == "" || ev.Mods&(ui.Ctrl|ui.Alt|ui.Super) != 0 {
+		if disabled || multiple != nil && !*opened || ev.Kind != ui.InputText || ev.Text == "" || ev.Mods&(ui.Ctrl|ui.Alt|ui.Super) != 0 {
 			return false
 		}
 		if ev.Time.Sub(memory.typed) > time.Second {
 			memory.prefix = ""
 		}
 		memory.typed, memory.prefix = ev.Time, memory.prefix+strings.ToLower(ev.Text)
-		current := *selected
+		current := preferred
 		if *opened && memory.list.active.Set {
-			current = memory.list.active.Value
+			current = memory.list.active
 		}
-		at, ok := memory.list.index[current]
-		if !ok {
+		at, ok := memory.list.index[current.Value]
+		if !current.Set || !ok {
 			at = -1
 		}
 		matched := typeaheadIndex(memory.prefix, at, len(options), func(i int) (string, bool) {
@@ -289,9 +334,13 @@ func Select[T comparable](c *ui.Context, t Theme, selected *T, options []Option[
 		return true
 	})
 	if *opened && changed {
-		if _, ok := memory.list.enabled(memory.list.active.Value); !memory.list.active.Set || !ok {
+		if _, ok := memory.list.enabled(memory.list.active.Value); memory.list.active.Set && ok {
+			memory.list.highlight(memory.list.active.Value, true)
+		} else {
 			memory.list.active = Optional[T]{}
-			memory.list.highlight(*selected, true)
+			if preferred.Set {
+				memory.list.highlight(preferred.Value, true)
+			}
 			if !memory.list.active.Set {
 				memory.list.move(ui.KeyHome)
 			}
@@ -324,7 +373,11 @@ func Select[T comparable](c *ui.Context, t Theme, selected *T, options []Option[
 	fieldSemantics(c, e, t, field)
 	label := o.Placeholder
 	found := false
-	if i, ok := memory.list.index[*selected]; ok {
+	if multiple != nil {
+		if s.label != "" {
+			label, found = s.label, true
+		}
+	} else if i, ok := memory.list.index[*selected]; ok {
 		label, found = options[i].Label, true
 	}
 	e.Value(label).Children(func() {
@@ -340,7 +393,7 @@ func Select[T comparable](c *ui.Context, t Theme, selected *T, options []Option[
 	if o.OnChange != nil {
 		e.OnChange(o.OnChange)
 	}
-	if *opened {
+	if multiple == nil && *opened {
 		// Select dismisses and consumes an outside press, like the native menu.
 		ui.Overlay(c, func() {
 			ui.Box(c.Key("select-backdrop")).Absolute().Left(0).Top(0).Right(0).Bottom(0).KeepFocus().OnClick(func() {
@@ -350,25 +403,54 @@ func Select[T comparable](c *ui.Context, t Theme, selected *T, options []Option[
 			})
 		})
 	}
-	memory.pop.update(c, t, *opened, memory)
-	panel := popupBase(c, memory.pop.key(memory), e, opened, func(panel ui.Element) {
-		// The overlay is outside the trigger's disabled subtree. Propagate its
-		// effective state so disabling an open select also disables its options.
-		panel.Disabled(e.IsDisabled()).KeepFocus()
-		selectionPanel(c, panel, e, t, o.Popup, &memory.pop)
-		finish(t, ComponentSelect, Panel, panel, PartStyle{}, o.Decoration)
+	content := func() {
 		if len(options) == 0 {
 			finish(t, ComponentSelect, EmptySlot, statusText(c, "empty", emptyMessage(c, "noData", "noOptions")).TextAlign(ui.Center), optionEmptyStyle(t, config.Size), o.Decoration)
 		}
-		optionList(c, t, &memory.list, e, len(options), func(i int) Option[T] { return options[i] }, selectionHeight(o.Popup), ComponentSelect, o.Decoration, config.Size, o.SelectedIcon, true, func(v T) bool { return v == *selected }, choose)
-	})
+		optionList(c, t, &memory.list, e, len(options), func(i int) Option[T] { return options[i] }, selectionHeight(o.Popup), ComponentSelect, o.Decoration, config.Size, o.SelectedIcon, true, func(v T) bool {
+			if multiple != nil {
+				return multiple.Has(v)
+			}
+			return v == *selected
+		}, choose)
+	}
+	var panel ui.Element
+	if multiple != nil {
+		popup := o.Popup
+		popup.MatchAnchor = true
+		if !popup.MaxHeight.Set {
+			popup.MaxHeight = Set(float32(240))
+		}
+		recipe := popupStyle(t)
+		recipe.PaddingX, recipe.PaddingY, recipe.Gap = Set(t.spacing(4)), Set(t.spacing(4)), Set(float32(0))
+		panel = popover(c.Key("popup"), t, e, opened, popup, recipe, func(Theme) {
+			if !memory.wasOpen {
+				initialize()
+				e.Focus()
+			}
+			content()
+		})
+		if panel.Valid() {
+			panel.KeepFocus()
+			finish(t, ComponentSelect, Panel, panel, PartStyle{}, o.Decoration)
+		}
+	} else {
+		memory.pop.update(c, t, *opened, memory)
+		panel = popupBase(c, memory.pop.key(memory), e, opened, func(panel ui.Element) {
+			// Overlays lie outside their trigger's disabled subtree.
+			panel.Disabled(e.IsDisabled()).KeepFocus()
+			selectionPanel(c, panel, e, t, o.Popup, &memory.pop)
+			finish(t, ComponentSelect, Panel, panel, PartStyle{}, o.Decoration)
+			content()
+		})
+	}
 	if panel.Valid() && panel.Dismissed() && !valueOr(o.Popup.Dismissible, true) {
 		*opened = true
 	}
 	if memory.wasOpen && !*opened && !disabled {
 		e.Focus()
 	}
-	memory.open, memory.wasOpen = *opened, *opened
+	memory.open, memory.wasOpen, s.Open = *opened, *opened, *opened
 	applyGroup(c, e, t, styles[Root].Radius.Value)
 	if o.Style != nil {
 		o.Style(Root, e)
@@ -439,7 +521,11 @@ func selectionHeight(o PopoverOptions) float32 {
 // SearchState separates a draft query from its last committed stable ID. Empty Selected means no choice.
 type SearchState struct {
 	Query, Selected string
-	SelectedValues  []string // Used when InputMenuOptions.Multiple is true.
+	SelectedValues  SelectionState[string] // Used when InputMenuOptions.Multiple is true.
+	Open            bool
+	source          submittedOptions[string]
+	searchData      *choiceSearchData
+	memory          menuMemory
 }
 type InputMenuMode uint8
 
@@ -455,6 +541,7 @@ type InputMenuOptions struct {
 	AllowCustom                                    bool
 	Multiple, ExternalFilter                       bool
 	FilterFields                                   []string // label, description, value; nil uses label.
+	SearchExecution                                SearchExecution
 	Mode                                           InputMenuMode
 	OpenOnClick, OpenOnFocus                       Optional[bool]
 	ResetSearchTermOnBlur, ResetSearchTermOnSelect Optional[bool]
@@ -463,21 +550,33 @@ type InputMenuOptions struct {
 	Loop                                           bool
 	Open                                           *bool
 	SelectedIcon, DeleteIcon, ClearIcon            *ui.SVG
-	OnValuesChange                                 func([]string)
+	OnValuesChange                                 func()
 	OnCreate                                       func(string)
 	CreateWhenAlways                               bool
 	CreateAtTop                                    bool
 	OnSelect                                       func(string)
 }
+type inputMenuRowsKey struct {
+	data, filter uint64
+	filtered     bool
+	create       string
+	top          bool
+	pending      bool
+}
+
 type menuMemory struct {
 	pop            popState
 	data           optionListState[string]
 	list           optionListState[string]
-	selection      stringSelection
+	tags           inputMenuTags
+	dataRevision   uint64
+	filterRevision uint64
+	rowsKey        inputMenuRowsKey
+	filteredSet    map[int]bool
+	createID       string
+	fieldFocused   bool
 	filtered       []int
-	filterQuery    string
-	filterFields   []string
-	filterKnown    bool
+	search         choiceSearchCache
 	initialized    bool
 	focused        bool
 	open           bool
@@ -489,9 +588,10 @@ type menuMemory struct {
 	editor         ui.Handle
 	focusRequested bool
 	lastSelected   string
+	displayLabel   string
 }
 
-func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[string], o InputMenuOptions) ui.Element {
+func InputMenu(c *ui.Context, t Theme, state *SearchState, o InputMenuOptions) ui.Element {
 	if o.Mode > InputMenuAutocomplete {
 		panic("nui: invalid input menu mode")
 	}
@@ -501,14 +601,17 @@ func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[stri
 	if state == nil {
 		panic("nui: InputMenu requires state")
 	}
+	options := state.source.items
 	input := o.InputOptions
+	input.focusWithin = o.Multiple
 	input.clearWhenEmpty = state.Selected != ""
 	if o.Multiple {
-		input.clearWhenEmpty = len(state.SelectedValues) > 0
+		input.clearWhenEmpty = state.SelectedValues.Len() > 0
 	}
 	input.clearIcon = o.ClearIcon
 	var editor ui.Element
-	var memory *menuMemory
+	memory := &state.memory
+	preserveDraft := memory.focusRequested || memory.tags.pending != ""
 	var opened *bool
 	style := input.Style
 	input.Style = func(root, in, leading, trailing ui.Element) {
@@ -518,6 +621,9 @@ func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[stri
 			}
 			switch k.Key {
 			case ui.KeyDown, ui.KeyUp:
+				if memory.search.pending {
+					return true
+				}
 				if !*opened {
 					*opened, memory.filtering = true, false
 					memory.openingKey = ui.KeyHome
@@ -529,15 +635,18 @@ func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[stri
 				}
 				return true
 			case ui.KeyEnter:
+				if memory.search.pending {
+					return true
+				}
 				if *opened && memory.list.active.Set {
 					memory.pending = memory.list.active
 					return true
 				}
 			case ui.KeyBackspace:
-				if o.Multiple && k.Text() == "" && len(state.SelectedValues) > 0 {
-					state.SelectedValues = slices.Clone(state.SelectedValues[:len(state.SelectedValues)-1])
+				if o.Multiple && k.Text() == "" && state.SelectedValues.Len() > 0 {
+					state.SelectedValues.Remove(state.SelectedValues.values[state.SelectedValues.Len()-1])
 					if o.OnValuesChange != nil {
-						o.OnValuesChange(slices.Clone(state.SelectedValues))
+						o.OnValuesChange()
 					}
 					return true
 				}
@@ -560,10 +669,10 @@ func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[stri
 	input.OnClear = func() {
 		if o.Mode == InputMenuAutocomplete || valueOr(o.ResetModelValueOnClear, true) {
 			state.Selected = ""
-			if o.Multiple && len(state.SelectedValues) > 0 {
-				state.SelectedValues = nil
+			if o.Multiple && state.SelectedValues.Len() > 0 {
+				state.SelectedValues.Clear()
 				if o.OnValuesChange != nil {
-					o.OnValuesChange(nil)
+					o.OnValuesChange()
 				}
 			}
 		}
@@ -577,75 +686,64 @@ func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[stri
 	if input.Trailing == nil {
 		input.Trailing = lucide.ChevronDown()
 	}
-	createID := "\x00nui:create"
+	createID := memory.createID
 	root := inputShell(c, t, &state.Query, input, ComponentInputMenu, 0, 0, func() ui.Element {
-		// Tags and the draft share the available space, while shell icons stay
-		// at the field edges even when the selected tags wrap onto more lines.
-		content := ui.Row(c.Key("content")).Grow(1).MinWidth(0).Basis(0).AlignItems(ui.Center).Gap(t.spacing(4))
-		if o.Multiple {
-			content.Wrap()
+		// The draft stays outside the bounded selected-tag viewport.
+		content := ui.Column(c.Key("content")).Grow(1).MinWidth(0).Basis(0)
+		memory.search.bind(c, content, state.Close)
+		if o.Multiple && state.SelectedValues.Len() > 0 {
+			content.Gap(t.spacing(4))
 		}
-		memory = ui.Local(content, "menu-identity", func() menuMemory { return menuMemory{} })
-		opened = &memory.open
+		opened = &state.Open
 		if o.Open != nil {
 			opened = o.Open
 		}
 		memory.pop.note(c, *opened)
-		if !o.Multiple && o.Mode != InputMenuAutocomplete && valueOr(o.ResetSearchTermOnSelect, true) && !memory.editor.Focused(c) && ((!memory.initialized && state.Query == "") || (memory.initialized && state.Selected != memory.lastSelected)) {
-			state.Query = ""
-			for _, option := range options {
-				if option.Value == state.Selected {
-					state.Query = option.Label
-					break
-				}
-			}
-		}
-		changed := memory.data.update(options)
+		changed := memory.dataRevision != state.source.revision
 		if changed {
-			memory.filterKnown = false
+			memory.data.optionMetadata, memory.dataRevision = state.source.metadata, state.source.revision
 		}
-		if _, exists := memory.data.index[""]; exists {
-			panic("nui: InputMenu IDs cannot be empty")
+		if !o.Multiple && o.Mode != InputMenuAutocomplete && valueOr(o.ResetSearchTermOnSelect, true) && !memory.editor.Focused(c) && ((!memory.initialized && state.Query == "") || memory.initialized && (state.Selected != memory.lastSelected || changed && state.Selected != "" && state.Query == memory.displayLabel)) {
+			if at, exists := memory.data.index[state.Selected]; exists {
+				state.Query = options[at].Label
+			} else if !changed {
+				state.Query = ""
+			}
 		}
 		// A changed data set dismisses before accepting another choice.
 		if changed && memory.initialized {
+			preserveDraft = true
 			*opened, memory.pending = false, Optional[string]{}
 		}
 		memory.initialized = true
-		for {
-			if _, exists := memory.data.index[createID]; !exists {
-				break
+		if changed || createID == "" {
+			createID = "\x00nui:create"
+			for {
+				if _, exists := memory.data.index[createID]; !exists {
+					break
+				}
+				createID += "_"
 			}
-			createID += "_"
+			memory.createID = createID
 		}
-		memory.selection.update(state.SelectedValues)
+		if o.Multiple {
+			state.updateTagLabels()
+		}
 		size := inputDefaults(t, ComponentInputMenu, input).Size
 		content.Children(func() {
 			if o.Multiple {
-				seen := map[string]bool{}
-				for _, id := range state.SelectedValues {
-					if seen[id] {
-						continue
-					}
-					seen[id] = true
-					label := id
-					if i, ok := memory.data.index[id]; ok {
-						label = options[i].Label
-					}
-					c.Key("selected:" + id)
-					tagChip(c, t, label, namedMessage(c, "removeNamed", label), size, o.ReadOnly, o.DeleteIcon, func() {
-						state.SelectedValues = slices.DeleteFunc(slices.Clone(state.SelectedValues), func(v string) bool { return v == id })
-						memory.focusRequested = true
-						if o.OnValuesChange != nil {
-							o.OnValuesChange(slices.Clone(state.SelectedValues))
-						}
-					})
-				}
+				inputMenuSelectedTags(c, t, state, o, size)
 			}
 			editor = ui.TextInputBase(c.Key("input"), &state.Query).Role(ui.RoleComboBox).Bind(&memory.editor)
 			if o.Multiple {
-				// Leave room for a caret before moving the draft to the next line.
-				editor.Basis(t.text(40))
+				editor.FillWidth()
+				if state.SelectedValues.Len() > 0 && !o.ReadOnly {
+					editor.OnShortcut(ui.Shift, ui.KeyTab, func() {
+						index := state.SelectedValues.Len() - 1
+						memory.tags.pending = state.SelectedValues.values[index]
+						memory.tags.list.ScrollIntoView(index)
+					})
+				}
 			}
 		})
 		return editor
@@ -671,23 +769,29 @@ func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[stri
 			*opened = false
 		}
 		query := strings.ToLower(strings.TrimSpace(state.Query))
-		filter := !o.ExternalFilter && (memory.filtering || memory.keepFilter)
-		if filter && (!memory.filterKnown || memory.filterQuery != query ||
-			(memory.filterFields == nil) != (o.FilterFields == nil) || !slices.Equal(memory.filterFields, o.FilterFields)) {
-			memory.filtered = memory.filtered[:0]
-			for i, option := range options {
-				if matchOption(option, query, o.FilterFields) {
-					memory.filtered = append(memory.filtered, i)
-				}
-			}
-			memory.filterQuery, memory.filterFields, memory.filterKnown = query, slices.Clone(o.FilterFields), true
+		filter := *opened && !o.ExternalFilter && query != "" && (memory.filtering || memory.keepFilter)
+		searchData := state.searchData
+		if searchData == nil {
+			searchData = emptyOptionsSearch
+		}
+		if filter && memory.search.execute(searchData, query, o.FilterFields, o.SearchExecution) {
+			memory.filtered = memory.search.indices
+			memory.filteredSet = memory.search.result.membership
+			memory.filterRevision++
+		}
+		if !filter {
+			memory.search.pause()
 		}
 		count := len(options)
 		if filter {
 			count = len(memory.filtered)
 		}
-		create := o.OnCreate != nil && query != "" && (o.CreateWhenAlways || count == 0)
-		if at, exists := memory.data.index[state.Query]; create && exists && (!filter || slices.Contains(memory.filtered, at)) {
+		if memory.search.pending {
+			count = 0
+			memory.pending = Optional[string]{}
+		}
+		create := !memory.search.pending && o.OnCreate != nil && query != "" && (o.CreateWhenAlways || count == 0)
+		if at, exists := memory.data.index[state.Query]; create && exists && (!filter || memory.filteredSet[at]) {
 			create = false
 		}
 		var entry Option[string]
@@ -709,7 +813,18 @@ func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[stri
 			}
 			return options[i]
 		}
-		if memory.list.updateRows(count, optionAt) {
+		key := inputMenuRowsKey{data: state.source.revision, filter: memory.filterRevision, filtered: filter, create: entry.Label, top: o.CreateAtTop, pending: memory.search.pending}
+		if memory.rowsKey != key {
+			memory.rowsKey = key
+			if memory.search.pending {
+				memory.list.optionMetadata = optionMetadata[string]{}
+			} else if filter && !create {
+				memory.list.optionMetadata = memory.search.result.options
+			} else if !filter && !create {
+				memory.list.optionMetadata = memory.data.optionMetadata
+			} else {
+				memory.list.updateRows(count, optionAt)
+			}
 			if _, ok := memory.list.enabled(memory.list.active.Value); !memory.list.active.Set || !ok {
 				memory.list.active = Optional[string]{}
 				if memory.filtering {
@@ -742,11 +857,13 @@ func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[stri
 						return false
 					}
 					if o.Multiple {
-						return memory.selection.set[id]
+						return state.SelectedValues.Has(id)
 					}
 					return id == state.Selected
 				}, func(id string) { memory.pending = Set(id) })
-				if count == 0 && !create {
+				if memory.search.pending {
+					finish(t, ComponentInputMenu, EmptySlot, statusText(c, "search-pending", message(c, "loading")), optionEmptyStyle(t, config.Size), Decoration{UI: input.UI})
+				} else if count == 0 && !create {
 					text := o.EmptyText
 					if text == "" {
 						key := "noData"
@@ -764,6 +881,9 @@ func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[stri
 		}
 		memory.pop.note(c, *opened)
 	})
+	if !memory.search.ready(state.Query) {
+		memory.pending = Optional[string]{}
+	}
 	if memory.pending.Set {
 		id := memory.pending.Value
 		memory.pending = Optional[string]{}
@@ -774,14 +894,14 @@ func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[stri
 			query := strings.TrimSpace(state.Query)
 			root.SetChanged().OnChange(func() { o.OnCreate(query) })
 			*opened, memory.keepFilter = true, true
-		} else if i, ok := memory.data.enabled(id); ok {
+		} else if i, ok := memory.data.enabled(id); ok && !memory.search.pending {
 			state.Selected = id
 			*opened, memory.filtering = o.Multiple, false
 			if o.Multiple {
-				if slices.Contains(state.SelectedValues, id) {
-					state.SelectedValues = slices.DeleteFunc(slices.Clone(state.SelectedValues), func(v string) bool { return v == id })
+				if state.SelectedValues.Has(id) {
+					state.SelectedValues.Remove(id)
 				} else {
-					state.SelectedValues = append(slices.Clone(state.SelectedValues), id)
+					state.SelectedValues.Add(id)
 				}
 				if valueOr(o.ResetSearchTermOnSelect, true) {
 					state.Query = ""
@@ -793,15 +913,16 @@ func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[stri
 				root.SetChanged().OnChange(func() { o.OnSelect(id) })
 			}
 			if o.Multiple && o.OnValuesChange != nil {
-				root.SetChanged().OnChange(func() { o.OnValuesChange(slices.Clone(state.SelectedValues)) })
+				root.SetChanged().OnChange(func() { o.OnValuesChange() })
 			}
 		}
 	}
 	if !*opened {
+		memory.search.pause()
 		memory.keepFilter, memory.filtering = false, false
 		memory.list.active = Optional[string]{}
 	}
-	if ((memory.wasOpen && !*opened) || (memory.focused && !editor.Focused())) && valueOr(o.ResetSearchTermOnBlur, true) && !o.AllowCustom {
+	if ((memory.wasOpen && !*opened) || (memory.fieldFocused && !root.FocusWithin())) && !memory.tags.list.FocusWithin(c) && !preserveDraft && valueOr(o.ResetSearchTermOnBlur, true) && !o.AllowCustom {
 		before := state.Query
 		state.Query = ""
 		if !o.Multiple {
@@ -814,33 +935,33 @@ func InputMenu(c *ui.Context, t Theme, state *SearchState, options []Option[stri
 		}
 	}
 	memory.wasOpen, memory.focused = *opened, editor.Focused()
-	memory.open, memory.lastSelected = *opened, state.Selected
+	memory.open, memory.lastSelected, state.Open = *opened, state.Selected, *opened
+	memory.fieldFocused = root.FocusWithin()
+	if at, exists := memory.data.index[state.Selected]; exists {
+		memory.displayLabel = options[at].Label
+	}
 	return root
-}
-func matchOption[T comparable](option Option[T], query string, fields []string) bool {
-	if fields == nil {
-		fields = []string{"label"}
-	}
-	for _, field := range fields {
-		var text string
-		switch field {
-		case "label":
-			text = option.Label
-		case "description":
-			text = option.Description
-		case "value":
-			text = fmt.Sprint(option.Value)
-		default:
-			panic("nui: unknown option filter field")
-		}
-		if strings.Contains(strings.ToLower(text), query) {
-			return true
-		}
-	}
-	return false
 }
 
 // SearchSelect is a convenience wrapper; use InputMenu for additional options.
-func SearchSelect(c *ui.Context, t Theme, state *SearchState, options []Option[string], label string) ui.Element {
-	return InputMenu(c, t, state, options, InputMenuOptions{Label: label, Placeholder: message(c, "searchWorkspaces"), FilterFields: []string{"label", "description"}, OpenOnClick: Set(true)})
+func SearchSelect(c *ui.Context, t Theme, state *SearchState, label string) ui.Element {
+	return InputMenu(c, t, state, InputMenuOptions{Label: label, Placeholder: message(c, "searchWorkspaces"), FilterFields: []string{"label", "description"}, OpenOnClick: Set(true)})
+}
+
+func (s *SearchState) Searching() bool { return s.memory.search.pending }
+
+// Close dismisses InputMenu and cancels search/activation/focus requests. When
+// an external Open pointer is bound, its owner must also set that binding false.
+// Submitted data, the draft and selection remain available on remount.
+func (s *SearchState) Close() {
+	s.Open, s.memory.open, s.memory.wasOpen = false, false, false
+	s.memory.search.reset()
+	s.memory.pending = Optional[string]{}
+	s.memory.list.active = Optional[string]{}
+	s.memory.openingKey = 0
+	s.memory.focusRequested = false
+	s.memory.tags.pending = ""
+	s.memory.editor.CancelFocus()
+	s.memory.list.list.CancelFocus()
+	s.memory.tags.list.CancelFocus()
 }

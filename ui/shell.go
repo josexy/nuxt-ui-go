@@ -32,15 +32,25 @@ type NavigationEvent struct {
 
 func (e *NavigationEvent) PreventDefault() { e.prevented = true }
 
+type navigationMenuIdentity struct {
+	parent              string
+	position            int
+	label, description  string
+	disabled, labelOnly bool
+}
+
 type NavigationState struct {
-	menus    map[string]*MenuState
-	Expanded map[string]bool
-	popovers map[string]*navigationPopover
-	handles  map[string]*ui.Handle
-	compact  bool
-	vertical bool
-	known    map[string]bool
-	parents  map[string]string
+	menuKeys     map[string]navigationMenuIdentity
+	menuRevision uint64
+	menuVersions map[string]uint64
+	menus        map[string]*MenuState
+	Expanded     map[string]bool
+	popovers     map[string]*navigationPopover
+	handles      map[string]*ui.Handle
+	compact      bool
+	vertical     bool
+	known        map[string]bool
+	parents      map[string]string
 }
 type navigationPopover struct {
 	open, pinned, focus   bool
@@ -92,15 +102,26 @@ func navigationMenu(c *ui.Context, t Theme, active *string, s *NavigationState, 
 	seen := map[string]bool{}
 	nodes := map[string]NavigationItem{}
 	parents := map[string]string{}
+	var menuKeys map[string]navigationMenuIdentity
+	if !o.Vertical {
+		menuKeys = map[string]navigationMenuIdentity{}
+	}
+	menuChanged := false
 	var visit func([]NavigationItem, int)
 	visit = func(items []NavigationItem, depth int) {
 		if depth > 32 {
 			panic("nui: NavigationMenu nesting exceeds 32")
 		}
 		opened := false
-		for _, it := range items {
+		for position, it := range items {
 			checkID(seen, it.ID, "NavigationMenu")
 			nodes[it.ID] = it
+			if !o.Vertical {
+				key := navigationMenuIdentity{parents[it.ID], position, it.Label, it.Description, it.Disabled, it.LabelOnly}
+				previous, exists := s.menuKeys[it.ID]
+				menuChanged = menuChanged || !exists || key != previous
+				menuKeys[it.ID] = key
+			}
 			if _, exists := s.Expanded[it.ID]; !exists && !s.known[it.ID] && it.DefaultOpen && len(it.Children) > 0 && !it.LabelOnly {
 				s.Expanded[it.ID] = true
 			}
@@ -119,6 +140,12 @@ func navigationMenu(c *ui.Context, t Theme, active *string, s *NavigationState, 
 		}
 	}
 	visit(items, 0)
+	if !o.Vertical {
+		if menuChanged || len(menuKeys) != len(s.menuKeys) {
+			s.menuRevision++
+		}
+		s.menuKeys = menuKeys
+	}
 	if !nested {
 		for id := range s.Expanded {
 			node, ok := nodes[id]
@@ -129,6 +156,7 @@ func navigationMenu(c *ui.Context, t Theme, active *string, s *NavigationState, 
 	}
 	if s.menus == nil {
 		s.menus = map[string]*MenuState{}
+		s.menuVersions = map[string]uint64{}
 		s.popovers = map[string]*navigationPopover{}
 		s.handles = map[string]*ui.Handle{}
 	}
@@ -156,6 +184,7 @@ func navigationMenu(c *ui.Context, t Theme, active *string, s *NavigationState, 
 				handle.CancelFocus(c)
 			}
 			delete(s.menus, id)
+			delete(s.menuVersions, id)
 			delete(s.Expanded, id)
 			delete(s.popovers, id)
 			delete(s.handles, id)
@@ -239,19 +268,14 @@ func navigationMenu(c *ui.Context, t Theme, active *string, s *NavigationState, 
 		}
 		return true
 	}
-	var menuItems func([]NavigationItem, *MenuState) []MenuItem
-	menuItems = func(items []NavigationItem, menu *MenuState) []MenuItem {
+	var menuItems func([]NavigationItem) []MenuItem
+	menuItems = func(items []NavigationItem) []MenuItem {
 		out := make([]MenuItem, 0, len(items))
 		for _, it := range items {
 			if it.LabelOnly {
 				continue
 			}
-			kind := MenuAction
-			out = append(out, MenuItem{ID: it.ID, Label: it.Label, Description: it.Description, Kind: kind, Icon: it.Icon, Avatar: it.Avatar, Disabled: it.Disabled, Checked: Set(*active == it.ID || it.Active), Close: Set(false), Children: menuItems(it.Children, menu), OnSelect: func() {
-				if choose(it) {
-					menu.close(true, nil)
-				}
-			}})
+			out = append(out, MenuItem{ID: it.ID, Label: it.Label, Description: it.Description, Disabled: it.Disabled, Close: Set(false), Children: menuItems(it.Children)})
 		}
 		return out
 	}
@@ -502,8 +526,21 @@ func navigationMenu(c *ui.Context, t Theme, active *string, s *NavigationState, 
 						revealHeight(clip, children, progress)
 					}
 				} else {
-					panel := menu(c, t, b, s.menus[it.ID], menuItems(it.Children, s.menus[it.ID]), MenuOptions{Label: it.Label, Disabled: root.IsDisabled()}, false, func(item MenuItem, base Decoration) Decoration {
-						return navigationMenuDecoration(t, o, nodes[item.ID], base)
+					state := s.menus[it.ID]
+					if s.menuVersions[it.ID] != s.menuRevision {
+						state.SetItems(menuItems(it.Children))
+						s.menuVersions[it.ID] = s.menuRevision
+					}
+					panel := menu(c, t, b, state, MenuOptions{Label: it.Label, Disabled: root.IsDisabled()}, false, func(item MenuItem, base Decoration) (MenuItem, Decoration) {
+						node := nodes[item.ID]
+						item.Icon, item.Avatar = node.Icon, node.Avatar
+						item.Checked = Set(*active == node.ID || node.Active)
+						item.OnSelect = func() {
+							if choose(node) {
+								state.close(true, nil)
+							}
+						}
+						return item, navigationMenuDecoration(t, o, node, base)
 					})
 					if panel.Valid() {
 						finishNavigationPart(t, Panel, panel, PartStyle{}, o.Decoration, it.Decoration)

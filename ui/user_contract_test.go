@@ -147,6 +147,8 @@ func TestUserInteractiveAvatarScalesOnHover(t *testing.T) {
 	before, root := bounds(t, tt, "User avatar"), bounds(t, tt, "Profile")
 	tt.Move(root.X+root.W/2, root.Y+root.H/2)
 	tt.Advance(time.Second)
+	// Tester accessibility bounds refresh on builds, while poses advance on paint.
+	tt.Frame()
 	after := bounds(t, tt, "User avatar")
 	if after.W <= before.W || after.H <= before.H {
 		t.Fatalf("hover did not scale the avatar: %+v -> %+v", before, after)

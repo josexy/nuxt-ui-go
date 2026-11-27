@@ -136,10 +136,11 @@ func TestPropsInputMenuFilteringCreationAndMultiple(t *testing.T) {
 	changes, created := 0, ""
 	external, multiple := true, true
 	opts := []nui.Option[string]{{Value: "a", Label: "Alpha", Description: "One"}, {Value: "b", Label: "Beta", Description: "Two"}}
+	state.SetOptions(opts)
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		ui.Column(c).Padding(20).Children(func() {
-			nui.InputMenu(c, th, &state, opts, nui.InputMenuOptions{Label: "Search", Multiple: multiple, ExternalFilter: external, FilterFields: []string{"description"}, OnValuesChange: func([]string) { changes++ }, OnCreate: func(s string) { created = s }})
+			nui.InputMenu(c, th, &state, nui.InputMenuOptions{Label: "Search", Multiple: multiple, ExternalFilter: external, FilterFields: []string{"description"}, OnValuesChange: func() { changes++ }, OnCreate: func(s string) { created = s }})
 			nui.Button(c, th, "Outside", nui.ButtonOptions{})
 		})
 	}, 500, 450)
@@ -149,12 +150,12 @@ func TestPropsInputMenuFilteringCreationAndMultiple(t *testing.T) {
 		t.Fatal("external filter still filtered locally")
 	}
 	click(t, tt, "Beta")
-	if !slices.Equal(state.SelectedValues, []string{"b"}) || state.Query != "" || changes != 1 {
+	if !slices.Equal(state.SelectedValues.Values(), []string{"b"}) || state.Query != "" || changes != 1 {
 		t.Fatalf("multiple select: %+v changes=%d", state, changes)
 	}
 	click(t, tt, "Search")
 	tt.Key(0, ui.KeyBackspace)
-	if len(state.SelectedValues) != 0 || changes != 2 {
+	if state.SelectedValues.Len() != 0 || changes != 2 {
 		t.Fatal("empty draft Backspace removal")
 	}
 	external, multiple = false, false
@@ -181,17 +182,20 @@ func TestPropsTypedMultipleSelectIdentity(t *testing.T) {
 	selected := []int{}
 	options := []nui.Option[int]{{Value: 0, Label: "Zero"}, {Value: 1, Label: "One"}, {Value: 2, Label: "Disabled", Disabled: true}}
 	changes := 0
+	selectState1 := submittedSelect(options)
+	selectedState1 := chosenSelection(selected)
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.SelectMultiple(c, th, &selected, options, nui.SelectOptions{Label: "Numbers", OnChange: func() { changes++ }}).Width(300)
+		nui.SelectMultiple(c, th, selectedState1, selectState1, nui.SelectOptions{Label: "Numbers", OnChange: func() { changes++ }}).Width(300)
 	}, 500, 450)
 	click(t, tt, "Numbers")
 	click(t, tt, "Zero")
 	click(t, tt, "One")
-	if !slices.Equal(selected, []int{0, 1}) || changes != 2 {
-		t.Fatalf("typed multiple %v calls=%d", selected, changes)
+	if !slices.Equal(selectedState1.Values(), []int{0, 1}) || changes != 2 {
+		t.Fatalf("typed multiple %v calls=%d", selectedState1.Values(), changes)
 	}
 	options = options[1:]
+	selectState1.SetOptions(options)
 	tt.Frame()
 	tt.Key(0, ui.KeyEscape)
 	tt.Advance(time.Second)
@@ -200,7 +204,7 @@ func TestPropsTypedMultipleSelectIdentity(t *testing.T) {
 	}
 	click(t, tt, "Numbers")
 	click(t, tt, "One")
-	if !slices.Equal(selected, []int{0}) {
+	if !slices.Equal(selectedState1.Values(), []int{0}) {
 		t.Fatal("selection lost stable typed identity")
 	}
 }
@@ -208,14 +212,16 @@ func TestPropsTypedMultipleSelectIdentity(t *testing.T) {
 func TestPropsHorizontalListboxAndLoop(t *testing.T) {
 	var state nui.ListboxState
 	selected := []string{}
+	listSelection1 := chosenSelection(selected)
+	state.SetItems([]nui.ListboxItem{{ID: "a", Label: "Alpha"}, {ID: "x", Label: "Disabled", Disabled: true}, {ID: "b", Label: "Beta"}})
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.Listbox(c, th, &selected, &state, []nui.ListboxItem{{ID: "a", Label: "Alpha"}, {ID: "x", Label: "Disabled", Disabled: true}, {ID: "b", Label: "Beta"}}, nui.ListboxOptions{Label: "Choices", Multiple: true, Orientation: nui.Set(nui.Horizontal), ItemWidth: 120, Loop: true, HighlightOnHover: nui.Set(false), SelectionBehavior: nui.SelectionReplace}).Width(400)
+		nui.Listbox(c, th, listSelection1, &state, nui.ListboxOptions{Label: "Choices", Multiple: true, Orientation: nui.Set(nui.Horizontal), ItemWidth: 120, Loop: true, HighlightOnHover: nui.Set(false), SelectionBehavior: nui.SelectionReplace}).Width(400)
 	}, 500, 200)
 	click(t, tt, "Alpha")
 	tt.Key(0, ui.KeyRight)
-	if state.Active != "b" || !slices.Equal(selected, []string{"a"}) {
-		t.Fatalf("horizontal navigation %s %v", state.Active, selected)
+	if state.Active != "b" || !slices.Equal(listSelection1.Values(), []string{"a"}) {
+		t.Fatalf("horizontal navigation %s %v", state.Active, listSelection1.Values())
 	}
 	tt.Key(0, ui.KeyRight)
 	if state.Active != "a" {
@@ -227,11 +233,11 @@ func TestPropsHorizontalListboxAndLoop(t *testing.T) {
 		t.Fatal("highlightOnHover=false")
 	}
 	tt.Key(ui.Shift, ui.KeyEnd)
-	if !slices.Equal(selected, []string{"a", "b"}) {
-		t.Fatalf("replace range must skip disabled: %v", selected)
+	if !slices.Equal(listSelection1.Values(), []string{"a", "b"}) {
+		t.Fatalf("replace range must skip disabled: %v", listSelection1.Values())
 	}
 	tt.Key(0, ui.KeySpace)
-	if !slices.Equal(selected, []string{"b"}) {
+	if !slices.Equal(listSelection1.Values(), []string{"b"}) {
 		t.Fatal("replace activation")
 	}
 }
@@ -254,12 +260,14 @@ func TestListboxFilterAndItemOptions(t *testing.T) {
 		{ID: "separator", Kind: nui.ListboxSeparator},
 		{ID: "tea", Label: "Tea"},
 	}
+	listSelection2 := chosenSelection(selected)
+	state.SetItems(items)
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		ui.Column(c).Disabled(disabled).Children(func() {
-			nui.Listbox(c, th, &selected, &state, items, nui.ListboxOptions{
+			nui.Listbox(c, th, listSelection2, &state, nui.ListboxOptions{
 				Label: "Choices", Filter: filter, Loading: loading, Color: nui.Neutral, Highlight: true,
-				OnChange: func([]string) { changes++ }, OnSelect: func(string) { selections++ },
+				OnChange: func() { changes++ }, OnSelect: func(string) { selections++ },
 				OnSearchTermChange: func(string) { queries++ },
 				OnHighlight:        func(string) { highlights++ },
 			}).Width(340)
@@ -282,13 +290,13 @@ func TestListboxFilterAndItemOptions(t *testing.T) {
 	}
 	tt.Key(0, ui.KeyHome)
 	tt.Key(0, ui.KeyEnter)
-	if !slices.Equal(selected, []string{"tea"}) || changes != 0 || selections != 0 || attempts != 1 {
-		t.Fatalf("prevented activation: values=%v changes=%d selections=%d attempts=%d", selected, changes, selections, attempts)
+	if !slices.Equal(listSelection2.Values(), []string{"tea"}) || changes != 0 || selections != 0 || attempts != 1 {
+		t.Fatalf("prevented activation: values=%v changes=%d selections=%d attempts=%d", listSelection2.Values(), changes, selections, attempts)
 	}
 	prevent = false
 	tt.Key(0, ui.KeyEnter)
-	if !slices.Equal(selected, []string{"exact"}) || changes != 1 || selections != 1 || attempts != 2 {
-		t.Fatalf("filter Enter: values=%v changes=%d selections=%d attempts=%d", selected, changes, selections, attempts)
+	if !slices.Equal(listSelection2.Values(), []string{"exact"}) || changes != 1 || selections != 1 || attempts != 2 {
+		t.Fatalf("filter Enter: values=%v changes=%d selections=%d attempts=%d", listSelection2.Values(), changes, selections, attempts)
 	}
 	loading = true
 	tt.Frame()
@@ -415,10 +423,11 @@ func TestPropsInputMenuOpenAndResetPolicies(t *testing.T) {
 	openOnFocus := false
 	reset := false
 	mode := nui.InputMenuCombobox
+	state.SetOptions([]nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}})
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		ui.Column(c).Padding(20).Children(func() {
-			nui.InputMenu(c, th, &state, []nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}}, nui.InputMenuOptions{Label: "Query", Mode: mode, OpenOnClick: nui.Set(false), OpenOnFocus: nui.Set(openOnFocus), ResetSearchTermOnBlur: nui.Set(reset), ResetSearchTermOnSelect: nui.Set(reset)})
+			nui.InputMenu(c, th, &state, nui.InputMenuOptions{Label: "Query", Mode: mode, OpenOnClick: nui.Set(false), OpenOnFocus: nui.Set(openOnFocus), ResetSearchTermOnBlur: nui.Set(reset), ResetSearchTermOnSelect: nui.Set(reset)})
 			nui.Button(c, th, "Outside", nui.ButtonOptions{}).Absolute().Top(400).Left(350)
 		})
 	}, 500, 470)

@@ -15,16 +15,13 @@ func TestDropdownMenuSizesAndDescriptionAlignment(t *testing.T) {
 	for i, size := range []nui.Size{nui.XS, nui.SM, nui.MD, nui.LG, nui.XL} {
 		t.Run(fmt.Sprint(size), func(t *testing.T) {
 			var state nui.MenuState
+			state.SetItems([]nui.MenuItem{{ID: "heading", Kind: nui.MenuLabel, Label: "Heading", Description: "Group description", Avatar: &nui.AvatarOptions{Alt: "Group avatar"}}, {ID: "rich", Label: "Rich action", Description: "Second line", Icon: lucide.Info(), Shortcut: "Ctrl+K"}, {ID: "plain", Label: "Plain action"}})
 			tt := ui.NewTester(func(c *ui.Context) {
 				th := nui.App(c, nui.AppConfig{})
 				th.Motion.Reduce = true
 				a := nui.Button(c, th, "Actions", nui.ButtonOptions{}).Absolute().Left(20).Top(20)
 				leadingIndex := 0
-				nui.DropdownMenu(c, th, a, &state, []nui.MenuItem{
-					{ID: "heading", Kind: nui.MenuLabel, Label: "Heading", Description: "Group description", Avatar: &nui.AvatarOptions{Alt: "Group avatar"}},
-					{ID: "rich", Label: "Rich action", Description: "Second line", Icon: lucide.Info(), Shortcut: "Ctrl+K"},
-					{ID: "plain", Label: "Plain action"},
-				}, nui.MenuOptions{Size: size, Style: func(slot nui.Slot, e ui.Element) {
+				nui.DropdownMenu(c, th, a, &state, nui.MenuOptions{Size: size, Style: func(slot nui.Slot, e ui.Element) {
 					if slot == nui.Leading {
 						e.Label(fmt.Sprintf("Leading %d", leadingIndex))
 						leadingIndex++
@@ -56,16 +53,21 @@ func TestDropdownMenuLoopCheckedAndCallbacks(t *testing.T) {
 	checked, loop, swap, disabled := false, false, false, false
 	selected, updated, triggerClicks := 0, 0, 0
 	var opens []bool
+	var submit func()
+	submit = func() {
+		items := []nui.MenuItem{{ID: "first", Label: "First"}, {ID: "disabled", Label: "Disabled item", Disabled: true}, {ID: "check", Label: "Pinned", Checked: nui.Set(checked), Close: nui.Set(false), OnCheckedChange: func(v bool) { checked = v; updated++; submit() }, OnSelect: func() { selected++ }}, {ID: "last", Label: "Last"}}
+		if swap {
+			items[0], items[2] = items[2], items[0]
+		}
+		state.SetItems(items)
+	}
+	submit()
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		th.Motion.Reduce = true
 		ui.Column(c).Padding(20).Gap(12).Children(func() {
 			a := nui.Button(c.Key("anchor"), th, "Actions", nui.ButtonOptions{}).OnClick(func() { triggerClicks++ })
-			items := []nui.MenuItem{{ID: "first", Label: "First"}, {ID: "disabled", Label: "Disabled item", Disabled: true}, {ID: "check", Label: "Pinned", Checked: nui.Set(checked), Close: nui.Set(false), OnCheckedChange: func(v bool) { checked = v; updated++ }, OnSelect: func() { selected++ }}, {ID: "last", Label: "Last"}}
-			if swap {
-				items[0], items[2] = items[2], items[0]
-			}
-			nui.DropdownMenu(c.Key("menu"), th, a, &state, items, nui.MenuOptions{Loop: loop, Disabled: disabled, OnOpenChange: func(v bool) { opens = append(opens, v) }})
+			nui.DropdownMenu(c.Key("menu"), th, a, &state, nui.MenuOptions{Loop: loop, Disabled: disabled, OnOpenChange: func(v bool) { opens = append(opens, v) }})
 			nui.Button(c.Key("after"), th, "After", nui.ButtonOptions{})
 		})
 	}, 500, 400)
@@ -86,6 +88,7 @@ func TestDropdownMenuLoopCheckedAndCallbacks(t *testing.T) {
 		t.Fatalf("checked/open/events: %v/%v/%d/%d", checked, state.Open, updated, selected)
 	}
 	swap = true
+	submit()
 	tt.Frame()
 	tt.Key(0, ui.KeyEnter)
 	if checked || updated != 2 || selected != 2 || !tt.Focused("Pinned") {
@@ -116,12 +119,15 @@ func TestDropdownMenuFilterAndExternalUpdates(t *testing.T) {
 	ignored, filter := false, true
 	changes, selections := 0, 0
 	var opens []bool
+	state.SetItems([]nui.MenuItem{{ID: "label", Label: "Workspace", Kind: nui.MenuLabel}, {ID: "alpha", Label: "Alpha", Description: "first project"}, {ID: "blocked", Label: "Blocked", Description: "copy", Disabled: true}, {ID: "copy", Label: "Duplicate", Description: "copy project", OnSelect: func() {
+		selections++
+	}}, {ID: "export", Label: "Export", Children: []nui.MenuItem{{ID: "csv", Label: "CSV"}, {ID: "json", Label: "JSON"}}, Content: &nui.MenuContentOptions{Filter: true, FilterInput: &nui.InputOptions{Label: "Export search"}}}})
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		th.Motion.Reduce = true
 		ui.Column(c).Padding(20).Gap(12).Children(func() {
 			a := nui.Button(c.Key("anchor"), th, "Actions", nui.ButtonOptions{})
-			nui.DropdownMenu(c.Key("menu"), th, a, &state, []nui.MenuItem{{ID: "label", Label: "Workspace", Kind: nui.MenuLabel}, {ID: "alpha", Label: "Alpha", Description: "first project"}, {ID: "blocked", Label: "Blocked", Description: "copy", Disabled: true}, {ID: "copy", Label: "Duplicate", Description: "copy project", OnSelect: func() { selections++ }}, {ID: "export", Label: "Export", Children: []nui.MenuItem{{ID: "csv", Label: "CSV"}, {ID: "json", Label: "JSON"}}, Content: &nui.MenuContentOptions{Filter: true, FilterInput: &nui.InputOptions{Label: "Export search"}}}}, nui.MenuOptions{Filter: filter, SearchTerm: &query, FilterFields: []string{"label", "description"}, IgnoreFilter: ignored, FilterInput: &nui.InputOptions{Label: "Action search", Clearable: true}, OnSearchTermChange: func(string) { changes++ }, OnOpenChange: func(v bool) { opens = append(opens, v) }})
+			nui.DropdownMenu(c.Key("menu"), th, a, &state, nui.MenuOptions{Filter: filter, SearchTerm: &query, FilterFields: []string{"label", "description"}, IgnoreFilter: ignored, FilterInput: &nui.InputOptions{Label: "Action search", Clearable: true}, OnSearchTermChange: func(string) { changes++ }, OnOpenChange: func(v bool) { opens = append(opens, v) }})
 			nui.Button(c.Key("after"), th, "After", nui.ButtonOptions{})
 		})
 	}, 520, 440)
@@ -192,17 +198,12 @@ func TestDropdownMenuFilterAndExternalUpdates(t *testing.T) {
 
 func TestDropdownMenuOutsideAndEmptyDismissal(t *testing.T) {
 	var state nui.MenuState
-	empty := true
 	outside, changes := 0, 0
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		ui.Column(c).Padding(20).Gap(12).Children(func() {
 			a := nui.Button(c.Key("trigger"), th, "Actions", nui.ButtonOptions{})
-			var items []nui.MenuItem
-			if !empty {
-				items = []nui.MenuItem{{ID: "first", Label: "First"}}
-			}
-			nui.DropdownMenu(c.Key("menu"), th, a, &state, items, nui.MenuOptions{OnOpenChange: func(bool) { changes++ }})
+			nui.DropdownMenu(c.Key("menu"), th, a, &state, nui.MenuOptions{OnOpenChange: func(bool) { changes++ }})
 			nui.Button(c.Key("outside"), th, "Outside", nui.ButtonOptions{}).Margin(180, 0, 0, 0).OnClick(func() { outside++ })
 		})
 	}, 500, 400)
@@ -211,7 +212,7 @@ func TestDropdownMenuOutsideAndEmptyDismissal(t *testing.T) {
 	if state.Open || !tt.Focused("Actions") || changes != 2 {
 		t.Fatalf("empty dismissal %v/%d", state.Open, changes)
 	}
-	empty = false
+	state.SetItems([]nui.MenuItem{{ID: "first", Label: "First"}})
 	click(t, tt, "Actions")
 	click(t, tt, "Outside")
 	if state.Open || outside != 1 || changes != 4 || !tt.Focused("Outside") {
@@ -225,11 +226,12 @@ func TestDropdownMenuOutsideAndEmptyDismissal(t *testing.T) {
 
 func TestDropdownMenuFilterHoverKeepsEditorAndChildFocus(t *testing.T) {
 	var state nui.MenuState
+	state.SetItems([]nui.MenuItem{{ID: "first", Label: "Alpha"}, {ID: "child", Label: "Export", Children: []nui.MenuItem{{ID: "csv", Label: "CSV"}, {ID: "json", Label: "JSON"}}, Content: &nui.MenuContentOptions{Filter: true, FilterInput: &nui.InputOptions{Label: "Child search"}}}})
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		th.Motion.Reduce = true
 		a := nui.Button(c, th, "Actions", nui.ButtonOptions{}).Absolute().Left(20).Top(20)
-		nui.DropdownMenu(c, th, a, &state, []nui.MenuItem{{ID: "first", Label: "Alpha"}, {ID: "child", Label: "Export", Children: []nui.MenuItem{{ID: "csv", Label: "CSV"}, {ID: "json", Label: "JSON"}}, Content: &nui.MenuContentOptions{Filter: true, FilterInput: &nui.InputOptions{Label: "Child search"}}}}, nui.MenuOptions{Filter: true, FilterInput: &nui.InputOptions{Label: "Root search"}})
+		nui.DropdownMenu(c, th, a, &state, nui.MenuOptions{Filter: true, FilterInput: &nui.InputOptions{Label: "Root search"}})
 	}, 560, 400)
 	click(t, tt, "Actions")
 	r := bounds(t, tt, "Export")
@@ -257,6 +259,12 @@ func TestDropdownMenuLoadingIconsStylesAndDarkRTL(t *testing.T) {
 			var state nui.MenuState
 			loading := true
 			calls := 0
+			submit := func() {
+				state.SetItems([]nui.MenuItem{{ID: "action", Label: "项目操作与很长的中文名称", Description: "描述需要在有限的宽度中省略", Loading: loading, Icon: lucide.Info(), Avatar: &nui.AvatarOptions{Alt: "Hidden avatar"}, Checked: nui.Set(true), Close: nui.Set(false), OnSelect: func() {
+					calls++
+				}, UI: nui.Styles{nui.Indicator: {Foreground: nui.Set(ui.RGB(255, 0, 255))}}}})
+			}
+			submit()
 			tt := ui.NewTester(func(c *ui.Context) {
 				mode := nui.LightMode
 				if dark {
@@ -265,7 +273,7 @@ func TestDropdownMenuLoadingIconsStylesAndDarkRTL(t *testing.T) {
 				th := nui.App(c, nui.AppConfig{Mode: mode})
 				th.Motion.Disabled = true
 				a := nui.Button(c, th, "Actions", nui.ButtonOptions{}).Absolute().Right(12).Top(12)
-				nui.DropdownMenu(c, th, a, &state, []nui.MenuItem{{ID: "action", Label: "项目操作与很长的中文名称", Description: "描述需要在有限的宽度中省略", Loading: loading, Icon: lucide.Info(), Avatar: &nui.AvatarOptions{Alt: "Hidden avatar"}, Checked: nui.Set(true), Close: nui.Set(false), OnSelect: func() { calls++ }, UI: nui.Styles{nui.Indicator: {Foreground: nui.Set(ui.RGB(255, 0, 255))}}}}, nui.MenuOptions{Size: nui.XL, Width: nui.Set(float32(500)), CheckedIcon: lucide.Heart(), LoadingIcon: lucide.RefreshCw(), Style: func(slot nui.Slot, e ui.Element) {
+				nui.DropdownMenu(c, th, a, &state, nui.MenuOptions{Size: nui.XL, Width: nui.Set(float32(500)), CheckedIcon: lucide.Heart(), LoadingIcon: lucide.RefreshCw(), Style: func(slot nui.Slot, e ui.Element) {
 					if slot == nui.Panel {
 						e.Label("Panel")
 					}
@@ -305,6 +313,7 @@ func TestDropdownMenuLoadingIconsStylesAndDarkRTL(t *testing.T) {
 				t.Fatal("loading item incorrectly blocked selection")
 			}
 			loading = false
+			submit()
 			tt.Frame()
 			if !tt.Focused("项目操作与很长的中文名称") {
 				t.Fatal("loading update lost action focus")
@@ -315,19 +324,21 @@ func TestDropdownMenuLoadingIconsStylesAndDarkRTL(t *testing.T) {
 
 func TestDropdownMenuDisablingOpenAncestorRepairsFocus(t *testing.T) {
 	var state nui.MenuState
-	disabled := false
+	items := []nui.MenuItem{{ID: "child", Label: "Export", Disabled: false, Children: []nui.MenuItem{{ID: "csv", Label: "CSV"}}}, {ID: "other", Label: "Other"}}
+	state.SetItems(items)
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		th.Motion.Reduce = true
 		a := nui.Button(c, th, "Actions", nui.ButtonOptions{})
-		nui.DropdownMenu(c, th, a, &state, []nui.MenuItem{{ID: "child", Label: "Export", Disabled: disabled, Children: []nui.MenuItem{{ID: "csv", Label: "CSV"}}}, {ID: "other", Label: "Other"}}, nui.MenuOptions{})
+		nui.DropdownMenu(c, th, a, &state, nui.MenuOptions{})
 	}, 500, 400)
 	click(t, tt, "Actions")
 	tt.Key(0, ui.KeyRight)
 	if !tt.Focused("CSV") {
 		t.Fatal("child did not open")
 	}
-	disabled = true
+	items[0].Disabled = true
+	state.SetItems(items)
 	tt.Frame()
 	if !state.Open || tt.HasText("CSV") || !tt.Focused("Other") {
 		t.Fatal("disabling an open ancestor did not repair focus within the remaining menu")

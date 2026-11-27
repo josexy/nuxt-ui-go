@@ -96,6 +96,7 @@ Run these commands from the **repository root**. First set `CGO_ENABLED` to `0`:
 | The smallest window, theme, and button setup | `go run ./examples/minimal` | [Minimal app](examples/minimal/main.go) |
 | Form validation, edit dialogs, menus, and notifications | `go run ./examples/settings` | [Settings](examples/settings/) |
 | Search, filters, pagination, tables, and trees | `go run ./examples/data-browser` | [Data browser](examples/data-browser/) |
+| Cancellable background Table sorting | `go run ./examples/table-manual-sorting` | [Manual sorting](examples/table-manual-sorting/) |
 
 ## Documentation by task
 
@@ -111,7 +112,7 @@ The component website covers 73 components and layouts in English and Chinese, w
 
 ## Agent skill
 
-Coding agents can use the [nuxt-ui-go skill](.agents/skills/nuxt-ui-go/SKILL.md). It has one reference per component with exact Go signatures, options, pitfalls and a runnable example, plus app patterns. Agents that read `.agents/skills/` find it in this repository automatically. To use it in your own app, copy the `.agents/skills/nuxt-ui-go` folder into the directory where your agent loads skills.
+Coding agents can use the [nuxt-ui-go skill](skills/nuxt-ui-go/SKILL.md). It has one reference per component with exact Go signatures, options, pitfalls and a runnable example, plus app patterns. To use it in your own app, copy the `skills/nuxt-ui-go` folder into the directory where your agent loads skills, such as `.agents/skills/`.
 
 ## Contributing
 

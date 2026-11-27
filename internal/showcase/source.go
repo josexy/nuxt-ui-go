@@ -120,6 +120,9 @@ func (d Demo) Source(input Config) (string, string, error) {
 	}
 	body = string(formattedBody)
 	if cleanup := d.disposeBody(); cleanup != "" {
+		if strings.Contains(cleanup, ";") {
+			cleanup = "func() { " + cleanup + " }()"
+		}
 		setup.WriteString("\ndefer " + cleanup)
 	}
 	mode := map[string]string{"light": "LightMode", "dark": "DarkMode", "system": "SystemMode"}[cfg.Mode]
@@ -175,7 +178,13 @@ func (d Demo) disposeBody() string {
 	case "file-upload":
 		return "s.Files.Dispose()"
 	case "select-menu":
-		return "s.Results.Cancel()"
+		return "s.Results.Cancel(); s.Menu.Close(); s.Remote.Close()"
+	case "input-menu":
+		return "s.Open = false; s.Search.Close()"
+	case "listbox":
+		return "s.List.Close()"
+	case "dropdown-menu", "context-menu":
+		return "s.Menu.Close()"
 	default:
 		return ""
 	}

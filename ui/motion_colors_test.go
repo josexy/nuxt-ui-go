@@ -68,6 +68,52 @@ func labelRoot(name string) func(root, _, _, _ ui.Element) {
 	return func(root, _, _, _ ui.Element) { root.Label(name) }
 }
 
+func TestButtonColorTransitionDurationAndCancellation(t *testing.T) {
+	for _, level := range motionLevels {
+		for _, duration := range []time.Duration{400 * time.Millisecond, 0, -time.Millisecond} {
+			t.Run(fmt.Sprintf("%s/%s", level.name, duration), func(t *testing.T) {
+				off := false
+				m := newMotionTester(level, 300, 120, func(c *ui.Context, th nui.Theme) {
+					th.Motion.Transition = duration
+					th.Motion.Disabled = th.Motion.Disabled || off
+					nui.Button(c.Key("action"), th, "Save", nui.ButtonOptions{}).Width(180)
+				})
+				m.Advance(time.Second)
+				r := bounds(t, m.Tester, "Save")
+				x, y := r.X+2, r.Y+r.H/2
+				idle := m.at(x, y)
+				m.Move(r.X+r.W/2, y)
+				first := m.at(x, y)
+				m.Advance(200 * time.Millisecond)
+				mid := m.at(x, y)
+				m.Advance(200 * time.Millisecond)
+				final := m.at(x, y)
+				if final == idle {
+					t.Fatal("hover did not change the button color")
+				}
+				if duration > 0 && !level.off {
+					if first != idle || !between(mid, idle, final) {
+						t.Fatalf("400 ms fade lost its intermediate frame: idle %v, first %v, mid %v, final %v", idle, first, mid, final)
+					}
+				} else if first != final || mid != final {
+					t.Fatal("Off or a nonpositive duration did not show the hover color immediately")
+				}
+				// Consume the native transition's completion frame at its deadline.
+				m.Advance(20 * time.Millisecond)
+				m.idle(t, time.Second, "settled button color")
+				m.Move(295, 115)
+				m.Advance(75 * time.Millisecond)
+				off = true
+				m.Frame()
+				if got := m.at(x, y); got != idle {
+					t.Fatalf("turning animations off retained an intermediate color: %v, want %v", got, idle)
+				}
+				m.idle(t, time.Second, "cancelled button color")
+			})
+		}
+	}
+}
+
 func TestInputBorderFadesOnFocus(t *testing.T) {
 	for _, l := range motionLevels {
 		t.Run(l.name, func(t *testing.T) {
@@ -150,6 +196,10 @@ func TestFieldSurfacesFadeTheirColors(t *testing.T) {
 		}
 	}
 	options := []nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}}
+	selectState11 := submittedSelect(options)
+	listSelection1 := chosenSelection(picked)
+	menu.SetItems([]nui.ListboxItem{{ID: "a", Label: "Alpha"}})
+	query.SetOptions(options)
 	fields := []field{
 		{"Input", func(c *ui.Context, th nui.Theme) {
 			nui.Input(c, th, &text, nui.InputOptions{Label: "Field"}).Width(240)
@@ -164,13 +214,13 @@ func TestFieldSurfacesFadeTheirColors(t *testing.T) {
 			nui.InputTags(c, th, &tags, &tagsState, nui.InputTagsOptions{Label: "Field"}).Width(240)
 		}, focus},
 		{"InputMenu", func(c *ui.Context, th nui.Theme) {
-			nui.InputMenu(c, th, &query, options, nui.InputMenuOptions{Label: "Field", OpenOnFocus: nui.Set(false)}).Width(240)
+			nui.InputMenu(c, th, &query, nui.InputMenuOptions{Label: "Field", OpenOnFocus: nui.Set(false)}).Width(240)
 		}, focus},
 		{"Select", func(c *ui.Context, th nui.Theme) {
-			nui.Select(c, th, &choice, options, nui.SelectOptions{Label: "Field"}).Width(240)
+			nui.Select(c, th, &choice, selectState11, nui.SelectOptions{Label: "Field"}).Width(240)
 		}, hover("Field")},
 		{"SelectMenu", func(c *ui.Context, th nui.Theme) {
-			nui.SelectMenu(c, th, &picked, &menu, []nui.ListboxItem{{ID: "a", Label: "Alpha"}}, nui.SelectMenuOptions{Label: "Field"}).Width(240)
+			nui.SelectMenu(c, th, listSelection1, &menu, nui.SelectMenuOptions{Label: "Field"}).Width(240)
 		}, hover("Field")},
 		{"PinInput", func(c *ui.Context, th nui.Theme) {
 			nui.PinInput(c, th, &pin, &pinState, nui.PinInputOptions{Label: "Code", Length: 4})
@@ -188,9 +238,10 @@ func TestFieldSurfacesFadeTheirColors(t *testing.T) {
 
 func TestMenuHighlightCrossFades(t *testing.T) {
 	var state nui.MenuState
+	state.SetItems([]nui.MenuItem{{ID: "edit", Label: "Edit"}, {ID: "copy", Label: "Copy"}, {ID: "share", Label: "Share"}})
 	m := newMotionTester(motionFull, 400, 300, func(c *ui.Context, th nui.Theme) {
 		a := nui.Button(c, th, "Actions", nui.ButtonOptions{})
-		nui.DropdownMenu(c, th, a, &state, []nui.MenuItem{{ID: "edit", Label: "Edit"}, {ID: "copy", Label: "Copy"}, {ID: "share", Label: "Share"}}, nui.MenuOptions{})
+		nui.DropdownMenu(c, th, a, &state, nui.MenuOptions{})
 	})
 	click(t, m.Tester, "Actions")
 	m.Advance(300 * time.Millisecond) // the entrance and the first highlight
@@ -244,8 +295,10 @@ func TestHeldKeyInLongSelectMenuMatchesOff(t *testing.T) {
 		var value []string
 		var state nui.SelectMenuState
 		highlights := 0
+		listSelection2 := chosenSelection(value)
+		state.SetItems(items)
 		m := newMotionTester(l, 500, 500, func(c *ui.Context, th nui.Theme) {
-			nui.SelectMenu(c, th, &value, &state, items, nui.SelectMenuOptions{Label: "Items", OnHighlight: func(string) { highlights++ }}).Width(300)
+			nui.SelectMenu(c, th, listSelection2, &state, nui.SelectMenuOptions{Label: "Items", OnHighlight: func(string) { highlights++ }}).Width(300)
 		})
 		click(t, m.Tester, "Items")
 		m.Advance(300 * time.Millisecond)
@@ -446,19 +499,26 @@ func TestItemSurfacesFadeTheirColors(t *testing.T) {
 		palette.Open = true
 		tree.SetNodes([]nui.TreeNode{{ID: "a", Label: "Alpha"}, {ID: "b", Label: "Beta"}})
 		calendar.Month, calendar.Active = month, month
+		selectState12 := submittedSelect(options)
+		listSelection3 := chosenSelection(listSel)
+		listState.SetItems(listItems)
+		listSelection4 := chosenSelection(menuSel)
+		menuState.SetItems(listItems)
+		search.SetOptions(options)
+		context.SetItems([]nui.MenuItem{{ID: "a", Label: "Alpha"}, {ID: "b", Label: "Beta"}})
 		return []item{
 			{"Button", func(c *ui.Context, th nui.Theme) { nui.Button(c, th, "Save", nui.ButtonOptions{}) }, none, hover("Save")},
 			{"Listbox", func(c *ui.Context, th nui.Theme) {
-				nui.Listbox(c, th, &listSel, &listState, listItems, nui.ListboxOptions{Label: "List"}).Width(240)
+				nui.Listbox(c, th, listSelection3, &listState, nui.ListboxOptions{Label: "List"}).Width(240)
 			}, none, hover("Beta")},
 			{"Select rows", func(c *ui.Context, th nui.Theme) {
-				nui.Select(c, th, &choice, options, nui.SelectOptions{Label: "Choice", Open: &selectOpen}).Width(240)
+				nui.Select(c, th, &choice, selectState12, nui.SelectOptions{Label: "Choice", Open: &selectOpen}).Width(240)
 			}, none, hover("Gamma")},
 			{"InputMenu rows", func(c *ui.Context, th nui.Theme) {
-				nui.InputMenu(c, th, &search, options, nui.InputMenuOptions{Label: "Search", Open: &inputOpen}).Width(240)
+				nui.InputMenu(c, th, &search, nui.InputMenuOptions{Label: "Search", Open: &inputOpen}).Width(240)
 			}, none, hover("Gamma")},
 			{"SelectMenu rows", func(c *ui.Context, th nui.Theme) {
-				nui.SelectMenu(c, th, &menuSel, &menuState, listItems, nui.SelectMenuOptions{Label: "Menu"}).Width(240)
+				nui.SelectMenu(c, th, listSelection4, &menuState, nui.SelectMenuOptions{Label: "Menu"}).Width(240)
 			}, press("Menu"), hover("Gamma")},
 			{"CommandPalette rows", func(c *ui.Context, th nui.Theme) {
 				nui.CommandPalette(c, th, &palette, nui.CommandPaletteOptions{SearchInput: nui.Set(false)})
@@ -467,7 +527,7 @@ func TestItemSurfacesFadeTheirColors(t *testing.T) {
 			}, hover("Gamma")},
 			{"ContextMenu rows", func(c *ui.Context, th nui.Theme) {
 				a := ui.Box(c).Size(200, 60).Label("Area")
-				nui.ContextMenu(c, th, a, &context, []nui.MenuItem{{ID: "a", Label: "Alpha"}, {ID: "b", Label: "Beta"}}, nui.MenuOptions{})
+				nui.ContextMenu(c, th, a, &context, nui.MenuOptions{})
 			}, func(t *testing.T, m *motionTester) {
 				if err := m.RightClick("Area"); err != nil {
 					t.Fatal(err)

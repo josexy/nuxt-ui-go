@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -37,6 +38,7 @@ func TestTextFieldPointerAndKeyboardFocus(t *testing.T) {
 				var tags []string
 				var tagsState nui.TagsState
 				shown, disabled := true, false
+				menu.SetOptions([]nui.Option[string]{{Value: "go", Label: "Go"}})
 				tt := ui.NewTester(func(c *ui.Context) {
 					th := nui.Light()
 					if dark {
@@ -64,7 +66,7 @@ func TestTextFieldPointerAndKeyboardFocus(t *testing.T) {
 							case "time":
 								nui.InputTime(c, th, &clock, &timeState, nui.InputTimeOptions{InputOptions: o})
 							case "menu":
-								nui.InputMenu(c, th, &menu, []nui.Option[string]{{Value: "go", Label: "Go"}}, nui.InputMenuOptions{InputOptions: o})
+								nui.InputMenu(c, th, &menu, nui.InputMenuOptions{InputOptions: o})
 							case "tags":
 								nui.InputTags(c, th, &tags, &tagsState, nui.InputTagsOptions{InputOptions: o}).Label("Field")
 							}
@@ -164,16 +166,20 @@ func TestSelectionPopupDisabledWhileOpen(t *testing.T) {
 			search := nui.SearchState{}
 			state := nui.SelectMenuState{}
 			changes := 0
+			selectState1 := submittedSelect([]nui.Option[string]{{Value: "go", Label: "Go"}, {Value: "vue", Label: "Vue"}})
+			listSelection1 := chosenSelection(values)
+			state.SetItems([]nui.ListboxItem{{ID: "go", Label: "Go"}, {ID: "vue", Label: "Vue"}})
+			search.SetOptions([]nui.Option[string]{{Value: "go", Label: "Go"}, {Value: "vue", Label: "Vue"}})
 			tt := ui.NewTester(func(c *ui.Context) {
 				th := nui.App(c, nui.AppConfig{})
 				ui.Column(c).Padding(24).Children(func() {
 					switch kind {
 					case "select":
-						nui.Select(c, th, &value, []nui.Option[string]{{Value: "go", Label: "Go"}, {Value: "vue", Label: "Vue"}}, nui.SelectOptions{Label: "Choice", Disabled: disabled, OnChange: func() { changes++ }})
+						nui.Select(c, th, &value, selectState1, nui.SelectOptions{Label: "Choice", Disabled: disabled, OnChange: func() { changes++ }})
 					case "input-menu":
-						nui.InputMenu(c, th, &search, []nui.Option[string]{{Value: "go", Label: "Go"}, {Value: "vue", Label: "Vue"}}, nui.InputMenuOptions{Label: "Choice", Disabled: disabled, OnSelect: func(string) { changes++ }})
+						nui.InputMenu(c, th, &search, nui.InputMenuOptions{Label: "Choice", Disabled: disabled, OnSelect: func(string) { changes++ }})
 					case "select-menu":
-						nui.SelectMenu(c, th, &values, &state, []nui.ListboxItem{{ID: "go", Label: "Go"}, {ID: "vue", Label: "Vue"}}, nui.SelectMenuOptions{Label: "Choice", Disabled: disabled, OnChange: func([]string) { changes++ }, Clearable: true})
+						nui.SelectMenu(c, th, listSelection1, &state, nui.SelectMenuOptions{Label: "Choice", Disabled: disabled, OnChange: func() { changes++ }, Clearable: true})
 					}
 				})
 			}, 420, 420)
@@ -191,8 +197,8 @@ func TestSelectionPopupDisabledWhileOpen(t *testing.T) {
 			}
 			tt.Key(0, ui.KeyDown)
 			tt.Key(0, ui.KeyEnter)
-			if changes != 0 || value != "go" || search.Selected != "" || !slices.Equal(values, []string{"go"}) {
-				t.Fatalf("disabled popup remained interactive: changes=%d select=%s input=%s menu=%v", changes, value, search.Selected, values)
+			if changes != 0 || value != "go" || search.Selected != "" || !slices.Equal(listSelection1.Values(), []string{"go"}) {
+				t.Fatalf("disabled popup remained interactive: changes=%d select=%s input=%s menu=%v", changes, value, search.Selected, listSelection1.Values())
 			}
 		})
 	}
@@ -258,10 +264,11 @@ func TestSelectHoverVariants(t *testing.T) {
 		t.Run(fmt.Sprint(variant), func(t *testing.T) {
 			value := "go"
 			disabled := false
+			selectState2 := submittedSelect([]nui.Option[string]{{Value: "go", Label: "Go"}})
 			tt := ui.NewTester(func(c *ui.Context) {
 				th := nui.App(c, nui.AppConfig{})
 				ui.Column(c).Padding(24).Children(func() {
-					nui.Select(c, th, &value, []nui.Option[string]{{Value: "go", Label: "Go"}}, nui.SelectOptions{Label: "Choice", Variant: variant, Disabled: disabled}).Width(300)
+					nui.Select(c, th, &value, selectState2, nui.SelectOptions{Label: "Choice", Variant: variant, Disabled: disabled}).Width(300)
 				})
 			}, 400, 160)
 			r := bounds(t, tt, "Choice")
@@ -335,10 +342,11 @@ func TestSelectOpenPopupInheritsDisabledAncestor(t *testing.T) {
 	value := "go"
 	disabled := false
 	changes := 0
+	selectState3 := submittedSelect([]nui.Option[string]{{Value: "go", Label: "Go"}, {Value: "vue", Label: "Vue"}})
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		ui.Column(c).Padding(24).Disabled(disabled).Children(func() {
-			nui.Select(c, th, &value, []nui.Option[string]{{Value: "go", Label: "Go"}, {Value: "vue", Label: "Vue"}}, nui.SelectOptions{Label: "Choice", OnChange: func() { changes++ }})
+			nui.Select(c, th, &value, selectState3, nui.SelectOptions{Label: "Choice", OnChange: func() { changes++ }})
 		})
 	}, 420, 240)
 	click(t, tt, "Choice")
@@ -375,5 +383,258 @@ func TestInputTagsErrorUsesOuterBorder(t *testing.T) {
 	}
 	if fieldPixels(t, tt, "Field")[0] == tt.Image().RGBAAt(0, 0) {
 		t.Fatal("outer error border missing")
+	}
+}
+
+func limitedEditor(c *ui.Context, th nui.Theme, value *string, o nui.InputOptions, multiline bool) {
+	if multiline {
+		nui.Textarea(c.Key("limited"), th, value, nui.TextareaOptions{InputOptions: o, Rows: 2}).Width(300)
+	} else {
+		nui.Input(c.Key("limited"), th, value, o).Width(300)
+	}
+}
+
+func TestInputLimitCaretAndSelectedReplacement(t *testing.T) {
+	for _, multiline := range []bool{false, true} {
+		for _, replace := range []bool{false, true} {
+			t.Run(fmt.Sprintf("Multiline=%v/Replace=%v", multiline, replace), func(t *testing.T) {
+				value, changes := "abcd", 0
+				tt := ui.NewTester(func(c *ui.Context) {
+					limitedEditor(c, nui.App(c, nui.AppConfig{DisableAnimations: true}), &value,
+						nui.InputOptions{Label: "Limited", MaxLength: 4, OnChange: func(string) { changes++ }}, multiline)
+				}, 400, 180)
+				tt.Key(0, ui.KeyTab)
+				tt.Key(0, ui.KeyHome)
+				tt.Key(0, ui.KeyRight)
+				if replace {
+					tt.Key(ui.Shift, ui.KeyRight)
+					tt.Key(ui.Shift, ui.KeyRight)
+					tt.Type("XYZ")
+					if value != "aXYd" || changes != 1 {
+						t.Fatalf("selected replacement: %q, changes=%d", value, changes)
+					}
+					tt.Key(0, ui.KeyBackspace)
+					if value != "aXd" || changes != 2 {
+						t.Fatalf("replacement caret: %q, changes=%d", value, changes)
+					}
+				} else {
+					tt.Key(0, ui.KeyRight)
+					tt.Type("X")
+					if value != "abcd" || changes != 0 {
+						t.Fatalf("rejected insertion: %q, changes=%d", value, changes)
+					}
+					tt.Key(0, ui.KeyBackspace)
+					if value != "acd" || changes != 1 {
+						t.Fatalf("rejected insertion caret: %q, changes=%d", value, changes)
+					}
+				}
+				before := changes
+				tt.Frame()
+				tt.Frame()
+				if changes != before || !tt.Focused("Limited") {
+					t.Fatal("rebuilding changed focus or emitted another edit")
+				}
+			})
+		}
+	}
+}
+
+func TestInputLimitPasteHistoryAndComposition(t *testing.T) {
+	for _, multiline := range []bool{false, true} {
+		for _, scenario := range []string{"paste", "rejected-history", "composition", "surrogate"} {
+			t.Run(fmt.Sprintf("Multiline=%v/%s", multiline, scenario), func(t *testing.T) {
+				value, changes := "", 0
+				switch scenario {
+				case "paste":
+					value = "abcd"
+				case "composition":
+					value = "a"
+				case "surrogate":
+					value = "abc"
+				}
+				tt := ui.NewTester(func(c *ui.Context) {
+					limitedEditor(c, nui.App(c, nui.AppConfig{DisableAnimations: true}), &value,
+						nui.InputOptions{Label: "Limited", MaxLength: 4, OnChange: func(got string) {
+							changes++
+							if got != value {
+								t.Errorf("callback %q differs from accepted value %q", got, value)
+							}
+						}}, multiline)
+				}, 400, 180)
+				tt.Key(0, ui.KeyTab)
+				tt.Key(0, ui.KeyEnd)
+				switch scenario {
+				case "paste":
+					tt.Key(0, ui.KeyHome)
+					tt.Key(0, ui.KeyRight)
+					tt.Key(ui.Shift, ui.KeyRight)
+					tt.Key(ui.Shift, ui.KeyRight)
+					tt.SetClipboard("😀X")
+					tt.Command("paste")
+					if value != "a😀d" || changes != 1 {
+						t.Fatalf("UTF-16 partial paste: %q, changes=%d", value, changes)
+					}
+					tt.Command("undo")
+					if value != "abcd" || changes != 2 {
+						t.Fatalf("paste undo: %q, changes=%d", value, changes)
+					}
+					tt.Command("redo")
+					if value != "a😀d" || changes != 3 {
+						t.Fatalf("paste redo: %q, changes=%d", value, changes)
+					}
+					tt.Key(0, ui.KeyBackspace)
+					if value != "ad" || changes != 4 {
+						t.Fatalf("redo caret: %q, changes=%d", value, changes)
+					}
+				case "rejected-history":
+					tt.Type("abcd")
+					tt.Type("X")
+					tt.Command("undo")
+					if value != "" || changes != 2 {
+						t.Fatalf("rejection added an undo entry: %q, changes=%d", value, changes)
+					}
+					tt.Command("redo")
+					if value != "abcd" || changes != 3 {
+						t.Fatalf("accepted insertion redo: %q, changes=%d", value, changes)
+					}
+				case "composition":
+					tt.Compose("😀XY", 4)
+					if value != "a" || changes != 0 {
+						t.Fatal("composition committed prematurely")
+					}
+					tt.Type("😀XY")
+					if value != "a😀X" || changes != 1 {
+						t.Fatalf("native composition limit: %q, changes=%d", value, changes)
+					}
+				case "surrogate":
+					tt.Type("😀")
+					if value != "abc" || changes != 0 {
+						t.Fatalf("surrogate rejection: %q, changes=%d", value, changes)
+					}
+					tt.Type("中")
+					if value != "abc中" || changes != 1 {
+						t.Fatalf("one-unit insertion: %q, changes=%d", value, changes)
+					}
+				}
+			})
+		}
+	}
+}
+
+func TestInputLimitExternalValuesAndConfiguration(t *testing.T) {
+	for _, multiline := range []bool{false, true} {
+		t.Run(fmt.Sprintf("Multiline=%v", multiline), func(t *testing.T) {
+			value, limit, changes := "abcd", 4, 0
+			tt := ui.NewTester(func(c *ui.Context) {
+				limitedEditor(c, nui.App(c, nui.AppConfig{DisableAnimations: true}), &value,
+					nui.InputOptions{Label: "Limited", MaxLength: limit, OnChange: func(string) { changes++ }}, multiline)
+			}, 400, 180)
+			tt.Key(0, ui.KeyTab)
+			value = "abcdef"
+			tt.Frame()
+			if value != "abcdef" || changes != 0 {
+				t.Fatal("external oversized assignment was truncated or notified")
+			}
+			tt.Key(0, ui.KeyEnd)
+			tt.Type("X")
+			tt.Key(0, ui.KeyBackspace)
+			if value != "abcde" || changes != 1 {
+				t.Fatalf("editing an oversized value: %q, changes=%d", value, changes)
+			}
+			limit = 2
+			tt.SetDark(true)
+			tt.SetLocale("zh-Hans")
+			tt.Frame()
+			if value != "abcde" || changes != 1 || !tt.Focused("Limited") {
+				t.Fatal("appearance or limit change reset the editor")
+			}
+			tt.Key(0, ui.KeyBackspace)
+			if value != "abcd" || changes != 2 {
+				t.Fatal("limit update lost the caret")
+			}
+			for _, unlimited := range []int{0, -1} {
+				limit = unlimited
+				tt.Frame()
+				before := value
+				tt.Type("😀")
+				if value != before+"😀" {
+					t.Fatalf("limit %d was not unlimited: %q", limit, value)
+				}
+			}
+		})
+	}
+}
+
+func TestInputLimitDisabledClearAndRemount(t *testing.T) {
+	for _, multiline := range []bool{false, true} {
+		for _, mode := range []string{"read-only", "disabled", "inherited-disabled"} {
+			t.Run(fmt.Sprintf("Multiline=%v/%s", multiline, mode), func(t *testing.T) {
+				value, shown, locked := "a", true, false
+				changes, clears := 0, 0
+				var editor ui.Handle
+				tt := ui.NewTester(func(c *ui.Context) {
+					th := nui.App(c, nui.AppConfig{DisableAnimations: true})
+					ui.Column(c.Key("parent")).Disabled(locked && mode == "inherited-disabled").Children(func() {
+						if shown {
+							limitedEditor(c, th, &value, nui.InputOptions{
+								Label: "Limited", MaxLength: 2, Clearable: true, ClearLabel: "Clear limited",
+								ReadOnly: locked && mode == "read-only", Disabled: locked && mode == "disabled",
+								OnChange: func(string) { changes++ }, OnClear: func() { clears++ },
+								Style: func(_, input, _, _ ui.Element) { input.Bind(&editor) },
+							}, multiline)
+						}
+					})
+				}, 400, 180)
+				tt.Key(0, ui.KeyTab)
+				tt.Key(0, ui.KeyEnd)
+				locked = true
+				tt.Frame()
+				tt.Type("b")
+				tt.SetClipboard("c")
+				tt.Command("paste")
+				tt.Key(0, ui.KeyBackspace)
+				if value != "a" || changes != 0 || clears != 0 {
+					t.Fatal("locked editor accepted an edit")
+				}
+				shown = false
+				tt.Frame()
+				tt.Frame()
+				shown, locked = true, false
+				editor.Focus()
+				tt.Frame()
+				if value != "a" || !tt.Focused("Limited") || changes != 0 {
+					t.Fatal("remount lost the draft or pending focus")
+				}
+				click(t, tt, "Clear limited")
+				if value != "" || changes != 1 || clears != 1 || !tt.Focused("Limited") {
+					t.Fatalf("clear: value=%q changes=%d clears=%d", value, changes, clears)
+				}
+				tt.Type("😀")
+				tt.Type("x")
+				if value != "😀" || changes != 2 || clears != 1 {
+					t.Fatal("remounted native limit or callbacks changed")
+				}
+			})
+		}
+	}
+}
+
+func TestAddTagsLargeBatchPreservesOrderAndExistingDuplicates(t *testing.T) {
+	previous := []string{"existing", "existing"}
+	var batch strings.Builder
+	want := slices.Clone(previous)
+	for i := range 10000 {
+		value := fmt.Sprintf("tag-%d", i)
+		batch.WriteString(" " + value + "," + value + ", existing,")
+		want = append(want, value)
+	}
+	if got := nui.AddTags(previous, batch.String(), ",", 0); !slices.Equal(got, want) {
+		t.Fatal("batch deduplication changed order or existing duplicate occurrences")
+	}
+	if got := nui.AddTags(previous, batch.String(), ",", 7); !slices.Equal(got, want[:7]) {
+		t.Fatal("batch limit changed accepted order")
+	}
+	if !slices.Equal(previous, []string{"existing", "existing"}) {
+		t.Fatal("batch addition mutated the caller's slice")
 	}
 }

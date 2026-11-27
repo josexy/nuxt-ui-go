@@ -110,10 +110,11 @@ func TestSelectLongListAndDuplicateLabels(t *testing.T) {
 		options[i] = nui.Option[int]{Value: i, Label: fmt.Sprintf("Plan %03d", i)}
 	}
 	selected := 0
+	selectState1 := submittedSelect(options)
 	tt := ui.NewTester(func(c *ui.Context) {
 		s := nui.Window(c, nui.Light())
 		ui.Column(c).Padding(20).Children(func() {
-			nui.Select(c.Key("select"), s, &selected, options, nui.SelectOptions{Label: "Plan"}).Width(220)
+			nui.Select(c.Key("select"), s, &selected, selectState1, nui.SelectOptions{Label: "Plan"}).Width(220)
 		})
 	}, 480, 420)
 	click(t, tt, "Plan")
@@ -126,6 +127,7 @@ func TestSelectLongListAndDuplicateLabels(t *testing.T) {
 		t.Fatal("select did not retain trigger focus")
 	}
 	options = []nui.Option[int]{{Value: 1, Label: "Same", Description: "One"}, {Value: 2, Label: "Same", Description: "Two"}}
+	selectState1.SetOptions(options)
 	selected = 1
 	tt.Frame()
 	click(t, tt, "Plan")
@@ -139,9 +141,10 @@ func TestSelectLongListAndDuplicateLabels(t *testing.T) {
 func TestSearchUsesStableIDsAndFilters(t *testing.T) {
 	state := nui.SearchState{}
 	options := []nui.Option[string]{{Value: "a", Label: "Team", Description: "Asia"}, {Value: "b", Label: "Team", Description: "Europe"}, {Value: "c", Label: "Personal"}}
+	state.SetOptions(options)
 	tt := ui.NewTester(func(c *ui.Context) {
 		s := nui.Window(c, nui.Light())
-		ui.Column(c).Padding(16).Children(func() { nui.SearchSelect(c.Key("search"), s, &state, options, "Search").Width(280) })
+		ui.Column(c).Padding(16).Children(func() { nui.SearchSelect(c.Key("search"), s, &state, "Search").Width(280) })
 	}, 440, 350)
 	click(t, tt, "Search")
 	tt.Type("Europe")
@@ -171,12 +174,13 @@ func TestModalNestedSelectAndFocusRestoration(t *testing.T) {
 	var open bool
 	selected := "one"
 	options := []nui.Option[string]{{Value: "one", Label: "First"}, {Value: "two", Label: "Second"}}
+	selectState2 := submittedSelect(options)
 	tt := ui.NewTester(func(c *ui.Context) {
 		s := nui.Window(c, nui.Light())
 		ui.Column(c).Padding(16).Children(func() {
 			nui.Button(c.Key("open"), s, "Open dialog", nui.ButtonOptions{}).OnClick(func() { open = true })
 			nui.Modal(c.Key("dialog"), s, &open, "Dialog", func(inner nui.Theme) {
-				nui.Select(c.Key("choice"), inner, &selected, options, nui.SelectOptions{Label: "Dialog select"}).FillWidth()
+				nui.Select(c.Key("choice"), inner, &selected, selectState2, nui.SelectOptions{Label: "Dialog select"}).FillWidth()
 				nui.Button(c, inner, "Close", nui.ButtonOptions{}).OnClick(func() { open = false })
 			})
 		})
@@ -266,4 +270,17 @@ func TestKeyedEditorsSurviveReorderAndHide(t *testing.T) {
 	if rows[1].value != "Restored" {
 		t.Fatal("reappeared field lost its model")
 	}
+}
+
+// These helpers run in fixture setup, before the view is mounted.
+func submittedSelect[T comparable](options []nui.Option[T]) *nui.SelectState[T] {
+	s := &nui.SelectState[T]{}
+	s.SetOptions(options)
+	return s
+}
+
+func chosenSelection[T comparable](values []T) *nui.SelectionState[T] {
+	s := &nui.SelectionState[T]{}
+	s.Set(values)
+	return s
 }

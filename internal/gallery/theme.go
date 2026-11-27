@@ -86,7 +86,17 @@ func (a *State) paletteItems(primary bool) []nui.MenuItem {
 	return items
 }
 
-func (a *State) themeMenu(c *ui.Context, t nui.Theme) {
+type themeMenuConfig struct {
+	primary, neutral string
+	dark, system     bool
+}
+
+func (a *State) syncThemeMenus() {
+	key := themeMenuConfig{a.Primary, a.Neutral, a.Dark, a.System}
+	if a.themeMenusReady && a.themeMenuConfig == key {
+		return
+	}
+	a.themeMenuConfig, a.themeMenusReady = key, true
 	items := make([]nui.MenuItem, 0, 7)
 	for _, primary := range []bool{true, false} {
 		label := "Neutral"
@@ -115,11 +125,19 @@ func (a *State) themeMenu(c *ui.Context, t nui.Theme) {
 			OnSelect: func() { a.Dark, a.System = mode.dark, mode.system },
 		})
 	}
+	a.ThemeMenu.SetItems(items)
+	a.PrimaryMenu.SetItems(a.paletteItems(true))
+	a.NeutralMenu.SetItems(a.paletteItems(false))
+}
+
+func (a *State) themeMenu(c *ui.Context, t nui.Theme) {
+	a.syncThemeMenus()
 	anchor := nui.Button(c.Key("theme-menu-trigger"), t, "Theme", nui.ButtonOptions{Variant: nui.Outline, Color: nui.Neutral, Leading: lucide.Palette(), Trailing: lucide.ChevronDown()})
-	nui.DropdownMenu(c.Key("theme-menu"), t, anchor, &a.ThemeMenu, items, nui.MenuOptions{Label: "Theme settings", Width: nui.Set(float32(240)), MaxHeight: nui.Set(float32(400))})
+	nui.DropdownMenu(c.Key("theme-menu"), t, anchor, &a.ThemeMenu, nui.MenuOptions{Label: "Theme settings", Width: nui.Set(float32(240)), MaxHeight: nui.Set(float32(400))})
 }
 
 func (a *State) paletteControl(c *ui.Context, t nui.Theme, primary bool) {
+	a.syncThemeMenus()
 	role, menu := "Neutral", &a.NeutralMenu
 	if primary {
 		role, menu = "Primary", &a.PrimaryMenu
@@ -127,5 +145,5 @@ func (a *State) paletteControl(c *ui.Context, t nui.Theme, primary bool) {
 	anchor := nui.Button(c.Key("choose-"+role), t, role+": "+paletteLabel(a.paletteName(primary)), nui.ButtonOptions{
 		AccessibleLabel: "Choose " + strings.ToLower(role) + " color", Variant: nui.Outline, Color: nui.Neutral, Trailing: lucide.ChevronDown(),
 	})
-	nui.DropdownMenu(c.Key("choose-"+role+"-menu"), t, anchor, menu, a.paletteItems(primary), nui.MenuOptions{Label: role + " colors", Width: nui.Set(float32(220)), MaxHeight: nui.Set(float32(400))})
+	nui.DropdownMenu(c.Key("choose-"+role+"-menu"), t, anchor, menu, nui.MenuOptions{Label: role + " colors", Width: nui.Set(float32(220)), MaxHeight: nui.Set(float32(400))})
 }

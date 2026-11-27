@@ -55,12 +55,11 @@ func newPageTable(t *testing.T, rows []pageRow, height, rowHeight float32, loadM
 	h.Tester = ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		nui.Table(c.Key("rows"), th, h.state, pageColumns, nui.TableOptions{
-			Label:             "Rows",
-			Height:            height,
-			OnChange:          func() { h.counts.change++ },
-			OnSortChange:      func([]ui.SortOrder) { h.counts.sort++ },
-			OnSelectionChange: func([]string) { h.counts.selection++ },
-			OnActivate:        func(string) { h.counts.activate++ },
+			Label:        "Rows",
+			Height:       height,
+			OnChange:     func() { h.counts.change++ },
+			OnSortChange: func([]ui.SortOrder) { h.counts.sort++ },
+			OnActivate:   func(string) { h.counts.activate++ },
 		})
 	}, 500, 400)
 	h.Frame()

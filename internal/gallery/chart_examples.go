@@ -49,8 +49,9 @@ func addChartContract(p *componentPage) {
 	rtl, palette, ratio, forceLegend := false, false, false, false
 	focused, selected, legends := 0, 0, 0
 	last := "No activation"
+	selectState11 := submittedSelect([]nui.Option[nui.ChartKind]{{Value: nui.ChartLine, Label: "Contract Line"}, {Value: nui.ChartBar, Label: "Contract Bar"}, {Value: nui.ChartArea, Label: "Contract Area"}, {Value: nui.ChartScatter, Label: "Contract Scatter"}, {Value: nui.ChartPie, Label: "Contract Pie"}, {Value: nui.ChartDonut, Label: "Contract Donut"}})
 	p.Scenes = append(p.Scenes, scene("contract", "Chart axes and selection", "Automatic legends appear only for multiple series or slices. Inspect focused values with arrows, then activate with Enter or Space. Reordering retains visibility by ID; RTL mirrors X positions and physical arrow navigation.", func(c *ui.Context, t nui.Theme) {
-		nui.Select(c.Key("kind"), t, &kind, []nui.Option[nui.ChartKind]{{Value: nui.ChartLine, Label: "Contract Line"}, {Value: nui.ChartBar, Label: "Contract Bar"}, {Value: nui.ChartArea, Label: "Contract Area"}, {Value: nui.ChartScatter, Label: "Contract Scatter"}, {Value: nui.ChartPie, Label: "Contract Pie"}, {Value: nui.ChartDonut, Label: "Contract Donut"}}, nui.SelectOptions{Label: "Contract chart kind"}).Width(160)
+		nui.Select(c.Key("kind"), t, &kind, selectState11, nui.SelectOptions{Label: "Contract chart kind"}).Width(160)
 		ui.Row(c).Wrap().Gap(8).Children(func() {
 			nui.Checkbox(c, t, &single, nui.CheckboxOptions{Label: "Single contract series", OnChange: func(bool) { update() }})
 			nui.Checkbox(c, t, &reverse, nui.CheckboxOptions{Label: "Reverse contract series", OnChange: func(bool) { update() }})

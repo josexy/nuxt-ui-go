@@ -168,6 +168,8 @@ Arrow keys never lower the rating from 1 to 0; clearing requires Clearable. The 
 
 Stars are 12/16/20/24/28 DIP for sizes XS to XL, 2 DIP apart, and the component is as wide as its content. When interactive, the hovered star scales to 1.1×. With Hoverable on, hovering only previews the rating; the preview stays while the pointer crosses gaps between stars and is canceled when the pointer leaves or the rating is cleared. When FormField has an error, filled stars and the focus ring use the Error color.
 
+Scale feedback uses native AnimatePose: changing the target may build once, while ticks only paint. Motion.Transition controls duration; Reduced motion, Off and nonpositive duration show the final scale immediately.
+
 UI and Style support Root, Item, Indicator, IconSlot, and EmptyIconSlot. The empty icon is drawn as the base layer, and Indicator and IconSlot are layered on top within the rated or hovered range. If the two icons differ, the base layer may still show around the overlay. IconSlot inherits Indicator's foreground color and can override it. Root's Gap/Padding are included in the overall size calculation, and Item's Shadow can override the default focus ring. With Neutral, rated icons use Highlighted and the focus ring uses InvertedBackground. A read-only rating keeps its normal colors and the default cursor.
 
 Max accepts 1–20, and 0 uses the default of 5. When the rating or Max changes from outside, the rating is silently clamped to 0–Max; OnChange reports only actual user changes. Hoverable and Clearable default to false. Nuxt UI's step can represent fractional ratings such as half stars, but this library's integer binding has no corresponding field. There is also no arbitrary item content builder, HTML form field, or web radio node.
@@ -194,13 +196,15 @@ Inside a FormField, clicking the label focuses the first thumb, and the field's 
 
 ### Listbox: a selectable list shown inline
 
-Each ListboxItem's ID must be non-empty and unique. Label and Description provide the text, and Group adds a group heading to adjacent items. Kind can be ListboxOption, ListboxLabel, or ListboxSeparator; structural rows also need IDs. The selected value is a `*[]string`, where an empty slice means nothing is selected. ListboxState stores the query, the active item, scroll state, and a persistent QueryHandle.
+Each ListboxItem's ID must be non-empty and unique. Label and Description provide the text, and Group adds a group heading to adjacent items. Kind can be ListboxOption, ListboxLabel, or ListboxSeparator; structural rows also need IDs. The selected value is a `*SelectionState[string]`, whose zero value is empty. ListboxState stores an owned dataset, query, active item, scroll state, and a persistent QueryHandle. Call `state.SetItems(items)` during setup or a data update, then render `Listbox(c, theme, &selected, &state, options)`. SetItems validates before replacing the snapshot, owns nested descriptors and mutable style maps, and accepts nil to release the options. It preserves the app selection and draft.
 
 The default is SelectionToggle: in both single and multiple selection, activating a selected item again deselects it. SelectionReplace replaces the selection on activation, and in multiple selection it also supports Shift range selection. Selected IDs that are temporarily missing from the data source are kept, which helps with async search; your app cleans up IDs that are gone for good.
 
 Icon, Avatar, and Chip are checked in that order for the leading content, which aligns with the first line of text. SelectedIcon overrides the default check icon. Per-item options provide UI, Style, and OnSelect. The callback receives the ID and the selected state before the change, and can call PreventDefault to cancel this selection and the component's OnSelect. For the row appearance, see [Option row appearance](inputs.md#option-row-appearance). An MD row is about 32 DIP tall, plus one line when it has a description.
 
 Size and Color default to MD and Primary. Instance options take precedence over the component theme, and the size can also be inherited from FormField. Highlight keeps a colored border visible. Keyboard focus shows a focus ring, which uses InvertedBackground with Neutral. When embedded in SelectMenu, the list follows the menu's size and color.
+
+SearchExecution defaults to SearchAuto: at most 2,048 candidates run immediately, larger datasets normalize and match in the background. SearchImmediate and SearchBackground override this policy. Pending results show loading and cannot activate or create values; the editor stays usable. Normalized fields are cached by submitted data and field configuration, and immutable source indices/row metadata publish only for the current request and mount. Each search surface retains one active worker and one latest request. Searching() reports pending work; close/unmount/window shutdown cancel it, and owners can call Close() when disposing. Local matching is bypassed for empty queries or when IgnoreFilter/ExternalFilter is enabled. See [choice migration](choice-migration.md#local-search-execution-and-cleanup) for policy, cleanup and cost examples.
 
 Filter defaults to false. When enabled, configure the search input through FilterInput. SearchTerm takes a persistent string pointer; when unset, State.Query is used. FilterFields defaults to matching label only and also supports description, value/id, and group; an explicit empty list matches nothing for a non-empty query. Filtering ignores case and combining diacritical marks. Within each run of options between groups and structural rows, results are ordered by exact match, then prefix match, then substring match. Full locale collation rules are not implemented.
 
@@ -221,7 +225,7 @@ In both orientations, only the visible items plus a few extra are built. Height 
 
 ### SelectMenu: searchable popup
 
-SelectMenu combines a trigger with a search field and a Listbox inside a popup. SelectMenuState stores Open, Query, the Listbox state, the trigger Handle, and the search field's QueryHandle. Size and Color apply to all three areas. SearchTerm can bind an external query pointer; assigning it from outside does not fire OnQuery or OnSearchTermChange.
+SelectMenu combines a trigger with a search field and a Listbox inside a popup. Keep SelectMenuState and SelectionState[string] per instance, submit with state.SetItems(items), and render SelectMenu(c, theme, &selected, &state, options). SelectMenuState stores Open, Query, the Listbox state, the trigger Handle, and the search field's QueryHandle. Size and Color apply to all three areas. SearchTerm can bind an external query pointer; assigning it from outside does not fire OnQuery or OnSearchTermChange.
 
 By default, both ↑ and ↓ open the menu from the trigger and focus the search field. With FocusSearch=false, SearchInput=false, or a disabled search field, the list receives focus instead. In the search field, Enter activates the highlighted item directly, ↑↓ move into the list, and Escape closes the menu and returns to the trigger. Single selection closes the menu; multiple selection keeps it open. If your selection callback moves focus deliberately, that target is kept.
 
@@ -244,9 +248,11 @@ With nothing selected, the trigger shows placeholder text in Dimmed. A Subtle tr
 
 ### Caching and large data sets
 
-Listbox caches a snapshot of the data, an ID index, the groups, and the selection set. These structures are not rebuilt when the input has not changed, and in-place changes to the slice are also detected. However, each build still compares the snapshot linearly, and prefix search may scan every item.
+Listbox and SelectMenu own data submitted through SetItems; changing the caller's slice has no effect until it is resubmitted. Submission prepares the ID index, groups, enabled positions and stable row keys once. SelectionState provides revisioned ordered membership. Unchanged revision checks do not enumerate N options or S selections; only visible rows and overscan are built. Submission remains O(N), explicit Values() snapshots and bulk selection depend on the selected count, and prefix search may scan every item.
 
-SelectMenu caches filter results and selected labels; options that are temporarily missing keep their last label. Processing a large number of selected items for the first time still takes linear work. Virtual lists reduce the amount of UI built, but the cost of processing data still depends on its size.
+SelectMenu caches filter results and joined selected labels by data and selection revision; temporarily missing options retain their last known labels. Updating those labels can take O(S) work, and local filtering takes O(N) work when the query or configuration changes. Automatic popup sizing stops once its maximum viewport height is filled.
+
+Both components use parameterless OnChange, called once for an accepted selection change; external Set/Add/Remove/Clear calls stay silent. Read selected.Values() inside the callback only when a snapshot is needed. OnSelect still reports activation, including an unchanged value; per-item PreventDefault cancels both selection and activation notifications.
 
 ### QueryState: reject stale search results
 
@@ -258,7 +264,9 @@ ctx, ticket := queryState.Start(parentContext, query)
 go func() {
     items, err := fetchItems(ctx, ticket.Query)
     window.Update(func() {
-        queryState.Complete(ticket, items, err)
+        if queryState.Complete(ticket, items, err) {
+            menuState.SetItems(queryState.Items)
+        }
     })
 }()
 ```
@@ -450,9 +458,9 @@ Columns can also set Width, MinWidth, MaxWidth, and Align. Sorting changes row p
 
 Clearing the sort restores the input order from the latest SetRows, which is also kept for rows that compare as equal. With multi-column sorting, Shift-click or Ctrl-click (Cmd-click on macOS) on a header adds a sort column; further clicks switch it to descending and then remove it. An ordinary click toggles that column between ascending and descending. Removing a column or disabling its sorting removes the invalid sort entries.
 
-OnSortChange and OnSelectionChange report sort and selection changes caused by the user; outside model assignments and cleanup by SetRows do not trigger them. Selection notifications return stable IDs sorted as strings. OnActivate returns a row ID on Enter or double-click, and OnChange keeps the native combined notification. These semantics differ from Nuxt UI's select event on row click. List.Selected is an optional active-row index; when it is not bound, OnActivate uses an internal index. Still use IDs when acting on business data.
+Table uses a combined OnChange notification for native cursor, selection, sort and completed column-layout changes. OnSelectionChange has been removed; see the [Table migration guide](table-migration.md) for explicit selected-key snapshots and their cost. Ctrl+Down can notify while leaving the selected set unchanged. OnSortChange reports only effective user sort changes. OnActivate returns the typed row ID on Enter or double-click. External data/selection/layout assignments and rebuilds stay silent. List.Selected is an optional native active-row index; when absent, OnActivate binds the wrapper's internal cursor. Use stable IDs for business actions.
 
-OnChange fires once for each user change: a header click that sorts (with OnSortChange), a selection change (with OnSelectionChange), and, since MyGo v0.9.0, a finished column move, column resize, or double-click on a column edge that fits the column to its cells. A drag reports nothing until the pointer is released, and a drag that ends with the same order and widths, or a gesture on a Fixed column, reports nothing. Column gestures call neither OnSortChange nor OnSelectionChange, and rebuilding without user input calls no callback. Save the column layout from OnChange:
+Completed effective column resize/reorder/fitting gestures emit OnChange once, with no sort or activation event; held or no-op gestures emit nothing. Save the column layout from OnChange:
 
 ```go
 nui.Table(c.Key("files"), t, &app.files, columns, nui.TableOptions{
@@ -466,14 +474,14 @@ nui.Table(c.Key("files"), t, &app.files, columns, nui.TableOptions{
 
 Restore it by assigning the saved `ui.TableLayout` to `List.Columns` before the first build. The internal active row that OnActivate reads follows its record: after sorting or several SetRows calls before the next build, Enter activates the same record even though its row moved. When SetRows removes that record, no row is active and Enter does nothing until the user chooses another row.
 
-Table sets List.Key, Selection, Sort, and Label; do not override these bindings in your app. List.SortBy, Columns, Selected, KeepOffset, FollowEnd, RowHeight, EndReached, NearEnd, HeaderMenu, CellMenu, and similar fields follow MyGo's rules. List.MoveAnimation is not supported through Table yet: nui's motion levels do not govern it, and MyGo turns it off only for the desktop's reduced-motion setting, so rows would still glide when `AppConfig.DisableAnimations` turns nui's motion off. List.CellSelect is a native extension, and this wrapper has no RowHeader column. Full cell selection semantics differ from row selection notifications.
+Table sets List.Key, Selection, Sort, and Label; do not override these bindings in your app. List.SortBy, Columns, Selected, KeepOffset, FollowEnd, RowHeight, EndReached, NearEnd, HeaderMenu, CellMenu, and similar fields follow MyGo's rules. List.MoveAnimation is not supported through Table yet: nui's motion levels do not govern it, and MyGo turns it off only for the desktop's reduced-motion setting, so rows would still glide when `AppConfig.DisableAnimations` turns nui's motion off. List.CellSelect/Cells are native extensions, with TableColumn.RowHeader for whole-row/table selection. Combined OnChange includes cell/cursor changes; it is not a selection-only notification.
 
 ### Borrowed rows and numeric identities
 
 Use `KeyedTableState[T, K]` and `KeyedTableOptions[K]` for string or integer IDs,
 including named types, numeric zero, and the full uint64 range. Selection,
-RowID, OnActivate and OnSelectionChange retain that type; selection notifications
-are sorted by key value. Only accessible display labels format numeric IDs.
+RowID and OnActivate retain that type; applications can explicitly sort selected-key snapshots
+by key value. Only accessible display labels format numeric IDs.
 
 `SetRows` copies values and validates identities before replacing a snapshot.
 `SetBorrowedRows` is an explicit trusted-data path: the app guarantees unique,
@@ -521,13 +529,13 @@ Copied and borrowed setters can replace one another on the same state.
 
 For search, filtering, and pagination, your app computes the current rows first and then calls SetRows. The data browser example shows search, team and status filters, and pages of 100 rows; your app manages server requests, totals, and caching.
 
-To load more rows as the user scrolls, set `state.List.EndReached`, and `NearEnd` for how many rows before the last count as near the end. Start the request in the background, then append the page with SetRows in `Window.Update`. EndReached is called once per approach to the end: not again while the rows in view stay there, and not when the table first shows or rebuilds, when SetRows appends rows, when the app scrolls with `List.ScrollToEnd`, or when every row already fits. After a page is appended, the user's next scroll near the new end calls it once more. It calls none of OnChange, OnSortChange, OnSelectionChange, or OnActivate.
+To load more rows as the user scrolls, set `state.List.EndReached`, and `NearEnd` for how many rows before the last count as near the end. Start the request in the background, then append the page with SetRows in `Window.Update`. EndReached is called once per approach to the end: not again while the rows in view stay there, and not when the table first shows or rebuilds, when SetRows appends rows, when the app scrolls with `List.ScrollToEnd`, or when every row already fits. After a page is appended, the user's next scroll near the new end calls it once more. It calls none of OnChange, OnSortChange, or OnActivate.
 
 EmptyText and BuildEmpty set the empty content below the header. Loading shows a loading bar and keeps the existing data. With no data, BuildLoading's content is shown if provided; otherwise the empty content is still shown. LoadingColor defaults to Primary. LoadingAnimation can be Carousel, CarouselInverse, Swing, or Elastic, the same presets as Progress's Animation (`TableLoadingAnimation` is an alias of `LoadingAnimation`). Under reduced motion the bar spans the header and pulses its opacity, as Nuxt's `motion-reduce:animate-pulse`; at the Off motion level it is a static full-width bar. Caption is the table's description for assistive technology, and BuildCaption can show a visible title. Height defaults to 320 DIP, including the title; the header stays fixed and the body scrolls inside.
 
 Virtualization is always on. It reduces only the number of cells built; generating data, validating IDs, sorting, and filtering still scale with the data size. MyGo handles row layout. Cells can override Item and Label through a column's UI and Style, and column overrides are applied after table-level overrides.
 
-`Fixed` **only prevents moving and resizing the column**; it does not freeze the column during scrolling. Frozen columns, multi-level headers, arbitrary row or header builders, expandable rows, grouping and aggregation, and full TanStack semantics are not yet supported. Native headers have no keyboard focus of their own; to support keyboard sorting, provide buttons that change Sort or SortBy. The underlying List measures row heights, so custom cells can be taller; your app should still verify complex dynamic content.
+`Fixed` **only prevents moving and resizing the column**; it does not freeze the column during scrolling. Frozen columns, multi-level headers, arbitrary row-builder replacement, expandable rows, grouping/aggregation and full TanStack semantics are not supported. List.HeaderCell can customize each existing native header cell; HeaderMenu and CellMenu retain their native index mappings. Native headers have no keyboard focus of their own; to support keyboard sorting, provide buttons that change Sort or SortBy. The underlying List measures row heights, so custom cells can be taller; your app should still verify complex dynamic content.
 
 ## Tree
 
@@ -550,6 +558,8 @@ Nodes can be Disabled, and OnSelect and OnToggle can cancel the current action. 
 Nested defaults to true, which shows ancestor guide lines and indents each child's background and click area by level. With `nui.Set(false)`, the background and click area span the full row while the content stays indented. Switching keeps the selection, expansion, focus, and scroll position.
 
 Both modes use a native virtual list that builds only the rows near the viewport. The index of visible nodes is rebuilt when the data or the expansion state changes. Tree builds that index itself rather than through `ui.Outline`, so of `state.Outline` it uses only `Outline.Open` and `Outline.List`: setting `Outline.Generation` has no effect on Tree. Because apps may edit the public collections directly, every build still checks the expanded IDs, and also the selected IDs when indeterminate states are needed. Customize row content with Build.
+
+Build, BuildLeading, and BuildTrailing alone do not trigger descendant selection analysis. In single selection or unlinked multiple selection, custom parts receive Indeterminate=false without walking folded descendants. Leaving linked selection discards its derived summaries before any custom part runs; returning to linking recomputes from the current nodes and selection, without a synthetic OnChange. This does not remove expanded-ID reconciliation or the data-dependent work of linked selection. The [performance fixtures](performance.md) measure changing selection with folded descendants separately from many open branches and large linked selections.
 
 ### Lazy loading
 
@@ -606,3 +616,5 @@ InputNumber's and InputTags' `UI` support every part in the table, while the emb
 | `go run ./examples/data-browser` | Search, filtering, Table/Tree, editing by ID, and Toast |
 
 Text input in InputTags, PinInput in text mode, the Listbox filter field, SelectMenu, and ColorPicker is affected by the known IME cancel issue; see [Canceling IME composition](compatibility.md#canceling-ime-composition).
+
+See [Table migration and native extensions](table-migration.md) for RowHeader, plain-cell rendering, 5/50/200-column costs and a cancellable application-owned ManualSorting program.

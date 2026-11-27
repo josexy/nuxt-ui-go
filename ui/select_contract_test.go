@@ -17,6 +17,9 @@ func TestSelectNeutralFocusUsesInvertedBackground(t *testing.T) {
 		t.Run(fmt.Sprint(multiple), func(t *testing.T) {
 			value, values := "a", []string{"a"}
 			accent := ui.RGB(126, 34, 206)
+			selectState1 := submittedSelect([]nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}})
+			selectedState1 := chosenSelection(values)
+			selectState2 := submittedSelect([]nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}})
 			tt := ui.NewTester(func(c *ui.Context) {
 				th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
 				th.InvertedBackground, th.HighContrast = accent, true
@@ -26,11 +29,11 @@ func TestSelectNeutralFocusUsesInvertedBackground(t *testing.T) {
 							e.Label("Select trigger")
 						}
 					}}
-					items := []nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}}
+
 					if multiple {
-						nui.SelectMultiple(c, th, &values, items, opts).Width(240)
+						nui.SelectMultiple(c, th, selectedState1, selectState1, opts).Width(240)
 					} else {
-						nui.Select(c, th, &value, items, opts).Width(240)
+						nui.Select(c, th, &value, selectState2, opts).Width(240)
 					}
 				})
 			}, 300, 120)
@@ -55,14 +58,17 @@ func TestSelectAccessoriesControlledOpenAndLoading(t *testing.T) {
 				}
 			}}
 			items := []nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "blocked", Label: "Blocked", Disabled: true}, {Value: "b", Label: "Beta"}}
+			selectState3 := submittedSelect(items)
+			selectedState3 := chosenSelection(values)
+			selectState4 := submittedSelect(items)
 			tt := ui.NewTester(func(c *ui.Context) {
 				th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
 				th.Motion.Reduce = true
 				nui.FormField(c, th, nui.FormFieldOptions{Label: "Outer field"}, func(ft nui.Theme) {
 					if multiple {
-						nui.SelectMultiple(c, ft, &values, items, o).Width(260)
+						nui.SelectMultiple(c, ft, selectedState3, selectState3, o).Width(260)
 					} else {
-						nui.Select(c, ft, &value, items, o).Width(260)
+						nui.Select(c, ft, &value, selectState4, o).Width(260)
 					}
 				})
 			}, 360, 300)
@@ -88,8 +94,8 @@ func TestSelectAccessoriesControlledOpenAndLoading(t *testing.T) {
 				t.Fatal("loading prevented opening")
 			}
 			click(t, tt, "Beta")
-			if changes != 1 || !multiple && (value != "b" || open) || multiple && (!slices.Equal(values, []string{"a", "b"}) || !open) {
-				t.Fatalf("loading choice: %q %v open=%v changes=%d", value, values, open, changes)
+			if changes != 1 || !multiple && (value != "b" || open) || multiple && (!slices.Equal(selectedState3.Values(), []string{"a", "b"}) || !open) {
+				t.Fatalf("loading choice: %q %v open=%v changes=%d", value, selectedState3.Values(), open, changes)
 			}
 			if multiple {
 				tt.Key(0, ui.KeyEscape)
@@ -128,6 +134,9 @@ func TestSelectHighlightRTLAndSelectedIcon(t *testing.T) {
 				value, values, open := "a", []string{"a"}, false
 				accent := ui.RGB(126, 34, 206)
 				marker := ui.MustParseSVG([]byte(`<svg viewBox="0 0 10 10"><rect width="10" height="10" fill="#ff00ff"/></svg>`))
+				selectState5 := submittedSelect([]nui.Option[string]{{Value: "a", Label: "Alpha", Description: "First choice"}})
+				selectedState5 := chosenSelection(values)
+				selectState6 := submittedSelect([]nui.Option[string]{{Value: "a", Label: "Alpha", Description: "First choice"}})
 				tt := ui.NewTester(func(c *ui.Context) {
 					th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
 					th.Motion.Disabled = true
@@ -144,11 +153,11 @@ func TestSelectHighlightRTLAndSelectedIcon(t *testing.T) {
 								e.Label("Popup row")
 							}
 						}}
-						items := []nui.Option[string]{{Value: "a", Label: "Alpha", Description: "First choice"}}
+
 						if multiple {
-							nui.SelectMultiple(c, th, &values, items, o).Width(260)
+							nui.SelectMultiple(c, th, selectedState5, selectState5, o).Width(260)
 						} else {
-							nui.Select(c, th, &value, items, o).Width(260)
+							nui.Select(c, th, &value, selectState6, o).Width(260)
 						}
 					})
 				}, 360, 280)
@@ -181,25 +190,28 @@ func TestSelectMultiplePrefixKeepsCurrentMatchAndCycles(t *testing.T) {
 	var values []string
 	changes, open := 0, false
 	items := []nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}, {Value: "x", Label: "Blocked", Disabled: true}, {Value: "c", Label: "Boreal"}}
+	selectState7 := submittedSelect(items)
+	selectedState7 := chosenSelection(values)
 	tt := ui.NewTester(func(c *ui.Context) {
-		nui.SelectMultiple(c, nui.App(c, nui.AppConfig{}), &values, items, nui.SelectOptions{Label: "Choice", Open: &open, OnChange: func() { changes++ }}).Width(260)
+		nui.SelectMultiple(c, nui.App(c, nui.AppConfig{}), selectedState7, selectState7, nui.SelectOptions{Label: "Choice", Open: &open, OnChange: func() { changes++ }}).Width(260)
 	}, 360, 320)
 	click(t, tt, "Choice")
 	tt.Type("be")
 	tt.Key(0, ui.KeyEnter)
-	if !slices.Equal(values, []string{"b"}) || changes != 1 {
-		t.Fatalf("prefix be: %v/%d", values, changes)
+	if !slices.Equal(selectedState7.Values(), []string{"b"}) || changes != 1 {
+		t.Fatalf("prefix be: %v/%d", selectedState7.Values(), changes)
 	}
 	tt.Advance(2 * time.Second)
 	tt.Type("b")
 	tt.Key(0, ui.KeyEnter)
-	if !slices.Equal(values, []string{"b", "c"}) || changes != 2 {
-		t.Fatalf("cycle b: %v/%d", values, changes)
+	if !slices.Equal(selectedState7.Values(), []string{"b", "c"}) || changes != 2 {
+		t.Fatalf("cycle b: %v/%d", selectedState7.Values(), changes)
 	}
 	items = []nui.Option[string]{items[3], items[0], items[2], items[1]}
+	selectState7.SetOptions(items)
 	tt.Frame()
 	tt.Key(0, ui.KeyEnter)
-	if !slices.Equal(values, []string{"b"}) || changes != 3 {
+	if !slices.Equal(selectedState7.Values(), []string{"b"}) || changes != 3 {
 		t.Fatal("reorder changed active identity")
 	}
 	tt.Key(0, ui.KeyEscape)
@@ -211,10 +223,12 @@ func TestSelectMultiplePrefixKeepsCurrentMatchAndCycles(t *testing.T) {
 func TestSelectMultipleEmptyLabelsAndInheritedDisable(t *testing.T) {
 	values, changes, open, disabled := []string{"a", "b"}, 0, false, false
 	items := []nui.Option[string]{{Value: "a", Label: ""}, {Value: "b", Label: "Beta"}, {Value: "c", Label: "Gamma"}}
+	selectState8 := submittedSelect(items)
+	selectedState8 := chosenSelection(values)
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		ui.Box(c).Disabled(disabled).Children(func() {
-			nui.SelectMultiple(c, th, &values, items, nui.SelectOptions{Label: "Choice", Placeholder: "Pick a choice", Open: &open, OnChange: func() { changes++ }}).Width(260)
+			nui.SelectMultiple(c, th, selectedState8, selectState8, nui.SelectOptions{Label: "Choice", Placeholder: "Pick a choice", Open: &open, OnChange: func() { changes++ }}).Width(260)
 		})
 	}, 360, 320)
 	if !tt.HasText("Beta") || tt.HasText(", Beta") {
@@ -229,11 +243,12 @@ func TestSelectMultipleEmptyLabelsAndInheritedDisable(t *testing.T) {
 		click(t, tt, "Choice")
 		tt.Key(0, ui.KeyEnter)
 	}
-	if changes != 0 || !slices.Equal(values, []string{"a", "b"}) {
+	if changes != 0 || !slices.Equal(selectedState8.Values(), []string{"a", "b"}) {
 		t.Fatal("inherited disable allowed an open row selection")
 	}
 	disabled = false
-	values = []string{"a"}
+	selectedState8.Set([]string{"a"})
+
 	tt.Frame()
 	open = false
 	tt.Frame()
@@ -245,8 +260,9 @@ func TestSelectMultipleEmptyLabelsAndInheritedDisable(t *testing.T) {
 func TestSelectKeyboardPrefixClosedAndOpen(t *testing.T) {
 	value, changes, disabled := "a", 0, false
 	items := []nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}, {Value: "blocked", Label: "Blocked", Disabled: true}, {Value: "c", Label: "Boreal"}, {Value: "d", Label: "Delta"}}
+	selectState9 := submittedSelect(items)
 	tt := ui.NewTester(func(c *ui.Context) {
-		nui.Select(c, nui.App(c, nui.AppConfig{}), &value, items, nui.SelectOptions{Label: "Choice", Disabled: disabled, OnChange: func() { changes++ }}).Width(240)
+		nui.Select(c, nui.App(c, nui.AppConfig{}), &value, selectState9, nui.SelectOptions{Label: "Choice", Disabled: disabled, OnChange: func() { changes++ }}).Width(240)
 	}, 320, 300)
 	tt.Key(0, ui.KeyTab)
 	tt.Type("b")
@@ -279,14 +295,17 @@ func TestSelectPopupDismissibleAndExplicitClose(t *testing.T) {
 	for _, multiple := range []bool{false, true} {
 		t.Run(fmt.Sprint(multiple), func(t *testing.T) {
 			value, values, open, changes := "a", []string{"a"}, false, 0
+			selectState10 := submittedSelect([]nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}})
+			selectedState10 := chosenSelection(values)
+			selectState11 := submittedSelect([]nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}})
 			tt := ui.NewTester(func(c *ui.Context) {
 				th := nui.App(c, nui.AppConfig{})
 				o := nui.SelectOptions{Label: "Choice", Open: &open, Popup: nui.PopoverOptions{Dismissible: nui.Set(false)}, OnChange: func() { changes++ }}
-				items := []nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}}
+
 				if multiple {
-					nui.SelectMultiple(c, th, &values, items, o).Width(240)
+					nui.SelectMultiple(c, th, selectedState10, selectState10, o).Width(240)
 				} else {
-					nui.Select(c, th, &value, items, o).Width(240)
+					nui.Select(c, th, &value, selectState11, o).Width(240)
 				}
 			}, 320, 300)
 			click(t, tt, "Choice")
@@ -306,15 +325,145 @@ func TestSelectPopupDismissibleAndExplicitClose(t *testing.T) {
 func TestSelectMultiplePanelBackgroundSurvivesThemeWrapper(t *testing.T) {
 	values, open := []string{"a"}, true
 	accent := ui.RGB(255, 0, 255)
+	selectState12 := submittedSelect([]nui.Option[string]{{Value: "a", Label: "Alpha"}})
+	selectedState12 := chosenSelection(values)
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
 		th.Motion.Disabled = true
 		ui.Column(c).Padding(16).Children(func() {
-			nui.SelectMultiple(c, th, &values, []nui.Option[string]{{Value: "a", Label: "Alpha"}}, nui.SelectOptions{Label: "Choice", Open: &open, Popup: nui.PopoverOptions{Label: "Selection panel"}, UI: nui.Styles{nui.Panel: {Background: nui.Set(accent)}}}).Width(240)
+			nui.SelectMultiple(c, th, selectedState12, selectState12, nui.SelectOptions{Label: "Choice", Open: &open, Popup: nui.PopoverOptions{Label: "Selection panel"}, UI: nui.Styles{nui.Panel: {Background: nui.Set(accent)}}}).Width(240)
 		})
 	}, 320, 240)
 	r := bounds(t, tt, "Selection panel")
 	if got := tt.Image().RGBAAt(int(r.X+r.W/2), int(r.Y+2)); got != rgba(accent) {
 		t.Fatalf("panel background was covered: %v, panel=%v", got, r)
+	}
+}
+
+func TestSubmittedSelectMultipleHoverAndOutsideAction(t *testing.T) {
+	state := submittedSelect([]nui.Option[int]{{Value: 0, Label: "Zero"}})
+	var selected nui.SelectionState[int]
+	actions := 0
+	tt := ui.NewTester(func(c *ui.Context) {
+		th := nui.App(c, nui.AppConfig{DisableAnimations: true})
+		nui.SelectMultiple(c.Key("choices"), th, &selected, state, nui.SelectOptions{Label: "Choices", Popup: nui.PopoverOptions{Mode: nui.PopoverHover, OpenDelay: 100 * time.Millisecond}}).Width(200)
+		nui.Button(c.Key("outside"), th, "Outside action", nui.ButtonOptions{}).Absolute().Top(250).OnClick(func() { actions++ })
+	}, 320, 300)
+	r := bounds(t, tt, "Choices")
+	tt.Move(r.X+r.W/2, r.Y+r.H/2)
+	tt.Advance(50 * time.Millisecond)
+	if state.Open {
+		t.Fatal("hover ignored OpenDelay")
+	}
+	tt.Advance(60 * time.Millisecond)
+	if !state.Open || !tt.HasText("Zero") {
+		t.Fatal("hover did not open submitted options")
+	}
+	tt.Key(0, ui.KeyEscape)
+	if state.Open {
+		t.Fatal("Escape did not suppress hover reopening")
+	}
+	click(t, tt, "Choices")
+	click(t, tt, "Outside action")
+	if state.Open || actions != 1 {
+		t.Fatal("outside dismissal swallowed the target action")
+	}
+}
+
+func TestSubmittedSelectMultipleTypedBulkAndExternalUpdates(t *testing.T) {
+	type key struct{ Number int }
+	options := []nui.Option[key]{{Value: key{0}, Label: "Zero"}, {Value: key{1}, Label: "Blocked", Disabled: true}, {Value: key{2}, Label: "Two"}}
+	var state nui.SelectState[key]
+	var selected nui.SelectionState[key]
+	state.SetOptions(options)
+	selected.Add(key{0})
+	open, disabled, changes := false, false, 0
+	state.Open = true // The explicit Open binding takes precedence.
+	tt := ui.NewTester(func(c *ui.Context) {
+		th := nui.App(c, nui.AppConfig{DisableAnimations: true})
+		ui.Column(c).Disabled(disabled).Children(func() {
+			nui.SelectMultiple(c.Key("choices"), th, &selected, &state, nui.SelectOptions{Label: "Choices", Open: &open, OnChange: func() { changes++ }}).Width(260)
+		})
+	}, 320, 300)
+	if state.Open || tt.HasText("Blocked") {
+		t.Fatal("internal opening overrode the explicit binding")
+	}
+	click(t, tt, "Choices")
+	tt.Key(ui.Ctrl, ui.KeyA)
+	if !slices.Equal(selected.Values(), []key{{0}, {2}}) || changes != 1 || !open {
+		t.Fatalf("select all: values=%v, changes=%d, open=%v", selected.Values(), changes, open)
+	}
+	tt.Key(ui.Ctrl, ui.KeyA)
+	if changes != 1 {
+		t.Fatal("unchanged Select All notified")
+	}
+	tt.Key(0, ui.KeySpace) // Select All leaves the last enabled value active.
+	if !slices.Equal(selected.Values(), []key{{0}}) || changes != 2 {
+		t.Fatal("typed keyboard toggle lost the zero key or active item")
+	}
+	disabled = true
+	tt.Frame()
+	tt.Key(ui.Ctrl, ui.KeyA)
+	if selected.Len() != 1 || changes != 2 {
+		t.Fatal("inherited disabling permitted bulk selection")
+	}
+	disabled = false
+	selected.Set([]key{{2}})
+	options[2].Label = "Changed two"
+	state.SetOptions(options)
+	open = false
+	tt.Frame()
+	if changes != 2 || !tt.HasText("Changed two") || !tt.Focused("Choices") {
+		t.Fatal("external data/selection changed notification or failed to refresh the label/focus")
+	}
+	options[2].Label = "Unsubmitted edit"
+	tt.Frame()
+	if !tt.HasText("Changed two") || tt.HasText("Unsubmitted edit") {
+		t.Fatal("source mutation bypassed submission")
+	}
+}
+
+func TestSubmittedSelectMultipleVirtualIdentity(t *testing.T) {
+	const count = 10000
+	options := make([]nui.Option[int], count)
+	for i := range options {
+		options[i] = nui.Option[int]{Value: i, Label: fmt.Sprintf("Option %05d", i)}
+	}
+	var state nui.SelectState[int]
+	var selected nui.SelectionState[int]
+	state.SetOptions(options)
+	rows, changes := 0, 0
+	tt := ui.NewTester(func(c *ui.Context) {
+		rows = 0
+		nui.SelectMultiple(c.Key("choices"), nui.App(c, nui.AppConfig{DisableAnimations: true}), &selected, &state, nui.SelectOptions{Label: "Choices", OnChange: func() { changes++ }, Decoration: nui.Decoration{Style: func(slot nui.Slot, _ ui.Element) {
+			if slot == nui.Item {
+				rows++
+			}
+		}}}).Width(280)
+	}, 340, 320)
+	click(t, tt, "Choices")
+	tt.Key(0, ui.KeyEnd)
+	if rows > 24 || !tt.HasText("Option 09999") {
+		t.Fatalf("end navigation built %d rows without exposing the last choice", rows)
+	}
+	slices.Reverse(options)
+	state.SetOptions(options)
+	tt.Frame()
+	if rows > 24 || !tt.HasText("Option 09999") {
+		t.Fatal("resubmission did not scroll to the surviving active identity")
+	}
+	tt.Key(0, ui.KeyEnter)
+	if !selected.Has(count-1) || changes != 1 {
+		t.Fatal("reorder selected an index rather than a typed key")
+	}
+	state.SetOptions(nil)
+	tt.Frame()
+	tt.Key(0, ui.KeyEnter)
+	if selected.Len() != 1 || changes != 1 || rows != 0 {
+		t.Fatal("empty submission retained selectable rows or changed selection")
+	}
+	tt.Key(0, ui.KeyEscape)
+	if state.Open || !tt.Focused("Choices") {
+		t.Fatal("empty popup did not return focus to its trigger")
 	}
 }

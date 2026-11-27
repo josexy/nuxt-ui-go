@@ -15,18 +15,7 @@ func (a *State) Panel(c *ui.Context, t nui.Theme) ui.Element {
 			edit := nui.Button(c, t, "Edit profile", nui.ButtonOptions{Variant: nui.Outline, Color: nui.Neutral, Size: nui.SM}).Bind(&a.EditTrigger).OnClick(func() { a.beginEdit(&a.EditTrigger) })
 			nui.Tooltip(c, t, edit, "Edit your name and email together", nui.TooltipOptions{})
 			actions := nui.Button(c, t, "Actions", nui.ButtonOptions{Variant: nui.Outline, Color: nui.Neutral, Size: nui.SM, Trailing: lucide.ChevronDown()}).Bind(&a.ActionsTrigger)
-			nui.DropdownMenu(c, t, actions, &a.ActionsMenu, []nui.MenuItem{
-				{ID: "edit", Label: "Edit profile details", Icon: lucide.UserRound(), OnSelect: func() { a.beginEdit(&a.ActionsTrigger) }},
-				{ID: "notify", Label: "Notification presets", Children: []nui.MenuItem{
-					{ID: "quiet", Label: "Quiet mode", Description: "Pause notification channels", OnSelect: func() {
-						a.Notify = false
-						nui.Toast(c, t, nui.ToastOptions{Title: "Quiet mode enabled", Color: nui.Info})
-					}},
-					{ID: "standard", Label: "Standard mode", Description: "Email and desktop notifications", OnSelect: func() { a.Notify = true; a.Channels = []string{"email", "desktop"} }},
-				}},
-				{ID: "divider", Kind: nui.MenuSeparator},
-				{ID: "reset", Label: "Reset notification preferences", Icon: lucide.CircleAlert(), Color: nui.Error, OnSelect: func() { a.ConfirmReset = true; a.ReturnFocus = &a.ActionsTrigger }},
-			}, nui.MenuOptions{Label: "Settings actions", Width: nui.Set(float32(300))})
+			nui.DropdownMenu(c, t, actions, &a.ActionsMenu, nui.MenuOptions{Label: "Settings actions", Width: nui.Set(float32(300))})
 			nui.Button(c, t, "Notification filters", nui.ButtonOptions{Variant: nui.Ghost, Color: nui.Neutral, Size: nui.SM, Leading: lucide.Settings()}).OnClick(func() { a.FiltersOpen = true })
 		})
 		a.fields(c, t).Grow(1)
@@ -97,5 +86,20 @@ func (a *State) overlays(c *ui.Context, t nui.Theme) {
 			}},
 		}, nui.TabsOptions{Label: "Filter category"})
 		nui.Collapsible(c, t, &a.Advanced, nui.CollapsibleOptions{Label: "Advanced delivery"}, func(t nui.Theme) { nui.Switch(c, t, &a.Sync, nui.SwitchOptions{Label: "Sync notification filters"}) })
+	})
+}
+
+func (a *State) setupActions() {
+	a.ActionsMenu.SetItems([]nui.MenuItem{
+		{ID: "edit", Label: "Edit profile details", Icon: lucide.UserRound(), OnSelect: func() { a.beginEdit(&a.ActionsTrigger) }},
+		{ID: "notify", Label: "Notification presets", Children: []nui.MenuItem{
+			{ID: "quiet", Label: "Quiet mode", Description: "Pause notification channels", OnSelect: func() {
+				a.Notify = false
+				a.pendingToasts = append(a.pendingToasts, nui.ToastOptions{Title: "Quiet mode enabled", Color: nui.Info})
+			}},
+			{ID: "standard", Label: "Standard mode", Description: "Email and desktop notifications", OnSelect: func() { a.Notify = true; a.Channels = []string{"email", "desktop"} }},
+		}},
+		{ID: "divider", Kind: nui.MenuSeparator},
+		{ID: "reset", Label: "Reset notification preferences", Icon: lucide.CircleAlert(), Color: nui.Error, OnSelect: func() { a.ConfirmReset = true; a.ReturnFocus = &a.ActionsTrigger }},
 	})
 }

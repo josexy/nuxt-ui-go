@@ -15,10 +15,12 @@ func TestSelectMenuResetAndOpeningKeys(t *testing.T) {
 		var queries []string
 		var openings []bool
 		disabled, search := false, true
+		listSelection1 := chosenSelection(selected)
+		state.SetItems([]nui.ListboxItem{{ID: "a", Label: "Alpha"}, {ID: "b", Label: "Beta"}})
 		tt := ui.NewTester(func(c *ui.Context) {
 			theme := nui.App(c, nui.AppConfig{})
 			ui.Column(c).Padding(20).Children(func() {
-				nui.SelectMenu(c, theme, &selected, &state, []nui.ListboxItem{{ID: "a", Label: "Alpha"}, {ID: "b", Label: "Beta"}}, nui.SelectMenuOptions{
+				nui.SelectMenu(c, theme, listSelection1, &state, nui.SelectMenuOptions{
 					Label: "Choose", Disabled: disabled, SearchInput: nui.Set(search),
 					ResetSearchTermOnBlur: nui.Set(!keep), ResetSearchTermOnSelect: nui.Set(!keep), OnQuery: func(q string) { queries = append(queries, q) },
 					OnOpenChange: func(open bool) { openings = append(openings, open) },
@@ -33,7 +35,7 @@ func TestSelectMenuResetAndOpeningKeys(t *testing.T) {
 		tt.Type("Alpha")
 		click(t, tt, "Alpha")
 		tt.Advance(500 * time.Millisecond)
-		if state.Open || len(selected) != 1 || selected[0] != "a" {
+		if state.Open || listSelection1.Len() != 1 || listSelection1.Values()[0] != "a" {
 			t.Fatal("selection did not close")
 		}
 		if len(openings) != 2 || openings[1] {
@@ -76,8 +78,8 @@ func TestSelectMenuResetAndOpeningKeys(t *testing.T) {
 		}
 		tt.Key(0, ui.KeyEnd)
 		tt.Key(0, ui.KeyEnter)
-		if len(selected) != 1 || selected[0] != "b" {
-			t.Fatalf("searchless keyboard selection: %v", selected)
+		if listSelection1.Len() != 1 || listSelection1.Values()[0] != "b" {
+			t.Fatalf("searchless keyboard selection: %v", listSelection1.Values())
 		}
 		tt.Advance(500 * time.Millisecond)
 		click(t, tt, "Choose")

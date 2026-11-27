@@ -15,11 +15,8 @@ const (
 	TableLoadingElastic         = LoadingElastic
 )
 
-type tableEvents[K TableKey] struct {
-	sort []ui.SortOrder
-	// selection holds the IDs chosen as of the last build without an input
-	// notice, in no order: the notice compares the new choice against it.
-	selection   []K
+type tableEvents struct {
+	sort        []ui.SortOrder
 	initialized bool
 }
 
@@ -53,27 +50,16 @@ func (m tableDividerMaterial) PaintMaterial(p *ui.Painter, r ui.Rect, _ [4]float
 	p.Fill(lineRect(r, p.Scale(), false, true, -1), m.color, 0)
 }
 
-// tableSelectionDiffers reports whether selection holds other IDs than keys,
-// which hold no duplicates: it reads the selection without copying it.
-func tableSelectionDiffers[K TableKey](keys []K, selection *ui.Selection[K]) bool {
-	if len(keys) != selection.Len() {
-		return true
+func plainTableCell(t Theme, table, column Decoration) bool {
+	if table.Style != nil || column.Style != nil {
+		return false
 	}
-	for _, id := range keys {
-		if !selection.Has(id) {
-			return true
+	for _, slot := range []Slot{Item, Label} {
+		if t.components[ComponentTable].UI[slot] != (PartStyle{}) || table.UI[slot] != (PartStyle{}) || column.UI[slot] != (PartStyle{}) {
+			return false
 		}
 	}
-	return false
-}
-
-// snapshotTableSelection refills keys, reusing its room, with the IDs of selection.
-func snapshotTableSelection[K TableKey](keys []K, selection *ui.Selection[K]) []K {
-	keys = keys[:0]
-	for id := range selection.All() {
-		keys = append(keys, id)
-	}
-	return keys
+	return true
 }
 
 func finishTableCell(t Theme, slot Slot, e ui.Element, base PartStyle, table, column Decoration) {

@@ -422,6 +422,10 @@ func CheckboxGroup[T comparable](c *ui.Context, t Theme, selected *[]T, options 
 	if selected == nil {
 		panic("nui: CheckboxGroup requires selection")
 	}
+	membership := make(map[T]bool, len(*selected))
+	for _, value := range *selected {
+		membership[value] = true
+	}
 	validateOptions(options)
 	config := selectedDefaults(t, ComponentCheckboxGroup, o)
 	e := ui.Column(c).MinWidth(0).Role(ui.RoleGroup).Label(o.Label).Description(o.Description).Disabled(o.Disabled || t.field.Disabled).FocusGroup(choiceOrientation(o.Horizontal))
@@ -452,7 +456,7 @@ func CheckboxGroup[T comparable](c *ui.Context, t Theme, selected *[]T, options 
 	e.Children(func() {
 		afterChecked := false
 		for i, option := range options {
-			checked := slices.Contains(*selected, option.Value)
+			checked := membership[option.Value]
 			limited := o.Max.Set && !checked && len(*selected) >= max(0, o.Max.Value)
 			table := choiceTableItem{true, i == 0, i == len(options)-1, afterChecked, o.Horizontal}
 			item := Checkbox(c.Key(optionKey[T]{option.Value}), t, &checked, CheckboxOptions{table: table, Label: option.Label, Description: option.Description, CheckedIcon: option.Icon, Disabled: o.Disabled || option.Disabled, Invalid: o.Invalid || o.ErrorMessage != "", Color: config.Color, Size: config.Size, Variant: o.Variant, Indicator: o.Indicator, Highlight: o.Highlight, Decoration: child})
@@ -470,6 +474,11 @@ func CheckboxGroup[T comparable](c *ui.Context, t Theme, selected *[]T, options 
 					next = append(next, option.Value)
 				}
 				*selected = next
+				if checked {
+					membership[option.Value] = true
+				} else {
+					delete(membership, option.Value)
+				}
 				e.SetChanged()
 			}
 		}

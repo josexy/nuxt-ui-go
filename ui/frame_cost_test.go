@@ -6,6 +6,7 @@ import (
 	"image"
 	"image/color"
 	"runtime"
+	"slices"
 	"testing"
 	"time"
 
@@ -69,11 +70,13 @@ func TestHiddenHorizontalListboxWaitsAndShowsRows(t *testing.T) {
 	var state nui.ListboxState
 	var selected []string
 	active, builds := "shown", 0
+	listSelection1 := chosenSelection(selected)
+	state.SetItems(items)
 	tt := ui.NewTester(func(c *ui.Context) {
 		builds++
 		th := nui.App(c, nui.AppConfig{})
 		keptTabs(c, th, &active, func(c *ui.Context, th nui.Theme) {
-			nui.Listbox(c, th, &selected, &state, items, nui.ListboxOptions{Label: "Choices", Orientation: nui.Set(nui.Horizontal), ItemWidth: 120}).Width(360)
+			nui.Listbox(c, th, listSelection1, &state, nui.ListboxOptions{Label: "Choices", Orientation: nui.Set(nui.Horizontal), ItemWidth: 120}).Width(360)
 		})
 	}, 1200, 300)
 	if n := buildsDuring(tt, &builds, 2*time.Second); n > 2 {
@@ -104,7 +107,7 @@ func bytesPerFrame(tt *ui.Tester) uint64 {
 	return (after.TotalAlloc - before.TotalAlloc) / frames
 }
 
-func TestTableSelectionNoticeKeepsOutsideEditsSilentWithoutCopying(t *testing.T) {
+func TestTableCombinedNoticeKeepsOutsideEditsSilentWithoutCopying(t *testing.T) {
 	const n = 20000
 	rows := make([]string, n)
 	for i := range rows {
@@ -115,7 +118,7 @@ func TestTableSelectionNoticeKeepsOutsideEditsSilentWithoutCopying(t *testing.T)
 	cols := []nui.TableColumn[string]{{ID: "name", Title: "Name", Width: 300, Value: func(v string) string { return v }}}
 	var reported [][]string
 	tt := ui.NewTester(func(c *ui.Context) {
-		nui.Table(c, nui.App(c, nui.AppConfig{}), &state, cols, nui.TableOptions{Label: "Rows", OnSelectionChange: func(ids []string) { reported = append(reported, ids) }}).Width(400)
+		nui.Table(c, nui.App(c, nui.AppConfig{}), &state, cols, nui.TableOptions{Label: "Rows", OnChange: func() { reported = append(reported, slices.Sorted(state.Selection.All())) }}).Width(400)
 	}, 500, 400)
 	for _, id := range rows[n/2:] {
 		state.Selection.Add(id)

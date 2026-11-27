@@ -16,7 +16,7 @@ func tableParityExample() func(*ui.Context, nui.Theme) {
 	state.List.SortBy = &orders
 	manual, loading, empty, rtl, disabled := false, false, false, false, false
 	animation := nui.TableLoadingCarousel
-	sorts, selections := 0, 0
+	sorts, changes := 0, 0
 	activated := "None"
 	return func(c *ui.Context, t nui.Theme) {
 		ui.Row(c).Wrap().Gap(8).Children(func() {
@@ -49,12 +49,12 @@ func tableParityExample() func(*ui.Context, nui.Theme) {
 				BuildCaption: func(c *ui.Context, t nui.Theme) { ui.Text(c, "Project records").TextColor(t.Highlighted) },
 				BuildEmpty:   func(c *ui.Context, _ nui.Theme) { ui.Text(c, "No contract records") },
 				BuildLoading: func(c *ui.Context, _ nui.Theme) { ui.Text(c, "Fetching contract records") },
-				OnSortChange: func([]ui.SortOrder) { sorts++ }, OnSelectionChange: func([]string) { selections++ }, OnActivate: func(id string) { activated = id }})
+				OnSortChange: func([]ui.SortOrder) { sorts++ }, OnChange: func() { changes++ }, OnActivate: func(id string) { activated = id }})
 		})
 		first := "None"
 		if state.Len() > 0 {
 			first = state.RowID(0)
 		}
-		ui.Text(c, fmt.Sprintf("First: %s · Sort events: %d · Selection events: %d · Activated: %s", first, sorts, selections, activated))
+		ui.Text(c, fmt.Sprintf("First: %s · Sort events: %d · Table changes: %d · Activated: %s", first, sorts, changes, activated))
 	}
 }

@@ -252,9 +252,11 @@ func TestParityReselectCallbacks(t *testing.T) {
 	selected := []string{"a"}
 	var state nui.SelectMenuState
 	changes, activations, queries := 0, 0, 0
+	listSelection1 := chosenSelection(selected)
+	state.SetItems([]nui.ListboxItem{{ID: "a", Label: "Alpha"}})
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.SelectMenu(c, th, &selected, &state, []nui.ListboxItem{{ID: "a", Label: "Alpha"}}, nui.SelectMenuOptions{Label: "Menu", OnChange: func([]string) { changes++ }, OnSelect: func(string) { activations++ }, OnQuery: func(string) { queries++ }})
+		nui.SelectMenu(c, th, listSelection1, &state, nui.SelectMenuOptions{Label: "Menu", OnChange: func() { changes++ }, OnSelect: func(string) { activations++ }, OnQuery: func(string) { queries++ }})
 	}, 500, 300)
 	click(t, tt, "Menu")
 	tt.Type("Al")
@@ -301,6 +303,9 @@ func TestParitySelectMultipleSlotMapping(t *testing.T) {
 	instance := false
 	options := []nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}}
 	var root ui.Handle
+	selectState1 := submittedSelect(options)
+	selectState2 := submittedSelect(options)
+	selectedState2 := chosenSelection(multiple)
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{}).WithComponent(nui.ComponentSelect, nui.ComponentTheme{UI: nui.Styles{nui.Root: {PaddingY: nui.Set(float32(12))}}}).WithComponent(nui.ComponentSelectMenu, nui.ComponentTheme{Size: nui.XS})
 		ui.Column(c).Gap(16).Children(func() {
@@ -308,13 +313,13 @@ func TestParitySelectMultipleSlotMapping(t *testing.T) {
 			if instance {
 				d.UI = nui.Styles{nui.Root: {PaddingY: nui.Set(float32(15))}}
 			}
-			nui.Select(c, th, &single, options, nui.SelectOptions{Label: "Single", Decoration: d})
+			nui.Select(c, th, &single, selectState1, nui.SelectOptions{Label: "Single", Decoration: d})
 			d.Style = func(slot nui.Slot, e ui.Element) {
 				if slot == nui.Root {
 					e.Bind(&root)
 				}
 			}
-			nui.SelectMultiple(c, th, &multiple, options, nui.SelectOptions{Label: "Multiple", Decoration: d})
+			nui.SelectMultiple(c, th, selectedState2, selectState2, nui.SelectOptions{Label: "Multiple", Decoration: d})
 			nui.Button(c, th, "Focus trigger", nui.ButtonOptions{}).OnClick(func() { root.Focus(c) })
 		})
 	}, 500, 500)

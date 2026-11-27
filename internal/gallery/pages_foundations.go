@@ -74,6 +74,7 @@ func (a *State) foundationPage(id string) *componentPage {
 			})
 			p.Scenes = append([]exampleScene{p.Scenes[len(p.Scenes)-1]}, p.Scenes[:len(p.Scenes)-1]...)
 			open, plan := false, "personal"
+			selectState11 := submittedSelect(plans)
 			add("overlay", "Local theme and overlay", "Open the dialog and its Select. Escape closes each focus scope in order.", func(c *ui.Context, t nui.Theme) {
 				local := nui.Dark()
 				if t.Dark {
@@ -83,7 +84,7 @@ func (a *State) foundationPage(id string) *componentPage {
 				nui.Themed(c, local, func(inner nui.Theme) {
 					nui.Button(c, inner, "Local dialog", nui.ButtonOptions{}).OnClick(func() { open = true })
 					nui.Modal(c, inner, &open, "Local theme dialog", func(mt nui.Theme) {
-						nui.Select(c, mt, &plan, plans, nui.SelectOptions{Label: "Local plan"}).FillWidth()
+						nui.Select(c, mt, &plan, selectState11, nui.SelectOptions{Label: "Local plan"}).FillWidth()
 						nui.Button(c, mt, "Close local dialog", nui.ButtonOptions{}).OnClick(func() { open = false })
 					})
 				}).Padding(20)

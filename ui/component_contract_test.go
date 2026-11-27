@@ -452,9 +452,11 @@ func TestSelectMenuFilterAndCreatePolicy(t *testing.T) {
 	always := false
 	created := ""
 	items := []nui.ListboxItem{{ID: "alpha", Label: "Alpha", Description: "team", Group: "team"}}
+	listSelection1 := chosenSelection(values)
+	s.SetItems(items)
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.SelectMenu(c, th, &values, &s, items, nui.SelectMenuOptions{Label: "Pick", FilterFields: fields, CreateWhenAlways: always, CreateAtTop: true, OnCreate: func(v string) { created = v }})
+		nui.SelectMenu(c, th, listSelection1, &s, nui.SelectMenuOptions{Label: "Pick", FilterFields: fields, CreateWhenAlways: always, CreateAtTop: true, OnCreate: func(v string) { created = v }})
 	}, 500, 400)
 	if _, found := tt.Find("Alpha"); found {
 		t.Fatal("default filter unexpectedly searched group or description")

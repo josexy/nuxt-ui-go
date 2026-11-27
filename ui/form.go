@@ -29,6 +29,7 @@ type FormState struct {
 	identity              *byte
 	Fields                map[string]*FormFieldState
 	order                 []string
+	visible               map[string]bool
 	version               uint64
 	requested, focusError bool
 	dispatching           bool
@@ -224,8 +225,14 @@ func Form(c *ui.Context, t Theme, s *FormState, o FormOptions, content func(Them
 	if s == nil {
 		panic("nui: Form requires state")
 	}
-	previous := s.Values()
-	for _, f := range s.Fields {
+	if s.visible == nil {
+		s.visible = make(map[string]bool, len(s.Fields))
+	}
+	clear(s.visible)
+	for name, f := range s.Fields {
+		if f.Visible && !f.Disabled {
+			s.visible[name] = true
+		}
 		f.Visible = false
 	}
 	s.order = s.order[:0]
@@ -241,19 +248,17 @@ func Form(c *ui.Context, t Theme, s *FormState, o FormOptions, content func(Them
 			content(inner)
 		}
 	})
-	for _, f := range s.Fields {
+	changedVisibility, visible := false, 0
+	for name, f := range s.Fields {
 		f.resetPending = false
 		if !f.Visible || f.Disabled {
 			f.Handle.CancelFocus(c)
+		} else {
+			visible++
+			changedVisibility = changedVisibility || !s.visible[name]
 		}
 	}
-	current := s.Values()
-	changedVisibility := len(previous) != len(current)
-	for k := range previous {
-		if _, ok := current[k]; !ok {
-			changedVisibility = true
-		}
-	}
+	changedVisibility = changedVisibility || len(s.visible) != visible
 	if changedVisibility {
 		s.version++
 		s.Submitting = false

@@ -80,3 +80,45 @@ func TestMarqueeMotionIsContinuousAcrossBuilds(t *testing.T) {
 		})
 	}
 }
+
+func TestNativeTransitionVsPoseScheduling(t *testing.T) {
+	for _, pose := range []bool{false, true} {
+		t.Run(fmt.Sprintf("Pose=%v", pose), func(t *testing.T) {
+			show, started, builds := false, false, 0
+			tt := ui.NewTester(func(c *ui.Context) {
+				builds++
+				ui.Column(c.Key("root")).Fill().Children(func() {
+					if !show {
+						return
+					}
+					e := ui.Box(c.Key("panel")).Size(100, 60).Background(ui.RGB(200, 0, 0))
+					if !pose {
+						e.Transition(ui.ElementTransition{Duration: 150 * time.Millisecond, Enter: &ui.Motion{Scale: .95}})
+						return
+					}
+					p := ui.Pose{}
+					if !started {
+						started = true
+						p = ui.Pose{Fade: 1, Scale: .95}
+						c.Invalidate()
+					}
+					e.AnimatePose(p, ui.Animation{Duration: 150 * time.Millisecond})
+				})
+			}, 500, 400)
+			before := builds
+			show = true
+			tt.Frame()
+			inputBuilds := builds - before
+			before = builds
+			tt.Advance(300 * time.Millisecond)
+			ticks := builds - before
+			t.Logf("group 5.4: input builds=%d, subsequent builds=%d, simulated duration=300ms; paint count unavailable", inputBuilds, ticks)
+			if pose && ticks != 0 || !pose && ticks == 0 {
+				t.Fatalf("unexpected animation scheduling: pose=%v tick builds=%d; update docs/performance.md", pose, ticks)
+			}
+			if tt.FramePending() {
+				t.Fatal("animation did not settle")
+			}
+		})
+	}
+}

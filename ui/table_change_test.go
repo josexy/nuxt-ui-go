@@ -1,7 +1,9 @@
 package nui_test
 
 import (
+	"bytes"
 	"cmp"
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
@@ -17,7 +19,7 @@ type tableFile struct {
 
 var tableFiles = []tableFile{{"a", "Alpha", "Mon", 3}, {"b", "Beta", "Tue", 2}, {"c", "Gamma", "Wed", 1}}
 
-type tableCounts struct{ change, sort, selection, activate int }
+type tableCounts struct{ change, sort, activate int }
 
 type tableHarness struct {
 	*ui.Tester
@@ -39,11 +41,10 @@ func newTableHarness(t *testing.T) *tableHarness {
 	h.Tester = ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		nui.Table(c.Key("files"), th, h.state, columns, nui.TableOptions{
-			Label:             "Files",
-			OnChange:          func() { h.counts.change++ },
-			OnSortChange:      func([]ui.SortOrder) { h.counts.sort++ },
-			OnSelectionChange: func([]string) { h.counts.selection++ },
-			OnActivate:        func(id string) { h.counts.activate++; h.activated = append(h.activated, id) },
+			Label:        "Files",
+			OnChange:     func() { h.counts.change++ },
+			OnSortChange: func([]ui.SortOrder) { h.counts.sort++ },
+			OnActivate:   func(id string) { h.counts.activate++; h.activated = append(h.activated, id) },
 		})
 	}, 700, 360)
 	return h
@@ -148,7 +149,7 @@ func TestTableColumnGesturesReportOneChangeEach(t *testing.T) {
 func TestTableActiveRowFollowsItsRecord(t *testing.T) {
 	h := newTableHarness(t)
 	click(t, h.Tester, "Beta")
-	h.expect("choosing Beta", tableCounts{change: 1, selection: 1})
+	h.expect("choosing Beta", tableCounts{change: 1})
 	size := h.header("Size")
 	h.ClickAt(size.X+20, size.Y+size.H/2)
 	if got := []string{h.state.RowID(0), h.state.RowID(1), h.state.RowID(2)}; !slices.Equal(got, []string{"c", "b", "a"}) {
@@ -262,5 +263,178 @@ func TestTableColumnLayoutPersistsThroughOnChange(t *testing.T) {
 	restored := &tableHarness{Tester: build(&second), t: t, state: &second}
 	if w := restored.header("Name").W; w != 200 {
 		t.Fatalf("restored Name is %v wide", w)
+	}
+}
+
+func TestTableRowHeadersKeepNativeCellSelection(t *testing.T) {
+	var state nui.KeyedTableState[int, int]
+	state.SetRows([]int{0, 1, 2}, func(v int) int { return v })
+	state.List.CellSelect, state.List.FollowEnd, state.List.RowHeight = true, true, 42
+	state.List.NearEnd = 7
+	changes, sorts, headers := 0, 0, 0
+	state.List.HeaderCell = func(e ui.Element, col int) { headers++; e.Description(fmt.Sprintf("Custom header %d", col)) }
+	columns := []nui.TableColumn[int]{
+		{ID: "row", Title: "#", Width: 60, RowHeader: true, Sortable: nui.Set(true), Value: func(v int) string { return fmt.Sprintf("Row %d", v) }},
+		{ID: "name", Title: "Name", Width: 140, Value: func(v int) string { return fmt.Sprintf("Name %d", v) }},
+		{ID: "value", Title: "Value", Width: 140, Value: func(v int) string { return fmt.Sprintf("Value %d", v) }},
+	}
+	tt := ui.NewTester(func(c *ui.Context) {
+		nui.Table(c.Key("table"), nui.App(c, nui.AppConfig{DisableAnimations: true}), &state, columns,
+			nui.KeyedTableOptions[int]{Label: "Rows", OnChange: func() { changes++ }, OnSortChange: func([]ui.SortOrder) { sorts++ }}).Width(400)
+	}, 450, 400)
+	click(t, tt, "Name 1")
+	if state.List.Cells.All || state.List.Cells.Cursor != "name" || !state.Selection.Has(1) {
+		t.Fatal("ordinary cell did not select its column")
+	}
+	header, ok := tt.AccessByRole(ui.RoleRowHeader, "Row 0")
+	if !ok {
+		t.Fatal("row header has no native row-header role")
+	}
+	tt.ClickAt(header.Bounds.X+header.Bounds.W/2, header.Bounds.Y+header.Bounds.H/2)
+	if !state.List.Cells.All || state.List.Cells.Cursor == "row" || !slices.Equal(slices.Sorted(state.Selection.All()), []int{0}) || !slices.Equal(state.List.SelectedColumns(), []string{"name", "value"}) {
+		t.Fatalf("row header lost whole-row selection: cells=%+v selection=%v", state.List.Cells, slices.Sorted(state.Selection.All()))
+	}
+	click(t, tt, "#")
+	if state.Selection.Len() != 3 || state.Sort != (ui.SortOrder{}) || sorts != 0 || changes != 3 {
+		t.Fatalf("row-header heading sorted or emitted wrong changes: selection=%d sort=%+v events=%d/%d", state.Selection.Len(), state.Sort, changes, sorts)
+	}
+	state.Sort = ui.SortOrder{Column: "row", Descending: true}
+	tt.Frame()
+	if state.Sort != (ui.SortOrder{}) || state.RowID(0) != 0 || changes != 3 {
+		t.Fatal("external row-header sort was not silently discarded")
+	}
+	if !state.List.CellSelect || !state.List.FollowEnd || state.List.RowHeight != 42 || state.List.NearEnd != 7 || state.List.HeaderCell == nil || headers == 0 {
+		t.Fatal("rendering overwrote native ListState configuration")
+	}
+}
+
+func TestTablePreservesNativeHeaderAndCellMenus(t *testing.T) {
+	var state nui.TableState[string]
+	state.SetRows([]string{"Alpha", "Beta"}, func(v string) string { return v })
+	header, row, column := -1, -1, -1
+	state.List.HeaderMenu = func(m *ui.Menu, col int) {
+		if m.Item("Header action").Chosen() {
+			header = col
+		}
+	}
+	state.List.CellMenu = func(m *ui.Menu, r, col int) {
+		if m.Item("Cell action").Chosen() {
+			row, column = r, col
+		}
+	}
+	tt := ui.NewTester(func(c *ui.Context) {
+		nui.Table(c.Key("table"), nui.App(c, nui.AppConfig{DisableAnimations: true}), &state,
+			[]nui.TableColumn[string]{{ID: "name", Title: "Name", Width: 160, Value: func(v string) string { return v }}, {ID: "extra", Title: "Extra", Width: 160, Value: func(v string) string { return "Extra " + v }}}, nui.TableOptions{}).Width(350)
+	}, 450, 350)
+	if err := tt.RightClick("Extra"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.ChooseMenuItem("Header action"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.RightClick("Extra Beta"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.ChooseMenuItem("Cell action"); err != nil {
+		t.Fatal(err)
+	}
+	if header != 1 || row != 1 || column != 1 || !state.Selection.Has("Beta") {
+		t.Fatalf("native menu mapping: header=%d cell=%d/%d selected=%v", header, row, column, state.Selection.Has("Beta"))
+	}
+}
+
+func TestPlainTableCellsMatchDecoratedRendering(t *testing.T) {
+	for _, dark := range []bool{false, true} {
+		for _, scale := range []float32{1, 1.25, 2} {
+			for _, align := range []ui.Align{ui.Start, ui.Center, ui.End} {
+				t.Run(fmt.Sprintf("dark=%v/scale=%g/align=%d", dark, scale, align), func(t *testing.T) {
+					var state nui.TableState[string]
+					state.SetRows([]string{"A short cell", "中文与 café — a long line that exceeds the column width"}, func(v string) string { return v })
+					decorated, styled := false, false
+					tt := ui.NewTester(func(c *ui.Context) {
+						th := nui.Light()
+						if dark {
+							th = nui.Dark()
+						}
+						th.TextScale = scale
+						th = nui.App(c, nui.AppConfig{Mode: nui.LightMode, Light: th, DisableAnimations: true})
+						o := nui.TableOptions{Label: "Rows"}
+						if decorated {
+							o.Style = func(nui.Slot, ui.Element) {}
+						}
+						if styled {
+							o.UI = nui.Styles{nui.Label: {Foreground: nui.Set(ui.RGB(220, 0, 0))}, nui.Item: {PaddingY: nui.Set(float32(3))}}
+						}
+						nui.Table(c.Key("table"), th, &state, []nui.TableColumn[string]{{ID: "text", Title: "Text", Width: 190, Align: align, Value: func(v string) string { return v }}}, o).Width(220)
+					}, 300, 400)
+					tt.SetScale(1.25)
+					plain := append([]byte(nil), tt.Image().Pix...)
+					decorated = true
+					tt.Frame()
+					if !bytes.Equal(plain, tt.Image().Pix) {
+						t.Fatal("plain value cells changed pixels versus the decorated path")
+					}
+					styled, decorated = true, false
+					tt.Frame()
+					if bytes.Equal(plain, tt.Image().Pix) || redPixels(tt.Image(), ui.Rect{W: 300, H: 400}) == 0 {
+						t.Fatal("adding a part override did not restore decorated rendering")
+					}
+				})
+			}
+		}
+	}
+}
+
+func TestTableCursorSurvivesSameIndexAndMovedRebindings(t *testing.T) {
+	for _, borrowed := range []bool{false, true} {
+		t.Run(fmt.Sprint(borrowed), func(t *testing.T) {
+			var state nui.KeyedTableState[int, int]
+			set := func(rows []int) {
+				if borrowed {
+					state.SetBorrowedRows(rows, func(v int) int { return v })
+				} else {
+					state.SetRows(rows, func(v int) int { return v })
+				}
+			}
+			set([]int{0, 1, 2})
+			var activated []int
+			tt := ui.NewTester(func(c *ui.Context) {
+				nui.Table(c.Key("table"), nui.App(c, nui.AppConfig{DisableAnimations: true}), &state,
+					[]nui.TableColumn[int]{{ID: "id", Title: "ID", Value: func(v int) string { return fmt.Sprintf("Record %d", v) }}},
+					nui.KeyedTableOptions[int]{OnActivate: func(id int) { activated = append(activated, id) }}).Width(200)
+			}, 300, 350)
+			click(t, tt, "Record 0")
+			set([]int{0, 2, 1}) // same index, including identity zero
+			set([]int{2, 1, 0}) // another update before a build moves that identity
+			tt.Frame()
+			tt.Key(0, ui.KeyEnter)
+			set([]int{2, 1})
+			tt.Frame()
+			tt.Key(0, ui.KeyEnter)
+			if !slices.Equal(activated, []int{0}) {
+				t.Fatalf("cursor activated %v", activated)
+			}
+		})
+	}
+}
+
+func TestTableCursorChangeKeepsSelection(t *testing.T) {
+	var state nui.TableState[string]
+	state.SetRows([]string{"a", "b", "c"}, func(v string) string { return v })
+	cursor := 0
+	state.List.Selected = &cursor
+	state.Selection.Add("a")
+	changes := 0
+	columns := []nui.TableColumn[string]{{ID: "id", Title: "ID", Width: 200, Value: func(v string) string { return v }}}
+	tt := ui.NewTester(func(c *ui.Context) {
+		nui.Table(c.Key("table"), nui.App(c, nui.AppConfig{DisableAnimations: true}), &state, columns, nui.TableOptions{
+			OnChange: func() { changes++ },
+		}).Width(300)
+	}, 500, 400)
+	tt.Key(0, ui.KeyTab)
+	changes = 0
+	tt.Key(ui.Ctrl, ui.KeyDown)
+	if cursor != 1 || state.Selection.Len() != 1 || !state.Selection.Has("a") || changes != 1 {
+		t.Fatalf("cursor=%d selected=%v combined=%d", cursor, state.Selection.Has("a"), changes)
 	}
 }

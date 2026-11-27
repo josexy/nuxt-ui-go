@@ -2,7 +2,6 @@ package nui
 
 import (
 	"fmt"
-	"slices"
 	"time"
 
 	"github.com/egoist/mygo/ui"
@@ -65,15 +64,22 @@ func Tabs(c *ui.Context, t Theme, value *string, items []TabItem, o TabsOptions)
 	if value == nil {
 		panic("nui: Tabs requires a selected ID")
 	}
-	seen := map[string]bool{}
+	seen := make(map[string]bool, len(items))
+	positions := make(map[string]int, len(items))
+	content := make(map[string]bool, len(items))
 	enabled := []string{}
 	for _, it := range items {
 		checkID(seen, it.ID, "Tabs")
+		content[it.ID] = it.Content != nil
 		if !it.Disabled {
+			positions[it.ID] = len(enabled)
 			enabled = append(enabled, it.ID)
 		}
 	}
-	index := slices.Index(enabled, *value)
+	index, exists := positions[*value]
+	if !exists {
+		index = -1
+	}
 	if index < 0 && len(enabled) > 0 {
 		index = 0
 		*value = enabled[0]
@@ -93,15 +99,10 @@ func Tabs(c *ui.Context, t Theme, value *string, items []TabItem, o TabsOptions)
 			focused = id
 		}
 	}
-	restore := focused != "" && !slices.Contains(enabled, focused)
+	_, focusEnabled := positions[focused]
+	restore := focused != "" && !focusEnabled
 	if previous := memory.bodies[memory.active]; previous != nil && previous.FocusWithin(c) {
-		hasContent := false
-		for _, it := range items {
-			if it.ID == *value {
-				hasContent = it.Content != nil
-				break
-			}
-		}
+		hasContent := content[*value]
 		if memory.active != *value || !valueOr(o.Content, true) || !hasContent {
 			restore = true
 		}
@@ -124,7 +125,6 @@ func Tabs(c *ui.Context, t Theme, value *string, items []TabItem, o TabsOptions)
 		memory.slide = c.Now().Add(tabsMotion)
 	}
 	memory.active = *value
-	index = slices.Index(enabled, *value)
 	if o.Vertical {
 		root.Row().AlignItems(ui.Center)
 	}
@@ -177,7 +177,7 @@ func Tabs(c *ui.Context, t Theme, value *string, items []TabItem, o TabsOptions)
 					move := func(delta int, edge bool) {
 						next := delta
 						if !edge {
-							next = (slices.Index(enabled, it.ID) + delta + len(enabled)) % len(enabled)
+							next = (positions[it.ID] + delta + len(enabled)) % len(enabled)
 						}
 						id := enabled[next]
 						if o.ActivationMode == ActivationAutomatic {
@@ -195,7 +195,7 @@ func Tabs(c *ui.Context, t Theme, value *string, items []TabItem, o TabsOptions)
 					trigger.OnShortcut(0, back, func() { move(-1, false) }).OnShortcut(0, forward, func() { move(1, false) }).
 						OnShortcut(0, ui.KeyHome, func() { move(0, true) }).OnShortcut(0, ui.KeyEnd, func() { move(len(enabled)-1, true) })
 				}
-				active := index == slices.Index(enabled, it.ID) && !it.Disabled
+				active := index == positions[it.ID] && !it.Disabled
 				trigger.Label(it.Label).MinWidth(0).AlignItems(ui.Center).FocusRing(true).Bind(memory.triggers[it.ID])
 				triggers[it.ID] = trigger
 				background := ui.Transparent

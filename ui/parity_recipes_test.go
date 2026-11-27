@@ -101,11 +101,12 @@ func TestOptionRowsFollowSizeAndHighlight(t *testing.T) {
 		row, line float32
 	}{{nui.XS, 24, 16}, {nui.MD, 32, 20}, {nui.XL, 40, 24}} {
 		value := "c"
+		selectState1 := submittedSelect([]nui.Option[string]{{Value: "a", Label: "Alpha", Description: "First letter"}, {Value: "b", Label: "Beta"}, {Value: "c", Label: "Gamma"}})
 		tt := ui.NewTester(func(c *ui.Context) {
 			th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
 			ui.Column(c).Padding(20).Children(func() {
-				options := []nui.Option[string]{{Value: "a", Label: "Alpha", Description: "First letter"}, {Value: "b", Label: "Beta"}, {Value: "c", Label: "Gamma"}}
-				nui.Select(c, th, &value, options, nui.SelectOptions{Label: "Letter", Size: tc.size, Popup: nui.PopoverOptions{Label: "Letter options"}}).Width(240)
+
+				nui.Select(c, th, &value, selectState1, nui.SelectOptions{Label: "Letter", Size: tc.size, Popup: nui.PopoverOptions{Label: "Letter options"}}).Width(240)
 			})
 		}, 400, 400)
 		click(t, tt, "Letter")
@@ -133,12 +134,16 @@ func TestListboxRowsRadiusAndEmptyState(t *testing.T) {
 	var selected []string
 	var s, empty nui.ListboxState
 	var menu nui.SelectMenuState
+	listSelection1 := chosenSelection(selected)
+	s.SetItems([]nui.ListboxItem{{ID: "a", Label: "Alpha"}})
+	empty.SetItems(nil)
+	menu.SetItems([]nui.ListboxItem{{ID: "x", Label: "Xray"}})
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		ui.Column(c).Padding(20).Gap(12).Children(func() {
-			nui.Listbox(c, th, &selected, &s, []nui.ListboxItem{{ID: "a", Label: "Alpha"}}, nui.ListboxOptions{Label: "Letters", Height: 120}).Width(240)
-			nui.Listbox(c, th, &selected, &empty, nil, nui.ListboxOptions{Label: "Nothing", EmptyText: "Nothing here", Height: 120}).Width(240)
-			nui.SelectMenu(c, th, &selected, &menu, []nui.ListboxItem{{ID: "x", Label: "Xray"}}, nui.SelectMenuOptions{Label: "Small menu", Size: nui.XS}).Width(240)
+			nui.Listbox(c, th, listSelection1, &s, nui.ListboxOptions{Label: "Letters", Height: 120}).Width(240)
+			nui.Listbox(c, th, listSelection1, &empty, nui.ListboxOptions{Label: "Nothing", EmptyText: "Nothing here", Height: 120}).Width(240)
+			nui.SelectMenu(c, th, listSelection1, &menu, nui.SelectMenuOptions{Label: "Small menu", Size: nui.XS}).Width(240)
 		})
 	}, 400, 600)
 	if h := bounds(t, tt, "Alpha").H; h != 32 {
@@ -157,11 +162,12 @@ func TestListboxRowsRadiusAndEmptyState(t *testing.T) {
 
 func TestMenuRowsUseOptionRecipe(t *testing.T) {
 	var state nui.MenuState
+	state.SetItems([]nui.MenuItem{{ID: "edit", Label: "Edit", Description: "Change the title"}, {ID: "delete", Label: "Delete", Color: nui.Error}})
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
 		ui.Column(c).Padding(20).Children(func() {
 			anchor := nui.Button(c, th, "Actions", nui.ButtonOptions{})
-			nui.DropdownMenu(c, th, anchor, &state, []nui.MenuItem{{ID: "edit", Label: "Edit", Description: "Change the title"}, {ID: "delete", Label: "Delete", Color: nui.Error}}, nui.MenuOptions{})
+			nui.DropdownMenu(c, th, anchor, &state, nui.MenuOptions{})
 		})
 	}, 400, 400)
 	click(t, tt, "Actions")
@@ -266,10 +272,12 @@ func TestTitlesUseNuxtsPageSize(t *testing.T) {
 
 func TestSelectMultipleDrawsOneIcon(t *testing.T) {
 	var value []string
+	selectState2 := submittedSelect([]nui.Option[string]{{Value: "a", Label: "Alpha", Description: "First", Icon: lucide.Star()}})
+	selectedState2 := chosenSelection(value)
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		ui.Column(c).Padding(20).Children(func() {
-			nui.SelectMultiple(c, th, &value, []nui.Option[string]{{Value: "a", Label: "Alpha", Description: "First", Icon: lucide.Star()}}, nui.SelectOptions{Label: "Letters"}).Width(240)
+			nui.SelectMultiple(c, th, selectedState2, selectState2, nui.SelectOptions{Label: "Letters"}).Width(240)
 		})
 	}, 400, 300)
 	click(t, tt, "Letters")
@@ -296,10 +304,12 @@ func TestSelectedOptionRowsHaveNoAccentSurface(t *testing.T) {
 	t.Run("listbox", func(t *testing.T) {
 		var chosen []string
 		var s nui.ListboxState
+		listSelection4 := chosenSelection(chosen)
+		s.SetItems(members)
 		tt := ui.NewTester(func(c *ui.Context) {
 			th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
 			ui.Column(c).Padding(20).Children(func() {
-				nui.Listbox(c, th, &chosen, &s, members, nui.ListboxOptions{Label: "Members list", Multiple: true, Height: 230}).Width(300)
+				nui.Listbox(c, th, listSelection4, &s, nui.ListboxOptions{Label: "Members list", Multiple: true, Height: 230}).Width(300)
 			})
 		}, 400, 320)
 		click(t, tt, "Lin Chen")
@@ -309,8 +319,8 @@ func TestSelectedOptionRowsHaveNoAccentSurface(t *testing.T) {
 		tt.Frame()
 		tt.Advance(200 * time.Millisecond) // the colour transition
 		parityScreenshot(t, tt, "listbox-selected-rows")
-		if !slices.Equal(chosen, []string{"lin", "grace"}) {
-			t.Fatalf("chosen %v", chosen)
+		if !slices.Equal(listSelection4.Values(), []string{"lin", "grace"}) {
+			t.Fatalf("chosen %v", listSelection4.Values())
 		}
 		for _, label := range []string{"Lin Chen", "Grace Hopper"} {
 			if c := surface(tt, label); accent(c) {
@@ -324,10 +334,11 @@ func TestSelectedOptionRowsHaveNoAccentSurface(t *testing.T) {
 
 	t.Run("select", func(t *testing.T) {
 		value := "a"
+		selectState3 := submittedSelect([]nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}})
 		tt := ui.NewTester(func(c *ui.Context) {
 			th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
 			ui.Column(c).Padding(20).Children(func() {
-				nui.Select(c, th, &value, []nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}}, nui.SelectOptions{Label: "Letter"}).Width(240)
+				nui.Select(c, th, &value, selectState3, nui.SelectOptions{Label: "Letter"}).Width(240)
 			})
 		}, 400, 300)
 		click(t, tt, "Letter")
@@ -343,11 +354,13 @@ func TestSelectedOptionRowsHaveNoAccentSurface(t *testing.T) {
 	})
 
 	t.Run("input-menu", func(t *testing.T) {
-		state := nui.SearchState{SelectedValues: []string{"a", "b"}}
+		state := nui.SearchState{}
+		state.SelectedValues.Set([]string{"a", "b"})
+		state.SetOptions([]nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}, {Value: "c", Label: "Gamma"}})
 		tt := ui.NewTester(func(c *ui.Context) {
 			th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
 			ui.Column(c).Padding(20).Children(func() {
-				nui.InputMenu(c, th, &state, []nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}, {Value: "c", Label: "Gamma"}}, nui.InputMenuOptions{Label: "Letters", Multiple: true}).Width(300)
+				nui.InputMenu(c, th, &state, nui.InputMenuOptions{Label: "Letters", Multiple: true}).Width(300)
 			})
 		}, 400, 400)
 		click(t, tt, "Show options")

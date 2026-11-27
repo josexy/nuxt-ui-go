@@ -1,9 +1,11 @@
 package preview
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
+	"github.com/josexy/nuxt-ui-go/internal/showcase"
 )
 
 func TestInputPreviewAccessoriesAndCallbacks(t *testing.T) {
@@ -29,6 +31,44 @@ func TestInputPreviewAccessoriesAndCallbacks(t *testing.T) {
 	tester.Frame()
 	if tester.HasText("Input preview avatar") {
 		t.Fatal("leading loader did not replace the preview avatar")
+	}
+}
+
+func TestInputPreviewNativeLengthCaret(t *testing.T) {
+	for _, id := range []string{"input", "textarea"} {
+		t.Run(id, func(t *testing.T) {
+			tester, cfg := exampleTester(t, id)
+			binding := "InputOptions"
+			if id == "textarea" {
+				binding = "TextareaOptions"
+			}
+			cfg.Options = map[string]any{binding: map[string]any{"MaxLength": float64(4)}}
+			tester.Frame()
+			clickExample(t, tester, "Project name")
+			tester.Type("abcd")
+			tester.Key(0, ui.KeyHome)
+			tester.Key(0, ui.KeyRight)
+			tester.Key(0, ui.KeyRight)
+			tester.Type("X")
+			tester.Key(0, ui.KeyBackspace)
+			want := "Changes: 2 · Clears: 0"
+			if id == "input" {
+				want = "Changes: 2 · Submits: 0 · Clears: 0"
+			}
+			if !tester.HasText(want) || !tester.Focused("Project name") {
+				t.Fatalf("native limit preview: %v", tester.Texts())
+			}
+			tester.Key(ui.Ctrl, ui.KeyA)
+			tester.Command("copy")
+			if tester.Clipboard() != "acd" {
+				t.Fatalf("preview caret edit produced %q, want acd", tester.Clipboard())
+			}
+			demo, _ := showcase.Find(id)
+			_, source, err := demo.Source(*cfg)
+			if err != nil || !strings.Contains(strings.Join(strings.Fields(source), " "), "o.MaxLength = 4") {
+				t.Fatalf("copied program lost the explicit native limit: %v\n%s", err, source)
+			}
+		})
 	}
 }
 

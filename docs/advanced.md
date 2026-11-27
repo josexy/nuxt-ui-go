@@ -220,6 +220,8 @@ FileUpload provides file selection, rule checks, a file list, and progress displ
 
 FileUploadState.Files stores file metadata, not open file handles. UploadFile contains Path, Name, MIME, Size, a status, a Progress from 0 to 1, Error, and an app-supplied Avatar. Add assigns stable IDs that do not collide with existing entries and ignores entries with an identical Path. If you assign Files directly, your app must provide unique IDs. The component does not load or decode preview images itself.
 
+Batch admission builds temporary path/ID sets and an accepted count from the current Files collection, then processes incoming files in order: O(existing + incoming) work, including after direct external edits. Duplicate nonempty paths are ignored; rejected entries remain in order and do not count toward MaxFiles. Report/current-job lookup still scans Files.
+
 | Option | Purpose |
 | --- | --- |
 | UploadRules.Accept | Extensions, MIME types, or categories, such as `.png`, `text/plain`, or `image/*`. Supports `*`, `*/*`, comma-separated lists, compound extensions, and case-insensitive matching. An empty or whitespace-only value allows all types |
@@ -231,12 +233,17 @@ FileUploadState.Files stores file metadata, not open file handles. UploadFile co
 | FileIcon / FileImage / UploadFile.Avatar | The fallback file icon and the app-supplied preview accessory. FileImage=false shows only FileIcon |
 | FileDelete / FileDeleteOptions / FileDeleteIcon | Whether the delete button is shown, its options, and its icon. Defaults to Neutral / LinkVariant / component size in the list, and Neutral / Solid / XS in the grid |
 | Preview | Default true; false hides the file list but keeps the data and tasks. See [Sidebar, navigation, and file selection](options.md#sidebar-navigation-and-file-selection) |
+| PreviewHeight | Optional viewport height in DIP: unset is 320, explicit zero builds no preview widgets, negative/nonfinite values panic |
 
 Files that exceed a limit or cannot be read are shown as Rejected with the reason, and the user can remove them. A non-positive MaxBytes or MaxFiles means no limit. Rejected files do not count toward the limit, while accepted files that later fail or are canceled still count. The component inherits Disabled from its parent container and FormField, as well as FormField's Size, label, and error message. The default color and size come from ComponentFileUpload.
 
 OnChange fires once, with a copy of the list, only when a selection or removal actually changes the list. Duplicate paths, a canceled selection, a failed selection, and direct Add, Remove, or Report calls from your app do not fire it. OnReject reports the newly rejected files before OnChange and does not clear rejected entries from the queue. After a removal or a canceled transfer, focus returns to the file selection entry point.
 
-Go keeps an upload queue model. Dialog.Multiple only controls whether one native dialog accepts several files; you cannot use it to limit the queue size. Nuxt UI's single-file modelValue replacement, `multiple` forcing the area variant, and the web input reset have no direct equivalent. The grid shows file names, status, and progress in wrapping cards and does not claim to match upstream's image grid exactly.
+Go keeps an upload queue model. Dialog.Multiple only controls whether one native dialog accepts several files; you cannot use it to limit the queue size. Nuxt UI's single-file modelValue replacement, `multiple` forcing the area variant, and the web input reset have no direct equivalent. The grid shows file names, status, and progress and does not claim to match upstream's image grid exactly.
+
+Previews now occupy a bounded native List/GridView viewport instead of expanding for every file. List rows are measured. Grid cards have a fixed height derived from the theme/text scale, single-line names/status and at most two error lines. Complete names/errors remain available to assistive technology; error text is keyboard-focusable in the grid and has a full-message tooltip. The native grid commits column measurement after layout. Layout switches restore the focused file action, and removal/cancellation returns focus to the picker.
+
+Custom FileDeleteOptions, component Style callbacks, or row typography/spacing overrides use measured List rows rather than exceeding the grid cell contract. Caller-supplied avatar decorations in the grid must fit their declared avatar size; use UploadList for arbitrary avatar sizing. Color-only row overrides preserve the grid. Only visible previews and native overscan are built; an offscreen progress update is reflected when its file appears.
 
 ### How files are checked
 

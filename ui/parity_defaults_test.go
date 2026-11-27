@@ -158,9 +158,11 @@ func TestErrorViewDefaults(t *testing.T) {
 func TestEmptyTextsAndLegacyOverrides(t *testing.T) {
 	var none []string
 	var s nui.ListboxState
+	listSelection1 := chosenSelection(none)
+	s.SetItems(nil)
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.Listbox(c, th, &none, &s, nil, nui.ListboxOptions{Label: "Empty"})
+		nui.Listbox(c, th, listSelection1, &s, nui.ListboxOptions{Label: "Empty"})
 	}, 300, 300)
 	if !tt.HasText("No data") {
 		t.Fatalf("empty Listbox: %v", tt.Texts())
@@ -293,9 +295,11 @@ func TestLegacyEmptyTextOverrideStillApplies(t *testing.T) {
 	i18n.Register(app)
 	var none []string
 	var s nui.ListboxState
+	listSelection2 := chosenSelection(none)
+	s.SetItems(nil)
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.Listbox(c, th, &none, &s, nil, nui.ListboxOptions{Label: "Empty"})
+		nui.Listbox(c, th, listSelection2, &s, nui.ListboxOptions{Label: "Empty"})
 	}, 300, 300)
 	tt.SetLocale("en")
 	if !tt.HasText("Nothing matched") || tt.HasText("No data") {

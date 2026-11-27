@@ -40,7 +40,7 @@ For example, to hide the Toast close button, write `Close: nui.Set(false)`. To s
 | InputDate, InputDateRange | ShowCalendar=false, and HideCalendar wins when both are set. Each DateStep field treats 0 as 1. The range separator defaults to a minus sign |
 | InputTime | An unset TwelveHour follows the locale's clock. An unset Granularity is derived from Seconds and defaults to minutes. Each TimeStep field treats 0 as 1. StepSnapping=false |
 
-FileUpload's `Dropzone`, `Interactive`, `FileDelete`, and `Preview` all default to true. The zero value of `UploadLayout` is `UploadLayoutDefault`; use the enum names in options rather than relying on the underlying numbers.
+FileUpload's `Dropzone`, `Interactive`, `FileDelete`, and `Preview` all default to true. PreviewHeight is 320 DIP when unset; explicit zero builds no preview viewport, while negative/nonfinite values are invalid. The zero value of `UploadLayout` is `UploadLayoutDefault`; use the enum names in options rather than relying on the underlying numbers.
 
 ## Orientation
 
@@ -79,7 +79,7 @@ Some components also have a `Vertical` or `Horizontal` bool field; check the com
 
 | Component or option | Behavior |
 | --- | --- |
-| `Select(*T)` / `SelectMultiple(*[]T)` | Bind a single value or a slice of values. Both share SelectOptions, stable IDs, custom Option.Build, and selected-item tags |
+| `Select(*T)` / `SelectMultiple(*SelectionState[T])` | Bind a scalar or revisioned ordered selection, with a persistent SelectState whose SetOptions owns the dataset. Both share SelectOptions, typed stable IDs, custom Option.Build, and a joined-label trigger |
 | `SelectionToggle` | Listbox's default policy. In both single and multiple selection, activating the current item again deselects it |
 | `SelectionReplace` | Activating an item replaces the selection. SelectMenu always uses this policy for single selection |
 | Multiple selection with replace | Shift+arrow keys, Home, and End extend a contiguous range and skip disabled items. Ctrl/Cmd+A selects all available items |
@@ -192,7 +192,7 @@ Clicking an interactive UploadArea, or pressing Enter or Space on it, opens the 
 | Mode | State fields |
 | --- | --- |
 | Single selection | `SearchState.Selected` stores the selected option ID; Query stores the edit draft |
-| Multiple selection | `SelectedValues` stores every selected ID. Remove items with their delete buttons or with Backspace on an empty draft |
+| Multiple selection | `SelectedValues` is a SelectionState[string]. Tags use a scrollable viewport capped at 96 text-scaled DIP, with the draft editor below. Arrow/Home/End/Tab navigation reveals offscreen tags; removal returns to the editor. Empty-draft Backspace removes the final value |
 | InputMenuAutocomplete | Query is free text. Selected keeps the last selected ID. Forces single selection and allows submitting custom text |
 
 OnValuesChange reports changes to multiple selection, and OnSelect reports the ID that was just activated.

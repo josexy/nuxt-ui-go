@@ -44,6 +44,7 @@ type MenuOptions struct {
 	Offset             Optional[float32]
 	Filter             bool
 	FilterFields       []string // label (default), description, id, shortcut.
+	SearchExecution    SearchExecution
 	IgnoreFilter       bool
 	SearchTerm         *string
 	FilterInput        *InputOptions
@@ -60,6 +61,7 @@ type MenuContentOptions struct {
 	Loop                     Optional[bool]
 	Filter                   bool
 	FilterFields             []string
+	SearchExecution          Optional[SearchExecution]
 	IgnoreFilter             Optional[bool]
 	SearchTerm               *string
 	FilterInput              *InputOptions
@@ -84,6 +86,12 @@ func shortcutKeys(s string) []string {
 }
 
 type menuLevel struct {
+	search  menuSearchCache
+	list    ui.ListState
+	panel   ui.Handle
+	view    menuView
+	active  string
+	heights map[string]float32
 	prefix  string
 	typed   time.Time
 	hover   string
@@ -97,6 +105,8 @@ type menuLevel struct {
 type MenuState struct {
 	Open         bool
 	Query        string // Root filter draft when MenuOptions.SearchTerm is nil.
+	source       submittedMenu
+	dataChanged  bool
 	shown        bool
 	path         []string
 	handles      map[string]*ui.Handle
@@ -104,6 +114,8 @@ type MenuState struct {
 	trigger      ui.Handle
 	panel        ui.Handle
 	focus        *ui.Handle
+	focusID      string
+	activeLevels []string
 	x, y         float32
 	point        bool
 	repositioned bool
@@ -111,14 +123,27 @@ type MenuState struct {
 }
 
 func (s *MenuState) resetHover() {
-	for _, level := range s.levels {
+	for _, parent := range s.activeLevels {
+		level := s.levels[parent]
 		level.hover = ""
 	}
 }
 func (s *MenuState) close(restore bool, notify func(bool)) {
+	if !s.Open && !s.shown && s.focus == nil && len(s.path) == 0 {
+		return
+	}
 	changed := s.Open
+	if s.focus != nil {
+		s.focus.CancelFocus()
+	}
+	for _, parent := range s.activeLevels {
+		level := s.levels[parent]
+		level.search.search.pause()
+		level.filter.CancelFocus()
+	}
 	s.resetHover()
-	s.focus = nil
+	s.focus, s.focusID = nil, ""
+	s.activeLevels = nil
 	s.Open = false
 	s.shown = false
 	s.path = nil
@@ -131,28 +156,33 @@ func (s *MenuState) close(restore bool, notify func(bool)) {
 	}
 }
 func (s *MenuState) prepare(c *ui.Context, items []MenuItem) {
-	focusWithin := s.menuFocused(c)
-	seen := map[string]bool{}
-	var visit func([]MenuItem, int)
-	visit = func(items []MenuItem, depth int) {
-		if depth > 32 {
-			panic("nui: menu nesting exceeds 32 levels")
-		}
-		for _, it := range items {
-			checkID(seen, it.ID, "Menu")
-			visit(it.Children, depth+1)
-		}
-	}
-	visit(items, 0)
 	if s.handles == nil {
 		s.handles = map[string]*ui.Handle{}
 		s.levels = map[string]*menuLevel{}
 	}
+
+	if !s.dataChanged {
+		return
+	}
+	s.dataChanged = false
+	focusWithin := (s.Open || s.shown) && s.menuFocused(c)
+	seen := s.source.byID
+	for _, parent := range s.activeLevels {
+		level := s.levels[parent]
+		if handle := s.handles[level.active]; handle != nil && handle.Focused(c) {
+			if location, ok := seen[level.active]; ok && location.parent == parent && menuEnabled(*location.item) {
+				s.focusItem(level.active)
+			}
+		}
+	}
 	removedFocus := false
 	for id, handle := range s.handles {
-		if !seen[id] {
+		if _, exists := seen[id]; !exists {
 			removedFocus = removedFocus || handle.Focused(c)
 			delete(s.handles, id)
+			if level := s.levels[id]; level != nil {
+				level.search.search.reset()
+			}
 			delete(s.levels, id)
 		}
 	}
@@ -161,41 +191,50 @@ func (s *MenuState) prepare(c *ui.Context, items []MenuItem) {
 			s.handles[id] = &ui.Handle{}
 		}
 	}
+	s.activeLevels = slices.DeleteFunc(s.activeLevels, func(parent string) bool { return s.levels[parent] == nil })
 	if removedFocus {
-		s.focusEdge(items, false)
+		s.focusEdge(s.source.levels[""].view(), false)
 	}
-	current := items
+	parent := ""
 	for depth, id := range s.path {
-		found := false
-		for _, it := range current {
-			if it.ID == id && menuEnabled(it) && len(it.Children) > 0 {
-				current = it.Children
-				found = true
-				break
-			}
-		}
-		if !found {
+		location, exists := s.source.byID[id]
+		if !exists || location.parent != parent || !menuEnabled(*location.item) || len(location.item.Children) == 0 {
 			s.path = s.path[:depth]
 			if focusWithin {
-				s.focus = nil
-				s.focusEdge(current, false)
+				s.focus, s.focusID = nil, ""
+				s.focusEdge(s.source.levels[parent].view(), false)
 			}
 			break
 		}
+		parent = id
 	}
 }
 func menuEnabled(it MenuItem) bool { return it.Kind == MenuAction && !it.Disabled }
-func (s *MenuState) focusEdge(items []MenuItem, last bool) {
-	for i := range items {
-		j := i
-		if last {
-			j = len(items) - 1 - i
-		}
-		if menuEnabled(items[j]) {
-			s.focus = s.handles[items[j].ID]
-			return
+func (s *MenuState) focusItem(id string) {
+	location, ok := s.source.byID[id]
+	if !ok || !menuEnabled(*location.item) {
+		return
+	}
+	if s.focus != nil && s.focus != s.handles[id] {
+		s.focus.CancelFocus()
+	}
+	s.focus, s.focusID = s.handles[id], id
+	if level := s.levels[location.parent]; level != nil {
+		if at := level.view.enabledAt(id); at >= 0 {
+			level.list.ScrollIntoView(at)
 		}
 	}
+}
+
+func (s *MenuState) focusEdge(items menuView, last bool) {
+	if len(items.enabled) == 0 {
+		return
+	}
+	at := items.enabled[0]
+	if last {
+		at = items.enabled[len(items.enabled)-1]
+	}
+	s.focusItem(items.item(at).ID)
 }
 func (s *MenuState) child(depth int, it MenuItem, focus bool) {
 	if len(s.path) > depth {
@@ -209,33 +248,37 @@ func (s *MenuState) child(depth int, it MenuItem, focus bool) {
 			if s.levels[it.ID] == nil {
 				s.levels[it.ID] = &menuLevel{}
 			}
-			s.focus = &s.levels[it.ID].filter
+			s.focus, s.focusID = &s.levels[it.ID].filter, ""
 		} else {
-			s.focusEdge(it.Children, false)
+			s.focusEdge(s.source.levels[it.ID].view(), false)
 		}
 	}
 }
-func DropdownMenu(c *ui.Context, t Theme, anchor ui.Element, state *MenuState, items []MenuItem, o MenuOptions) ui.Element {
-	return menu(c, t, anchor, state, items, o, false, nil)
+func DropdownMenu(c *ui.Context, t Theme, anchor ui.Element, state *MenuState, o MenuOptions) ui.Element {
+	return menu(c, t, anchor, state, o, false, nil)
 }
-func ContextMenu(c *ui.Context, t Theme, anchor ui.Element, state *MenuState, items []MenuItem, o MenuOptions) ui.Element {
-	return menu(c, t, anchor, state, items, o, true, nil)
+func ContextMenu(c *ui.Context, t Theme, anchor ui.Element, state *MenuState, o MenuOptions) ui.Element {
+	return menu(c, t, anchor, state, o, true, nil)
 }
 
-type menuDecoration func(MenuItem, Decoration) Decoration
+type menuDecoration func(MenuItem, Decoration) (MenuItem, Decoration)
 
-func menu(c *ui.Context, t Theme, anchor ui.Element, s *MenuState, items []MenuItem, o MenuOptions, context bool, decorate menuDecoration) ui.Element {
+func menu(c *ui.Context, t Theme, anchor ui.Element, s *MenuState, o MenuOptions, context bool, decorate menuDecoration) ui.Element {
 	// Consume the component key even when the popup is absent.
 	ui.Box(c).Absolute().Size(0, 0).IgnoreInput(true)
 	if s == nil {
 		panic("nui: menu requires state")
 	}
+	items := s.source.items
 	s.prepare(c, items)
 	s.pop.update(c, t, s.Open, s)
-	if !t.fades(c) {
-		for id := range s.levels {
-			if id != "" && (!s.Open || !slices.Contains(s.path, id)) {
-				cancelOverlayExit(c, s.handles[id])
+	for _, parent := range s.activeLevels {
+		level := s.levels[parent]
+		if !s.Open || parent != "" && !slices.Contains(s.path, parent) {
+			level.search.search.pause()
+			level.filter.CancelFocus()
+			if parent != "" && !t.fades(c) {
+				cancelOverlayExit(c, s.handles[parent])
 			}
 		}
 	}
@@ -257,13 +300,13 @@ func menu(c *ui.Context, t Theme, anchor ui.Element, s *MenuState, items []MenuI
 	}
 	open := func(last bool) {
 		s.resetHover()
-		for _, level := range s.levels {
-			level.prefix = ""
+		for _, parent := range s.activeLevels {
+			s.levels[parent].prefix = ""
 		}
 		changed := !s.Open
 		s.Open = true
 		s.path = nil
-		s.focusEdge(items, last)
+		s.focusEdge(s.source.levels[""].view(), last)
 		if changed && o.OnOpenChange != nil {
 			o.OnOpenChange(true)
 		}
@@ -309,10 +352,10 @@ func menu(c *ui.Context, t Theme, anchor ui.Element, s *MenuState, items []MenuI
 		return ui.Element{}
 	}
 	if !s.shown && s.focus == nil {
-		for _, level := range s.levels {
-			level.prefix = ""
+		for _, parent := range s.activeLevels {
+			s.levels[parent].prefix = ""
 		}
-		s.focusEdge(items, false)
+		s.focusEdge(s.source.levels[""].view(), false)
 	}
 	s.shown = true
 	// A menu is independent of the field that supplied its trigger.
@@ -323,6 +366,7 @@ func menu(c *ui.Context, t Theme, anchor ui.Element, s *MenuState, items []MenuI
 			target = ui.Box(c).Absolute().Left(s.x).Top(s.y).Size(0, 0).IgnoreInput(true)
 		})
 	}
+	s.activeLevels = s.activeLevels[:0]
 	panel := ui.PopoverBase(c.Key(s.pop.key(s)), target, &s.Open, func(panel ui.Element) {
 		panel.Bind(&s.panel)
 		menuPanel(c, t, panel, target, s, items, o, id, "", 0, decorate)
@@ -345,14 +389,24 @@ func menu(c *ui.Context, t Theme, anchor ui.Element, s *MenuState, items []MenuI
 	if s.Open && s.focus != nil {
 		s.focus.Focus()
 	}
-	s.focus = nil
+	s.focus, s.focusID = nil, ""
 	return panel
 }
-func menuPanel(c *ui.Context, t Theme, panel, anchor ui.Element, s *MenuState, items []MenuItem, o MenuOptions, id Component, parent string, depth int, decorate menuDecoration) {
+func menuPanel(c *ui.Context, t Theme, panel, anchor ui.Element, s *MenuState, original []MenuItem, o MenuOptions, id Component, parent string, depth int, decorate menuDecoration) {
 	if s.levels[parent] == nil {
 		s.levels[parent] = &menuLevel{}
 	}
 	level := s.levels[parent]
+	s.activeLevels = append(s.activeLevels, parent)
+	panel.Bind(&level.panel)
+	level.search.search.bind(c, panel, func() {
+		level.filter.CancelFocus()
+		level.list = ui.ListState{}
+		level.view, level.heights = menuView{}, nil
+		if parent == "" && s.levels[parent] == level {
+			s.Close()
+		}
+	})
 	size := selected(defaults(t, id, ComponentTheme{Size: MD}), ComponentTheme{Size: o.Size}).Size
 	m := optionRecipe(t, size)
 	query := &level.query
@@ -362,23 +416,33 @@ func menuPanel(c *ui.Context, t Theme, panel, anchor ui.Element, s *MenuState, i
 	if o.SearchTerm != nil {
 		query = o.SearchTerm
 	}
-	original := items
-	items = filterMenuItems(items, *query, o)
-	visible := make(map[string]bool, len(items))
-	for _, it := range items {
-		visible[it.ID] = menuEnabled(it)
+	items := level.search.apply(s.source.levels[parent], *query, o)
+	level.view = items
+	if level.active != "" && items.enabledAt(level.active) < 0 {
+		if handle := s.handles[level.active]; handle != nil && handle.Focused(c) {
+			if o.Filter {
+				s.focus, s.focusID = &level.filter, ""
+			} else {
+				s.focusEdge(items, false)
+			}
+		}
+		level.active = ""
 	}
-	for _, it := range original {
-		if !visible[it.ID] && s.handles[it.ID].Focused(c) {
+	if len(s.path) > depth && items.enabledAt(s.path[depth]) < 0 {
+		s.path = s.path[:depth]
+	}
+	if s.focusID != "" {
+		if at := items.enabledAt(s.focusID); at >= 0 {
+			level.list.ScrollIntoView(at)
+		} else if location, exists := s.source.byID[s.focusID]; exists && location.parent == parent {
+			s.focus.CancelFocus()
+			s.focus, s.focusID = nil, ""
 			if o.Filter {
 				s.focus = &level.filter
 			} else {
 				s.focusEdge(items, false)
 			}
 		}
-	}
-	if len(s.path) > depth && !visible[s.path[depth]] {
-		s.path = s.path[:depth]
 	}
 	maxHeight := float32(320)
 	if o.MaxHeight.Set {
@@ -420,13 +484,7 @@ func menuPanel(c *ui.Context, t Theme, panel, anchor ui.Element, s *MenuState, i
 	shown := popIn(c, t, pop, panel, popupMotion, originX, originY)
 	popOut(c, t, panel)
 	finishPanel(t, id, panel, recipe, o.Decoration, shown)
-	enabled := 0
-	for _, it := range items {
-		if menuEnabled(it) {
-			enabled++
-		}
-	}
-	if enabled == 0 && !o.Filter {
+	if len(items.enabled) == 0 && !o.Filter {
 		panel.Focusable().Focus()
 	}
 	if o.Filter {
@@ -434,190 +492,223 @@ func menuPanel(c *ui.Context, t Theme, panel, anchor ui.Element, s *MenuState, i
 	} else {
 		*ui.Local(panel, "nui-menu-filter", func() bool { return false }) = false
 	}
-	ui.Scroll(c.Key("viewport")).MaxHeight(max(0, maxHeight-8)).MinWidth(0).Children(func() {
-		for _, it := range items {
-			d := o.Decoration
-			d.UI = mergeStyles(o.UI, it.UI)
-			if decorate != nil {
-				d = decorate(it, d)
+	if items.count() == 0 {
+		text := message(c, "noActions")
+		if level.search.search.pending {
+			text = message(c, "loading")
+		} else if o.Filter && *query != "" {
+			text = message(c, "noMatch")
+		}
+		empty := statusText(c, "empty", text).TextAlign(ui.Center)
+		finish(t, id, EmptySlot, empty, optionEmptyStyle(t, size), o.Decoration)
+		return
+	}
+	list := ui.List(c.Key("viewport"), &level.list, items.count()).ItemKey(func(i int) any { return items.item(i).ID })
+	limit := max(0, maxHeight-2*t.spacing(4))
+	height := menuViewportHeight(t, m, items, level.heights, limit)
+	list.Height(height).Basis(height).MaxHeight(limit).MinWidth(0).MinHeight(0)
+	list.Rows(func(r ui.ListRow) {
+		c, i := r.Context, r.Index
+		it := items.item(i)
+		d := o.Decoration
+		d.UI = mergeStyles(o.UI, it.UI)
+		if decorate != nil {
+			it, d = decorate(it, d)
+		}
+		if it.Kind == MenuSeparator {
+			line := separator(c.Key(it.ID), t, SeparatorOptions{}, true).Margin(t.spacing(4), 0)
+			finish(t, id, SeparatorSlot, line, PartStyle{}, d)
+			level.measure(c, line, it.ID, 2*t.spacing(4))
+			return
+		}
+		if it.Kind == MenuLabel {
+			label := ui.Row(c.Key(it.ID)).MinWidth(0).AlignItems(ui.Start)
+			style := optionItemStyle(t, m, false)
+			style.Weight, style.Foreground = Set(600), Set(t.Highlighted)
+			finish(t, id, Header, label, style, d)
+			label.Children(func() { menuItemContent(c, t, it, o, d, id, size, m, t.Highlighted) })
+			level.measure(c, label, it.ID, 0)
+			return
+		}
+		row := ui.ButtonBase(c.Key(it.ID)).Role(ui.RoleMenuItem).Label(it.Label).Description(it.Description).Disabled(it.Disabled).MinWidth(0).AlignItems(ui.Start).FocusRing(false).Bind(s.handles[it.ID])
+		if it.Checked.Set {
+			row.Role(ui.RoleMenuItemCheckBox).Checked(it.Checked.Value)
+			if it.Radio {
+				row.Role(ui.RoleMenuItemRadio)
 			}
-			if it.Kind == MenuSeparator {
-				finish(t, id, SeparatorSlot, separator(c.Key(it.ID), t, SeparatorOptions{}, true).Margin(t.spacing(4), 0), PartStyle{}, d)
-				continue
+		}
+		childOpen := len(s.path) > depth && s.path[depth] == it.ID
+		if len(it.Children) > 0 {
+			row.Expanded(childOpen)
+		}
+		if row.Focused() {
+			level.active = it.ID
+		}
+		if row.Focused() && len(s.path) > depth && !childOpen {
+			s.path = s.path[:depth]
+		}
+		if level.hover == it.ID && !row.Hovered() && !childOpen {
+			level.hover = ""
+		}
+		if level.hover == it.ID && len(it.Children) > 0 && !it.Disabled && !childOpen {
+			remaining := 180*time.Millisecond - c.Now().Sub(level.hoverAt)
+			if remaining <= 0 {
+				s.child(depth, it, false)
+				childOpen = true
+			} else {
+				c.After(remaining)
 			}
-			if it.Kind == MenuLabel {
-				label := ui.Row(c.Key(it.ID)).MinWidth(0).AlignItems(ui.Start)
-				style := optionItemStyle(t, m, false)
-				style.Weight, style.Foreground = Set(600), Set(t.Highlighted)
-				finish(t, id, Header, label, style, d)
-				label.Children(func() { menuItemContent(c, t, it, o, d, id, size, m, t.Highlighted) })
-				continue
+		}
+		filterFocused := o.Filter && level.filter.Focused(c)
+		highlighted := row.Focused() || childOpen || filterFocused && level.hover == it.ID
+		// Menus share the option row recipe; colored items tint
+		// their highlight and keep their color, as Nuxt's do.
+		style := optionItemStyle(t, m, highlighted)
+		style.Font = Set(t.Font)
+		leading := optionLeadingColor(t, highlighted)
+		if it.Color != ColorDefault && it.Color != Neutral {
+			color := t.color(it.Color)
+			style.Foreground = Set(color)
+			leading = color.Alpha(.75)
+			if highlighted {
+				style.Background = Set(color.Alpha(.10))
+				leading = color
 			}
-			row := ui.ButtonBase(c.Key(it.ID)).Role(ui.RoleMenuItem).Label(it.Label).Description(it.Description).Disabled(it.Disabled).MinWidth(0).AlignItems(ui.Start).FocusRing(false).Bind(s.handles[it.ID])
-			if it.Checked.Set {
-				row.Role(ui.RoleMenuItemCheckBox).Checked(it.Checked.Value)
-				if it.Radio {
-					row.Role(ui.RoleMenuItemRadio)
-				}
-			}
-			childOpen := len(s.path) > depth && s.path[depth] == it.ID
-			if len(it.Children) > 0 {
-				row.Expanded(childOpen)
-			}
-			if row.Focused() && len(s.path) > depth && !childOpen {
-				s.path = s.path[:depth]
-			}
-			if level.hover == it.ID && !row.Hovered() && !childOpen {
-				level.hover = ""
-			}
-			if level.hover == it.ID && len(it.Children) > 0 && !it.Disabled && !childOpen {
-				remaining := 180*time.Millisecond - c.Now().Sub(level.hoverAt)
-				if remaining <= 0 {
-					s.child(depth, it, false)
-					childOpen = true
-				} else {
-					c.After(remaining)
-				}
-			}
-			filterFocused := o.Filter && level.filter.Focused(c)
-			highlighted := row.Focused() || childOpen || filterFocused && level.hover == it.ID
-			// Menus share the option row recipe; colored items tint
-			// their highlight and keep their color, as Nuxt's do.
-			style := optionItemStyle(t, m, highlighted)
-			style.Font = Set(t.Font)
-			leading := optionLeadingColor(t, highlighted)
-			if it.Color != ColorDefault && it.Color != Neutral {
-				color := t.color(it.Color)
-				style.Foreground = Set(color)
-				leading = color.Alpha(.75)
-				if highlighted {
-					style.Background = Set(color.Alpha(.10))
-					leading = color
-				}
-			}
-			finish(t, id, Item, row, style, d)
-			t.fadeColors(c, row)
-			row.TextCaret(ui.Rect{H: 1}).InputMethod(false)
-			handle := s.handles[it.ID]
-			rtl := c.Direction() == ui.RightToLeft
-			row.HandleInput(func(ev ui.InputEvent) bool {
-				if ev.Kind == ui.InputPointerMove {
-					if level.hover != it.ID {
-						level.hover = it.ID
-						level.hoverAt = ev.Time
-						if !filterFocused {
-							handle.Focus()
-						}
-						if len(s.path) > depth && s.path[depth] != it.ID {
-							s.path = s.path[:depth]
-						}
-						return true
+		}
+		finish(t, id, Item, row, style, d)
+		t.fadeColors(c, row)
+		row.TextCaret(ui.Rect{H: 1}).InputMethod(false)
+		handle := s.handles[it.ID]
+		rtl := c.Direction() == ui.RightToLeft
+		row.HandleInput(func(ev ui.InputEvent) bool {
+			if ev.Kind == ui.InputPointerMove {
+				if level.hover != it.ID {
+					level.hover = it.ID
+					level.hoverAt = ev.Time
+					if !filterFocused {
+						level.active = it.ID
+						handle.Focus()
 					}
-					return false
-				}
-				if ev.Kind == ui.InputKeyDown || ev.Kind == ui.InputText {
-					s.resetHover()
-				}
-				if ev.Kind == ui.InputKeyDown && ev.Key == ui.KeyTab {
-					s.close(false, o.OnOpenChange)
-					return false
-				}
-				if ev.Kind == ui.InputText {
-					text := strings.ToLower(strings.TrimSpace(ev.Text))
-					if text == "" {
-						return false
-					}
-					if ev.Time.Sub(level.typed) > time.Second {
-						level.prefix = ""
-					}
-					level.typed = ev.Time
-					level.prefix += text
-					candidates := items
-					at := -1
-					for i, candidate := range candidates {
-						if candidate.ID == it.ID {
-							at = i
-							break
-						}
-					}
-					find := func(prefix string) bool {
-						for offset := 1; offset <= len(candidates); offset++ {
-							candidate := candidates[(at+offset)%len(candidates)]
-							if menuEnabled(candidate) && strings.HasPrefix(strings.ToLower(candidate.Label), prefix) {
-								s.focus = s.handles[candidate.ID]
-								return true
-							}
-						}
-						return false
-					}
-					if !find(level.prefix) {
-						level.prefix = text
-						find(text)
+					if len(s.path) > depth && s.path[depth] != it.ID {
+						s.path = s.path[:depth]
 					}
 					return true
-				}
-				if ev.Kind != ui.InputKeyDown || ev.Mods != 0 {
-					return false
-				}
-				forward, back := ui.KeyRight, ui.KeyLeft
-				if rtl {
-					forward, back = back, forward
-				}
-				switch ev.Key {
-				case ui.KeyDown, ui.KeyUp:
-					s.moveFocus(items, it.ID, ev.Key == ui.KeyUp, o.Loop)
-					return true
-				case ui.KeyHome, ui.KeyEnd:
-					s.focusEdge(items, ev.Key == ui.KeyEnd)
-					return true
-				case ui.KeyEscape:
-					if depth > 0 {
-						s.path = s.path[:depth-1]
-						s.focus = s.handles[parent]
-					} else {
-						s.close(true, o.OnOpenChange)
-					}
-					return true
-				case back:
-					if depth > 0 {
-						s.path = s.path[:depth-1]
-						s.focus = s.handles[parent]
-						return true
-					}
-				case forward:
-					if len(it.Children) > 0 {
-						s.child(depth, it, true)
-						return true
-					}
-				case ui.KeyTab:
-					s.close(false, o.OnOpenChange)
-					return false
 				}
 				return false
-			})
-			row.OnClick(func() {
-				s.activate(it, depth, o.OnOpenChange)
-			})
-			row.Children(func() { menuItemContent(c, t, it, o, d, id, size, m, leading) })
-			if childOpen {
-				childVisible := true
-				childOptions := submenuOptions(o, it)
-				child := ui.PopoverBase(c.Key(s.handles[it.ID]), row, &childVisible, func(child ui.Element) {
-					menuPanel(c, t, child, row, s, it.Children, childOptions, id, it.ID, depth+1, decorate)
-				})
-				if child.Dismissed() && len(s.path) > depth {
-					s.path = s.path[:depth]
-					s.focus = s.handles[it.ID]
+			}
+			if ev.Kind == ui.InputKeyDown || ev.Kind == ui.InputText {
+				s.resetHover()
+			}
+			if ev.Kind == ui.InputKeyDown && ev.Key == ui.KeyTab {
+				s.close(false, o.OnOpenChange)
+				return false
+			}
+			if ev.Kind == ui.InputText {
+				text := strings.ToLower(strings.TrimSpace(ev.Text))
+				if text == "" {
+					return false
 				}
+				if ev.Time.Sub(level.typed) > time.Second {
+					level.prefix = ""
+				}
+				level.typed = ev.Time
+				level.prefix += text
+				candidates := items
+				at := candidates.index[it.ID]
+				find := func(prefix string) bool {
+					for offset := 1; offset <= candidates.count(); offset++ {
+						candidate := candidates.item((at + offset) % candidates.count())
+						if menuEnabled(candidate) && strings.HasPrefix(strings.ToLower(candidate.Label), prefix) {
+							s.focusItem(candidate.ID)
+							return true
+						}
+					}
+					return false
+				}
+				if !find(level.prefix) {
+					level.prefix = text
+					find(text)
+				}
+				return true
 			}
-		}
-		if len(items) == 0 {
-			text := message(c, "noActions")
-			if o.Filter && *query != "" {
-				text = message(c, "noMatch")
+			if ev.Kind != ui.InputKeyDown || ev.Mods != 0 {
+				return false
 			}
-			empty := statusText(c, "empty", text).TextAlign(ui.Center)
-			finish(t, id, EmptySlot, empty, optionEmptyStyle(t, size), o.Decoration)
+			forward, back := ui.KeyRight, ui.KeyLeft
+			if rtl {
+				forward, back = back, forward
+			}
+			switch ev.Key {
+			case ui.KeyDown, ui.KeyUp:
+				s.moveFocus(items, it.ID, ev.Key == ui.KeyUp, o.Loop)
+				return true
+			case ui.KeyHome, ui.KeyEnd:
+				s.focusEdge(items, ev.Key == ui.KeyEnd)
+				return true
+			case ui.KeyEscape:
+				if depth > 0 {
+					s.path = s.path[:depth-1]
+					s.focusItem(parent)
+				} else {
+					s.close(true, o.OnOpenChange)
+				}
+				return true
+			case back:
+				if depth > 0 {
+					s.path = s.path[:depth-1]
+					s.focusItem(parent)
+					return true
+				}
+			case forward:
+				if len(it.Children) > 0 {
+					s.child(depth, it, true)
+					return true
+				}
+			case ui.KeyTab:
+				s.close(false, o.OnOpenChange)
+				return false
+			}
+			return false
+		})
+		row.OnClick(func() {
+			if level.search.search.ready(*query) {
+				s.activate(it, depth, o.OnOpenChange)
+			}
+		})
+		row.Children(func() { menuItemContent(c, t, it, o, d, id, size, m, leading) })
+		level.measure(c, row, it.ID, 0)
+		if childOpen {
+			childVisible := true
+			childOptions := submenuOptions(o, it)
+			child := ui.PopoverBase(c.Key(s.handles[it.ID]), row, &childVisible, func(child ui.Element) {
+				menuPanel(c, t, child, row, s, it.Children, childOptions, id, it.ID, depth+1, decorate)
+			})
+			if child.Dismissed() && len(s.path) > depth {
+				s.path = s.path[:depth]
+				s.focusItem(it.ID)
+			}
 		}
 	})
+}
+
+// Searching reports pending local filtering in any mounted menu level.
+func (s *MenuState) Searching() bool {
+	for _, level := range s.levels {
+		if level.search.search.pending {
+			return true
+		}
+	}
+	return false
+}
+
+// Close dismisses every level and cancels local search/focus requests. It does
+// not emit interaction callbacks or discard submitted command descriptors.
+func (s *MenuState) Close() {
+	s.close(false, nil)
+	for _, level := range s.levels {
+		level.search.search.reset()
+		level.filter.CancelFocus()
+	}
+	s.trigger.CancelFocus()
+	s.panel.CancelFocus()
 }

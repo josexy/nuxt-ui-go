@@ -252,9 +252,11 @@ func TestEmptyStatusesKeepTheirIdentity(t *testing.T) {
 	t.Run("SelectMenu message changes while shown", func(t *testing.T) {
 		var values []string
 		s := nui.SelectMenuState{Open: true}
+		listSelection1 := chosenSelection(values)
+		s.SetItems(nil)
 		r := newReaderTester(t, func(c *ui.Context) {
 			th := nui.App(c, nui.AppConfig{})
-			nui.SelectMenu(c.Key("menu"), th, &values, &s, nil, nui.SelectMenuOptions{Label: "Pick"})
+			nui.SelectMenu(c.Key("menu"), th, listSelection1, &s, nui.SelectMenuOptions{Label: "Pick"})
 		}, 500, 400)
 		r.role(ui.RoleStatus, "No data")
 		r.Frame()
@@ -274,9 +276,11 @@ func TestEmptyStatusesKeepTheirIdentity(t *testing.T) {
 		var selected []string
 		s := nui.ListboxState{Query: "zzz"}
 		items := []nui.ListboxItem{{ID: "a", Label: "Alpha"}, {ID: "b", Label: "Beta"}}
+		listSelection2 := chosenSelection(selected)
+		s.SetItems(items)
 		r := newReaderTester(t, func(c *ui.Context) {
 			th := nui.App(c, nui.AppConfig{})
-			nui.Listbox(c.Key("list"), th, &selected, &s, items, nui.ListboxOptions{Label: "Options", Filter: true})
+			nui.Listbox(c.Key("list"), th, listSelection2, &s, nui.ListboxOptions{Label: "Options", Filter: true})
 		}, 500, 400)
 		r.role(ui.RoleStatus, "No matching data")
 		for range 4 {
@@ -349,10 +353,11 @@ func TestFeedbackStatusesReadChangesOnce(t *testing.T) {
 
 func TestDropdownMenuFilterEmptyStatusIsQuiet(t *testing.T) {
 	var s nui.MenuState
+	s.SetItems([]nui.MenuItem{{ID: "copy", Label: "Copy"}, {ID: "paste", Label: "Paste"}})
 	r := newReaderTester(t, func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		a := nui.Button(c.Key("actions"), th, "Actions", nui.ButtonOptions{})
-		nui.DropdownMenu(c.Key("menu"), th, a, &s, []nui.MenuItem{{ID: "copy", Label: "Copy"}, {ID: "paste", Label: "Paste"}}, nui.MenuOptions{Filter: true})
+		nui.DropdownMenu(c.Key("menu"), th, a, &s, nui.MenuOptions{Filter: true})
 	}, 500, 400)
 	click(t, r.Tester, "Actions")
 	r.Announcements()

@@ -13,11 +13,14 @@ func TestContextMenuPointerRepositionAndControlledReopen(t *testing.T) {
 	var state nui.MenuState
 	var changes []bool
 	actions := 0
+	state.SetItems([]nui.MenuItem{{ID: "first", Label: "First"}, {ID: "second", Label: "Second", OnSelect: func() {
+		actions++
+	}}})
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		th.Motion.Reduce = true
 		target := nui.Button(c.Key("target"), th, "Target", nui.ButtonOptions{}).Absolute().Left(40).Top(30).Width(300).Height(180)
-		nui.ContextMenu(c.Key("menu"), th, target, &state, []nui.MenuItem{{ID: "first", Label: "First"}, {ID: "second", Label: "Second", OnSelect: func() { actions++ }}}, nui.MenuOptions{Label: "Context panel", Width: nui.Set(float32(180)), OnOpenChange: func(v bool) { changes = append(changes, v) }})
+		nui.ContextMenu(c.Key("menu"), th, target, &state, nui.MenuOptions{Label: "Context panel", Width: nui.Set(float32(180)), OnOpenChange: func(v bool) { changes = append(changes, v) }})
 	}, 700, 500)
 	tt.RightClickAt(70, 60)
 	first := bounds(t, tt, "Context panel")
@@ -51,10 +54,11 @@ func TestContextMenuDisabledPreservesTargetAction(t *testing.T) {
 	var state nui.MenuState
 	disabled, targetDisabled := true, false
 	clicks, changes := 0, 0
+	state.SetItems([]nui.MenuItem{{ID: "a", Label: "Action"}})
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		target := nui.Button(c, th, "Target", nui.ButtonOptions{Disabled: targetDisabled}).Width(200).Height(100).OnClick(func() { clicks++ })
-		nui.ContextMenu(c, th, target, &state, []nui.MenuItem{{ID: "a", Label: "Action"}}, nui.MenuOptions{Disabled: disabled, OnOpenChange: func(bool) { changes++ }})
+		nui.ContextMenu(c, th, target, &state, nui.MenuOptions{Disabled: disabled, OnOpenChange: func(bool) { changes++ }})
 	}, 500, 400)
 	click(t, tt, "Target")
 	tt.Key(ui.Shift, ui.KeyF10)
@@ -91,11 +95,12 @@ func TestContextMenuKeyboardAndPointerWindowEdges(t *testing.T) {
 		for _, width := range []float32{260, 650} {
 			t.Run(fmt.Sprintf("%v/%v", rtl, width), func(t *testing.T) {
 				var state nui.MenuState
+				state.SetItems([]nui.MenuItem{{ID: "export", Label: "Export", Children: []nui.MenuItem{{ID: "csv", Label: "CSV"}, {ID: "blocked", Label: "Blocked", Disabled: true}, {ID: "json", Label: "JSON"}}}})
 				tt := ui.NewTester(func(c *ui.Context) {
 					th := nui.App(c, nui.AppConfig{Mode: nui.DarkMode})
 					th.Motion.Reduce = true
 					target := nui.Button(c, th, "Target", nui.ButtonOptions{}).Absolute().Left(20).Top(20).Width(width - 40).Height(250)
-					nui.ContextMenu(c, th, target, &state, []nui.MenuItem{{ID: "export", Label: "Export", Children: []nui.MenuItem{{ID: "csv", Label: "CSV"}, {ID: "blocked", Label: "Blocked", Disabled: true}, {ID: "json", Label: "JSON"}}}}, nui.MenuOptions{Label: "Context panel", Width: nui.Set(float32(200))})
+					nui.ContextMenu(c, th, target, &state, nui.MenuOptions{Label: "Context panel", Width: nui.Set(float32(200))})
 				}, int(width), 300)
 				if rtl {
 					tt.SetDirection(ui.RightToLeft)
@@ -142,11 +147,12 @@ func TestContextMenuKeyboardAndPointerWindowEdges(t *testing.T) {
 func TestContextMenuPointerAnchorStaysAtWindowCoordinates(t *testing.T) {
 	var state nui.MenuState
 	x := float32(40)
+	state.SetItems([]nui.MenuItem{{ID: "one", Label: "Action"}})
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		th.Motion.Reduce = true
 		a := nui.Button(c.Key("target"), th, "Target", nui.ButtonOptions{}).Absolute().Left(x).Top(30).Width(300).Height(180)
-		nui.ContextMenu(c.Key("menu"), th, a, &state, []nui.MenuItem{{ID: "one", Label: "Action"}}, nui.MenuOptions{Label: "Context panel"})
+		nui.ContextMenu(c.Key("menu"), th, a, &state, nui.MenuOptions{Label: "Context panel"})
 	}, 700, 500)
 	tt.RightClickAt(70, 60)
 	before := bounds(t, tt, "Context panel")
@@ -159,11 +165,12 @@ func TestContextMenuPointerAnchorStaysAtWindowCoordinates(t *testing.T) {
 
 func TestContextMenuKeyboardUsesCommittedTargetBounds(t *testing.T) {
 	var state nui.MenuState
+	state.SetItems([]nui.MenuItem{{ID: "a", Label: "Action"}})
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		th.Motion.Reduce = true
 		a := nui.Button(c, th, "Target", nui.ButtonOptions{}).Absolute().Left(40).Top(30).Width(300).Height(100)
-		nui.ContextMenu(c, th, a, &state, []nui.MenuItem{{ID: "a", Label: "Action"}}, nui.MenuOptions{Label: "Context panel"})
+		nui.ContextMenu(c, th, a, &state, nui.MenuOptions{Label: "Context panel"})
 	}, 700, 500)
 	click(t, tt, "Target")
 	for _, key := range []ui.Key{ui.KeyContextMenu, ui.KeyF10} {

@@ -21,7 +21,7 @@ Read only the files relevant to the task; you do not need to scan the whole repo
 | [ui/locales/](ui/locales/) | Embedded English and Simplified Chinese component messages |
 | [icons/lucide/](icons/lucide/README.md), [third_party/](third_party/) | Icon assets, generator inputs, and third-party licenses |
 | [Taskfile.yml](Taskfile.yml), [scripts/](scripts/), [.github/workflows/](.github/workflows/) | Development commands and automated checks |
-| [.agents/skills/](.agents/skills/) | Agent skills, including [nuxt-ui-go](.agents/skills/nuxt-ui-go/SKILL.md) (per-component references for using the components) |
+| [skills/](skills/) | Distributable agent skills, including [nuxt-ui-go](skills/nuxt-ui-go/SKILL.md) (per-component references for using the components) |
 
 See the [README](README.md) for installation and complete examples, and [docs/compatibility.md](docs/compatibility.md) for supported behavior and known limitations.
 
@@ -105,7 +105,7 @@ Never edit generated files by hand. Change the generator or its pinned inputs, t
 | `ui/palette_gen.go` | `internal/cmd/genpalettes` |
 | Go files in `icons/lucide/` marked `Code generated` | `internal/cmd/genicons` |
 | `internal/showcase/field_types_gen.go`, `internal/showcase/preview/generated.go` | `internal/cmd/genshowcase`, also run by `pnpm --dir website prepare:site` |
-| `.agents/skills/nuxt-ui-go/references/components/*.md` | `internal/cmd/genskill` (`go run ./internal/cmd/genskill`); not part of `go generate` or `task verify`, so run it with `-check` after changing a component's API, docs or catalog entry |
+| `skills/nuxt-ui-go/references/components/*.md` | `internal/cmd/genskill` (`go run ./internal/cmd/genskill`); not part of `go generate` or `task verify`, so run it with `-check` after changing a component's API, docs or catalog entry |
 
 - The nuxt-ui-go skill is given to library users as a standalone folder. Keep it self-contained: no repository paths, and links only to files inside the skill.
 - Palette and icon generation reads pinned inputs stored in the repository. Keep generation offline, deterministic, and gofmt-clean. After changing assets, review the generated diff and run the relevant tests.

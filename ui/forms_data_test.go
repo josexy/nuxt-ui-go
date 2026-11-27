@@ -268,23 +268,26 @@ func TestQueryCancellationAndListbox(t *testing.T) {
 	items := []nui.ListboxItem{{ID: "a", Label: "Alpha"}, {ID: "b", Label: "Blocked", Disabled: true}, {ID: "c", Label: "Charlie"}}
 	var s nui.ListboxState
 	selected := []string{}
+	listSelection1 := chosenSelection(selected)
+	s.SetItems(items)
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.Listbox(c, th, &selected, &s, items, nui.ListboxOptions{Label: "Options", Multiple: true})
+		nui.Listbox(c, th, listSelection1, &s, nui.ListboxOptions{Label: "Options", Multiple: true})
 	}, 400, 300)
 	tt.Key(0, ui.KeyTab)
 	tt.Key(0, ui.KeyHome)
 	tt.Key(0, ui.KeyDown)
 	tt.Key(0, ui.KeyEnter)
-	if !slices.Contains(selected, "c") {
-		t.Fatalf("disabled skip %v active=%s", selected, s.Active)
+	if !slices.Contains(listSelection1.Values(), "c") {
+		t.Fatalf("disabled skip %v active=%s", listSelection1.Values(), s.Active)
 	}
 	tt.Key(0, ui.KeyHome)
 	tt.Key(0, ui.KeySpace)
-	if len(selected) != 2 {
+	if listSelection1.Len() != 2 {
 		t.Fatal("multiple selection")
 	}
 	items = items[1:]
+	s.SetItems(items)
 	tt.Frame()
 	if s.Active == "a" {
 		t.Fatal("removed active identity")
@@ -501,10 +504,12 @@ func TestLargeListboxKeyboardVirtualization(t *testing.T) {
 			var state nui.ListboxState
 			var selected []string
 			calls := 0
+			listSelection2 := chosenSelection(selected)
+			state.SetItems(items)
 			tt := ui.NewTester(func(c *ui.Context) {
 				th := nui.App(c, nui.AppConfig{})
 				calls = 0
-				nui.Listbox(c, th, &selected, &state, items, nui.ListboxOptions{Label: "Large choices", Style: func(slot nui.Slot, e ui.Element) {
+				nui.Listbox(c, th, listSelection2, &state, nui.ListboxOptions{Label: "Large choices", Style: func(slot nui.Slot, e ui.Element) {
 					if slot == nui.Item {
 						calls++
 					}
@@ -513,8 +518,8 @@ func TestLargeListboxKeyboardVirtualization(t *testing.T) {
 			tt.Key(0, ui.KeyTab)
 			tt.Key(0, ui.KeyEnd)
 			tt.Key(0, ui.KeyEnter)
-			if !slices.Equal(selected, []string{fmt.Sprint(count - 1)}) {
-				t.Fatalf("offscreen selected %v", selected)
+			if !slices.Equal(listSelection2.Values(), []string{fmt.Sprint(count - 1)}) {
+				t.Fatalf("offscreen selected %v", listSelection2.Values())
 			}
 			if calls > 15 {
 				t.Fatalf("built %d rows", calls)
@@ -556,7 +561,7 @@ func TestTableInsertionResizeAndScrollIdentity(t *testing.T) {
 	activated := ""
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.Table(c, th, &state, cols, nui.TableOptions{Label: "Table", Caption: "Records caption", Height: 300, ManualSorting: manual, Loading: loading, BuildLoading: func(c *ui.Context, _ nui.Theme) { ui.Text(c, "Fetching rows") }, OnSortChange: func([]ui.SortOrder) { sortChanges++ }, OnSelectionChange: func([]string) { selectionChanges++ }, OnActivate: func(id string) { activated = id }}).Width(420)
+		nui.Table(c, th, &state, cols, nui.TableOptions{Label: "Table", Caption: "Records caption", Height: 300, ManualSorting: manual, Loading: loading, BuildLoading: func(c *ui.Context, _ nui.Theme) { ui.Text(c, "Fetching rows") }, OnSortChange: func([]ui.SortOrder) { sortChanges++ }, OnChange: func() { selectionChanges++ }, OnActivate: func(id string) { activated = id }}).Width(420)
 	}, 500, 400)
 	click(t, tt, "Record 000")
 	tt.Key(0, ui.KeyEnter)
@@ -582,8 +587,8 @@ func TestTableInsertionResizeAndScrollIdentity(t *testing.T) {
 	if !state.Selection.Has("Record 000") {
 		t.Fatal("scroll changed business selection")
 	}
-	if selectionChanges != 1 || sortChanges != 0 {
-		t.Fatal("external rows, sizing or scrolling emitted a value event")
+	if selectionChanges != 2 || sortChanges != 0 {
+		t.Fatal("the resize did not emit exactly one combined event, or external rows/scrolling emitted one")
 	}
 	state.SetRows([]string{"c", "b", "a"}, func(s string) string { return s })
 	cols[0].Compare = func(a, b string) int {
@@ -641,7 +646,7 @@ func TestTableInsertionResizeAndScrollIdentity(t *testing.T) {
 	if len(orders) != 0 || state.Sort.Column != "" || state.Row(0) != "b2" {
 		t.Fatal("removed sort column remained active")
 	}
-	if sortChanges != 0 || selectionChanges != 1 {
+	if sortChanges != 0 || selectionChanges != 2 {
 		t.Fatal("controlled sort changes emitted notifications")
 	}
 	manual = true

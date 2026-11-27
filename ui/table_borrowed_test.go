@@ -28,8 +28,8 @@ func TestBorrowedNumericTableCallbacksAndFocus(t *testing.T) {
 		}}, nui.KeyedTableOptions[uint64]{
 			Label:      "Typed rows",
 			OnActivate: func(id uint64) { activated = append(activated, id) },
-			OnSelectionChange: func(ids []uint64) {
-				selected = ids
+			OnChange: func() {
+				selected = slices.Sorted(state.Selection.All())
 				notices++
 			},
 		}).Width(300)

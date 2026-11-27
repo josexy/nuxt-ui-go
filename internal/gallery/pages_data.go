@@ -131,9 +131,10 @@ func dataPage(id string) *componentPage {
 			if kind == "states" {
 				description = "The first number is read-only. The second is disabled and marked invalid. Both preserve their initial values."
 			}
+			selectState11 := submittedSelect([]nui.Option[nui.Orientation]{{Value: nui.Horizontal, Label: "horizontal"}, {Value: nui.Vertical, Label: "vertical"}})
 			add(kind, "Number · "+kind, description, func(c *ui.Context, t nui.Theme) {
 				if kind == "bounded" {
-					nui.Select(c, t, &direction, []nui.Option[nui.Orientation]{{Value: nui.Horizontal, Label: "horizontal"}, {Value: nui.Vertical, Label: "vertical"}}, nui.SelectOptions{Label: "Number orientation"})
+					nui.Select(c, t, &direction, selectState11, nui.SelectOptions{Label: "Number orientation"})
 				}
 				o := nui.InputNumberOptions{Label: kind + " seats", ReadOnly: kind == "states", Orientation: direction, Min: nui.Set(0.0), Max: nui.Set(10.0), Step: .5, OnValueChange: func(nui.Optional[float64]) { changes++ }}
 				if kind == "vertical" {
@@ -301,24 +302,31 @@ func dataPage(id string) *componentPage {
 		for _, kind := range []string{"single", "multiple", "states"} {
 			if id == "listbox" && kind == "states" {
 				var empty, locked nui.ListboxState
-				var emptySelection []string
-				lockedSelection := []string{"lin"}
+				var emptySelection nui.SelectionState[string]
+				var lockedSelection nui.SelectionState[string]
+				lockedSelection.Add("lin")
+				locked.SetItems(projectMembers[:3])
 				changes := 0
 				add(kind, "Members · empty and disabled", "The empty list intentionally has no items and shows a custom message. The disabled list keeps Lin selected and ignores mouse and keyboard input.", func(c *ui.Context, t nui.Theme) {
 					ui.Text(c, "Empty list").TextColor(t.Muted)
-					nui.Listbox(c.Key("empty"), t, &emptySelection, &empty, nil, nui.ListboxOptions{Label: "Empty members list", Height: 72, EmptyText: "No members"})
+					nui.Listbox(c.Key("empty"), t, &emptySelection, &empty, nui.ListboxOptions{Label: "Empty members list", Height: 72, EmptyText: "No members"})
 					ui.Text(c, "Disabled list").TextColor(t.Muted)
-					nui.Listbox(c.Key("disabled"), t, &lockedSelection, &locked, projectMembers[:3], nui.ListboxOptions{Label: "Disabled members list", Disabled: true, Height: 168, OnChange: func([]string) { changes++ }})
-					ui.Textf(c, "Disabled selected IDs: %v · %d changes", lockedSelection, changes)
+					nui.Listbox(c.Key("disabled"), t, &lockedSelection, &locked, nui.ListboxOptions{Label: "Disabled members list", Disabled: true, Height: 168, OnChange: func() { changes++ }})
+					ui.Textf(c, "Disabled selected IDs: %v · %d changes", lockedSelection.Values(), changes)
 				})
 				continue
 			}
-			chosen := []string{}
+			var chosen nui.SelectionState[string]
 			list := &nui.ListboxState{}
 			menu := &nui.SelectMenuState{}
+			if id == "listbox" {
+				list.SetItems(items)
+			} else {
+				menu.SetItems(items)
+			}
 			p.Deactivate = append(p.Deactivate, func() { menu.Open = false })
 			changes := 0
-			disabled := []string{}
+			var disabled nui.SelectionState[string]
 			disabledState := &nui.SelectMenuState{}
 			search := true
 			reset := true
@@ -328,16 +336,16 @@ func dataPage(id string) *componentPage {
 			}
 			add(kind, "Members · "+kind, description, func(c *ui.Context, t nui.Theme) {
 				if id == "listbox" {
-					nui.Listbox(c, t, &chosen, list, items, nui.ListboxOptions{Label: kind + " members list", Multiple: kind == "multiple", Height: 200, EmptyText: "No members", OnChange: func([]string) { changes++ }})
+					nui.Listbox(c, t, &chosen, list, nui.ListboxOptions{Label: kind + " members list", Multiple: kind == "multiple", Height: 200, EmptyText: "No members", OnChange: func() { changes++ }})
 				} else {
 					nui.Switch(c, t, &search, nui.SwitchOptions{Label: kind + " search input"})
 					nui.Switch(c, t, &reset, nui.SwitchOptions{Label: kind + " reset search"})
-					nui.SelectMenu(c, t, &chosen, menu, items, nui.SelectMenuOptions{Label: kind + " members menu", Multiple: kind == "multiple", OnChange: func([]string) { changes++ }, Placeholder: "Choose members", SearchPlaceholder: "Search people", SearchInput: nui.Set(search), ResetSearchTermOnBlur: nui.Set(reset), ResetSearchTermOnSelect: nui.Set(reset), Clearable: true, Loading: kind == "states"})
+					nui.SelectMenu(c, t, &chosen, menu, nui.SelectMenuOptions{Label: kind + " members menu", Multiple: kind == "multiple", OnChange: func() { changes++ }, Placeholder: "Choose members", SearchPlaceholder: "Search people", SearchInput: nui.Set(search), ResetSearchTermOnBlur: nui.Set(reset), ResetSearchTermOnSelect: nui.Set(reset), Clearable: true, Loading: kind == "states"})
 					if kind == "states" {
-						nui.SelectMenu(c, t, &disabled, disabledState, nil, nui.SelectMenuOptions{Label: "Disabled member menu", Disabled: true, Placeholder: "No available members"})
+						nui.SelectMenu(c, t, &disabled, disabledState, nui.SelectMenuOptions{Label: "Disabled member menu", Disabled: true, Placeholder: "No available members"})
 					}
 				}
-				ui.Textf(c, "Selected IDs: %v · %d changes", chosen, changes)
+				ui.Textf(c, "Selected IDs: %v · %d changes", chosen.Values(), changes)
 			})
 		}
 	case "calendar":
@@ -450,7 +458,7 @@ func dataPage(id string) *componentPage {
 			model := &State{}
 			model.SetRows(sample.rows)
 			loading := false
-			sortChanges, selectionChanges := 0, 0
+			sortChanges, tableChanges := 0, 0
 			activated := "None"
 			description := "Click Workspace/Members to sort and drag a header boundary to resize. Selection follows record IDs, including after sorting. Wheel scrolls the bounded table; only visible cells build."
 			if sample.rows == 0 {
@@ -467,13 +475,13 @@ func dataPage(id string) *componentPage {
 					nui.Button(c, t, "Clear sorting", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { model.Sort = ui.SortOrder{} })
 					nui.Checkbox(c, t, &loading, nui.CheckboxOptions{Label: "Show table loading"})
 				})
-				model.TableConfig = nui.TableOptions{Loading: loading, Caption: "Workspace records", BuildLoading: func(c *ui.Context, _ nui.Theme) { ui.Text(c, "Loading workspaces") }, OnSortChange: func([]ui.SortOrder) { sortChanges++ }, OnSelectionChange: func([]string) { selectionChanges++ }, OnActivate: func(id string) { activated = id }}
+				model.TableConfig = nui.TableOptions{Loading: loading, Caption: "Workspace records", BuildLoading: func(c *ui.Context, _ nui.Theme) { ui.Text(c, "Loading workspaces") }, OnSortChange: func([]ui.SortOrder) { sortChanges++ }, OnChange: func() { tableChanges++ }, OnActivate: func(id string) { activated = id }}
 				if sample.rows == 0 && len(model.Rows) == 0 {
 					model.TableConfig.Height = 140
 				}
 				model.Table(c, t)
 				ui.Textf(c, "%d rows · %d selected · %d cells built", len(model.Rows), model.Selection.Len(), model.CellCalls)
-				ui.Textf(c, "Sort changes: %d · Selection changes: %d · Activated: %s", sortChanges, selectionChanges, activated)
+				ui.Textf(c, "Sort changes: %d · Table changes: %d · Activated: %s", sortChanges, tableChanges, activated)
 			})
 		}
 		add("contract", "Sorting and loading", "Multi-column and manual sorting, stable IDs, column styles and loading content use the public Table component. Enter or double-click activates a row; sorting headers are mouse controls in MyGo.", tableParityExample())

@@ -456,6 +456,9 @@ type userExample struct {
 
 func (s *userExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
+	if cfg.Bool("reduceMotion") {
+		t.Motion.Reduce = true
+	}
 	avatar := nui.AvatarOptions{}
 	if cfg.Bool("avatar") {
 		avatar.Alt = cfg.String("label")
@@ -778,11 +781,12 @@ func (s *sliderExample) Configure(cfg showcase.Config) error { return nil }
 func (s *sliderExample) Dispose()                            {}
 
 type selectExample struct {
-	Live                 showcase.Runtime
-	Value                string
-	Many                 []string
-	Open, ManyOpen       bool
-	Changes, ManyChanges int
+	Live                           showcase.Runtime
+	Value                          string
+	Many                           nui.SelectionState[string]
+	SingleOptions, MultipleOptions nui.SelectState[string]
+	Open, ManyOpen                 bool
+	Changes, ManyChanges           int
 }
 
 func (s *selectExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
@@ -803,18 +807,23 @@ func (s *selectExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 		trailing = lucide.ChevronsUpDown()
 		selected = lucide.Heart()
 	}
-	items := showcase.Options(cfg, "SelectItems", []nui.Option[string]{{Value: "go", Label: "Go", Description: "Backend services", Icon: lucide.Code()}, {Value: "rust", Label: "Rust", Description: "Native applications", Icon: lucide.Code()}, {Value: "blocked", Label: "Disabled language", Disabled: true}, {Value: "typescript", Label: "TypeScript", Description: "Web applications", Icon: lucide.Code()}}, c, t, &s.Live)
-	nui.Select(c.Key("select"), t, &s.Value, items, showcase.Options(cfg, "SelectOptions", nui.SelectOptions{Label: "Language", Placeholder: cfg.String("placeholder"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Disabled: cfg.Bool("disabled"), Avatar: avatar, Leading: leading, Trailing: trailing, SelectedIcon: selected, Loading: cfg.Bool("loading"), LoadingTrailing: cfg.Bool("loadingTrailing"), Highlight: cfg.Bool("highlight"), Open: &s.Open, OnChange: func() { s.Changes++ }}, c, t, &s.Live))
+	nui.Select(c.Key("select"), t, &s.Value, &s.SingleOptions, showcase.Options(cfg, "SelectOptions", nui.SelectOptions{Label: "Language", Placeholder: cfg.String("placeholder"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Disabled: cfg.Bool("disabled"), Avatar: avatar, Leading: leading, Trailing: trailing, SelectedIcon: selected, Loading: cfg.Bool("loading"), LoadingTrailing: cfg.Bool("loadingTrailing"), Highlight: cfg.Bool("highlight"), Open: &s.Open, OnChange: func() { s.Changes++ }}, c, t, &s.Live))
 	ui.Textf(c, "Selected: %s · Changes: %d · Open: %v", s.Value, s.Changes, s.Open)
-	nui.SelectMultiple(c.Key("multiple"), t, &s.Many, items, showcase.Options(cfg, "SelectOptions2", nui.SelectOptions{Label: "Multiple languages", Placeholder: cfg.String("placeholder"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Disabled: cfg.Bool("disabled"), Avatar: avatar, Leading: leading, Trailing: trailing, SelectedIcon: selected, Loading: cfg.Bool("loading"), LoadingTrailing: cfg.Bool("loadingTrailing"), Highlight: cfg.Bool("highlight"), Open: &s.ManyOpen, OnChange: func() { s.ManyChanges++ }}, c, t, &s.Live))
-	ui.Textf(c, "Selected IDs: %v · Changes: %d · Open: %v", s.Many, s.ManyChanges, s.ManyOpen)
+	nui.SelectMultiple(c.Key("multiple"), t, &s.Many, &s.MultipleOptions, showcase.Options(cfg, "SelectOptions2", nui.SelectOptions{Label: "Multiple languages", Placeholder: cfg.String("placeholder"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Disabled: cfg.Bool("disabled"), Avatar: avatar, Leading: leading, Trailing: trailing, SelectedIcon: selected, Loading: cfg.Bool("loading"), LoadingTrailing: cfg.Bool("loadingTrailing"), Highlight: cfg.Bool("highlight"), Open: &s.ManyOpen, OnChange: func() { s.ManyChanges++ }}, c, t, &s.Live))
+	ui.Textf(c, "Selected IDs: %v · Changes: %d · Open: %v", s.Many.Values(), s.ManyChanges, s.ManyOpen)
 	nui.Button(c.Key("open-one"), t, "Toggle single select", nui.ButtonOptions{Variant: nui.Outline, Disabled: cfg.Bool("disabled")}).OnClick(func() { s.Open = !s.Open })
 	nui.Button(c.Key("open-many"), t, "Toggle multiple select", nui.ButtonOptions{Variant: nui.Outline, Disabled: cfg.Bool("disabled")}).OnClick(func() { s.ManyOpen = !s.ManyOpen })
 }
 func (s *selectExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *selectExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
-func (s *selectExample) Configure(cfg showcase.Config) error { return nil }
-func (s *selectExample) Dispose()                            {}
+func (s *selectExample) Configure(cfg showcase.Config) error {
+	return s.Live.ApplyData(cfg, []string{"SelectItems", "SelectMultipleItems"}, func() error {
+		s.SingleOptions.SetOptions(showcase.Options(cfg, "SelectItems", []nui.Option[string]{{Value: "go", Label: "Go", Description: "Backend services", Icon: lucide.Code()}, {Value: "rust", Label: "Rust", Description: "Native applications", Icon: lucide.Code()}, {Value: "blocked", Label: "Disabled language", Disabled: true}, {Value: "typescript", Label: "TypeScript", Description: "Web applications", Icon: lucide.Code()}}, nil, nui.Theme{}, &s.Live))
+		s.MultipleOptions.SetOptions(showcase.Options(cfg, "SelectMultipleItems", []nui.Option[string]{{Value: "go", Label: "Go", Description: "Backend services", Icon: lucide.Code()}, {Value: "rust", Label: "Rust", Description: "Native applications", Icon: lucide.Code()}, {Value: "blocked", Label: "Disabled language", Disabled: true}, {Value: "typescript", Label: "TypeScript", Description: "Web applications", Icon: lucide.Code()}}, nil, nui.Theme{}, &s.Live))
+		return nil
+	})
+}
+func (s *selectExample) Dispose() {}
 
 type input_menuExample struct {
 	Live                                         showcase.Runtime
@@ -841,16 +850,21 @@ func (s *input_menuExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config
 	if cfg.Bool("create") {
 		onCreate = func(value string) { s.Created = value }
 	}
-	nui.InputMenu(c.Key("menu"), t, &s.Search, showcase.Options(cfg, "InputMenuItems", []nui.Option[string]{{Value: "go", Label: "Go", Description: "Backend services", Icon: lucide.Code()}, {Value: "rust", Label: "Rust", Description: "Native applications", Icon: lucide.Code()}, {Value: "blocked", Label: "Disabled language", Disabled: true}, {Value: "typescript", Label: "TypeScript", Description: "Web applications", Icon: lucide.Code()}}, c, t, &s.Live), showcase.Options(cfg, "InputMenuOptions", nui.InputMenuOptions{InputOptions: nui.InputOptions{Label: cmp.Or(cfg.String("label"), "Language search"), Placeholder: cfg.String("placeholder"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Disabled: cfg.Bool("disabled"), ReadOnly: cfg.Bool("readOnly"), Loading: cfg.Bool("loading"), LoadingTrailing: cfg.Bool("loadingTrailing"), Avatar: avatar, Clearable: cfg.Bool("clearable"), OnChange: func(string) { s.Queries++ }, OnClear: func() { s.Clears++ }, OnSubmit: func(string) { s.Submits++ }}, Multiple: cfg.Bool("multiple"), Mode: showcase.Select(cfg, "mode", map[string]nui.InputMenuMode{"combobox": nui.InputMenuCombobox, "autocomplete": nui.InputMenuAutocomplete}), Open: &s.Open, Loop: cfg.Bool("loop"), HighlightOnHover: cfg.OptionalBool("highlightOnHover"), OpenOnClick: cfg.OptionalBool("openOnClick"), OpenOnFocus: cfg.OptionalBool("openOnFocus"), ResetSearchTermOnSelect: cfg.OptionalBool("resetOnSelect"), ResetSearchTermOnBlur: cfg.OptionalBool("resetOnBlur"), ResetModelValueOnClear: cfg.OptionalBool("resetModel"), SelectedIcon: selectedIcon, DeleteIcon: deleteIcon, ClearIcon: clearIcon, OnCreate: onCreate, CreateAtTop: cfg.Bool("createAtTop"), OnSelect: func(string) { s.Selections++ }, OnValuesChange: func([]string) { s.Values++ }}, c, t, &s.Live))
-	ui.Textf(c, "Query: %s · Selected: %s · IDs: %v", s.Search.Query, s.Search.Selected, s.Search.SelectedValues)
+	nui.InputMenu(c.Key("menu"), t, &s.Search, showcase.Options(cfg, "InputMenuOptions", nui.InputMenuOptions{SearchExecution: showcase.Select(cfg, "searchExecution", map[string]nui.SearchExecution{"auto": nui.SearchAuto, "immediate": nui.SearchImmediate, "background": nui.SearchBackground}), InputOptions: nui.InputOptions{Label: cmp.Or(cfg.String("label"), "Language search"), Placeholder: cfg.String("placeholder"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Disabled: cfg.Bool("disabled"), ReadOnly: cfg.Bool("readOnly"), Loading: cfg.Bool("loading"), LoadingTrailing: cfg.Bool("loadingTrailing"), Avatar: avatar, Clearable: cfg.Bool("clearable"), OnChange: func(string) { s.Queries++ }, OnClear: func() { s.Clears++ }, OnSubmit: func(string) { s.Submits++ }}, Multiple: cfg.Bool("multiple"), Mode: showcase.Select(cfg, "mode", map[string]nui.InputMenuMode{"combobox": nui.InputMenuCombobox, "autocomplete": nui.InputMenuAutocomplete}), Open: &s.Open, Loop: cfg.Bool("loop"), HighlightOnHover: cfg.OptionalBool("highlightOnHover"), OpenOnClick: cfg.OptionalBool("openOnClick"), OpenOnFocus: cfg.OptionalBool("openOnFocus"), ResetSearchTermOnSelect: cfg.OptionalBool("resetOnSelect"), ResetSearchTermOnBlur: cfg.OptionalBool("resetOnBlur"), ResetModelValueOnClear: cfg.OptionalBool("resetModel"), SelectedIcon: selectedIcon, DeleteIcon: deleteIcon, ClearIcon: clearIcon, OnCreate: onCreate, CreateAtTop: cfg.Bool("createAtTop"), OnSelect: func(string) { s.Selections++ }, OnValuesChange: func() { s.Values++ }}, c, t, &s.Live))
+	ui.Textf(c, "Query: %s · Selected: %s · IDs: %v", s.Search.Query, s.Search.Selected, s.Search.SelectedValues.Values())
 	ui.Textf(c, "Events: query %d · select %d · values %d · clear %d · submit %d", s.Queries, s.Selections, s.Values, s.Clears, s.Submits)
 	ui.Textf(c, "Open: %v · Create request: %s", s.Open, s.Created)
 	nui.Button(c.Key("toggle"), t, "Toggle search list", nui.ButtonOptions{Variant: nui.Outline, Disabled: disabled || readOnly}).OnClick(func() { s.Open = !s.Open })
 }
 func (s *input_menuExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *input_menuExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
-func (s *input_menuExample) Configure(cfg showcase.Config) error { return nil }
-func (s *input_menuExample) Dispose()                            {}
+func (s *input_menuExample) Configure(cfg showcase.Config) error {
+	return s.Live.ApplyData(cfg, []string{"InputMenuItems"}, func() error {
+		s.Search.SetOptions(showcase.Options(cfg, "InputMenuItems", []nui.Option[string]{{Value: "go", Label: "Go", Description: "Backend services", Icon: lucide.Code()}, {Value: "rust", Label: "Rust", Description: "Native applications", Icon: lucide.Code()}, {Value: "blocked", Label: "Disabled language", Disabled: true}, {Value: "typescript", Label: "TypeScript", Description: "Web applications", Icon: lucide.Code()}}, nil, nui.Theme{}, &s.Live))
+		return nil
+	})
+}
+func (s *input_menuExample) Dispose() { s.Open = false; s.Search.Close() }
 
 type popoverExample struct {
 	Live  showcase.Runtime
@@ -1118,20 +1132,24 @@ func (s *toastExample) Configure(cfg showcase.Config) error { return nil }
 func (s *toastExample) Dispose()                            {}
 
 type dropdown_menuExample struct {
-	Live                                          showcase.Runtime
-	Menu                                          nui.MenuState
-	Action, Query, SubQuery                       string
-	Pinned, Reverse                               bool
-	Actions, CheckedChanges, OpenChanges, Queries int
+	Live                                                 showcase.Runtime
+	Menu                                                 nui.MenuState
+	Action, Query, SubQuery                              string
+	Pinned, Reverse                                      bool
+	Actions, CheckedChanges, OpenChanges, Queries        int
+	SubmitItems                                          func()
+	ItemAvatar, ItemLoading, ItemDisabled, ItemSubFilter bool
+	ItemLarge, NativePinned                              bool
+	NativeAction                                         string
+	NativeActions                                        int
 }
 
 func (s *dropdown_menuExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	var avatar *nui.AvatarOptions
-	icon := lucide.Pencil()
-	if cfg.Bool("avatar") {
-		avatar = &nui.AvatarOptions{Alt: "Editor avatar", Text: "ED"}
-		icon = nil
+	avatar, loading, disabled, subFilter, large := cfg.Bool("avatar"), cfg.Bool("loading"), cfg.Bool("disabled"), cfg.Bool("subFilter"), cfg.Bool("large")
+	if s.ItemAvatar != avatar || s.ItemLoading != loading || s.ItemDisabled != disabled || s.ItemSubFilter != subFilter || s.ItemLarge != large {
+		s.ItemAvatar, s.ItemLoading, s.ItemDisabled, s.ItemSubFilter, s.ItemLarge = avatar, loading, disabled, subFilter, large
+		s.SubmitItems()
 	}
 	var checkedIcon, loadingIcon *ui.SVG
 	if cfg.Bool("customIcons") {
@@ -1142,46 +1160,97 @@ func (s *dropdown_menuExample) View(c *ui.Context, t nui.Theme, cfg showcase.Con
 	if cfg.Bool("customWidth") {
 		width = nui.Set(float32(cfg.Number("width")))
 	}
-	items := showcase.Options(cfg, "DropdownMenuItems", []nui.MenuItem{
-		{ID: "edit", Label: "Edit", Description: "Change project details", Icon: icon, Avatar: avatar, Loading: cfg.Bool("loading"), Shortcut: "Ctrl+E", OnSelect: func() { s.Action = "Edit"; s.Actions++ }},
-		{ID: "copy", Label: "Duplicate", Description: "Copy this project", Icon: lucide.Copy(), OnSelect: func() { s.Action = "Duplicate"; s.Actions++ }},
-		{ID: "archive", Label: "Archive", Disabled: cfg.Bool("disabled"), Color: nui.Warning, OnSelect: func() { s.Action = "Archive"; s.Actions++ }},
-		{ID: "separator", Kind: nui.MenuSeparator},
-		{ID: "pin", Label: "Pinned", Checked: nui.Set(s.Pinned), Close: nui.Set(false), OnCheckedChange: func(v bool) { s.Pinned = v; s.CheckedChanges++ }, OnSelect: func() { s.Action = "Pinned"; s.Actions++ }},
-		{ID: "export", Label: "Export", Children: []nui.MenuItem{{ID: "csv", Label: "CSV", OnSelect: func() { s.Action = "CSV"; s.Actions++ }}, {ID: "json", Label: "JSON", OnSelect: func() { s.Action = "JSON"; s.Actions++ }}}, Content: &nui.MenuContentOptions{Filter: cfg.Bool("subFilter"), SearchTerm: &s.SubQuery, FilterInput: &nui.InputOptions{Label: "Export search"}}},
-		{ID: "reorder", Label: "Reverse actions", Close: nui.Set(false), OnSelect: func() { s.Reverse = !s.Reverse; s.Action = "Reordered" }},
-	}, c, t, &s.Live)
-	if s.Reverse {
-		slices.Reverse(items)
-	}
+
 	anchor := nui.Button(c.Key("trigger"), t, cfg.String("label"), nui.ButtonOptions{AccessibleLabel: cmp.Or(cfg.String("label"), "Example action"), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: nui.Outline})
-	nui.DropdownMenu(c.Key("menu"), t, anchor, &s.Menu, items, showcase.Options(cfg, "MenuOptions", nui.MenuOptions{Label: "Project actions", Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Disabled: cfg.Bool("disabledMenu"), Loop: cfg.Bool("loop"), Width: width, Placement: showcase.Select(cfg, "placement", map[string]nui.Optional[nui.Placement]{"bottom-start": nui.Set(nui.BottomStart), "bottom-end": nui.Set(nui.BottomEnd), "top-start": nui.Set(nui.TopStart), "right": nui.Set(nui.RightStart), "left": nui.Set(nui.LeftStart)}), CheckedIcon: checkedIcon, LoadingIcon: loadingIcon, Filter: cfg.Bool("filter"), IgnoreFilter: cfg.Bool("ignoreFilter"), FilterFields: []string{"label", "description"}, SearchTerm: &s.Query, FilterInput: &nui.InputOptions{Label: "Action search", Clearable: true}, OnSearchTermChange: func(string) { s.Queries++ }, OnOpenChange: func(bool) { s.OpenChanges++ }}, c, t, &s.Live))
+	nui.DropdownMenu(c.Key("menu"), t, anchor, &s.Menu, showcase.Options(cfg, "MenuOptions", nui.MenuOptions{SearchExecution: showcase.Select(cfg, "searchExecution", map[string]nui.SearchExecution{"auto": nui.SearchAuto, "immediate": nui.SearchImmediate, "background": nui.SearchBackground}), Label: "Project actions", Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Disabled: cfg.Bool("disabledMenu"), Loop: cfg.Bool("loop"), Width: width, Placement: showcase.Select(cfg, "placement", map[string]nui.Optional[nui.Placement]{"bottom-start": nui.Set(nui.BottomStart), "bottom-end": nui.Set(nui.BottomEnd), "top-start": nui.Set(nui.TopStart), "right": nui.Set(nui.RightStart), "left": nui.Set(nui.LeftStart)}), CheckedIcon: checkedIcon, LoadingIcon: loadingIcon, Filter: cfg.Bool("filter"), IgnoreFilter: cfg.Bool("ignoreFilter"), FilterFields: []string{"label", "description"}, SearchTerm: &s.Query, FilterInput: &nui.InputOptions{Label: "Action search", Clearable: true}, OnSearchTermChange: func(string) { s.Queries++ }, OnOpenChange: func(bool) { s.OpenChanges++ }}, c, t, &s.Live))
 	ui.Text(c, s.Action)
 	ui.Textf(c, "Actions: %d · Checked changes: %d · Open changes: %d", s.Actions, s.CheckedChanges, s.OpenChanges)
 	ui.Textf(c, "Query: %s · Changes: %d · Pinned: %v", s.Query, s.Queries, s.Pinned)
+
+	plain := nui.Button(c.Key("plain-commands"), t, "Plain commands", nui.ButtonOptions{Variant: nui.Soft, Disabled: cfg.Bool("disabledMenu")}).AlignSelf(ui.Start)
+	plain.Menu(func(m *ui.Menu) {
+		if m.Item("Duplicate command").ID("copy").Shortcut(ui.Ctrl, ui.KeyD).Chosen() {
+			s.NativeAction = "Duplicated"
+			s.NativeActions++
+		}
+		if m.Item("Unavailable command").ID("unavailable").Disabled(true).Chosen() {
+			s.NativeAction = "Unavailable"
+			s.NativeActions++
+		}
+		m.Separator()
+		if m.Item("Pin command").ID("pin").Checked(s.NativePinned).Chosen() {
+			s.NativePinned = !s.NativePinned
+			s.NativeAction = "Pinned"
+			s.NativeActions++
+		}
+		m.Submenu("Export format", func(m *ui.Menu) {
+			if m.Item("CSV command").ID("csv").Chosen() {
+				s.NativeAction = "CSV"
+				s.NativeActions++
+			}
+		})
+	})
+	ui.Textf(c, "Plain actions: %d · Result: %s · Pinned: %v", s.NativeActions, s.NativeAction, s.NativePinned)
+
 }
 func (s *dropdown_menuExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *dropdown_menuExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
-func (s *dropdown_menuExample) Configure(cfg showcase.Config) error { return nil }
-func (s *dropdown_menuExample) Dispose()                            {}
+func (s *dropdown_menuExample) Configure(cfg showcase.Config) error {
+	return s.Live.ApplyData(cfg, []string{"DropdownMenuItems"}, func() error {
+		s.SubmitItems = func() {
+			var avatar *nui.AvatarOptions
+			icon := lucide.Pencil()
+			if s.ItemAvatar {
+				avatar = &nui.AvatarOptions{Alt: "Editor avatar", Text: "ED"}
+				icon = nil
+			}
+			items := showcase.Options(cfg, "DropdownMenuItems", []nui.MenuItem{
+				{ID: "edit", Label: "Edit", Description: "Change project details", Icon: icon, Avatar: avatar, Loading: s.ItemLoading, Shortcut: "Ctrl+E", OnSelect: func() { s.Action = "Edit"; s.Actions++ }},
+				{ID: "copy", Label: "Duplicate", Description: "Copy this project", Icon: lucide.Copy(), OnSelect: func() { s.Action = "Duplicate"; s.Actions++ }},
+				{ID: "archive", Label: "Archive", Disabled: s.ItemDisabled, Color: nui.Warning, OnSelect: func() { s.Action = "Archive"; s.Actions++ }},
+				{ID: "separator", Kind: nui.MenuSeparator},
+				{ID: "pin", Label: "Pinned", Checked: nui.Set(s.Pinned), Close: nui.Set(false), OnCheckedChange: func(v bool) { s.Pinned = v; s.CheckedChanges++; s.SubmitItems() }, OnSelect: func() { s.Action = "Pinned"; s.Actions++ }},
+				{ID: "export", Label: "Export", Children: []nui.MenuItem{{ID: "csv", Label: "CSV", OnSelect: func() { s.Action = "CSV"; s.Actions++ }}, {ID: "json", Label: "JSON", OnSelect: func() { s.Action = "JSON"; s.Actions++ }}}, Content: &nui.MenuContentOptions{Filter: s.ItemSubFilter, SearchTerm: &s.SubQuery, FilterInput: &nui.InputOptions{Label: "Export search"}}},
+				{ID: "reorder", Label: "Reverse actions", Close: nui.Set(false), OnSelect: func() { s.Reverse = !s.Reverse; s.Action = "Reordered"; s.SubmitItems() }},
+			}, nil, nui.Theme{}, &s.Live)
+			if s.ItemLarge {
+				for i := range 10000 {
+					label := fmt.Sprintf("Command %05d", i)
+					items = append(items, nui.MenuItem{ID: fmt.Sprintf("command-%d", i), Label: label, OnSelect: func() { s.Action = label; s.Actions++ }})
+				}
+			}
+			if s.Reverse {
+				slices.Reverse(items)
+			}
+			s.Menu.SetItems(items)
+		}
+		s.SubmitItems()
+		return nil
+	})
+}
+func (s *dropdown_menuExample) Dispose() { s.Menu.Close() }
 
 type context_menuExample struct {
-	Live                                          showcase.Runtime
-	Menu                                          nui.MenuState
-	Action, Query, SubQuery                       string
-	Pinned, Reverse                               bool
-	Actions, CheckedChanges, OpenChanges, Queries int
-	TargetClicks                                  int
-	TargetMoved                                   bool
+	Live                                                 showcase.Runtime
+	Menu                                                 nui.MenuState
+	Action, Query, SubQuery                              string
+	Pinned, Reverse                                      bool
+	Actions, CheckedChanges, OpenChanges, Queries        int
+	TargetClicks                                         int
+	TargetMoved                                          bool
+	SubmitItems                                          func()
+	ItemAvatar, ItemLoading, ItemDisabled, ItemSubFilter bool
+	ItemLarge, NativePinned                              bool
+	NativeAction                                         string
+	NativeActions                                        int
 }
 
 func (s *context_menuExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	var avatar *nui.AvatarOptions
-	icon := lucide.Pencil()
-	if cfg.Bool("avatar") {
-		avatar = &nui.AvatarOptions{Alt: "Editor avatar", Text: "ED"}
-		icon = nil
+	avatar, loading, disabled, subFilter, large := cfg.Bool("avatar"), cfg.Bool("loading"), cfg.Bool("disabled"), cfg.Bool("subFilter"), cfg.Bool("large")
+	if s.ItemAvatar != avatar || s.ItemLoading != loading || s.ItemDisabled != disabled || s.ItemSubFilter != subFilter || s.ItemLarge != large {
+		s.ItemAvatar, s.ItemLoading, s.ItemDisabled, s.ItemSubFilter, s.ItemLarge = avatar, loading, disabled, subFilter, large
+		s.SubmitItems()
 	}
 	var checkedIcon, loadingIcon *ui.SVG
 	if cfg.Bool("customIcons") {
@@ -1192,35 +1261,82 @@ func (s *context_menuExample) View(c *ui.Context, t nui.Theme, cfg showcase.Conf
 	if cfg.Bool("customWidth") {
 		width = nui.Set(float32(cfg.Number("width")))
 	}
-	items := showcase.Options(cfg, "ContextMenuItems", []nui.MenuItem{
-		{ID: "edit", Label: "Edit", Description: "Change project details", Icon: icon, Avatar: avatar, Loading: cfg.Bool("loading"), Shortcut: "Ctrl+E", OnSelect: func() { s.Action = "Edit"; s.Actions++ }},
-		{ID: "copy", Label: "Duplicate", Description: "Copy this project", Icon: lucide.Copy(), OnSelect: func() { s.Action = "Duplicate"; s.Actions++ }},
-		{ID: "archive", Label: "Archive", Disabled: cfg.Bool("disabled"), Color: nui.Warning, OnSelect: func() { s.Action = "Archive"; s.Actions++ }},
-		{ID: "separator", Kind: nui.MenuSeparator},
-		{ID: "pin", Label: "Pinned", Checked: nui.Set(s.Pinned), Close: nui.Set(false), OnCheckedChange: func(v bool) { s.Pinned = v; s.CheckedChanges++ }, OnSelect: func() { s.Action = "Pinned"; s.Actions++ }},
-		{ID: "export", Label: "Export", Children: []nui.MenuItem{{ID: "csv", Label: "CSV", OnSelect: func() { s.Action = "CSV"; s.Actions++ }}, {ID: "json", Label: "JSON", OnSelect: func() { s.Action = "JSON"; s.Actions++ }}}, Content: &nui.MenuContentOptions{Filter: cfg.Bool("subFilter"), SearchTerm: &s.SubQuery, FilterInput: &nui.InputOptions{Label: "Export search"}}},
-		{ID: "reorder", Label: "Reverse actions", Close: nui.Set(false), OnSelect: func() { s.Reverse = !s.Reverse; s.Action = "Reordered" }},
-		{ID: "move-target", Label: "Move target", Close: nui.Set(false), OnSelect: func() { s.TargetMoved = !s.TargetMoved }},
-	}, c, t, &s.Live)
-	if s.Reverse {
-		slices.Reverse(items)
-	}
+
 	left := float32(0)
 	if s.TargetMoved {
 		left = 32
 	}
 	anchor := nui.Button(c.Key("trigger"), t, cfg.String("label"), nui.ButtonOptions{AccessibleLabel: cmp.Or(cfg.String("label"), "Example action"), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: nui.Outline}).Width(280).Height(64).AlignSelf(ui.Start).Margin(0, 0, 0, left).OnClick(func() { s.TargetClicks++ })
-	nui.ContextMenu(c.Key("menu"), t, anchor, &s.Menu, items, showcase.Options(cfg, "MenuOptions", nui.MenuOptions{Label: "Project actions", Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Disabled: cfg.Bool("disabledMenu"), Loop: cfg.Bool("loop"), Width: width, Placement: showcase.Select(cfg, "placement", map[string]nui.Optional[nui.Placement]{"bottom-start": nui.Set(nui.BottomStart), "bottom-end": nui.Set(nui.BottomEnd), "top-start": nui.Set(nui.TopStart), "right": nui.Set(nui.RightStart), "left": nui.Set(nui.LeftStart)}), CheckedIcon: checkedIcon, LoadingIcon: loadingIcon, Filter: cfg.Bool("filter"), IgnoreFilter: cfg.Bool("ignoreFilter"), FilterFields: []string{"label", "description"}, SearchTerm: &s.Query, FilterInput: &nui.InputOptions{Label: "Action search", Clearable: true}, OnSearchTermChange: func(string) { s.Queries++ }, OnOpenChange: func(bool) { s.OpenChanges++ }}, c, t, &s.Live))
+	nui.ContextMenu(c.Key("menu"), t, anchor, &s.Menu, showcase.Options(cfg, "MenuOptions", nui.MenuOptions{SearchExecution: showcase.Select(cfg, "searchExecution", map[string]nui.SearchExecution{"auto": nui.SearchAuto, "immediate": nui.SearchImmediate, "background": nui.SearchBackground}), Label: "Project actions", Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Disabled: cfg.Bool("disabledMenu"), Loop: cfg.Bool("loop"), Width: width, Placement: showcase.Select(cfg, "placement", map[string]nui.Optional[nui.Placement]{"bottom-start": nui.Set(nui.BottomStart), "bottom-end": nui.Set(nui.BottomEnd), "top-start": nui.Set(nui.TopStart), "right": nui.Set(nui.RightStart), "left": nui.Set(nui.LeftStart)}), CheckedIcon: checkedIcon, LoadingIcon: loadingIcon, Filter: cfg.Bool("filter"), IgnoreFilter: cfg.Bool("ignoreFilter"), FilterFields: []string{"label", "description"}, SearchTerm: &s.Query, FilterInput: &nui.InputOptions{Label: "Action search", Clearable: true}, OnSearchTermChange: func(string) { s.Queries++ }, OnOpenChange: func(bool) { s.OpenChanges++ }}, c, t, &s.Live))
 	ui.Text(c, s.Action)
 	ui.Textf(c, "Actions: %d · Checked changes: %d · Open changes: %d", s.Actions, s.CheckedChanges, s.OpenChanges)
 	ui.Textf(c, "Query: %s · Changes: %d · Pinned: %v", s.Query, s.Queries, s.Pinned)
 	nui.Button(c.Key("open-at-target"), t, "Open at target", nui.ButtonOptions{Variant: nui.Soft}).AlignSelf(ui.Start).OnClick(func() { s.Menu.Open = true })
 	ui.Textf(c, "Target clicks: %d · Moved: %v", s.TargetClicks, s.TargetMoved)
+
+	plain := nui.Button(c.Key("plain-commands"), t, "Plain commands", nui.ButtonOptions{Variant: nui.Soft, Disabled: cfg.Bool("disabledMenu")}).AlignSelf(ui.Start)
+	plain.ContextMenu(func(m *ui.Menu) {
+		if m.Item("Duplicate command").ID("copy").Shortcut(ui.Ctrl, ui.KeyD).Chosen() {
+			s.NativeAction = "Duplicated"
+			s.NativeActions++
+		}
+		if m.Item("Unavailable command").ID("unavailable").Disabled(true).Chosen() {
+			s.NativeAction = "Unavailable"
+			s.NativeActions++
+		}
+		m.Separator()
+		if m.Item("Pin command").ID("pin").Checked(s.NativePinned).Chosen() {
+			s.NativePinned = !s.NativePinned
+			s.NativeAction = "Pinned"
+			s.NativeActions++
+		}
+		m.Submenu("Export format", func(m *ui.Menu) {
+			if m.Item("CSV command").ID("csv").Chosen() {
+				s.NativeAction = "CSV"
+				s.NativeActions++
+			}
+		})
+	})
+	ui.Textf(c, "Plain actions: %d · Result: %s · Pinned: %v", s.NativeActions, s.NativeAction, s.NativePinned)
+
 }
 func (s *context_menuExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *context_menuExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
-func (s *context_menuExample) Configure(cfg showcase.Config) error { return nil }
-func (s *context_menuExample) Dispose()                            {}
+func (s *context_menuExample) Configure(cfg showcase.Config) error {
+	return s.Live.ApplyData(cfg, []string{"ContextMenuItems"}, func() error {
+		s.SubmitItems = func() {
+			var avatar *nui.AvatarOptions
+			icon := lucide.Pencil()
+			if s.ItemAvatar {
+				avatar = &nui.AvatarOptions{Alt: "Editor avatar", Text: "ED"}
+				icon = nil
+			}
+			items := showcase.Options(cfg, "ContextMenuItems", []nui.MenuItem{
+				{ID: "edit", Label: "Edit", Description: "Change project details", Icon: icon, Avatar: avatar, Loading: s.ItemLoading, Shortcut: "Ctrl+E", OnSelect: func() { s.Action = "Edit"; s.Actions++ }},
+				{ID: "copy", Label: "Duplicate", Description: "Copy this project", Icon: lucide.Copy(), OnSelect: func() { s.Action = "Duplicate"; s.Actions++ }},
+				{ID: "archive", Label: "Archive", Disabled: s.ItemDisabled, Color: nui.Warning, OnSelect: func() { s.Action = "Archive"; s.Actions++ }},
+				{ID: "separator", Kind: nui.MenuSeparator},
+				{ID: "pin", Label: "Pinned", Checked: nui.Set(s.Pinned), Close: nui.Set(false), OnCheckedChange: func(v bool) { s.Pinned = v; s.CheckedChanges++; s.SubmitItems() }, OnSelect: func() { s.Action = "Pinned"; s.Actions++ }},
+				{ID: "export", Label: "Export", Children: []nui.MenuItem{{ID: "csv", Label: "CSV", OnSelect: func() { s.Action = "CSV"; s.Actions++ }}, {ID: "json", Label: "JSON", OnSelect: func() { s.Action = "JSON"; s.Actions++ }}}, Content: &nui.MenuContentOptions{Filter: s.ItemSubFilter, SearchTerm: &s.SubQuery, FilterInput: &nui.InputOptions{Label: "Export search"}}},
+				{ID: "reorder", Label: "Reverse actions", Close: nui.Set(false), OnSelect: func() { s.Reverse = !s.Reverse; s.Action = "Reordered"; s.SubmitItems() }},
+				{ID: "move-target", Label: "Move target", Close: nui.Set(false), OnSelect: func() { s.TargetMoved = !s.TargetMoved }},
+			}, nil, nui.Theme{}, &s.Live)
+			if s.ItemLarge {
+				for i := range 10000 {
+					label := fmt.Sprintf("Command %05d", i)
+					items = append(items, nui.MenuItem{ID: fmt.Sprintf("command-%d", i), Label: label, OnSelect: func() { s.Action = label; s.Actions++ }})
+				}
+			}
+			if s.Reverse {
+				slices.Reverse(items)
+			}
+			s.Menu.SetItems(items)
+		}
+		s.SubmitItems()
+		return nil
+	})
+}
+func (s *context_menuExample) Dispose() { s.Menu.Close() }
 
 type tabsExample struct {
 	Live                       showcase.Runtime
@@ -1715,85 +1831,90 @@ func (s *input_ratingExample) Dispose()                            {}
 
 type listboxExample struct {
 	Live                                               showcase.Runtime
-	Values                                             []string
+	Values                                             nui.SelectionState[string]
 	List                                               nui.ListboxState
 	Changes, Selections, Queries, Attempts, Highlights int
 	Reversed                                           bool
+	Items                                              []nui.ListboxItem
+	Protect                                            bool
 }
 
 func (s *listboxExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	items := showcase.Options(cfg, "ListboxItems", []nui.ListboxItem{
-		{ID: "languages", Label: "Languages", Kind: nui.ListboxLabel},
-		{ID: "go", Label: "Go", Description: "Native applications", Icon: lucide.Code()},
-		{ID: "rust", Label: "Rust", Description: "Systems programming", Chip: &nui.ChipOptions{Color: nui.Warning}},
-		{ID: "typescript", Label: "TypeScript", Description: "Web applications", Avatar: &nui.AvatarOptions{Text: "TS", Alt: "TypeScript"}},
-		{ID: "separator", Kind: nui.ListboxSeparator},
-		{ID: "prefix", Label: "Cafeteria", Description: "Prefix match"},
-		{ID: "contains", Label: "A café", Description: "Contains the query"},
-		{ID: "exact", Label: "Café", Description: "Exact match; activation can be cancelled", Options: &nui.ListboxItemOptions{OnSelect: func(e *nui.ListboxEvent) {
-			s.Attempts++
-			if cfg.Bool("protect") {
-				e.PreventDefault()
-			}
-		}, Decoration: nui.Decoration{UI: nui.Styles{nui.ItemLabelSlot: {Weight: nui.Set(600)}}}}},
-	}, c, t, &s.Live)
-	if s.Reversed {
-		items[1], items[3] = items[3], items[1]
-	}
-	nui.Listbox(c.Key("list"), t, &s.Values, &s.List, items, showcase.Options(cfg, "ListboxOptions", nui.ListboxOptions{Label: "Languages", Multiple: cfg.Bool("multiple"), Disabled: cfg.Bool("disabled"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Highlight: cfg.Bool("highlight"), Loading: cfg.Bool("loading"), Filter: cfg.Bool("filter"), FilterInput: &nui.InputOptions{Label: "Filter languages", Placeholder: "Search languages or cafe"}, SelectedIcon: lucide.Check(), Height: 320, OnChange: func([]string) { s.Changes++ }, OnSelect: func(string) { s.Selections++ }, OnSearchTermChange: func(string) { s.Queries++ }, OnHighlight: func(string) { s.Highlights++ }}, c, t, &s.Live))
-	nui.Button(c.Key("reorder"), t, "Reorder options", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() { s.Reversed = !s.Reversed })
-	ui.Textf(c, "Selected: %v · Changes: %d · Activations: %d", s.Values, s.Changes, s.Selections)
+	s.Protect = cfg.Bool("protect")
+	nui.Listbox(c.Key("list"), t, &s.Values, &s.List, showcase.Options(cfg, "ListboxOptions", nui.ListboxOptions{SearchExecution: showcase.Select(cfg, "searchExecution", map[string]nui.SearchExecution{"auto": nui.SearchAuto, "immediate": nui.SearchImmediate, "background": nui.SearchBackground}), Label: "Languages", Multiple: cfg.Bool("multiple"), Disabled: cfg.Bool("disabled"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Highlight: cfg.Bool("highlight"), Loading: cfg.Bool("loading"), Filter: cfg.Bool("filter"), FilterInput: &nui.InputOptions{Label: "Filter languages", Placeholder: "Search languages or cafe"}, SelectedIcon: lucide.Check(), Height: 320, OnChange: func() { s.Changes++ }, OnSelect: func(string) { s.Selections++ }, OnSearchTermChange: func(string) { s.Queries++ }, OnHighlight: func(string) { s.Highlights++ }}, c, t, &s.Live))
+	nui.Button(c.Key("reorder"), t, "Reorder options", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() {
+		s.Reversed = !s.Reversed
+		if len(s.Items) > 3 {
+			s.Items[1], s.Items[3] = s.Items[3], s.Items[1]
+		}
+		s.List.SetItems(s.Items)
+	})
+	ui.Textf(c, "Selected: %v · Changes: %d · Activations: %d", s.Values.Values(), s.Changes, s.Selections)
 	ui.Textf(c, "Queries: %d · Highlights: %d · Attempts: %d", s.Queries, s.Highlights, s.Attempts)
 
 }
 func (s *listboxExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *listboxExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
-func (s *listboxExample) Configure(cfg showcase.Config) error { return nil }
-func (s *listboxExample) Dispose()                            {}
+func (s *listboxExample) Configure(cfg showcase.Config) error {
+	return s.Live.ApplyData(cfg, []string{"ListboxItems"}, func() error {
+		s.Items = showcase.Options(cfg, "ListboxItems", []nui.ListboxItem{
+			{ID: "languages", Label: "Languages", Kind: nui.ListboxLabel},
+			{ID: "go", Label: "Go", Description: "Native applications", Icon: lucide.Code()},
+			{ID: "rust", Label: "Rust", Description: "Systems programming", Chip: &nui.ChipOptions{Color: nui.Warning}},
+			{ID: "typescript", Label: "TypeScript", Description: "Web applications", Avatar: &nui.AvatarOptions{Text: "TS", Alt: "TypeScript"}},
+			{ID: "separator", Kind: nui.ListboxSeparator},
+			{ID: "prefix", Label: "Cafeteria", Description: "Prefix match"},
+			{ID: "contains", Label: "A café", Description: "Contains the query"},
+			{ID: "exact", Label: "Café", Description: "Exact match; activation can be cancelled", Options: &nui.ListboxItemOptions{OnSelect: func(e *nui.ListboxEvent) {
+				s.Attempts++
+				if s.Protect {
+					e.PreventDefault()
+				}
+			}, Decoration: nui.Decoration{UI: nui.Styles{nui.ItemLabelSlot: {Weight: nui.Set(600)}}}}},
+		}, nil, nui.Theme{}, &s.Live)
+		if s.Reversed && len(s.Items) > 3 {
+			s.Items[1], s.Items[3] = s.Items[3], s.Items[1]
+		}
+		s.List.SetItems(s.Items)
+		return nil
+	})
+}
+func (s *listboxExample) Dispose() { s.List.Close() }
 
 type select_menuExample struct {
 	Live                                                              showcase.Runtime
-	Values                                                            []string
+	Values                                                            nui.SelectionState[string]
 	Menu                                                              nui.SelectMenuState
 	Changes, Selections, Queries, Attempts, Highlights, Opens, Clears int
 	Reversed                                                          bool
 	Remote                                                            nui.SelectMenuState
-	RemoteValues                                                      []string
+	RemoteValues                                                      nui.SelectionState[string]
 	Results                                                           nui.QueryState[nui.ListboxItem]
 	Current, Previous                                                 nui.QueryTicket
 	Status                                                            string
+	Items                                                             []nui.ListboxItem
+	Protect                                                           bool
 }
 
 func (s *select_menuExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	items := showcase.Options(cfg, "SelectMenuItems", []nui.ListboxItem{
-		{ID: "languages", Label: "Languages", Kind: nui.ListboxLabel},
-		{ID: "go", Label: "Go", Description: "Native applications", Icon: lucide.Code()},
-		{ID: "rust", Label: "Rust", Description: "Systems programming", Chip: &nui.ChipOptions{Color: nui.Warning}},
-		{ID: "typescript", Label: "TypeScript", Description: "Web applications", Avatar: &nui.AvatarOptions{Text: "TS", Alt: "TypeScript"}},
-		{ID: "separator", Kind: nui.ListboxSeparator},
-		{ID: "prefix", Label: "Cafeteria", Description: "Prefix match"},
-		{ID: "contains", Label: "A café", Description: "Contains the query"},
-		{ID: "exact", Label: "Café", Description: "Exact match; activation can be cancelled", Options: &nui.ListboxItemOptions{OnSelect: func(e *nui.ListboxEvent) {
-			s.Attempts++
-			if cfg.Bool("protect") {
-				e.PreventDefault()
-			}
-		}, Decoration: nui.Decoration{UI: nui.Styles{nui.ItemLabelSlot: {Weight: nui.Set(600)}}}}},
-	}, c, t, &s.Live)
-	if s.Reversed {
-		items[1], items[3] = items[3], items[1]
-	}
-	nui.SelectMenu(c.Key("select"), t, &s.Values, &s.Menu, items, showcase.Options(cfg, "SelectMenuOptions", nui.SelectMenuOptions{ListboxOptions: nui.ListboxOptions{Label: "Languages", Multiple: cfg.Bool("multiple"), Disabled: cfg.Bool("disabled"), FilterInput: &nui.InputOptions{Label: "Search languages", Placeholder: "Search languages or cafe"}, OnChange: func([]string) { s.Changes++ }, OnSelect: func(string) { s.Selections++ }, OnSearchTermChange: func(string) { s.Queries++ }, OnHighlight: func(string) { s.Highlights++ }}, Placeholder: cfg.String("placeholder"), SearchInput: cfg.OptionalBool("search"), FocusSearch: cfg.OptionalBool("focusSearch"), Clearable: true, ResetModelValueOnClear: cfg.OptionalBool("resetModel"), ResetSearchTermOnSelect: cfg.OptionalBool("resetSelect"), ResetSearchTermOnBlur: cfg.OptionalBool("resetBlur"), Loading: cfg.Bool("loading"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Avatar: &nui.AvatarOptions{Text: "UI", Alt: "Language choice"}, OnOpenChange: func(bool) { s.Opens++ }, OnClear: func() { s.Clears++ }}, c, t, &s.Live))
-	nui.Button(c.Key("reorder"), t, "Reorder options", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() { s.Reversed = !s.Reversed })
-	ui.Textf(c, "Selected: %v · Changes: %d · Activations: %d", s.Values, s.Changes, s.Selections)
+	s.Protect = cfg.Bool("protect")
+	nui.SelectMenu(c.Key("select"), t, &s.Values, &s.Menu, showcase.Options(cfg, "SelectMenuOptions", nui.SelectMenuOptions{ListboxOptions: nui.ListboxOptions{SearchExecution: showcase.Select(cfg, "searchExecution", map[string]nui.SearchExecution{"auto": nui.SearchAuto, "immediate": nui.SearchImmediate, "background": nui.SearchBackground}), Label: "Languages", Multiple: cfg.Bool("multiple"), Disabled: cfg.Bool("disabled"), FilterInput: &nui.InputOptions{Label: "Search languages", Placeholder: "Search languages or cafe"}, OnChange: func() { s.Changes++ }, OnSelect: func(string) { s.Selections++ }, OnSearchTermChange: func(string) { s.Queries++ }, OnHighlight: func(string) { s.Highlights++ }}, Placeholder: cfg.String("placeholder"), SearchInput: cfg.OptionalBool("search"), FocusSearch: cfg.OptionalBool("focusSearch"), Clearable: true, ResetModelValueOnClear: cfg.OptionalBool("resetModel"), ResetSearchTermOnSelect: cfg.OptionalBool("resetSelect"), ResetSearchTermOnBlur: cfg.OptionalBool("resetBlur"), Loading: cfg.Bool("loading"), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Variant: showcase.Select(cfg, "variant", map[string]nui.Variant{"default": nui.VariantDefault, "outline": nui.Outline, "soft": nui.Soft, "subtle": nui.Subtle, "ghost": nui.Ghost, "none": nui.None}), Avatar: &nui.AvatarOptions{Text: "UI", Alt: "Language choice"}, OnOpenChange: func(bool) { s.Opens++ }, OnClear: func() { s.Clears++ }}, c, t, &s.Live))
+	nui.Button(c.Key("reorder"), t, "Reorder options", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() {
+		s.Reversed = !s.Reversed
+		if len(s.Items) > 3 {
+			s.Items[1], s.Items[3] = s.Items[3], s.Items[1]
+		}
+		s.Menu.SetItems(s.Items)
+	})
+	ui.Textf(c, "Selected: %v · Changes: %d · Activations: %d", s.Values.Values(), s.Changes, s.Selections)
 	ui.Textf(c, "Queries: %d · Highlights: %d · Attempts: %d", s.Queries, s.Highlights, s.Attempts)
 
 	ui.Textf(c, "Open changes: %d · Clears: %d", s.Opens, s.Clears)
 	if cfg.Bool("remote") {
 		ui.Text(c, "Simulated remote search")
-		nui.SelectMenu(c.Key("remote"), t, &s.RemoteValues, &s.Remote, s.Results.Items, showcase.Options(cfg, "SelectMenuOptions2", nui.SelectMenuOptions{Label: "Remote options", ExternalFilter: true, Loading: s.Results.Loading, ResetSearchTermOnBlur: nui.Set(false), ResetSearchTermOnSelect: nui.Set(false), OnQuery: func(query string) {
+		nui.SelectMenu(c.Key("remote"), t, &s.RemoteValues, &s.Remote, showcase.Options(cfg, "SelectMenuOptions2", nui.SelectMenuOptions{SearchExecution: showcase.Select(cfg, "searchExecution", map[string]nui.SearchExecution{"auto": nui.SearchAuto, "immediate": nui.SearchImmediate, "background": nui.SearchBackground}), Label: "Remote options", ExternalFilter: true, Loading: s.Results.Loading, ResetSearchTermOnBlur: nui.Set(false), ResetSearchTermOnSelect: nui.Set(false), OnQuery: func(query string) {
 			s.Previous = s.Current
 			_, s.Current = s.Results.Start(context.Background(), query)
 			s.Status = "Request pending: " + query
@@ -1801,6 +1922,7 @@ func (s *select_menuExample) View(c *ui.Context, t nui.Theme, cfg showcase.Confi
 		ui.Row(c).Wrap().Gap(8).Children(func() {
 			nui.Button(c.Key("stale"), t, "Complete stale request", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() {
 				if s.Results.Complete(s.Previous, []nui.ListboxItem{{ID: "stale", Label: "Stale result"}}, nil) {
+					s.Remote.SetItems(s.Results.Items)
 					s.Status = "Previous result accepted"
 				} else {
 					s.Status = "Stale result rejected"
@@ -1808,6 +1930,7 @@ func (s *select_menuExample) View(c *ui.Context, t nui.Theme, cfg showcase.Confi
 			})
 			nui.Button(c.Key("current"), t, "Complete current request", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() {
 				if s.Results.Complete(s.Current, []nui.ListboxItem{{ID: "result", Label: "Result: " + s.Current.Query}}, nil) {
+					s.Remote.SetItems(s.Results.Items)
 					s.Status = "Current result accepted"
 				} else {
 					s.Status = "Current result rejected"
@@ -1816,14 +1939,38 @@ func (s *select_menuExample) View(c *ui.Context, t nui.Theme, cfg showcase.Confi
 			nui.Button(c.Key("cancel"), t, "Cancel request", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { s.Results.Cancel(); s.Status = "Request cancelled" })
 		})
 		ui.Text(c, s.Status)
-		ui.Textf(c, "Remote selection: %v", s.RemoteValues)
+		ui.Textf(c, "Remote selection: %v", s.RemoteValues.Values())
 	}
 
 }
 func (s *select_menuExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *select_menuExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
-func (s *select_menuExample) Configure(cfg showcase.Config) error { return nil }
-func (s *select_menuExample) Dispose()                            { s.Results.Cancel() }
+func (s *select_menuExample) Configure(cfg showcase.Config) error {
+	return s.Live.ApplyData(cfg, []string{"SelectMenuItems"}, func() error {
+		s.Status = "No request"
+		s.Items = showcase.Options(cfg, "SelectMenuItems", []nui.ListboxItem{
+			{ID: "languages", Label: "Languages", Kind: nui.ListboxLabel},
+			{ID: "go", Label: "Go", Description: "Native applications", Icon: lucide.Code()},
+			{ID: "rust", Label: "Rust", Description: "Systems programming", Chip: &nui.ChipOptions{Color: nui.Warning}},
+			{ID: "typescript", Label: "TypeScript", Description: "Web applications", Avatar: &nui.AvatarOptions{Text: "TS", Alt: "TypeScript"}},
+			{ID: "separator", Kind: nui.ListboxSeparator},
+			{ID: "prefix", Label: "Cafeteria", Description: "Prefix match"},
+			{ID: "contains", Label: "A café", Description: "Contains the query"},
+			{ID: "exact", Label: "Café", Description: "Exact match; activation can be cancelled", Options: &nui.ListboxItemOptions{OnSelect: func(e *nui.ListboxEvent) {
+				s.Attempts++
+				if s.Protect {
+					e.PreventDefault()
+				}
+			}, Decoration: nui.Decoration{UI: nui.Styles{nui.ItemLabelSlot: {Weight: nui.Set(600)}}}}},
+		}, nil, nui.Theme{}, &s.Live)
+		if s.Reversed && len(s.Items) > 3 {
+			s.Items[1], s.Items[3] = s.Items[3], s.Items[1]
+		}
+		s.Menu.SetItems(s.Items)
+		return nil
+	})
+}
+func (s *select_menuExample) Dispose() { s.Results.Cancel(); s.Menu.Close(); s.Remote.Close() }
 
 type calendarExample struct {
 	Live                   showcase.Runtime
@@ -1953,17 +2100,19 @@ func (s *color_pickerExample) Configure(cfg showcase.Config) error { return nil 
 func (s *color_pickerExample) Dispose()                            {}
 
 type tableExample struct {
-	Live                          showcase.Runtime
-	Table                         nui.TableState[string]
-	Orders                        []ui.SortOrder
-	Empty, Multiple, Borrowed     bool
-	Rows                          []string
-	SortChanges, SelectionChanges int
-	Activated                     string
+	Live                      showcase.Runtime
+	Table                     nui.TableState[string]
+	Orders                    []ui.SortOrder
+	Empty, Multiple, Borrowed bool
+	Rows                      []string
+	SortChanges, Changes      int
+	Activated                 string
 }
 
 func (s *tableExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
+	s.Table.List.CellSelect = cfg.Bool("cellSelection")
+	s.Table.List.RowHeight = float32(cfg.Number("rowHeight"))
 	if s.Empty != cfg.Bool("empty") || s.Borrowed != cfg.Bool("borrowed") {
 		s.Empty = cfg.Bool("empty")
 		s.Borrowed = cfg.Bool("borrowed")
@@ -2008,16 +2157,16 @@ func (s *tableExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	})
 	ui.Column(c.Key("direction")).Direction(direction).Children(func() {
 		nui.Table(c.Key("table"), t, &s.Table, showcase.Options(cfg, "TableItems", []nui.TableColumn[string]{
-			{ID: "name", Title: "Project", Width: 240, MinWidth: 100, Value: func(v string) string { return v }, Compare: func(a, b string) int { return strings.Compare(a, b) }},
+			{ID: "name", Title: "Project", Width: 240, MinWidth: 100, RowHeader: cfg.Bool("rowHeader"), Value: func(v string) string { return v }, Compare: func(a, b string) int { return strings.Compare(a, b) }},
 			{ID: "length", Title: "Length", Width: 100, MinWidth: 80, Value: func(v string) string { return fmt.Sprint(len(v)) }, Compare: func(a, b string) int { return cmp.Compare(len(a), len(b)) }},
-		}, c, t, &s.Live), showcase.Options(cfg, "TableOptions", nui.TableOptions{Label: "Projects", Caption: "Project records", Height: float32(cfg.Number("height")), Disabled: cfg.Bool("disabled"), ManualSorting: cfg.Bool("manual"), Loading: cfg.Bool("loading"), LoadingAnimation: showcase.Select(cfg, "animation", map[string]nui.TableLoadingAnimation{"carousel": nui.TableLoadingCarousel, "carousel-inverse": nui.TableLoadingCarouselInverse, "swing": nui.TableLoadingSwing, "elastic": nui.TableLoadingElastic}), BuildCaption: caption, BuildLoading: func(c *ui.Context, _ nui.Theme) { ui.Text(c, "Loading projects") }, OnSortChange: func([]ui.SortOrder) { s.SortChanges++ }, OnSelectionChange: func([]string) { s.SelectionChanges++ }, OnActivate: func(id string) { s.Activated = id }}, c, t, &s.Live))
+		}, c, t, &s.Live), showcase.Options(cfg, "TableOptions", nui.TableOptions{Label: "Projects", Caption: "Project records", Height: float32(cfg.Number("height")), Disabled: cfg.Bool("disabled"), ManualSorting: cfg.Bool("manual"), Loading: cfg.Bool("loading"), LoadingAnimation: showcase.Select(cfg, "animation", map[string]nui.TableLoadingAnimation{"carousel": nui.TableLoadingCarousel, "carousel-inverse": nui.TableLoadingCarouselInverse, "swing": nui.TableLoadingSwing, "elastic": nui.TableLoadingElastic}), BuildCaption: caption, BuildLoading: func(c *ui.Context, _ nui.Theme) { ui.Text(c, "Loading projects") }, OnSortChange: func([]ui.SortOrder) { s.SortChanges++ }, OnChange: func() { s.Changes++ }, OnActivate: func(id string) { s.Activated = id }}, c, t, &s.Live))
 	})
 	first := "None"
 	if s.Table.Len() > 0 {
 		first = s.Table.RowID(0)
 	}
 	ui.Textf(c, "First: %s · Selected: %d", first, s.Table.Selection.Len())
-	ui.Textf(c, "Sort changes: %d · Selection changes: %d · Activated: %s", s.SortChanges, s.SelectionChanges, s.Activated)
+	ui.Textf(c, "Sort changes: %d · Table changes: %d · Activated: %s", s.SortChanges, s.Changes, s.Activated)
 }
 func (s *tableExample) SetReport(fn func(string, []string)) { s.Live.SetReport(fn) }
 func (s *tableExample) SetWindow(window *mygo.Window)       { s.Live.Window = window }
@@ -2264,8 +2413,24 @@ type file_uploadExample struct {
 
 func (s *file_uploadExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
+	ui.Row(c.Key("samples")).Wrap().Gap(8).Children(func() {
+		nui.Button(c.Key("large"), t, "Load 10,000 previews", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() {
+			s.Files.Dispose()
+			files := make([]nui.UploadFile, 10000)
+			for i := range files {
+				files[i] = nui.UploadFile{ID: fmt.Sprintf("sample-%d", i), Name: fmt.Sprintf("Sample %05d.txt", i), Size: 1024}
+			}
+			s.Files.Files = files
+		})
+		nui.Button(c.Key("error"), t, "Show long error", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() {
+			if len(s.Files.Files) > 0 {
+				s.Files.Files[0].Status = nui.UploadFailed
+				s.Files.Files[0].Error = strings.Repeat("The remote service could not store this file. ", 12)
+			}
+		})
+	})
 	outcome := showcase.Select(cfg, "outcome", map[string]string{"files": "files", "cancel": "cancel", "error": "error"})
-	o := showcase.Options(cfg, "FileUploadOptions", nui.FileUploadOptions{Label: cfg.String("label"), Description: "Sample metadata; no file reads or network upload", Disabled: cfg.Bool("disabled"), Interactive: nui.Set(cfg.Bool("interactive")), Dropzone: nui.Set(cfg.Bool("dropzone")), Preview: nui.Set(cfg.Bool("preview")), FileImage: nui.Set(cfg.Bool("fileImage")), ShowIcon: nui.Set(cfg.Bool("showIcon")), Highlight: cfg.Bool("highlight"), FileDelete: cfg.OptionalBool("remove"), Variant: showcase.Select(cfg, "variant", map[string]nui.UploadVariant{"area": nui.UploadArea, "button": nui.UploadButton}), Layout: showcase.Select(cfg, "layout", map[string]nui.UploadLayout{"list": nui.UploadList, "grid": nui.UploadGrid}), Position: showcase.Select(cfg, "position", map[string]nui.UploadPosition{"outside": nui.UploadOutside, "inside": nui.UploadInside}), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Rules: nui.UploadRules{Accept: []string{".md, .txt, .png"}, MaxFiles: 3, MaxBytes: 2 << 20}, Choose: func(context.Context) ([]nui.UploadFile, error) {
+	o := showcase.Options(cfg, "FileUploadOptions", nui.FileUploadOptions{Label: cfg.String("label"), Description: "Sample metadata; no file reads or network upload", Disabled: cfg.Bool("disabled"), Interactive: nui.Set(cfg.Bool("interactive")), Dropzone: nui.Set(cfg.Bool("dropzone")), Preview: nui.Set(cfg.Bool("preview")), PreviewHeight: nui.Set(float32(cfg.Number("previewHeight"))), FileImage: nui.Set(cfg.Bool("fileImage")), ShowIcon: nui.Set(cfg.Bool("showIcon")), Highlight: cfg.Bool("highlight"), FileDelete: cfg.OptionalBool("remove"), Variant: showcase.Select(cfg, "variant", map[string]nui.UploadVariant{"area": nui.UploadArea, "button": nui.UploadButton}), Layout: showcase.Select(cfg, "layout", map[string]nui.UploadLayout{"list": nui.UploadList, "grid": nui.UploadGrid}), Position: showcase.Select(cfg, "position", map[string]nui.UploadPosition{"outside": nui.UploadOutside, "inside": nui.UploadInside}), Color: showcase.Select(cfg, "color", map[string]nui.Color{"default": nui.ColorDefault, "primary": nui.Primary, "secondary": nui.Secondary, "success": nui.Success, "info": nui.Info, "warning": nui.Warning, "error": nui.Error, "neutral": nui.Neutral}), Size: showcase.Select(cfg, "size", map[string]nui.Size{"default": nui.SizeDefault, "xs": nui.XS, "sm": nui.SM, "md": nui.MD, "lg": nui.LG, "xl": nui.XL}), Rules: nui.UploadRules{Accept: []string{".md, .txt, .png"}, MaxFiles: 3, MaxBytes: 2 << 20}, Choose: func(context.Context) ([]nui.UploadFile, error) {
 		if outcome == "cancel" {
 			return nil, nil
 		}
@@ -2793,9 +2958,12 @@ func New(id string) (Example, error) {
 		return s, nil
 	case "select":
 		s := &selectExample{}
+		s.SingleOptions.SetOptions([]nui.Option[string]{{Value: "go", Label: "Go", Description: "Backend services", Icon: lucide.Code()}, {Value: "rust", Label: "Rust", Description: "Native applications", Icon: lucide.Code()}, {Value: "blocked", Label: "Disabled language", Disabled: true}, {Value: "typescript", Label: "TypeScript", Description: "Web applications", Icon: lucide.Code()}})
+		s.MultipleOptions.SetOptions([]nui.Option[string]{{Value: "go", Label: "Go", Description: "Backend services", Icon: lucide.Code()}, {Value: "rust", Label: "Rust", Description: "Native applications", Icon: lucide.Code()}, {Value: "blocked", Label: "Disabled language", Disabled: true}, {Value: "typescript", Label: "TypeScript", Description: "Web applications", Icon: lucide.Code()}})
 		return s, nil
 	case "input-menu":
 		s := &input_menuExample{}
+		s.Search.SetOptions([]nui.Option[string]{{Value: "go", Label: "Go", Description: "Backend services", Icon: lucide.Code()}, {Value: "rust", Label: "Rust", Description: "Native applications", Icon: lucide.Code()}, {Value: "blocked", Label: "Disabled language", Disabled: true}, {Value: "typescript", Label: "TypeScript", Description: "Web applications", Icon: lucide.Code()}})
 		return s, nil
 	case "popover":
 		s := &popoverExample{}
@@ -2818,9 +2986,66 @@ func New(id string) (Example, error) {
 		return s, nil
 	case "dropdown-menu":
 		s := &dropdown_menuExample{}
+		s.SubmitItems = func() {
+			var avatar *nui.AvatarOptions
+			icon := lucide.Pencil()
+			if s.ItemAvatar {
+				avatar = &nui.AvatarOptions{Alt: "Editor avatar", Text: "ED"}
+				icon = nil
+			}
+			items := []nui.MenuItem{
+				{ID: "edit", Label: "Edit", Description: "Change project details", Icon: icon, Avatar: avatar, Loading: s.ItemLoading, Shortcut: "Ctrl+E", OnSelect: func() { s.Action = "Edit"; s.Actions++ }},
+				{ID: "copy", Label: "Duplicate", Description: "Copy this project", Icon: lucide.Copy(), OnSelect: func() { s.Action = "Duplicate"; s.Actions++ }},
+				{ID: "archive", Label: "Archive", Disabled: s.ItemDisabled, Color: nui.Warning, OnSelect: func() { s.Action = "Archive"; s.Actions++ }},
+				{ID: "separator", Kind: nui.MenuSeparator},
+				{ID: "pin", Label: "Pinned", Checked: nui.Set(s.Pinned), Close: nui.Set(false), OnCheckedChange: func(v bool) { s.Pinned = v; s.CheckedChanges++; s.SubmitItems() }, OnSelect: func() { s.Action = "Pinned"; s.Actions++ }},
+				{ID: "export", Label: "Export", Children: []nui.MenuItem{{ID: "csv", Label: "CSV", OnSelect: func() { s.Action = "CSV"; s.Actions++ }}, {ID: "json", Label: "JSON", OnSelect: func() { s.Action = "JSON"; s.Actions++ }}}, Content: &nui.MenuContentOptions{Filter: s.ItemSubFilter, SearchTerm: &s.SubQuery, FilterInput: &nui.InputOptions{Label: "Export search"}}},
+				{ID: "reorder", Label: "Reverse actions", Close: nui.Set(false), OnSelect: func() { s.Reverse = !s.Reverse; s.Action = "Reordered"; s.SubmitItems() }},
+			}
+			if s.ItemLarge {
+				for i := range 10000 {
+					label := fmt.Sprintf("Command %05d", i)
+					items = append(items, nui.MenuItem{ID: fmt.Sprintf("command-%d", i), Label: label, OnSelect: func() { s.Action = label; s.Actions++ }})
+				}
+			}
+			if s.Reverse {
+				slices.Reverse(items)
+			}
+			s.Menu.SetItems(items)
+		}
+		s.SubmitItems()
 		return s, nil
 	case "context-menu":
 		s := &context_menuExample{}
+		s.SubmitItems = func() {
+			var avatar *nui.AvatarOptions
+			icon := lucide.Pencil()
+			if s.ItemAvatar {
+				avatar = &nui.AvatarOptions{Alt: "Editor avatar", Text: "ED"}
+				icon = nil
+			}
+			items := []nui.MenuItem{
+				{ID: "edit", Label: "Edit", Description: "Change project details", Icon: icon, Avatar: avatar, Loading: s.ItemLoading, Shortcut: "Ctrl+E", OnSelect: func() { s.Action = "Edit"; s.Actions++ }},
+				{ID: "copy", Label: "Duplicate", Description: "Copy this project", Icon: lucide.Copy(), OnSelect: func() { s.Action = "Duplicate"; s.Actions++ }},
+				{ID: "archive", Label: "Archive", Disabled: s.ItemDisabled, Color: nui.Warning, OnSelect: func() { s.Action = "Archive"; s.Actions++ }},
+				{ID: "separator", Kind: nui.MenuSeparator},
+				{ID: "pin", Label: "Pinned", Checked: nui.Set(s.Pinned), Close: nui.Set(false), OnCheckedChange: func(v bool) { s.Pinned = v; s.CheckedChanges++; s.SubmitItems() }, OnSelect: func() { s.Action = "Pinned"; s.Actions++ }},
+				{ID: "export", Label: "Export", Children: []nui.MenuItem{{ID: "csv", Label: "CSV", OnSelect: func() { s.Action = "CSV"; s.Actions++ }}, {ID: "json", Label: "JSON", OnSelect: func() { s.Action = "JSON"; s.Actions++ }}}, Content: &nui.MenuContentOptions{Filter: s.ItemSubFilter, SearchTerm: &s.SubQuery, FilterInput: &nui.InputOptions{Label: "Export search"}}},
+				{ID: "reorder", Label: "Reverse actions", Close: nui.Set(false), OnSelect: func() { s.Reverse = !s.Reverse; s.Action = "Reordered"; s.SubmitItems() }},
+				{ID: "move-target", Label: "Move target", Close: nui.Set(false), OnSelect: func() { s.TargetMoved = !s.TargetMoved }},
+			}
+			if s.ItemLarge {
+				for i := range 10000 {
+					label := fmt.Sprintf("Command %05d", i)
+					items = append(items, nui.MenuItem{ID: fmt.Sprintf("command-%d", i), Label: label, OnSelect: func() { s.Action = label; s.Actions++ }})
+				}
+			}
+			if s.Reverse {
+				slices.Reverse(items)
+			}
+			s.Menu.SetItems(items)
+		}
+		s.SubmitItems()
 		return s, nil
 	case "tabs":
 		s := &tabsExample{}
@@ -2879,10 +3104,48 @@ func New(id string) (Example, error) {
 		return s, nil
 	case "listbox":
 		s := &listboxExample{}
+		s.Items = []nui.ListboxItem{
+			{ID: "languages", Label: "Languages", Kind: nui.ListboxLabel},
+			{ID: "go", Label: "Go", Description: "Native applications", Icon: lucide.Code()},
+			{ID: "rust", Label: "Rust", Description: "Systems programming", Chip: &nui.ChipOptions{Color: nui.Warning}},
+			{ID: "typescript", Label: "TypeScript", Description: "Web applications", Avatar: &nui.AvatarOptions{Text: "TS", Alt: "TypeScript"}},
+			{ID: "separator", Kind: nui.ListboxSeparator},
+			{ID: "prefix", Label: "Cafeteria", Description: "Prefix match"},
+			{ID: "contains", Label: "A café", Description: "Contains the query"},
+			{ID: "exact", Label: "Café", Description: "Exact match; activation can be cancelled", Options: &nui.ListboxItemOptions{OnSelect: func(e *nui.ListboxEvent) {
+				s.Attempts++
+				if s.Protect {
+					e.PreventDefault()
+				}
+			}, Decoration: nui.Decoration{UI: nui.Styles{nui.ItemLabelSlot: {Weight: nui.Set(600)}}}}},
+		}
+		if s.Reversed && len(s.Items) > 3 {
+			s.Items[1], s.Items[3] = s.Items[3], s.Items[1]
+		}
+		s.List.SetItems(s.Items)
 		return s, nil
 	case "select-menu":
 		s := &select_menuExample{}
 		s.Status = "No request"
+		s.Items = []nui.ListboxItem{
+			{ID: "languages", Label: "Languages", Kind: nui.ListboxLabel},
+			{ID: "go", Label: "Go", Description: "Native applications", Icon: lucide.Code()},
+			{ID: "rust", Label: "Rust", Description: "Systems programming", Chip: &nui.ChipOptions{Color: nui.Warning}},
+			{ID: "typescript", Label: "TypeScript", Description: "Web applications", Avatar: &nui.AvatarOptions{Text: "TS", Alt: "TypeScript"}},
+			{ID: "separator", Kind: nui.ListboxSeparator},
+			{ID: "prefix", Label: "Cafeteria", Description: "Prefix match"},
+			{ID: "contains", Label: "A café", Description: "Contains the query"},
+			{ID: "exact", Label: "Café", Description: "Exact match; activation can be cancelled", Options: &nui.ListboxItemOptions{OnSelect: func(e *nui.ListboxEvent) {
+				s.Attempts++
+				if s.Protect {
+					e.PreventDefault()
+				}
+			}, Decoration: nui.Decoration{UI: nui.Styles{nui.ItemLabelSlot: {Weight: nui.Set(600)}}}}},
+		}
+		if s.Reversed && len(s.Items) > 3 {
+			s.Items[1], s.Items[3] = s.Items[3], s.Items[1]
+		}
+		s.Menu.SetItems(s.Items)
 		return s, nil
 	case "calendar":
 		s := &calendarExample{}

@@ -209,12 +209,12 @@ func TestReopenDuringAPopoverExit(t *testing.T) {
 func TestSubmenuLeavesWithItsParent(t *testing.T) {
 	var state nui.MenuState
 	chosen := 0
+	state.SetItems([]nui.MenuItem{{ID: "edit", Label: "Edit"}, {ID: "more", Label: "More", Children: []nui.MenuItem{{ID: "archive", Label: "Archive", OnSelect: func() {
+		chosen++
+	}}}}})
 	m := newMotionTester(motionFull, 600, 400, func(c *ui.Context, th nui.Theme) {
 		a := nui.Button(c, th, "Actions", nui.ButtonOptions{})
-		nui.DropdownMenu(c, th, a, &state, []nui.MenuItem{
-			{ID: "edit", Label: "Edit"},
-			{ID: "more", Label: "More", Children: []nui.MenuItem{{ID: "archive", Label: "Archive", OnSelect: func() { chosen++ }}}},
-		}, nui.MenuOptions{UI: redPanel})
+		nui.DropdownMenu(c, th, a, &state, nui.MenuOptions{UI: redPanel})
 	})
 	click(t, m.Tester, "Actions")
 	m.Advance(300 * time.Millisecond)
@@ -239,9 +239,12 @@ func TestSubmenuLeavesWithItsParent(t *testing.T) {
 func TestMenuChoiceDoesNotWaitForTheExit(t *testing.T) {
 	var state nui.MenuState
 	selects := 0
+	state.SetItems([]nui.MenuItem{{ID: "edit", Label: "Edit", OnSelect: func() {
+		selects++
+	}}})
 	m := newMotionTester(motionFull, 500, 400, func(c *ui.Context, th nui.Theme) {
 		a := nui.Button(c, th, "Actions", nui.ButtonOptions{})
-		nui.DropdownMenu(c, th, a, &state, []nui.MenuItem{{ID: "edit", Label: "Edit", OnSelect: func() { selects++ }}}, nui.MenuOptions{UI: redPanel})
+		nui.DropdownMenu(c, th, a, &state, nui.MenuOptions{UI: redPanel})
 	})
 	click(t, m.Tester, "Actions")
 	m.Advance(300 * time.Millisecond)
@@ -469,19 +472,24 @@ func TestPopupExitsAtEachLevel(t *testing.T) {
 		var menu nui.SelectMenuState
 		var picked []string
 		var context nui.MenuState
+		selectState11 := submittedSelect(options)
+		listSelection1 := chosenSelection(picked)
+		menu.SetItems([]nui.ListboxItem{{ID: "a", Label: "Alpha"}})
+		search.SetOptions(options)
+		context.SetItems([]nui.MenuItem{{ID: "a", Label: "Alpha"}})
 		return []popup{
 			{"Select", func(c *ui.Context, th nui.Theme) {
-				nui.Select(c, th, &choice, options, nui.SelectOptions{Label: "Choice", Popup: nui.PopoverOptions{UI: redPanel}}).Width(240)
+				nui.Select(c, th, &choice, selectState11, nui.SelectOptions{Label: "Choice", Popup: nui.PopoverOptions{UI: redPanel}}).Width(240)
 			}, func(t *testing.T, m *motionTester) { click(t, m.Tester, "Choice") }, escape},
 			{"SelectMenu", func(c *ui.Context, th nui.Theme) {
-				nui.SelectMenu(c, th, &picked, &menu, []nui.ListboxItem{{ID: "a", Label: "Alpha"}}, nui.SelectMenuOptions{Label: "Menu", Popup: nui.PopoverOptions{UI: redPanel}}).Width(240)
+				nui.SelectMenu(c, th, listSelection1, &menu, nui.SelectMenuOptions{Label: "Menu", Popup: nui.PopoverOptions{UI: redPanel}}).Width(240)
 			}, func(t *testing.T, m *motionTester) { click(t, m.Tester, "Menu") }, escape},
 			{"InputMenu", func(c *ui.Context, th nui.Theme) {
-				nui.InputMenu(c, th, &search, options, nui.InputMenuOptions{Label: "Search", Popup: nui.PopoverOptions{UI: redPanel}}).Width(240)
+				nui.InputMenu(c, th, &search, nui.InputMenuOptions{Label: "Search", Popup: nui.PopoverOptions{UI: redPanel}}).Width(240)
 			}, func(t *testing.T, m *motionTester) { click(t, m.Tester, "Search"); m.Key(0, ui.KeyDown) }, escape},
 			{"ContextMenu", func(c *ui.Context, th nui.Theme) {
 				a := ui.Box(c).Size(200, 60).Label("Area")
-				nui.ContextMenu(c, th, a, &context, []nui.MenuItem{{ID: "a", Label: "Alpha"}}, nui.MenuOptions{UI: redPanel})
+				nui.ContextMenu(c, th, a, &context, nui.MenuOptions{UI: redPanel})
 			}, func(t *testing.T, m *motionTester) {
 				if err := m.RightClick("Area"); err != nil {
 					t.Fatal(err)

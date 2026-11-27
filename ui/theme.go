@@ -57,9 +57,9 @@ type MotionTokens struct {
 	// Disabled turns nui's animation off. AppConfig.DisableAnimations sets it
 	// in both themes.
 	Disabled bool
-	// Transition is how long colour transitions take; zero or negative makes
-	// colour changes immediate. Spin is a loading spinner's turn and Pulse a
-	// skeleton's or a reduced loading bar's pulse.
+	// Transition controls surface color transitions and avatar/rating scale
+	// poses; nonpositive values are immediate. Spin is a spinner's turn and
+	// Pulse a skeleton's or a reduced loading bar's pulse.
 	Transition, Spin, Pulse time.Duration
 }
 type ShadowTokens struct {
@@ -313,4 +313,14 @@ func (a AppConfig) Resolve(systemDark bool, prefs ui.Preferences) Theme {
 // App must be called at the start of a view, before Window or Themed replace the system theme.
 func App(c *ui.Context, config AppConfig) Theme {
 	return Window(c, config.Resolve(c.Theme().Dark, c.Preferences()))
+}
+
+// Immediate transforms discard an in-flight native pose when motion is
+// disabled or its duration is nonpositive. No view timer is needed in any mode.
+func (t Theme) scaleFeedback(c *ui.Context, e ui.Element, scale float32) {
+	if t.moves(c) && t.Motion.Transition > 0 {
+		e.AnimatePose(ui.Pose{Scale: scale}, ui.Animation{Duration: t.Motion.Transition, Ease: ui.EaseOut})
+	} else {
+		e.Scale(scale, scale)
+	}
 }

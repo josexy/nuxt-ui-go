@@ -462,12 +462,7 @@ func User(c *ui.Context, t Theme, opts UserOptions) ui.Element {
 				if highlighted {
 					scale = 1.15
 				}
-				if t.moves(c) && t.Motion.Transition > 0 {
-					scale = part.AnimateWith("nui-user-avatar", scale, t.Motion.Transition, ui.EaseOut)
-				} else {
-					part.Jump("nui-user-avatar", scale)
-				}
-				part.Scale(scale, scale)
+				t.scaleFeedback(c, part, scale)
 				decorated(Leading, part, styles, opts.Style)
 			}
 			if opts.Chip != nil {

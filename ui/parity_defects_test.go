@@ -207,6 +207,8 @@ func TestBadgeAndSelectMenuJoinFieldGroup(t *testing.T) {
 	var value []string
 	var s nui.SelectMenuState
 	var text string
+	listSelection1 := chosenSelection(value)
+	s.SetItems([]nui.ListboxItem{{ID: "x", Label: "Xray"}})
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
 		ui.Column(c).Padding(20).Gap(20).Children(func() {
@@ -221,7 +223,7 @@ func TestBadgeAndSelectMenuJoinFieldGroup(t *testing.T) {
 					return nui.Input(c, th, &text, nui.InputOptions{Label: "Name"}).Width(120)
 				}},
 				{ID: "menu", Build: func(c *ui.Context, th nui.Theme) ui.Element {
-					return nui.SelectMenu(c, th, &value, &s, []nui.ListboxItem{{ID: "x", Label: "Xray"}}, nui.SelectMenuOptions{Label: "Domain"}).Width(160)
+					return nui.SelectMenu(c, th, listSelection1, &s, nui.SelectMenuOptions{Label: "Domain"}).Width(160)
 				}},
 			})
 		})

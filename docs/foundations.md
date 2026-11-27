@@ -57,7 +57,7 @@ nui.Button(c.Key("save"), theme, "Save", nui.ButtonOptions{
 | `Radius` | Base corner radius of 6 DIP. Set it to 0 for square corners. Each component derives its radius from this base |
 | `ContainerWidth` | Maximum content width, 1280 DIP by default |
 | `Shadow` | `ShadowTokens{Color, Blur, OffsetY}`. Apply it to a part with `Shadow: nui.Set(theme.Shadow)`. Card has no outer shadow by default |
-| `Motion` | `Transition` is how long colour transitions take (150 ms by default; 0 or less makes colour changes immediate), `Spin` is a loading spinner's turn (1 s) and `Pulse` a Skeleton pulse (2 s). `Reduce` asks for reduced motion and `Disabled` turns animation off; see [Motion levels](#motion-levels) |
+| `Motion` | `Transition` controls surface color transitions and User/InputRating scale poses (150 ms by default; 0 or less makes them immediate), `Spin` is a loading spinner's turn (1 s) and `Pulse` a Skeleton pulse (2 s). `Reduce` asks for reduced motion and `Disabled` turns animation off; see [Motion levels](#motion-levels) |
 
 Windows uses Segoe UI and Consolas by default; other platforms use system-ui and monospace. The library does not bundle fonts, and fonts and fallback fonts can affect the actual control height.
 
@@ -239,7 +239,7 @@ If every field of User's `AvatarOptions` is empty, no avatar is shown. To show i
 
 User.Size sets the size of the avatar and its chip, overriding the nested Avatar.Size and Chip.Size. Chip.Inset is always true; the other chip settings (position, color, text, and Hidden) are passed through. Without an avatar, no chip is shown. Leading replaces the default avatar area and Body replaces the name and description. Each region is built with a stable identity.
 
-An activatable User emphasizes its text and scales the avatar to 1.15× on hover or keyboard focus. The scale transition follows Motion.Transition, and with reduced motion the final state appears immediately. Disabling the User or a parent prevents activation. OnActivate does not route or open URLs; your app implements those actions.
+An activatable User emphasizes its text and scales the avatar to 1.15× on hover or keyboard focus. The scale transition follows Motion.Transition and uses native AnimatePose: changing its target may build once, while animation ticks only paint. Reduced motion, Off and nonpositive duration show the final scale immediately. Disabling the User or a parent prevents activation. OnActivate does not route or open URLs; your app implements those actions.
 
 Empty's default padding is 16, 24, or 32 DIP depending on the window width, with breakpoints at 640 and 1024 DIP. The header, body, and footer are at most 384 DIP wide. The avatar defaults to 32, 36, 40, 44, or 48 DIP for Empty sizes XS–XL; an explicit Avatar.Size takes precedence. Avatar.Image always takes precedence over an icon, and an explicit Avatar.Icon takes precedence over Empty.Icon and the loading icon.
 

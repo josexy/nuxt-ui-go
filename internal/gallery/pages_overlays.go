@@ -103,6 +103,8 @@ func (a *State) overlayPage(id string) *componentPage {
 				"nested": "Open the dialog. An open Select or InputMenu consumes the first Escape; the next Escape closes the dialog. Focus returns to its trigger.",
 				"policy": "This fullscreen dialog has no close button and ignores Escape and outside clicks. Use Cancel or Save in the footer to close it and restore focus.",
 			}[sample.id]
+			selectState11 := submittedSelect(plans)
+			reviewer.SetOptions(propsOptions)
 			add(sample.id, sample.title, description, func(c *ui.Context, t nui.Theme) {
 				label := "Open " + sample.id + " dialog"
 				if sample.id == "nested" {
@@ -115,8 +117,8 @@ func (a *State) overlayPage(id string) *componentPage {
 				}}, func(inner nui.Theme) {
 					nui.Input(c, inner, &name, nui.InputOptions{Label: "Dialog workspace name"}).FillWidth()
 					if sample.id == "nested" {
-						nui.Select(c, inner, &plan, plans, nui.SelectOptions{Label: "Dialog plan"}).FillWidth()
-						nui.InputMenu(c, inner, &reviewer, propsOptions, nui.InputMenuOptions{Label: "Reviewer"}).FillWidth()
+						nui.Select(c, inner, &plan, selectState11, nui.SelectOptions{Label: "Dialog plan"}).FillWidth()
+						nui.InputMenu(c, inner, &reviewer, nui.InputMenuOptions{Label: "Reviewer"}).FillWidth()
 					} else {
 						ui.Text(c, "A native modal focus scope.")
 					}
@@ -252,9 +254,11 @@ func (a *State) overlayPage(id string) *componentPage {
 			}
 			a.pendingToasts = append(a.pendingToasts, nui.ToastOptions{ID: "gallery-policy", Title: "Policy notification", Description: "A notification with stable actions.", Icon: lucide.Info(), Avatar: avatar, CloseOptions: closeOptions, CloseIcon: lucide.Check(), Color: nui.Info, ProgressOptions: &nui.ToastProgressOptions{UI: nui.Styles{nui.Indicator: {Background: nui.Set(ui.RGB(255, 0, 255))}}}, Actions: actions, Orientation: nui.Set(orientation), Timeout: timeout, OnClose: func() { policyClosed++ }})
 		}
+		selectState12 := submittedSelect([]nui.Option[nui.ToastPosition]{{Value: nui.ToastBottomRight, Label: "Bottom right"}, {Value: nui.ToastBottomLeft, Label: "Bottom left"}, {Value: nui.ToastBottomCenter, Label: "Bottom center"}, {Value: nui.ToastTopRight, Label: "Top right"}, {Value: nui.ToastTopLeft, Label: "Top left"}, {Value: nui.ToastTopCenter, Label: "Top center"}})
+		selectState13 := submittedSelect([]nui.Option[int]{{Value: 1, Label: "One toast"}, {Value: 2, Label: "Two toasts"}, {Value: 3, Label: "Three toasts"}})
 		add("contract", "Appearance, viewport and stable actions", "Publish a notice, then update its action order and orientation while keeping focus. Viewport controls apply to existing notices.", func(c *ui.Context, t nui.Theme) {
-			nui.Select(c.Key("position"), t, &a.toastViewport.Position, []nui.Option[nui.ToastPosition]{{Value: nui.ToastBottomRight, Label: "Bottom right"}, {Value: nui.ToastBottomLeft, Label: "Bottom left"}, {Value: nui.ToastBottomCenter, Label: "Bottom center"}, {Value: nui.ToastTopRight, Label: "Top right"}, {Value: nui.ToastTopLeft, Label: "Top left"}, {Value: nui.ToastTopCenter, Label: "Top center"}}, nui.SelectOptions{Label: "Toast position"})
-			nui.Select(c.Key("limit"), t, &limit, []nui.Option[int]{{Value: 1, Label: "One toast"}, {Value: 2, Label: "Two toasts"}, {Value: 3, Label: "Three toasts"}}, nui.SelectOptions{Label: "Visible toast limit", OnChange: func() { a.toastViewport.Limit = limit }})
+			nui.Select(c.Key("position"), t, &a.toastViewport.Position, selectState12, nui.SelectOptions{Label: "Toast position"})
+			nui.Select(c.Key("limit"), t, &limit, selectState13, nui.SelectOptions{Label: "Visible toast limit", OnChange: func() { a.toastViewport.Limit = limit }})
 			nui.Slider(c.Key("width"), t, &width, nui.SliderOptions{Label: "Toast viewport width", Min: nui.Set(float64(160)), Max: nui.Set(float64(600)), Step: 8, OnChange: func(v float64) { a.toastViewport.Width = nui.Set(float32(v)) }})
 			nui.Switch(c.Key("avatar"), t, &avatarOn, nui.SwitchOptions{Label: "Toast avatar"})
 			nui.Switch(c.Key("close"), t, &customClose, nui.SwitchOptions{Label: "Custom toast close"})
@@ -271,60 +275,71 @@ func (a *State) overlayPage(id string) *componentPage {
 		pinned, reverse := false, false
 		checkedChanges, selected, opened, reordered := 0, 0, 0, 0
 		result := "No contract action"
-		add("contract", "Size, filtering and item identity", "Compare sizes and descriptions, search root and child menus, and keep checked actions open. Stable IDs preserve focus when actions move.", func(c *ui.Context, t nui.Theme) {
-			nui.Select(c.Key("size"), t, &size, []nui.Option[nui.Size]{{Value: nui.XS, Label: "XS"}, {Value: nui.SM, Label: "SM"}, {Value: nui.MD, Label: "MD"}, {Value: nui.LG, Label: "LG"}, {Value: nui.XL, Label: "XL"}}, nui.SelectOptions{Label: "Menu size"})
-			nui.Switch(c.Key("filter"), t, &filter, nui.SwitchOptions{Label: "Filter menu actions"})
-			nui.Switch(c.Key("loop"), t, &loop, nui.SwitchOptions{Label: "Loop menu navigation"})
-			nui.Switch(c.Key("loading"), t, &loading, nui.SwitchOptions{Label: "Loading menu item"})
+		selectState14 := submittedSelect([]nui.Option[nui.Size]{{Value: nui.XS, Label: "XS"}, {Value: nui.SM, Label: "SM"}, {Value: nui.MD, Label: "MD"}, {Value: nui.LG, Label: "LG"}, {Value: nui.XL, Label: "XL"}})
+		var submitContract func()
+		submitContract = func() {
 			items := []nui.MenuItem{
 				{ID: "team", Kind: nui.MenuLabel, Label: "Project team", Description: "Current workspace", Avatar: &nui.AvatarOptions{Alt: "Team avatar", Text: "AL"}},
 				{ID: "edit", Label: "Edit contract project", Description: "Change the name", Avatar: &nui.AvatarOptions{Alt: "Editor avatar", Text: "ED"}, Loading: loading, Shortcut: "Ctrl+E", OnSelect: func() { result = "Editing project"; selected++ }},
 				{ID: "copy", Label: "Copy contract project", Icon: lucide.Copy(), OnSelect: func() { result = "Copied project"; selected++ }},
 				{ID: "disabled", Label: "Unavailable contract action", Disabled: true},
-				{ID: "pin", Label: "Pin contract project", Checked: nui.Set(pinned), Close: nui.Set(false), OnCheckedChange: func(v bool) { pinned = v; checkedChanges++ }, OnSelect: func() { selected++ }},
+				{ID: "pin", Label: "Pin contract project", Checked: nui.Set(pinned), Close: nui.Set(false), OnCheckedChange: func(v bool) { pinned = v; checkedChanges++; submitContract() }, OnSelect: func() { selected++ }},
 				{ID: "export", Label: "Contract export", Children: []nui.MenuItem{{ID: "csv", Label: "Contract CSV", OnSelect: func() { result = "Contract CSV selected"; selected++ }}, {ID: "json", Label: "Contract JSON", OnSelect: func() { result = "Contract JSON selected"; selected++ }}}, Content: &nui.MenuContentOptions{Filter: true, Width: nui.Set(float32(240)), FilterInput: &nui.InputOptions{Label: "Format search"}}},
-				{ID: "reorder", Label: "Reverse menu items", Close: nui.Set(false), OnSelect: func() { reverse = !reverse; reordered++ }},
+				{ID: "reorder", Label: "Reverse menu items", Close: nui.Set(false), OnSelect: func() { reverse = !reverse; reordered++; submitContract() }},
 			}
 			if reverse {
 				slices.Reverse(items)
 			}
+			contract.SetItems(items)
+		}
+		submitContract()
+		add("contract", "Size, filtering and item identity", "Compare sizes and descriptions, search root and child menus, and keep checked actions open. Stable IDs preserve focus when actions move.", func(c *ui.Context, t nui.Theme) {
+			nui.Select(c.Key("size"), t, &size, selectState14, nui.SelectOptions{Label: "Menu size"})
+			nui.Switch(c.Key("filter"), t, &filter, nui.SwitchOptions{Label: "Filter menu actions"})
+			nui.Switch(c.Key("loop"), t, &loop, nui.SwitchOptions{Label: "Loop menu navigation"})
+			nui.Switch(c.Key("loading"), t, &loading, nui.SwitchOptions{Label: "Loading menu item", OnChange: func(bool) { submitContract() }})
 			anchor := nui.Button(c.Key("contract-trigger"), t, "Open contract menu", nui.ButtonOptions{Variant: nui.Outline, Size: size}).AlignSelf(ui.Start)
 			opts := nui.MenuOptions{Label: "Contract menu", Size: size, Filter: filter, FilterInput: &nui.InputOptions{Label: "Menu action search", Clearable: true}, FilterFields: []string{"label", "description"}, Loop: loop, CheckedIcon: lucide.Heart(), LoadingIcon: lucide.RefreshCw(), Width: nui.Set(float32(320)), OnOpenChange: func(bool) { opened++ }}
 			if id == "dropdown-menu" {
-				nui.DropdownMenu(c.Key("contract"), t, anchor, contract, items, opts)
+				nui.DropdownMenu(c.Key("contract"), t, anchor, contract, opts)
 			} else {
-				nui.ContextMenu(c.Key("contract"), t, anchor, contract, items, opts)
+				nui.ContextMenu(c.Key("contract"), t, anchor, contract, opts)
 			}
 			ui.Text(c, result)
 			ui.Textf(c, "Menu actions: %d · Checked: %d · Open changes: %d · Reorders: %d", selected, checkedChanges, opened, reordered)
 		})
-		p.Deactivate = append(p.Deactivate, func() { *contract = nui.MenuState{} })
+		p.Deactivate = append(p.Deactivate, func() { contract.Open = false })
 		for _, sample := range []struct{ id, title string }{{"basic", "Actions and disabled items"}, {"nested", "Nested export menu"}, {"checks", "Checked and radio items"}} {
 			state := &nui.MenuState{}
 			result := "No action"
 			pinned := false
 			format := "csv"
-			add(sample.id, sample.title, "Use arrows, Enter and Escape. Context targets also support Shift+F10. Results use stable item IDs.", func(c *ui.Context, t nui.Theme) {
+			var submit func()
+			submit = func() {
 				items := []nui.MenuItem{{ID: "workspace", Label: "Workspace", Kind: nui.MenuLabel}, {ID: "open", Label: "Open workspace", Description: "Continue editing", Shortcut: "Ctrl+O", OnSelect: func() { result = "Workspace opened" }}, {ID: "unavailable", Label: "Unavailable action", Disabled: true}}
 				if sample.id == "nested" {
 					items = append(items, nui.MenuItem{ID: "export", Label: "Export", Children: []nui.MenuItem{{ID: "csv", Label: "CSV file", OnSelect: func() { result = "CSV export prepared" }}, {ID: "json", Label: "JSON file", OnSelect: func() { result = "JSON export prepared" }}, {ID: "pdf", Label: "PDF report", Disabled: true}}})
 				}
 				if sample.id == "checks" {
-					items = append(items, nui.MenuItem{ID: "pin", Label: "Pin workspace", Checked: nui.Set(pinned), OnSelect: func() { pinned = !pinned; result = fmt.Sprintf("Pinned: %t", pinned) }})
+					items = append(items, nui.MenuItem{ID: "pin", Label: "Pin workspace", Checked: nui.Set(pinned), OnSelect: func() { pinned = !pinned; result = fmt.Sprintf("Pinned: %t", pinned); submit() }})
 					for _, v := range []string{"csv", "json"} {
-						items = append(items, nui.MenuItem{ID: v, Label: "Format " + v, Radio: true, Checked: nui.Set(format == v), OnSelect: func() { format = v; result = "Format: " + v }})
+						items = append(items, nui.MenuItem{ID: v, Label: "Format " + v, Radio: true, Checked: nui.Set(format == v), OnSelect: func() { format = v; result = "Format: " + v; submit() }})
 					}
 				}
+				state.SetItems(items)
+			}
+			submit()
+			add(sample.id, sample.title, "Use arrows, Enter and Escape. Context targets also support Shift+F10. Results use stable item IDs.", func(c *ui.Context, t nui.Theme) {
 				if id == "dropdown-menu" {
 					anchor := nui.Button(c, t, "Project actions "+sample.id, nui.ButtonOptions{Variant: nui.Outline, Trailing: lucide.ChevronDown()})
-					nui.DropdownMenu(c, t, anchor, state, items, nui.MenuOptions{Label: "Project menu " + sample.id, Width: nui.Set(float32(280))})
+					nui.DropdownMenu(c, t, anchor, state, nui.MenuOptions{Label: "Project menu " + sample.id, Width: nui.Set(float32(280))})
 				} else {
 					target := ui.Column(c).FillWidth().Padding(20).Border(1, t.Border).Radius(8).Label("Project context " + sample.id).Children(func() { ui.Text(c, "Right-click or press Shift+F10 here.") })
-					nui.ContextMenu(c, t, target, state, items, nui.MenuOptions{Label: "Project context menu " + sample.id})
+					nui.ContextMenu(c, t, target, state, nui.MenuOptions{Label: "Project context menu " + sample.id})
 				}
 				ui.Text(c, result).Role(ui.RoleStatus)
 			})
-			p.Deactivate = append(p.Deactivate, func() { *state = nui.MenuState{} })
+			p.Deactivate = append(p.Deactivate, func() { state.Open = false })
 		}
 		if id == "dropdown-menu" {
 			model := &State{}
@@ -338,6 +353,7 @@ func (a *State) overlayPage(id string) *componentPage {
 			pointMenu := &nui.MenuState{}
 			blocked, moved := false, false
 			clicks, changes := 0, 0
+			pointMenu.SetItems([]nui.MenuItem{{ID: "move", Label: "Move context target", Close: nui.Set(false), OnSelect: func() { moved = !moved }}, {ID: "done", Label: "Finish context action"}})
 			add("position", "Pointer position and target actions", "Right-click twice at different points. Moving the target keeps the open menu at its original window position; disabling the menu leaves the target's primary action available.", func(c *ui.Context, t nui.Theme) {
 				nui.Switch(c.Key("disabled"), t, &blocked, nui.SwitchOptions{Label: "Disable point menu"})
 				left := float32(0)
@@ -345,7 +361,7 @@ func (a *State) overlayPage(id string) *componentPage {
 					left = 40
 				}
 				target := nui.Button(c.Key("target"), t, "Point menu target", nui.ButtonOptions{Variant: nui.Outline}).Width(300).Height(80).AlignSelf(ui.Start).Margin(0, 0, 0, left).OnClick(func() { clicks++ })
-				nui.ContextMenu(c.Key("point"), t, target, pointMenu, []nui.MenuItem{{ID: "move", Label: "Move context target", Close: nui.Set(false), OnSelect: func() { moved = !moved }}, {ID: "done", Label: "Finish context action"}}, nui.MenuOptions{Label: "Point context panel", Disabled: blocked, Width: nui.Set(float32(200)), OnOpenChange: func(bool) { changes++ }})
+				nui.ContextMenu(c.Key("point"), t, target, pointMenu, nui.MenuOptions{Label: "Point context panel", Disabled: blocked, Width: nui.Set(float32(200)), OnOpenChange: func(bool) { changes++ }})
 				nui.Button(c.Key("open"), t, "Open context at target", nui.ButtonOptions{Variant: nui.Soft}).AlignSelf(ui.Start).OnClick(func() { pointMenu.Open = true })
 				ui.Textf(c, "Target clicks: %d · Menu changes: %d · Moved: %v", clicks, changes, moved)
 			})
@@ -356,8 +372,9 @@ func (a *State) overlayPage(id string) *componentPage {
 		size, manual, vertical, underline := nui.MD, false, false, false
 		content, keep, reverse, removed, customIndicator := true, true, false, false, false
 		changes := 0
+		selectState15 := submittedSelect([]nui.Option[nui.Size]{{Value: nui.XS, Label: "XS"}, {Value: nui.SM, Label: "SM"}, {Value: nui.MD, Label: "MD"}, {Value: nui.LG, Label: "LG"}, {Value: nui.XL, Label: "XL"}})
 		add("contract", "Accessories, content and stable state", "Use manual activation, edit the draft, then reorder or change direction without losing the selection. Removing the active tab repairs focus without reporting a user selection.", func(c *ui.Context, t nui.Theme) {
-			nui.Select(c.Key("size"), t, &size, []nui.Option[nui.Size]{{Value: nui.XS, Label: "XS"}, {Value: nui.SM, Label: "SM"}, {Value: nui.MD, Label: "MD"}, {Value: nui.LG, Label: "LG"}, {Value: nui.XL, Label: "XL"}}, nui.SelectOptions{Label: "Contract tab size"})
+			nui.Select(c.Key("size"), t, &size, selectState15, nui.SelectOptions{Label: "Contract tab size"})
 			nui.Switch(c.Key("manual"), t, &manual, nui.SwitchOptions{Label: "Manual tab activation"})
 			nui.Switch(c.Key("content"), t, &content, nui.SwitchOptions{Label: "Show tab content"})
 			nui.Switch(c.Key("keep"), t, &keep, nui.SwitchOptions{Label: "Keep tab content"})

@@ -82,6 +82,8 @@ func TestDIPMenuHairlines(t *testing.T) {
 			var state nui.MenuState
 			items := []nui.MenuItem{{ID: "first", Label: "First"}, {ID: "line1", Kind: nui.MenuSeparator}, {ID: "rich", Label: "Rich", Description: "Unequal row height"}, {ID: "line2", Kind: nui.MenuSeparator}, {ID: "sub", Label: "Submenu", Children: []nui.MenuItem{{ID: "child", Label: "Child"}, {ID: "line3", Kind: nui.MenuSeparator}, {ID: "last", Label: "Last"}}}}
 			count := 0
+			state.SetItems(items)
+			state.SetItems(items)
 			tt := ui.NewTester(func(c *ui.Context) {
 				count = 0
 				a := nui.Button(c.Key("anchor"), th, "Actions", nui.ButtonOptions{}).Absolute().Left(20.3).Top(20.3)
@@ -92,9 +94,9 @@ func TestDIPMenuHairlines(t *testing.T) {
 					}
 				}}
 				if contextMenu {
-					nui.ContextMenu(c, th, a, &state, items, o)
+					nui.ContextMenu(c, th, a, &state, o)
 				} else {
-					nui.DropdownMenu(c, th, a, &state, items, o)
+					nui.DropdownMenu(c, th, a, &state, o)
 				}
 			}, 650, 430)
 			dipScales(t, tt, func(t *testing.T, scale, zoom float32) {
@@ -138,6 +140,8 @@ func TestDIPComponentStrokes(t *testing.T) {
 					var list nui.ListboxState
 					var selected []string
 					count := 0
+					listSelection1 := chosenSelection(selected)
+					list.SetItems([]nui.ListboxItem{{ID: "a", Label: "Alpha"}, {ID: "line1", Kind: nui.ListboxSeparator}, {ID: "b", Label: "Beta", Description: "Details"}, {ID: "line2", Kind: nui.ListboxSeparator}, {ID: "c", Label: "Gamma"}})
 					tt := ui.NewTester(func(c *ui.Context) {
 						count = 0
 						slot := nui.Indicator
@@ -167,7 +171,7 @@ func TestDIPComponentStrokes(t *testing.T) {
 							case "timeline":
 								nui.Timeline(c, th, []nui.TimelineItem{{ID: "a", Title: "Alpha", Description: "Details"}, {ID: "b", Title: "Beta"}, {ID: "c", Title: "Gamma"}}, nui.TimelineOptions{Horizontal: !vertical, Decoration: d}).Fill()
 							case "listbox":
-								nui.Listbox(c, th, &selected, &list, []nui.ListboxItem{{ID: "a", Label: "Alpha"}, {ID: "line1", Kind: nui.ListboxSeparator}, {ID: "b", Label: "Beta", Description: "Details"}, {ID: "line2", Kind: nui.ListboxSeparator}, {ID: "c", Label: "Gamma"}}, nui.ListboxOptions{Decoration: d}).Fill()
+								nui.Listbox(c, th, listSelection1, &list, nui.ListboxOptions{Decoration: d}).Fill()
 							}
 						})
 					}, 510, 410)

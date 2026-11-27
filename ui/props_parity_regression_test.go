@@ -40,9 +40,10 @@ func parityScreenshot(t *testing.T, tt *ui.Tester, name string) {
 // Regressions against the pinned Nuxt UI / Reka UI behavior.
 func TestParityInputMenuEscapeReset(t *testing.T) {
 	var s nui.SearchState
+	s.SetOptions([]nui.Option[string]{{Value: "a", Label: "Alpha"}})
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.InputMenu(c, th, &s, []nui.Option[string]{{Value: "a", Label: "Alpha"}}, nui.InputMenuOptions{Label: "Search"}).Width(300)
+		nui.InputMenu(c, th, &s, nui.InputMenuOptions{Label: "Search"}).Width(300)
 	}, 500, 400)
 	click(t, tt, "Search")
 	tt.Type("Al")
@@ -55,9 +56,10 @@ func TestParityInputMenuEscapeReset(t *testing.T) {
 
 func TestParityInputMenuDeselectionIndicator(t *testing.T) {
 	var s nui.SearchState
+	s.SetOptions([]nui.Option[string]{{Value: "b", Label: "Beta"}})
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.InputMenu(c, th, &s, []nui.Option[string]{{Value: "b", Label: "Beta"}}, nui.InputMenuOptions{Label: "Search", Multiple: true}).Width(300)
+		nui.InputMenu(c, th, &s, nui.InputMenuOptions{Label: "Search", Multiple: true}).Width(300)
 	}, 500, 400)
 	click(t, tt, "Search")
 	tt.Key(0, ui.KeyDown)
@@ -67,8 +69,8 @@ func TestParityInputMenuDeselectionIndicator(t *testing.T) {
 	tt.Key(0, ui.KeyDown)
 	tt.Move(490, 390)
 	tt.Advance(time.Second)
-	if len(s.SelectedValues) != 0 {
-		t.Fatal(s.SelectedValues)
+	if s.SelectedValues.Len() != 0 {
+		t.Fatal(s.SelectedValues.Values())
 	}
 	r := bounds(t, tt, "Beta")
 	green := func() int {
@@ -97,9 +99,10 @@ func TestParityInputMenuDeselectionIndicator(t *testing.T) {
 
 func TestParityInputMenuCreateAlwaysExactMatch(t *testing.T) {
 	var s nui.SearchState
+	s.SetOptions([]nui.Option[string]{{Value: "Alpha", Label: "Alpha"}})
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.InputMenu(c, th, &s, []nui.Option[string]{{Value: "Alpha", Label: "Alpha"}}, nui.InputMenuOptions{Label: "Search", CreateWhenAlways: true, OnCreate: func(string) {}}).Width(300)
+		nui.InputMenu(c, th, &s, nui.InputMenuOptions{Label: "Search", CreateWhenAlways: true, OnCreate: func(string) {}}).Width(300)
 	}, 500, 400)
 	click(t, tt, "Search")
 	tt.Type("Alpha")
@@ -111,9 +114,11 @@ func TestParityInputMenuCreateAlwaysExactMatch(t *testing.T) {
 func TestParitySelectMenuReselectCloses(t *testing.T) {
 	s := nui.SelectMenuState{}
 	selected := []string{"a"}
+	listSelection1 := chosenSelection(selected)
+	s.SetItems([]nui.ListboxItem{{ID: "a", Label: "Alpha"}, {ID: "b", Label: "Beta"}})
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.SelectMenu(c, th, &selected, &s, []nui.ListboxItem{{ID: "a", Label: "Alpha"}, {ID: "b", Label: "Beta"}}, nui.SelectMenuOptions{Label: "Choose"}).Width(300)
+		nui.SelectMenu(c, th, listSelection1, &s, nui.SelectMenuOptions{Label: "Choose"}).Width(300)
 	}, 500, 500)
 	click(t, tt, "Choose")
 	tt.Type("Al")
@@ -121,7 +126,7 @@ func TestParitySelectMenuReselectCloses(t *testing.T) {
 	tt.Key(0, ui.KeyEnter)
 	tt.Advance(time.Second)
 	if s.Open || s.Query != "" {
-		t.Fatalf("reselect: Open=%v Query=%q selected=%v", s.Open, s.Query, selected)
+		t.Fatalf("reselect: Open=%v Query=%q selected=%v", s.Open, s.Query, listSelection1.Values())
 	}
 }
 
@@ -175,13 +180,15 @@ func TestParityTagsRejectedPasteDoesNotInsertDraft(t *testing.T) {
 func TestParityListboxSingleToggle(t *testing.T) {
 	var s nui.ListboxState
 	selected := []string{"a"}
+	listSelection2 := chosenSelection(selected)
+	s.SetItems([]nui.ListboxItem{{ID: "a", Label: "Alpha"}})
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.Listbox(c, th, &selected, &s, []nui.ListboxItem{{ID: "a", Label: "Alpha"}}, nui.ListboxOptions{Label: "Choices", SelectionBehavior: nui.SelectionToggle})
+		nui.Listbox(c, th, listSelection2, &s, nui.ListboxOptions{Label: "Choices", SelectionBehavior: nui.SelectionToggle})
 	}, 500, 300)
 	click(t, tt, "Alpha")
-	if len(selected) != 0 {
-		t.Fatalf("toggle on selected single item retained %v", selected)
+	if listSelection2.Len() != 0 {
+		t.Fatalf("toggle on selected single item retained %v", listSelection2.Values())
 	}
 }
 
@@ -248,11 +255,14 @@ func TestParitySelectMultipleTheme(t *testing.T) {
 	single := "a"
 	multiple := []string{"a"}
 	options := []nui.Option[string]{{Value: "a", Label: "Alpha"}}
+	selectState1 := submittedSelect(options)
+	selectState2 := submittedSelect(options)
+	selectedState2 := chosenSelection(multiple)
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{}).WithComponent(nui.ComponentSelect, nui.ComponentTheme{Size: nui.XL})
 		ui.Column(c).Gap(20).Children(func() {
-			nui.Select(c, th, &single, options, nui.SelectOptions{Label: "Single"})
-			nui.SelectMultiple(c, th, &multiple, options, nui.SelectOptions{Label: "Multiple"})
+			nui.Select(c, th, &single, selectState1, nui.SelectOptions{Label: "Single"})
+			nui.SelectMultiple(c, th, selectedState2, selectState2, nui.SelectOptions{Label: "Multiple"})
 		})
 	}, 500, 300)
 	a, b := bounds(t, tt, "Single"), bounds(t, tt, "Multiple")
@@ -384,9 +394,10 @@ func TestParityControlledTooltipHoverAndClick(t *testing.T) {
 func TestParityInputMenuCreateKeepsSearch(t *testing.T) {
 	var s nui.SearchState
 	created := ""
+	s.SetOptions([]nui.Option[string]{{Value: "a", Label: "Alpha"}})
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
-		nui.InputMenu(c, th, &s, []nui.Option[string]{{Value: "a", Label: "Alpha"}}, nui.InputMenuOptions{Label: "Search", OnCreate: func(v string) { created = v }}).Width(300)
+		nui.InputMenu(c, th, &s, nui.InputMenuOptions{Label: "Search", OnCreate: func(v string) { created = v }}).Width(300)
 	}, 500, 300)
 	click(t, tt, "Search")
 	tt.Type("new")
