@@ -46,6 +46,7 @@ type page struct {
 type extractor struct {
 	set          *token.FileSet
 	types        map[string]ast.Expr
+	parameters   map[string][]string
 	declarations map[string]api
 	notes        map[string]showcase.Text
 }
@@ -59,6 +60,10 @@ func (e *extractor) print(n any) string {
 }
 func (e *extractor) fields(expr ast.Expr, seen map[string]bool, owner string) []field {
 	switch v := expr.(type) {
+	case *ast.IndexExpr:
+		return e.instantiatedFields(v.X, []ast.Expr{v.Index}, seen, owner)
+	case *ast.IndexListExpr:
+		return e.instantiatedFields(v.X, v.Indices, seen, owner)
 	case *ast.Ident:
 		if seen[v.Name] {
 			return nil
@@ -101,6 +106,9 @@ func (e *extractor) fields(expr ast.Expr, seen map[string]bool, owner string) []
 					zero = "0"
 				}
 				description := e.notes[name.Name]
+				if owner == "KeyedTableOptions" {
+					description = e.notes["TableOptions."+name.Name]
+				}
 				if specific, ok := e.notes[owner+"."+name.Name]; ok {
 					description = specific
 				}
@@ -111,8 +119,30 @@ func (e *extractor) fields(expr ast.Expr, seen map[string]bool, owner string) []
 	}
 	return nil
 }
+
+// Resolve generic aliases so TableOptions still exposes concrete string callback
+// fields in the API reference instead of disappearing or showing unbound K.
+func (e *extractor) instantiatedFields(base ast.Expr, arguments []ast.Expr, seen map[string]bool, owner string) []field {
+	fields := e.fields(base, seen, owner)
+	name, ok := base.(*ast.Ident)
+	if !ok {
+		return fields
+	}
+	for i, parameter := range e.parameters[name.Name] {
+		if i >= len(arguments) {
+			break
+		}
+		pattern := regexp.MustCompile(`\b` + regexp.QuoteMeta(parameter) + `\b`)
+		replacement := e.print(arguments[i])
+		for j := range fields {
+			fields[j].Type = pattern.ReplaceAllStringFunc(fields[j].Type, func(string) string { return replacement })
+		}
+	}
+	return fields
+}
+
 func extract(root string) *extractor {
-	e := &extractor{set: token.NewFileSet(), types: map[string]ast.Expr{}, declarations: map[string]api{}, notes: showcase.APINotes()}
+	e := &extractor{set: token.NewFileSet(), types: map[string]ast.Expr{}, parameters: map[string][]string{}, declarations: map[string]api{}, notes: showcase.APINotes()}
 	files, err := filepath.Glob(filepath.Join(root, "ui", "*.go"))
 	if err != nil {
 		log.Fatal(err)
@@ -146,6 +176,13 @@ func extract(root string) *extractor {
 				for _, spec := range d.Specs {
 					if t, ok := spec.(*ast.TypeSpec); ok && t.Name.IsExported() {
 						e.types[t.Name.Name] = t.Type
+						if t.TypeParams != nil {
+							for _, parameter := range t.TypeParams.List {
+								for _, name := range parameter.Names {
+									e.parameters[t.Name.Name] = append(e.parameters[t.Name.Name], name.Name)
+								}
+							}
+						}
 						e.declarations[t.Name.Name] = api{Name: t.Name.Name, Signature: "type " + e.print(t), File: file, Line: e.set.Position(t.Pos()).Line}
 					}
 				}

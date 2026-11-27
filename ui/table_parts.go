@@ -15,11 +15,11 @@ const (
 	TableLoadingElastic         = LoadingElastic
 )
 
-type tableEvents struct {
+type tableEvents[K TableKey] struct {
 	sort []ui.SortOrder
 	// selection holds the IDs chosen as of the last build without an input
 	// notice, in no order: the notice compares the new choice against it.
-	selection   []string
+	selection   []K
 	initialized bool
 }
 
@@ -55,7 +55,7 @@ func (m tableDividerMaterial) PaintMaterial(p *ui.Painter, r ui.Rect, _ [4]float
 
 // tableSelectionDiffers reports whether selection holds other IDs than keys,
 // which hold no duplicates: it reads the selection without copying it.
-func tableSelectionDiffers(keys []string, selection *ui.Selection[string]) bool {
+func tableSelectionDiffers[K TableKey](keys []K, selection *ui.Selection[K]) bool {
 	if len(keys) != selection.Len() {
 		return true
 	}
@@ -68,7 +68,7 @@ func tableSelectionDiffers(keys []string, selection *ui.Selection[string]) bool 
 }
 
 // snapshotTableSelection refills keys, reusing its room, with the IDs of selection.
-func snapshotTableSelection(keys []string, selection *ui.Selection[string]) []string {
+func snapshotTableSelection[K TableKey](keys []K, selection *ui.Selection[K]) []K {
 	keys = keys[:0]
 	for id := range selection.All() {
 		keys = append(keys, id)
@@ -89,7 +89,7 @@ func finishTableCell(t Theme, slot Slot, e ui.Element, base PartStyle, table, co
 	}
 }
 
-func tableLoading(c *ui.Context, t Theme, y float32, o TableOptions) {
+func tableLoading[K TableKey](c *ui.Context, t Theme, y float32, o KeyedTableOptions[K]) {
 	config := selected(defaults(t, ComponentTable, ComponentTheme{Color: Primary}), ComponentTheme{Color: o.LoadingColor})
 	style := PartStyle{Foreground: Set(inputColor(t, config.Color))}
 	style = mergeStyle(style, t.components[ComponentTable].UI[Indicator])

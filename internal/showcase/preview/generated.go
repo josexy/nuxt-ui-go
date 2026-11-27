@@ -1956,20 +1956,26 @@ type tableExample struct {
 	Live                          showcase.Runtime
 	Table                         nui.TableState[string]
 	Orders                        []ui.SortOrder
-	Empty, Multiple               bool
+	Empty, Multiple, Borrowed     bool
+	Rows                          []string
 	SortChanges, SelectionChanges int
 	Activated                     string
 }
 
 func (s *tableExample) View(c *ui.Context, t nui.Theme, cfg showcase.Config) {
 	s.Live.Begin(c, t, cfg)
-	if s.Empty != cfg.Bool("empty") {
+	if s.Empty != cfg.Bool("empty") || s.Borrowed != cfg.Bool("borrowed") {
 		s.Empty = cfg.Bool("empty")
-		rows := []string{"NuxtUI Go", "MyGo", "Documentation"}
+		s.Borrowed = cfg.Bool("borrowed")
+		rows := s.Rows
 		if s.Empty {
 			rows = nil
 		}
-		s.Table.SetRows(rows, func(v string) string { return v })
+		if s.Borrowed {
+			s.Table.SetBorrowedRows(rows, func(v string) string { return v })
+		} else {
+			s.Table.SetRows(rows, func(v string) string { return v })
+		}
 	}
 	if s.Multiple != cfg.Bool("multiple") {
 		s.Multiple = cfg.Bool("multiple")
@@ -2898,7 +2904,8 @@ func New(id string) (Example, error) {
 		return s, nil
 	case "table":
 		s := &tableExample{}
-		s.Table.SetRows([]string{"NuxtUI Go", "MyGo", "Documentation"}, func(v string) string { return v })
+		s.Rows = []string{"NuxtUI Go", "MyGo", "Documentation"}
+		s.Table.SetRows(s.Rows, func(v string) string { return v })
 		s.Activated = "None"
 		return s, nil
 	case "tree":

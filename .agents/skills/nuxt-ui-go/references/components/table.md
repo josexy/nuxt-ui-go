@@ -7,7 +7,7 @@ Display tabular data with virtual scrolling, single/multi-column sorting, and ro
 - Category: Forms and data
 - Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
 - Functions: `Table`
-- Types: `TableOptions`, `TableColumn`, `TableState`
+- Types: `TableOptions`, `TableColumn`, `TableState`, `KeyedTableState`, `KeyedTableOptions`, `TableKey`, `TableCell`
 - Theme key: `nui.ComponentTable` (for `Theme.WithComponent`)
 - Sections: Usage · Things to know · API · Documentation excerpts · Complete example
 
@@ -15,39 +15,28 @@ Display tabular data with virtual scrolling, single/multi-column sorting, and ro
 
 Load data with `TableState.SetRows`, giving each row a stable, unique `ID`. Columns define text via `Value`, local sorting via `Compare`, and custom rendering via `Cell`. Point `List.SortBy` at a persistent slice for multi-column sorting, or enable `ManualSorting` for server-side sorting.
 
+#### Borrowing and typed IDs
+
+Sorting still leaves the application array unchanged. Borrowed rows require caller-validated unique stable IDs and main-thread rebinding after changes; clearing data releases the borrowed view. For numeric IDs, use `KeyedTableState[Request, uint64]`, `SetBorrowedRows(requests, func(row Request) uint64 { return row.ID })`, and `KeyedTableOptions[uint64]`; callbacks keep numeric IDs, including zero and values above 2^63. `TableState[T]` and `TableOptions` retain the existing string API. Use `BuildCell` with `TableCell[T].Index`, `.Value`, `.Selected`, and the separate current-build Element parameter when custom cell decoration needs row context.
+
 ## Things to know
 
 - Headers stay pinned above the virtualized body. `Fixed` locks column reordering and resizing—it does not freeze columns while horizontally scrolling.
 - `OnSelectionChange` reports selected IDs; `OnActivate` fires on `Enter` or double-click (unlike Nuxt UI's single-click `select`).
 - Filtering, pagination, and fetching belong to your app (use `List.EndReached` + `NearEnd` for load-more). Frozen columns, grouped headers, row expansion, and aggregation are not supported.
+- `SetRows` copies and validates. `SetBorrowedRows` trusts caller-owned data and unique keys; it does not retain a membership map. Never retain the Element supplied to BuildCell.
 
 ## API
 
 ```go
-func Table[T any](c *ui.Context, t Theme, s *TableState[T], columns []TableColumn[T], o TableOptions) ui.Element
+func Table[T any, K TableKey](c *ui.Context, t Theme, s *KeyedTableState[T, K], columns []TableColumn[T], o KeyedTableOptions[K]) ui.Element
 ```
 
 ### TableOptions
 
 ```go
-type TableOptions struct {
-	Label, EmptyText string
-	Caption          string
-	Height           float32
-	Disabled         bool
-	// ManualSorting keeps the SetRows order while headers update sort state.
-	ManualSorting                          bool
-	Loading                                bool
-	LoadingColor                           Color
-	LoadingAnimation                       TableLoadingAnimation
-	BuildCaption, BuildEmpty, BuildLoading func(*ui.Context, Theme)
-	OnSortChange                           func([]ui.SortOrder)
-	OnSelectionChange                      func([]string)
-	// OnActivate reports the row ID on Enter or double-click.
-	OnActivate func(string)
-	OnChange   func()
-	Decoration
-}
+// TableOptions preserves the string-keyed table options and callbacks.
+type TableOptions = KeyedTableOptions[string]
 ```
 
 ### TableColumn
@@ -64,6 +53,9 @@ type TableColumn[T any] struct {
 	Value    func(T) string
 	Compare  func(T, T) int
 	Cell     func(*ui.Context, Theme, T, bool)
+	// BuildCell takes precedence over Cell and Value. The Element parameter is
+	// the existing styled content container, valid only during this callback.
+	BuildCell func(*ui.Context, Theme, ui.Element, TableCell[T])
 	Decoration
 }
 ```
@@ -71,28 +63,99 @@ type TableColumn[T any] struct {
 ### TableState
 
 ```go
-type TableState[T any] struct {
+// TableState preserves the string-keyed table API.
+type TableState[T any] = KeyedTableState[T, string]
+```
+
+### KeyedTableState
+
+```go
+// KeyedTableState keeps typed row identities, selection, sorting and layout.
+// SetRows owns a copy; SetBorrowedRows reads caller-owned data without copying it.
+type KeyedTableState[T any, K TableKey] struct {
 	List      ui.ListState
-	Selection ui.Selection[string]
+	Selection ui.Selection[K]
 	Sort      ui.SortOrder
 
 	CellBuilds int
 	// contains filtered or unexported fields
 }
 
+// ClearSelection releases all chosen identities without changing the native
+// bound address, cursor or range anchor. It does not emit user-input callbacks.
+func (s *KeyedTableState[T, K]) ClearSelection()
+
 // InvalidateSort requests one new sort after a comparator's captured inputs
 // change. SetRows already invalidates sorting when the row data changes.
-func (s *TableState[T]) InvalidateSort()
+func (s *KeyedTableState[T, K]) InvalidateSort()
 
-func (s *TableState[T]) Len() int
+func (s *KeyedTableState[T, K]) Len() int
 
-func (s *TableState[T]) Row(i int) T
+func (s *KeyedTableState[T, K]) Row(i int) T
 
-func (s *TableState[T]) RowID(i int) string
+func (s *KeyedTableState[T, K]) RowID(i int) K
+
+// SetBorrowedRows binds caller-owned rows without copying their values. It keeps
+// one identity snapshot, and reports whether input identities or order changed.
+// Call it outside rendering when data changes, including same-ID value changes.
+//
+// Unlike SetRows, this is a trusted-data binding: the caller must supply unique,
+// stable keys (nonempty for strings), and a pure key function. Validate untrusted
+// data before binding it. No full membership map or validation scratch is kept.
+// The slice must remain valid until the next binding; update it only on the UI
+// thread between builds, then rebind before rendering. The table never changes
+// the caller's array. Local sorting uses a separate permutation; manual sorting
+// reads the supplied order directly. Binding nil releases all borrowed data.
+func (s *KeyedTableState[T, K]) SetBorrowedRows(rows []T, key func(T) K) bool
 
 // SetRows copies row values and validates identities once, outside rendering.
 // Removed rows are removed from selection; retain the full data separately for filtering.
-func (s *TableState[T]) SetRows(rows []T, key func(T) string)
+func (s *KeyedTableState[T, K]) SetRows(rows []T, key func(T) K)
+```
+
+### KeyedTableOptions
+
+```go
+// KeyedTableOptions configures Table with callbacks using its row identity type.
+type KeyedTableOptions[K TableKey] struct {
+	Label, EmptyText string
+	Caption          string
+	Height           float32
+	Disabled         bool
+	// ManualSorting keeps the SetRows order while headers update sort state.
+	ManualSorting                          bool
+	Loading                                bool
+	LoadingColor                           Color
+	LoadingAnimation                       TableLoadingAnimation
+	BuildCaption, BuildEmpty, BuildLoading func(*ui.Context, Theme)
+	OnSortChange                           func([]ui.SortOrder)
+	OnSelectionChange                      func([]K)
+	// OnActivate reports the row ID on Enter or double-click.
+	OnActivate func(K)
+	OnChange   func()
+	Decoration
+}
+```
+
+### TableKey
+
+```go
+// TableKey is a stable string or integer row identity. Numeric zero is valid.
+type TableKey interface {
+	~string | ~int | ~int8 | ~int16 | ~int32 | ~int64 |
+		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr
+}
+```
+
+### TableCell
+
+```go
+// TableCell describes the displayed row supplied to BuildCell.
+type TableCell[T any] struct {
+	Value    T
+	Index    int
+	Selected bool
+}
 ```
 
 ### Related types
@@ -131,7 +194,7 @@ From the library documentation. Links point to other component references in thi
 
 ##### Prepare rows and columns
 
-TableState[T] stores the current row data, sorting, selection, and column layout. Call SetRows when the data changes; do not set the rows again on every view build.
+TableState[T] stores the current row data, sorting, selection, and column layout. Call SetRows when the data changes; do not set the rows again on every view build. It is the string-keyed alias of `KeyedTableState[T, K]`; `TableOptions` likewise aliases `KeyedTableOptions[string]`. Existing string-keyed calls remain source-compatible.
 
 ```go
 // Declare the type and state in your app model.
@@ -171,6 +234,7 @@ SetRows copies the row values and checks that each ID is non-empty and unique. I
 | `TableColumn.Compare` | Stable local sorting; returns the comparison of two rows |
 | `TableColumn.Sortable` | When unset, determined by Compare. An explicit false prevents sorting the column; true without Compare requires ManualSorting |
 | `TableColumn.Cell` | A custom cell that receives the Context, the Theme, the row value, and whether it is selected |
+| `TableColumn.BuildCell` | Takes precedence over Cell/Value; receives the existing styled Element and a `TableCell[T]` with Value, displayed Index, and Selected. Decorate that container and build content synchronously; never retain Element or capture it in deferred callbacks |
 | `Selection` / `Sort` | A `ui.Selection[string]` and a `ui.SortOrder`, respectively |
 | `state.List.SortBy` | Point it at a persistent `[]ui.SortOrder` to enable multi-column sorting; Sort mirrors the first entry |
 | `ManualSorting` | Keeps the input order from SetRows; your app loads or computes the data based on the sort state |
@@ -201,6 +265,55 @@ nui.Table(c.Key("files"), t, &app.files, columns, nui.TableOptions{
 Restore it by assigning the saved `ui.TableLayout` to `List.Columns` before the first build. The internal active row that OnActivate reads follows its record: after sorting or several SetRows calls before the next build, Enter activates the same record even though its row moved. When SetRows removes that record, no row is active and Enter does nothing until the user chooses another row.
 
 Table sets List.Key, Selection, Sort, and Label; do not override these bindings in your app. List.SortBy, Columns, Selected, KeepOffset, FollowEnd, RowHeight, EndReached, NearEnd, HeaderMenu, CellMenu, and similar fields follow MyGo's rules. List.MoveAnimation is not supported through Table yet: nui's motion levels do not govern it, and MyGo turns it off only for the desktop's reduced-motion setting, so rows would still glide when `AppConfig.DisableAnimations` turns nui's motion off. List.CellSelect is a native extension, and this wrapper has no RowHeader column. Full cell selection semantics differ from row selection notifications.
+
+##### Borrowed rows and numeric identities
+
+Use `KeyedTableState[T, K]` and `KeyedTableOptions[K]` for string or integer IDs,
+including named types, numeric zero, and the full uint64 range. Selection,
+RowID, OnActivate and OnSelectionChange retain that type; selection notifications
+are sorted by key value. Only accessible display labels format numeric IDs.
+
+`SetRows` copies values and validates identities before replacing a snapshot.
+`SetBorrowedRows` is an explicit trusted-data path: the app guarantees unique,
+stable keys (nonempty strings), a pure key function, and the lifetime of its
+source slice. It retains no row-value copy, full membership map or validation
+scratch. Validate untrusted input before binding; borrowed binding does not
+perform the copying API's duplicate-ID validation. Update data only on the main
+thread between builds, then rebind before rendering, including when values
+change under the same IDs. Neither setter belongs in an unconditional view build.
+
+```go
+type Request struct {
+    ID uint64
+    Path string
+}
+
+// Persistent application fields:
+var requests []Request
+var table nui.KeyedTableState[Request, uint64]
+
+// After loading/filtering, on the main thread:
+table.SetBorrowedRows(requests, func(row Request) uint64 { return row.ID })
+
+// During the view build:
+nui.Table(c, theme, &table, []nui.TableColumn[Request]{
+    {ID: "path", Title: "Path", Value: func(row Request) string { return row.Path }},
+}, nui.KeyedTableOptions[uint64]{
+    Label: "Requests", ManualSorting: true,
+    OnActivate: func(id uint64) { fmt.Println(id) },
+})
+```
+
+Borrowed state keeps one ordered-ID snapshot so reusing the source array cannot
+hide identity changes. The setter reports whether input IDs/order changed and
+removes selections for absent IDs. Local sorting uses a separate index
+permutation, leaving the source untouched; `ManualSorting` uses the supplied
+order without that extra array. Clearing sorting releases the permutation.
+Shrinking compacts oversized identity/selection storage; binding nil releases
+borrowed data. `ClearSelection` immediately releases the selection map while
+preserving the native binding and navigation state. A mounted Table also compacts
+selection after native input. These releases permit collection without forcing GC.
+Copied and borrowed setters can replace one another on the same state.
 
 ##### Filtering and scope
 
@@ -271,12 +384,27 @@ import (
 type example struct {
 	Table                         nui.TableState[string]
 	Orders                        []ui.SortOrder
-	Multiple                      bool
+	Empty, Multiple, Borrowed     bool
+	Rows                          []string
 	SortChanges, SelectionChanges int
 	Activated                     string
 }
 
 func (s *example) view(c *ui.Context, t nui.Theme) {
+	if s.Empty != false || s.Borrowed != false {
+		s.Empty = false
+		s.Borrowed = false
+		rows := s.Rows
+		if s.Empty {
+			rows = nil
+		}
+		if s.Borrowed {
+			s.Table.SetBorrowedRows(rows, func(v string) string { return v })
+		} else {
+			s.Table.SetRows(rows, func(v string) string { return v })
+		}
+	}
+
 	direction := ui.LeftToRight
 
 	ui.Row(c).Wrap().Gap(8).Children(func() {
@@ -305,7 +433,8 @@ func (s *example) view(c *ui.Context, t nui.Theme) {
 func main() {
 	s := &example{}
 
-	s.Table.SetRows([]string{"NuxtUI Go", "MyGo", "Documentation"}, func(v string) string { return v })
+	s.Rows = []string{"NuxtUI Go", "MyGo", "Documentation"}
+	s.Table.SetRows(s.Rows, func(v string) string { return v })
 	s.Activated = "None"
 	palettes := nui.DefaultPalettes()
 	palettes.Primary, _ = nui.PaletteByName("green")

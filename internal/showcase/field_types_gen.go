@@ -65,6 +65,7 @@ var optionTypes = map[string]reflect.Type{
 	"nui.InputTagsOptions":      reflect.TypeFor[nui.InputTagsOptions](),
 	"nui.InputTimeOptions":      reflect.TypeFor[nui.InputTimeOptions](),
 	"nui.KbdOptions":            reflect.TypeFor[nui.KbdOptions](),
+	"nui.KeyedTableOptions":     reflect.TypeFor[nui.TableOptions](),
 	"nui.LinkOptions":           reflect.TypeFor[nui.LinkOptions](),
 	"nui.ListboxItem":           reflect.TypeFor[nui.ListboxItem](),
 	"nui.ListboxItemOptions":    reflect.TypeFor[nui.ListboxItemOptions](),
