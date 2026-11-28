@@ -130,21 +130,49 @@ Kbds use the SM size by default. The text and the shortcut are separated by `·`
 
 ## DropdownMenu and ContextMenu
 
+### Choose the native or rich path
+
+For plain commands, MyGo's own `anchor.Menu` and `anchor.ContextMenu` are enough. The builder runs when the menu opens and again after a choice; handle the action with `Chosen()`. They support disabled and checked items, shortcut labels (which do not register the shortcut), and submenus, and look like the platform's menus.
+
+```go
+anchor.Menu(func(m *ui.Menu) {
+    if m.Item("Duplicate").ID("duplicate").Chosen() {
+        state.Duplicate()
+    }
+    m.Item("Unavailable").Disabled(true)
+})
+// For the same commands on secondary click or Shift+F10:
+// anchor.ContextMenu(buildCommands)
+```
+
+Use DropdownMenu or ContextMenu when you need filtering, an app-controlled Open state, custom Build content, or part styles.
+
 ### Create an action menu
 
 DropdownMenu opens from a button. ContextMenu opens from a focusable area with a right-click, the Menu key, or Shift+F10.
 
 ```go
+// In app setup. Call submit again whenever an item changes, as Pin does.
+var submit func()
+submit = func() {
+    state.Menu.SetItems([]nui.MenuItem{
+        {ID: "pin", Label: "Pin", Checked: nui.Set(state.Pinned),
+            OnSelect: func() { state.Pinned = !state.Pinned; submit() }},
+        {ID: "export", Label: "Export", Children: []nui.MenuItem{
+            {ID: "csv", Label: "CSV", OnSelect: state.ExportCSV},
+            {ID: "pdf", Label: "PDF", Disabled: true},
+        }},
+    })
+}
+submit()
+
+// In the view:
 anchor := nui.Button(c, t, "Actions", nui.ButtonOptions{})
-nui.DropdownMenu(c.Key("actions"), t, anchor, &state.Menu, []nui.MenuItem{
-    {ID: "pin", Label: "Pin", Checked: nui.Set(state.Pinned),
-        OnSelect: func() { state.Pinned = !state.Pinned }},
-    {ID: "export", Label: "Export", Children: []nui.MenuItem{
-        {ID: "csv", Label: "CSV", OnSelect: state.ExportCSV},
-        {ID: "pdf", Label: "PDF", Disabled: true},
-    }},
-}, nui.MenuOptions{Label: "Document actions"})
+nui.DropdownMenu(c.Key("actions"), t, anchor, &state.Menu,
+    nui.MenuOptions{Label: "Document actions"})
 ```
+
+Submit the items with `MenuState.SetItems` during setup, and again whenever a label, checked or disabled state, the structure, or a callback changes (see [Submitted data and SelectionState](inputs.md#submitted-data-and-selectionstate)). IDs must be non-empty and unique across the whole tree. Pointers such as Content.SearchTerm stay live bindings and need no resubmission.
 
 Keep one MenuState per window and per trigger; your app can read and write Open. DropdownMenu gives the anchor menu-button and expanded semantics. ContextMenu stores the right-click position in window coordinates. Another right-click only repositions the menu and does not report a second open. If the target's layout moves, the menu stays at the original click position. The Menu key and Shift+F10 use the target's bottom-left corner as the anchor point, and opening from the app uses the current target area. On close, it returns a zero-value panel and clears the old pointer position.
 
@@ -168,13 +196,17 @@ Keep one MenuState per window and per trigger; your app can read and write Open.
 
 MenuOptions.Size defaults to MD, can be inherited from the component theme, or can be set explicitly from XS to XL. Menus use the [option row style](inputs.md#option-row-appearance): at MD, the padding is 6 DIP and icons are 20 DIP. Descriptions use the same font size as labels, and icons and trailing content align with the first line. The default avatar diameter is 16/16/20/20/24 DIP by size; an explicit Avatar.Size takes precedence. CheckedIcon defaults to Check and LoadingIcon to LoaderCircle. The submenu arrow follows RTL.
 
-MenuOptions.Label sets the panel's name. Width follows the content by default, with a minimum of 128 DIP. MaxHeight defaults to 320 DIP, long menus scroll, and an explicit 0 hides the visible content. A menu placed above or below its trigger is also no taller than the room between the trigger and the window edge on that side, and a menu opened at the pointer is no taller than the window, so every item, and the filter field when there is one, can be reached by scrolling in a short window. The DropdownMenu root opens at BottomStart with an 8 DIP offset by default; ContextMenu opens at RightStart with a 2 DIP offset. Submenus open outward in the reading direction with a 3 DIP offset. Placement and Offset can both be overridden explicitly; for ContextMenu, this is a native extension. Menus stay clear of the window edges through AttachTo. There is no custom collision boundary or arrow option.
+MenuOptions.Label sets the panel's name. Width follows the content of the rows currently built, with a minimum of 128 DIP, so it can change while scrolling; set Width for a fixed width. MaxHeight defaults to 320 DIP, long menus scroll, and an explicit 0 hides the visible content. A menu placed above or below its trigger is also no taller than the room between the trigger and the window edge on that side, and a menu opened at the pointer is no taller than the window, so every item, and the filter field when there is one, can be reached by scrolling in a short window. The DropdownMenu root opens at BottomStart with an 8 DIP offset by default; ContextMenu opens at RightStart with a 2 DIP offset. Submenus open outward in the reading direction with a 3 DIP offset. Placement and Offset can both be overridden explicitly; for ContextMenu, this is a native extension. Menus stay clear of the window edges through AttachTo. There is no custom collision boundary or arrow option.
+
+Each open level is a virtualized list: only the visible rows are built, and Build and Style run only for those rows, so they must not perform app actions. Small menus shrink to fit. Keyboard navigation, including Home, End, and typeahead, scrolls to the target item. Removing or disabling the parent item of an open submenu closes the submenu and moves focus back.
 
 Shortcut is split on `+` into Kbd keys; in `Ctrl++`, the final `+` is the plus key. FormatKey converts key names to each platform's display form. XS and SM menus use SM Kbds, MD and LG use MD, and XL uses LG; the gaps between keys are 2/2/2/4/4 DIP. Go shows shortcuts even in narrow windows.
 
 ### Filtering and controlled state
 
-Filter defaults to false. When enabled, a native Input is shown and receives focus when the root menu opens. SearchTerm can bind a persistent string; when nil, MenuState.Query is used. FilterFields defaults to `label` only and also supports `description`, `id`, and `shortcut`. Matching is a case-insensitive substring match that keeps the original order. With IgnoreFilter=true, the list is shown as passed in and your app supplies results based on the query. Group labels and separators are not matched. When no action matches, a localized empty state is shown. Submenus that are not open are not searched.
+Filter defaults to false. When enabled, a native Input is shown and receives focus when the root menu opens. SearchTerm can bind a persistent string; when nil, MenuState.Query is used. FilterFields defaults to `label` only and also supports `description`, `id`, and `shortcut`; an explicit empty list matches nothing for a non-empty query. Matching is a case-insensitive substring match that keeps the original order. With IgnoreFilter=true, the list is shown as passed in and your app supplies results based on the query. Group labels and separators are not matched. When no action matches, a localized empty state is shown. Submenus that are not open are not searched.
+
+MenuOptions.SearchExecution chooses whether filtering runs immediately or in the background, and Content.SearchExecution can override it for one submenu; see [Search in large lists](inputs.md#search-in-large-lists). MenuState.Searching reports a pending search in any open level.
 
 FilterInput takes InputOptions for the name, placeholder, clear button, and appearance. OnSearchTermChange fires when the user edits or clears the query, but not for outside assignments or rebuilds without input. In the filter input, Escape first clears a non-empty query and then closes menus one level at a time. Enter activates the hovered item, or else the first available result. Up and Down move real focus to the results, after which typing performs prefix navigation in the menu. This differs from upstream, which keeps focus in the input using aria-activedescendant.
 

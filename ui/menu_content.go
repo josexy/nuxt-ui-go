@@ -1,11 +1,58 @@
 package nui
 
 import (
-	"strings"
+	"slices"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/josexy/nuxt-ui-go/icons/lucide"
 )
+
+// Small menus shrink to their content. Inspect only a bounded prefix: long
+// levels fill the viewport, and List measures their visible variable rows.
+func menuViewportHeight(t Theme, m optionMetrics, items menuView, measured map[string]float32, limit float32) float32 {
+	height := float32(0)
+	for i := range min(items.count(), 64) {
+		it := items.item(i)
+		h, known := measured[it.ID]
+		if !known {
+			h = m.Line + 2*m.Pad
+			if it.Description != "" {
+				h += m.Line
+			}
+			if it.Kind == MenuSeparator {
+				h = 1 + 2*t.spacing(4)
+			} else if it.Avatar != nil && it.Avatar.Size != SizeDefault {
+				h = max(h, avatarSize(t, it.Avatar.Size)+2*m.Pad)
+			}
+		}
+		height += h
+		if height >= limit {
+			return limit
+		}
+	}
+	if items.count() > 64 {
+		return limit
+	}
+	return height
+}
+
+func (level *menuLevel) measure(c *ui.Context, row ui.Element, id string, margin float32) {
+	services := c.Services()
+	mount := level.search.search.mount
+	row.Draw(func(_ *ui.Painter, r ui.Rect) {
+		if level.search.search.mount != mount {
+			return
+		}
+		height := r.H + margin
+		if previous, known := level.heights[id]; !known || previous != height {
+			if level.heights == nil {
+				level.heights = make(map[string]float32)
+			}
+			level.heights[id] = height
+			services.Invalidate()
+		}
+	})
+}
 
 func submenuOptions(root MenuOptions, item MenuItem) MenuOptions {
 	o := root
@@ -23,6 +70,7 @@ func submenuOptions(root MenuOptions, item MenuItem) MenuOptions {
 		if v.FilterFields != nil {
 			o.FilterFields = v.FilterFields
 		}
+		o.SearchExecution = valueOr(v.SearchExecution, o.SearchExecution)
 		o.IgnoreFilter = valueOr(v.IgnoreFilter, o.IgnoreFilter)
 		o.UI = mergeStyles(o.UI, v.UI)
 		if v.Style != nil {
@@ -116,47 +164,32 @@ func menuItemContent(c *ui.Context, t Theme, it MenuItem, o MenuOptions, d Decor
 }
 
 func (s *MenuState) menuFocused(c *ui.Context) bool {
-	if s.panel.FocusWithin(c) {
-		return true
-	}
-	for _, handle := range s.handles {
-		if handle.Focused(c) {
-			return true
-		}
-	}
-	for _, level := range s.levels {
-		if level.filter.Focused(c) {
+	for _, parent := range s.activeLevels {
+		if level := s.levels[parent]; level != nil && level.panel.FocusWithin(c) {
 			return true
 		}
 	}
 	return false
 }
 
-func (s *MenuState) moveFocus(items []MenuItem, current string, back, loop bool) {
-	at := -1
-	for i, it := range items {
-		if it.ID == current {
-			at = i
-			break
-		}
+func (s *MenuState) moveFocus(items menuView, current string, back, loop bool) {
+	if len(items.enabled) == 0 {
+		return
 	}
-	delta := 1
+	at := items.enabledAt(current)
+	position, found := slices.BinarySearch(items.enabled, at)
 	if back {
-		delta = -1
+		position--
+	} else if found {
+		position++
 	}
-	for step := 1; step <= len(items); step++ {
-		next := at + step*delta
-		if next < 0 || next >= len(items) {
-			if !loop {
-				return
-			}
-			next = (next%len(items) + len(items)) % len(items)
-		}
-		if menuEnabled(items[next]) {
-			s.focus = s.handles[items[next].ID]
+	if position < 0 || position >= len(items.enabled) {
+		if !loop {
 			return
 		}
+		position = (position + len(items.enabled)) % len(items.enabled)
 	}
+	s.focusItem(items.item(items.enabled[position]).ID)
 }
 
 func (s *MenuState) activate(it MenuItem, depth int, notify func(bool)) {
@@ -182,48 +215,7 @@ func (s *MenuState) activate(it MenuItem, depth int, notify func(bool)) {
 	}
 }
 
-func filterMenuItems(items []MenuItem, query string, o MenuOptions) []MenuItem {
-	query = strings.ToLower(strings.TrimSpace(query))
-	if !o.Filter || o.IgnoreFilter || query == "" {
-		return items
-	}
-	fields := o.FilterFields
-	if len(fields) == 0 {
-		fields = []string{"label"}
-	}
-	out := make([]MenuItem, 0, len(items))
-	hasAction := false
-	for _, it := range items {
-		if it.Kind != MenuAction {
-			out = append(out, it)
-			continue
-		}
-		for _, field := range fields {
-			var text string
-			switch field {
-			case "label":
-				text = it.Label
-			case "description":
-				text = it.Description
-			case "id":
-				text = it.ID
-			case "shortcut":
-				text = it.Shortcut
-			}
-			if strings.Contains(strings.ToLower(text), query) {
-				out = append(out, it)
-				hasAction = true
-				break
-			}
-		}
-	}
-	if !hasAction {
-		return nil
-	}
-	return out
-}
-
-func menuFilter(c *ui.Context, t Theme, panel ui.Element, s *MenuState, level *menuLevel, query *string, items []MenuItem, o MenuOptions, size Size, id Component, parent string, depth int) {
+func menuFilter(c *ui.Context, t Theme, panel ui.Element, s *MenuState, level *menuLevel, query *string, items menuView, o MenuOptions, size Size, id Component, parent string, depth int) {
 	input := InputOptions{}
 	if o.FilterInput != nil {
 		input = *o.FilterInput
@@ -252,20 +244,16 @@ func menuFilter(c *ui.Context, t Theme, panel ui.Element, s *MenuState, level *m
 	}
 	submit := input.OnSubmit
 	input.OnSubmit = func(value string) {
+		if !level.search.search.ready(*query) {
+			return
+		}
 		if submit != nil {
 			submit(value)
 		}
-		for _, it := range items {
-			if it.ID == level.hover && menuEnabled(it) {
-				s.activate(it, depth, o.OnOpenChange)
-				return
-			}
-		}
-		for _, it := range items {
-			if menuEnabled(it) {
-				s.activate(it, depth, o.OnOpenChange)
-				break
-			}
+		if at := items.enabledAt(level.hover); at >= 0 {
+			s.activate(items.item(at), depth, o.OnOpenChange)
+		} else if len(items.enabled) > 0 {
+			s.activate(items.item(items.enabled[0]), depth, o.OnOpenChange)
 		}
 	}
 	style := input.Style
@@ -280,7 +268,7 @@ func menuFilter(c *ui.Context, t Theme, panel ui.Element, s *MenuState, level *m
 					input.OnChange("")
 				} else if depth > 0 {
 					s.path = s.path[:depth-1]
-					s.focus = s.handles[parent]
+					s.focusItem(parent)
 				} else {
 					s.close(true, o.OnOpenChange)
 				}
@@ -301,7 +289,7 @@ func menuFilter(c *ui.Context, t Theme, panel ui.Element, s *MenuState, level *m
 	if !*started && !input.Disabled {
 		*started = true
 		if depth == 0 {
-			s.focus = &level.filter
+			s.focus, s.focusID = &level.filter, ""
 		}
 	}
 }

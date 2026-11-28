@@ -149,6 +149,10 @@ func TestOffCancelsPopupExits(t *testing.T) {
 				var selected []string
 				var selectMenu nui.SelectMenuState
 				var menu nui.MenuState
+				selectState := submittedSelect([]nui.Option[string]{{Value: "a", Label: "Alpha"}})
+				listSelection := chosenSelection(selected)
+				selectMenu.SetItems([]nui.ListboxItem{{ID: "a", Label: "Alpha"}})
+				menu.SetItems([]nui.MenuItem{{ID: "a", Label: "Alpha"}})
 				m := newMotionTester(motionFull, 700, 500, func(c *ui.Context, th nui.Theme) {
 					th.Motion.Disabled = off
 					a := nui.Button(c.Key("open"), th, "Open", nui.ButtonOptions{}).OnClick(func() { open = true })
@@ -158,13 +162,13 @@ func TestOffCancelsPopupExits(t *testing.T) {
 					case "modal":
 						nui.ModalWithOptions(c, th, &open, nui.ModalOptions{Title: "Panel", UI: redPanel}, func(nui.Theme) { ui.Box(c).Height(100) })
 					case "select":
-						nui.Select(c, th, &choice, []nui.Option[string]{{Value: "a", Label: "Alpha"}}, nui.SelectOptions{Label: "Choice", Open: &open, Popup: nui.PopoverOptions{UI: redPanel}}).Width(240)
+						nui.Select(c, th, &choice, selectState, nui.SelectOptions{Label: "Choice", Open: &open, Popup: nui.PopoverOptions{UI: redPanel}}).Width(240)
 					case "select-menu":
 						selectMenu.Open = open
-						nui.SelectMenu(c, th, &selected, &selectMenu, []nui.ListboxItem{{ID: "a", Label: "Alpha"}}, nui.SelectMenuOptions{Label: "Choice", Popup: nui.PopoverOptions{UI: redPanel}}).Width(240)
+						nui.SelectMenu(c, th, listSelection, &selectMenu, nui.SelectMenuOptions{Label: "Choice", Popup: nui.PopoverOptions{UI: redPanel}}).Width(240)
 					case "menu":
 						menu.Open = open
-						nui.DropdownMenu(c, th, a, &menu, []nui.MenuItem{{ID: "a", Label: "Alpha"}}, nui.MenuOptions{UI: redPanel})
+						nui.DropdownMenu(c, th, a, &menu, nui.MenuOptions{UI: redPanel})
 					case "tooltip":
 						nui.Tooltip(c, th, a, "Explanation of this setting", nui.TooltipOptions{Open: &open, DelayDuration: nui.Set(time.Hour), UI: redPanel})
 					}
@@ -205,8 +209,9 @@ func TestOffCancelsPopupExits(t *testing.T) {
 
 func TestClosedSelectDoesNotLookLikeAnExitCopy(t *testing.T) {
 	choice := "a"
+	selectState := submittedSelect([]nui.Option[string]{{Value: "a", Label: "Alpha"}})
 	m := newMotionTester(motionFull, 700, 500, func(c *ui.Context, th nui.Theme) {
-		nui.Select(c, th, &choice, []nui.Option[string]{{Value: "a", Label: "Alpha"}}, nui.SelectOptions{Label: "Choice", Popup: nui.PopoverOptions{UI: redPanel}}).Width(240)
+		nui.Select(c, th, &choice, selectState, nui.SelectOptions{Label: "Choice", Popup: nui.PopoverOptions{UI: redPanel}}).Width(240)
 	})
 	if box, _ := redExtent(m.Image(), ui.Rect{W: 700, H: 500}); box.W != 0 {
 		t.Fatalf("a closed, never-opened select looks like an exit copy: %v", box)
@@ -268,8 +273,9 @@ func TestModalAfterCancelledExitRestoresNewOpener(t *testing.T) {
 func TestCancelledPopupDoesNotRekeyFollowingControl(t *testing.T) {
 	open, choice, draft := false, "a", "kept"
 	var id uint64
+	selectState := submittedSelect([]nui.Option[string]{{Value: "a", Label: "Alpha"}})
 	m := newMotionTester(motionOff, 500, 300, func(c *ui.Context, th nui.Theme) {
-		nui.Select(c.Key("select"), th, &choice, []nui.Option[string]{{Value: "a", Label: "Alpha"}}, nui.SelectOptions{Label: "Choice", Open: &open})
+		nui.Select(c.Key("select"), th, &choice, selectState, nui.SelectOptions{Label: "Choice", Open: &open})
 		// Positional identity must not inherit a key from a closed popup.
 		id = ui.TextInput(c, &draft).Label("Draft").ID()
 	})
@@ -282,5 +288,101 @@ func TestCancelledPopupDoesNotRekeyFollowingControl(t *testing.T) {
 	}
 	if before != id || draft != "kept" {
 		t.Fatalf("opening and cancelling a popup rekeyed the next control: %d -> %d", before, id)
+	}
+}
+
+func TestScaleFeedbackPaintsWithoutViewTicks(t *testing.T) {
+	for _, kind := range []string{"User", "InputRating"} {
+		for _, level := range motionLevels {
+			for _, duration := range []time.Duration{150 * time.Millisecond, 0, -time.Millisecond} {
+				t.Run(fmt.Sprintf("%s/%s/%s", kind, level.name, duration), func(t *testing.T) {
+					value, activations := 1, 0
+					off := false
+					m := newMotionTester(level, 350, 180, func(c *ui.Context, th nui.Theme) {
+						th.Motion.Transition = duration
+						th.Motion.Disabled = th.Motion.Disabled || off
+						ui.Column(c.Key("inset")).Padding(30).Children(func() {
+							red := nui.PartStyle{Background: nui.Set(ui.RGB(220, 0, 0)), Foreground: nui.Set(ui.RGB(220, 0, 0))}
+							if kind == "User" {
+								nui.User(c.Key("user"), th, nui.UserOptions{Name: "Profile", Avatar: nui.AvatarOptions{Alt: "Avatar", Text: "A", UI: nui.Styles{nui.Root: red}}, OnActivate: func() { activations++ }}).Width(220)
+							} else {
+								nui.InputRating(c.Key("rating"), th, &value, nui.InputRatingOptions{Label: "Rating", Max: 1, Size: nui.XL, UI: nui.Styles{nui.Item: red}})
+							}
+						})
+					})
+					region := ui.Rect{W: 350, H: 180}
+					before := redPixels(m.Image(), region)
+					name := "Profile"
+					if kind == "InputRating" {
+						name = "Rating"
+					}
+					r := bounds(t, m.Tester, name)
+					m.Move(r.X+r.W/2, r.Y+r.H/2)
+					initial := redPixels(m.Image(), region)
+					builds, paints := m.span(75 * time.Millisecond)
+					if builds != 0 {
+						t.Fatalf("scale ticks rebuilt the view %d times", builds)
+					}
+					moving := !level.off && !level.reduced() && duration > 0
+					if moving && (paints == 0 || redPixels(m.Image(), region) <= initial) {
+						t.Fatal("the scale did not advance through painting")
+					}
+					if !moving && initial <= before {
+						t.Fatal("the immediate scale target did not appear")
+					}
+					// Changing preferences during a pose cancels its remaining ticks.
+					off = true
+					m.Frame()
+					if redPixels(m.Image(), region) <= before {
+						t.Fatal("disabling motion lost the current visual target")
+					}
+					m.idle(t, time.Second, "disabled scale feedback")
+					if kind == "User" {
+						click(t, m.Tester, "Profile")
+						if activations != 1 {
+							t.Fatalf("activation count %d", activations)
+						}
+					}
+					m.Move(345, 175)
+					m.idle(t, time.Second, "pointer leaving with motion disabled")
+					if redPixels(m.Image(), region) != before {
+						t.Fatal("leaving retained the enlarged pose")
+					}
+				})
+			}
+		}
+	}
+}
+
+func TestHoverFeedbackSurvivesRetainedExitAndRemount(t *testing.T) {
+	open, calls := true, 0
+	m := newMotionTester(motionFull, 500, 350, func(c *ui.Context, th nui.Theme) {
+		anchor := nui.Button(c.Key("trigger"), th, "Open", nui.ButtonOptions{})
+		nui.Popover(c.Key("popup"), th, anchor, &open, nui.PopoverOptions{Width: nui.Set(float32(250))}, func(inner nui.Theme) {
+			nui.Button(c.Key("action"), inner, "Action", nui.ButtonOptions{Variant: nui.Ghost}).OnClick(func() { calls++ })
+			nui.User(c.Key("profile"), inner, nui.UserOptions{Name: "Profile", Avatar: nui.AvatarOptions{Text: "A"}, OnActivate: func() { calls++ }})
+		})
+	})
+	for range 3 {
+		m.Advance(time.Second)
+		r := bounds(t, m.Tester, "Action")
+		m.Move(r.X+r.W/2, r.Y+r.H/2)
+		m.Advance(200 * time.Millisecond) // settle the restored color transition
+		m.idle(t, time.Second, "settled hover")
+		open = false
+		m.Frame()
+		m.Advance(30 * time.Millisecond)
+		open = true
+		m.Frame()
+		m.Advance(time.Second)
+		click(t, m.Tester, "Action")
+		open = false
+		m.Frame()
+		m.Advance(time.Second)
+		open = true
+		m.Frame()
+	}
+	if calls != 3 {
+		t.Fatalf("remounted actions called %d times", calls)
 	}
 }

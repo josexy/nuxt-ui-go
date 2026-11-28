@@ -9,7 +9,8 @@ import (
 )
 
 func addSelectionContract(p *componentPage, menu bool) {
-	values := []string{"tea"}
+	var values nui.SelectionState[string]
+	values.Add("tea")
 	var list nui.ListboxState
 	var popup nui.SelectMenuState
 	filter, loading, protect, reversed, styled := true, false, true, false, false
@@ -23,6 +24,25 @@ func addSelectionContract(p *componentPage, menu bool) {
 		}
 	}, UI: nui.Styles{nui.ItemLabelSlot: {Weight: nui.Set(600)}}}
 	p.Deactivate = append(p.Deactivate, func() { popup.Open = false })
+	update := func() {
+		items := []nui.ListboxItem{
+			{ID: "heading", Label: "Drinks", Kind: nui.ListboxLabel},
+			{ID: "prefix", Label: "Cafeteria", Description: "Prefix match", Icon: lucide.Heart()},
+			{ID: "contains", Label: "A café", Description: "Contains the search term", Chip: &nui.ChipOptions{Color: nui.Success}},
+			{ID: "exact", Label: "Café", Description: "Exact match; activation can be cancelled", Avatar: &nui.AvatarOptions{Alt: "Cafe avatar", Text: "CF"}, Options: protected},
+			{ID: "separator", Kind: nui.ListboxSeparator},
+			{ID: "tea", Label: "Tea", Description: "Initially selected", Chip: &nui.ChipOptions{Color: nui.Warning}},
+		}
+		if reversed {
+			items[1], items[3] = items[3], items[1]
+		}
+		if menu {
+			popup.SetItems(items)
+		} else {
+			list.SetItems(items)
+		}
+	}
+	update()
 	p.Scenes = append(p.Scenes, scene("contract", "Selection, filtering and item parts", "Search for cafe: the exact accented match comes first. The protected option can cancel activation. Reordering keeps IDs, while labels, avatars, chips and separators have their own parts.", func(c *ui.Context, t nui.Theme) {
 		ui.Row(c).Wrap().Gap(12).Children(func() {
 			nui.Switch(c.Key("protect"), t, &protect, nui.SwitchOptions{Label: "Protect cafe selection"})
@@ -37,19 +57,8 @@ func addSelectionContract(p *componentPage, menu bool) {
 				nui.Switch(c.Key("after"), t, &focusAfter, nui.SwitchOptions{Label: "Focus outside after selection"})
 			})
 		}
-		items := []nui.ListboxItem{
-			{ID: "heading", Label: "Drinks", Kind: nui.ListboxLabel},
-			{ID: "prefix", Label: "Cafeteria", Description: "Prefix match", Icon: lucide.Heart()},
-			{ID: "contains", Label: "A café", Description: "Contains the search term", Chip: &nui.ChipOptions{Color: nui.Success}},
-			{ID: "exact", Label: "Café", Description: "Exact match; activation can be cancelled", Avatar: &nui.AvatarOptions{Alt: "Cafe avatar", Text: "CF"}, Options: protected},
-			{ID: "separator", Kind: nui.ListboxSeparator},
-			{ID: "tea", Label: "Tea", Description: "Initially selected", Chip: &nui.ChipOptions{Color: nui.Warning}},
-		}
-		if reversed {
-			items[1], items[3] = items[3], items[1]
-		}
 		o := nui.ListboxOptions{Label: "Contract choices", Color: nui.Neutral, Size: nui.MD, Highlight: true, SelectedIcon: lucide.Star(),
-			OnChange: func([]string) { changes++ }, OnSelect: func(string) {
+			OnChange: func() { changes++ }, OnSelect: func(string) {
 				selected++
 				if focusAfter {
 					leave.Focus(c)
@@ -60,21 +69,21 @@ func addSelectionContract(p *componentPage, menu bool) {
 		}
 		o.FilterInput = &nui.InputOptions{Label: "Contract filter", Placeholder: "Search drinks"}
 		if menu {
-			nui.SelectMenu(c.Key("choices"), t, &values, &popup, items, nui.SelectMenuOptions{ListboxOptions: o, Color: nui.Neutral,
+			nui.SelectMenu(c.Key("choices"), t, &values, &popup, nui.SelectMenuOptions{ListboxOptions: o, Color: nui.Neutral,
 				Avatar: &nui.AvatarOptions{Alt: "Menu avatar", Text: "ME"}, Trailing: lucide.ChevronUp(), Loading: loading, LoadingIcon: lucide.Clock(),
 				SearchInput: nui.Set(filter), FocusSearch: nui.Set(focusSearch), ResetSearchTermOnBlur: nui.Set(false),
 				Clearable: true, ClearIcon: lucide.Minus(), ResetModelValueOnClear: nui.Set(resetModel), ShowTrailing: nui.Set(trailing),
 				OnClear: func() { clears++ }, OnOpenChange: func(bool) { openings++ }})
 		} else {
 			o.Filter, o.Loading, o.Height = filter, loading, 280
-			nui.Listbox(c.Key("choices"), t, &values, &list, items, o)
+			nui.Listbox(c.Key("choices"), t, &values, &list, o)
 		}
 		ui.Row(c).Wrap().Gap(8).Children(func() {
 			nui.Button(c.Key("filter"), t, "Toggle contract filter", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() { filter = !filter })
-			nui.Button(c.Key("reorder"), t, "Reorder contract choices", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() { reversed = !reversed })
+			nui.Button(c.Key("reorder"), t, "Reorder contract choices", nui.ButtonOptions{Variant: nui.Outline}).KeepFocus().OnClick(func() { reversed = !reversed; update() })
 			nui.Button(c.Key("leave"), t, "Leave contract selection", nui.ButtonOptions{Variant: nui.Outline}).Bind(&leave)
 		})
-		ui.Textf(c, "Selected: %v · Changes: %d · Activations: %d", values, changes, selected)
+		ui.Textf(c, "Selected: %v · Changes: %d · Activations: %d", values.Values(), changes, selected)
 		ui.Textf(c, "Queries: %d · Highlights: %d · Attempts: %d", queries, highlights, attempts)
 		if menu {
 			ui.Textf(c, "Menu opens/closes: %d · Clears: %d", openings, clears)
@@ -87,13 +96,13 @@ func addSelectionContract(p *componentPage, menu bool) {
 
 func addRemoteSelection(p *componentPage) {
 	var menu nui.SelectMenuState
-	var values []string
+	var values nui.SelectionState[string]
 	var results nui.QueryState[nui.ListboxItem]
 	var current, previous nui.QueryTicket
 	status := "No request"
 	p.Deactivate = append(p.Deactivate, func() { menu.Open = false; results.Cancel() })
 	p.Scenes = append(p.Scenes, scene("remote-contract", "Simulated remote search", "Type two different queries, then complete the previous request. Only the latest ticket can replace the options. Completion is an explicit action; this example makes no network request.", func(c *ui.Context, t nui.Theme) {
-		nui.SelectMenu(c.Key("remote"), t, &values, &menu, results.Items, nui.SelectMenuOptions{Label: "Remote choices", ExternalFilter: true, Loading: results.Loading,
+		nui.SelectMenu(c.Key("remote"), t, &values, &menu, nui.SelectMenuOptions{Label: "Remote choices", ExternalFilter: true, Loading: results.Loading,
 			ResetSearchTermOnBlur: nui.Set(false), ResetSearchTermOnSelect: nui.Set(false), OnQuery: func(query string) {
 				previous = current
 				_, current = results.Start(context.Background(), query)
@@ -102,6 +111,7 @@ func addRemoteSelection(p *componentPage) {
 		ui.Row(c).Wrap().Gap(8).Children(func() {
 			nui.Button(c.Key("previous"), t, "Complete stale options", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() {
 				if results.Complete(previous, []nui.ListboxItem{{ID: "stale", Label: "Stale result"}}, nil) {
+					menu.SetItems(results.Items)
 					status = "Previous result accepted"
 				} else {
 					status = "Stale options rejected"
@@ -109,6 +119,7 @@ func addRemoteSelection(p *componentPage) {
 			})
 			nui.Button(c.Key("current"), t, "Complete current options", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() {
 				if results.Complete(current, []nui.ListboxItem{{ID: "current", Label: "Result: " + current.Query}}, nil) {
+					menu.SetItems(results.Items)
 					status = "Current options accepted"
 				} else {
 					status = "Current options rejected"
@@ -117,6 +128,6 @@ func addRemoteSelection(p *componentPage) {
 			nui.Button(c.Key("cancel"), t, "Cancel option request", nui.ButtonOptions{Variant: nui.Outline}).OnClick(func() { results.Cancel(); status = "Option request cancelled" })
 		})
 		ui.Text(c, status)
-		ui.Textf(c, "Remote selected: %v", values)
+		ui.Textf(c, "Remote selected: %v", values.Values())
 	}))
 }

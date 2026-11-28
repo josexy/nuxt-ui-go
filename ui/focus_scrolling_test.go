@@ -94,6 +94,7 @@ func TestOverlaysReturnFocusWithoutScrolling(t *testing.T) {
 			scroll.Y = 200
 			open := false
 			var menu nui.MenuState
+			menu.SetItems([]nui.MenuItem{{ID: "copy", Label: "Copy"}})
 			tt := ui.NewTester(func(c *ui.Context) {
 				th := nui.App(c, nui.AppConfig{})
 				nui.ScrollArea(c.Key("page"), th, nui.ScrollAreaOptions{State: &scroll}, func() {
@@ -102,7 +103,7 @@ func TestOverlaysReturnFocusWithoutScrolling(t *testing.T) {
 					if kind == "Modal" {
 						trigger.OnClick(func() { open = true })
 					} else {
-						nui.DropdownMenu(c.Key("menu"), th, trigger, &menu, []nui.MenuItem{{ID: "copy", Label: "Copy"}}, nui.MenuOptions{})
+						nui.DropdownMenu(c.Key("menu"), th, trigger, &menu, nui.MenuOptions{})
 					}
 					ui.Box(c.Key("below")).Height(900)
 				}).Height(300).Width(400).Label("Page")

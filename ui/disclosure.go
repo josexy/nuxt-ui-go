@@ -131,10 +131,12 @@ func Accordion(c *ui.Context, t Theme, open *[]string, items []AccordionItem, o 
 		panic("nui: Accordion requires open IDs")
 	}
 	ids := make([]string, 0, len(items))
-	seen := map[string]bool{}
+	seen := make(map[string]bool, len(items))
+	positions := make(map[string]int, len(items))
 	for _, it := range items {
 		checkID(seen, it.ID, "Accordion")
 		if !it.Disabled {
+			positions[it.ID] = len(ids)
 			ids = append(ids, it.ID)
 		}
 	}
@@ -144,7 +146,7 @@ func Accordion(c *ui.Context, t Theme, open *[]string, items []AccordionItem, o 
 	})
 	restore := false
 	for id := range memory.handles {
-		if !slices.Contains(ids, id) && memory.handles[id].Focused(c) {
+		if _, enabled := positions[id]; !enabled && memory.handles[id].Focused(c) {
 			restore = true
 		}
 		if !seen[id] {
@@ -164,6 +166,10 @@ func Accordion(c *ui.Context, t Theme, open *[]string, items []AccordionItem, o 
 	if !o.Multiple && len(*open) > 1 {
 		*open = append([]string(nil), (*open)[:1]...)
 	}
+	opened := make(map[string]bool, len(*open))
+	for _, id := range *open {
+		opened[id] = true
+	}
 	finish(t, ComponentAccordion, Root, root, PartStyle{Font: Set(t.Font), FontSize: Set(t.text(14)), Foreground: Set(t.Text)}, o.Decoration)
 	root.Children(func() {
 		for i, it := range items {
@@ -175,7 +181,7 @@ func Accordion(c *ui.Context, t Theme, open *[]string, items []AccordionItem, o 
 			}
 			finish(t, ComponentAccordion, Item, row, PartStyle{}, d)
 			row.Children(func() {
-				expanded := slices.Contains(*open, it.ID)
+				expanded := opened[it.ID]
 				var p ui.CollapsibleParts
 				header := ui.Row(c.Key("header")).MinWidth(0)
 				finish(t, ComponentAccordion, Header, header, PartStyle{}, d)
@@ -189,7 +195,7 @@ func Accordion(c *ui.Context, t Theme, open *[]string, items []AccordionItem, o 
 				disclosureTrigger(c, t, p.Trigger, progress, opts, ComponentAccordion)
 				p.Trigger.Bind(memory.handles[it.ID])
 				if !it.Disabled {
-					index := slices.Index(ids, it.ID)
+					index := positions[it.ID]
 					for _, key := range []ui.Key{ui.KeyUp, ui.KeyDown, ui.KeyHome, ui.KeyEnd} {
 						target := index
 						switch key {
@@ -207,7 +213,7 @@ func Accordion(c *ui.Context, t Theme, open *[]string, items []AccordionItem, o 
 					}
 				}
 				if p.Trigger.Changed() {
-					if !o.Multiple && !valueOr(o.Collapsible, true) && !expanded && slices.Contains(*open, it.ID) {
+					if !o.Multiple && !valueOr(o.Collapsible, true) && !expanded && opened[it.ID] {
 						expanded = true
 						p.Trigger.Jump("open", 1)
 						progress = 1
@@ -217,10 +223,16 @@ func Accordion(c *ui.Context, t Theme, open *[]string, items []AccordionItem, o 
 						if expanded {
 							if !o.Multiple {
 								next = nil
+								clear(opened)
 							}
 							next = append(next, it.ID)
 						}
 						*open = next
+						if expanded {
+							opened[it.ID] = true
+						} else {
+							delete(opened, it.ID)
+						}
 						root.SetChanged()
 					}
 				}

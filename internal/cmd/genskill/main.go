@@ -1,5 +1,5 @@
 // Genskill regenerates the component references of the nuxt-ui-go agent skill
-// (.agents/skills/nuxt-ui-go/references/components/*.md) from the Go API in
+// (skills/nuxt-ui-go/references/components/*.md) from the Go API in
 // ui/, internal/showcase/catalog.json and docs/*.md. The output
 // is self-contained: it names no repository paths, so the skill folder can be
 // copied into any project.
@@ -99,7 +99,7 @@ var categories = map[string]struct{ title, doc string }{
 
 func main() {
 	rootFlag := flag.String("root", ".", "repository root")
-	skillFlag := flag.String("skill", filepath.Join(".agents", "skills", "nuxt-ui-go"), "skill directory, relative to the root")
+	skillFlag := flag.String("skill", filepath.Join("skills", "nuxt-ui-go"), "skill directory, relative to the root")
 	check := flag.Bool("check", false, "report stale references without writing")
 	flag.Parse()
 	root, skillDir, err := locate(*rootFlag, *skillFlag)
@@ -263,9 +263,9 @@ func newGenerator(root, skillDir string) (*generator, error) {
 		if e.IsDir() || !strings.HasSuffix(e.Name(), ".md") || e.Name() == "README.md" {
 			continue
 		}
-		// Historical investigation notes link to application checkouts and old
-		// implementations; they are not part of the standalone usage reference.
-		if e.Name() == "dip-line-rendering.md" {
+		// Investigation reports and benchmark notes are maintenance material;
+		// the standalone reference documents current use.
+		if e.Name() == "dip-line-rendering.md" || e.Name() == "performance.md" {
 			continue
 		}
 		data, err := os.ReadFile(filepath.Join(docDir, e.Name()))
@@ -353,7 +353,11 @@ func (g *generator) reference(d showcase.Demo) (string, error) {
 	}
 	b.WriteString("## Complete example\n\nA runnable program. App state lives in `example`, outside the view, and the view only builds UI.\n\n```go\n" + example + "```\n\n")
 
-	return strings.TrimRight(b.String(), "\n") + "\n", nil
+	result := strings.TrimRight(b.String(), "\n") + "\n"
+	if strings.ContainsFunc(result, func(r rune) bool { return unicode.Is(unicode.Han, r) }) {
+		return "", fmt.Errorf("%s: skill references must use English documentation and examples", d.ID)
+	}
+	return result, nil
 }
 
 func codeList(items []string) string {
@@ -466,7 +470,7 @@ func (g *generator) apiSection(d showcase.Demo) (string, map[string]string) {
 			refs = append(refs, g.referencedTypes(m.Decl.Type, t.Name)...)
 		}
 		for _, ref := range refs {
-			if seen[ref] || slices.Contains(own, ref) {
+			if seen[ref] || slices.Contains(own, ref) || slices.Contains(queue, ref) {
 				continue
 			}
 			if owners := g.owner[ref]; len(owners) > 0 && !slices.Contains(owners, d.ID) {
@@ -646,6 +650,7 @@ type mdSection struct {
 }
 
 func parseMarkdown(name, text string) *mdFile {
+	text = strings.ReplaceAll(text, "\r\n", "\n")
 	f := &mdFile{name: name, lines: strings.Split(strings.TrimRight(text, "\n"), "\n")}
 	fence := false
 	var h2, h3 *mdSection
@@ -1190,7 +1195,15 @@ func libraryVersion(root string) (string, error) {
 // ---------------------------------------------------------------- example
 
 func (g *generator) example(d showcase.Demo) (string, error) {
-	_, full, err := d.Source(showcase.Config{Locale: "en"})
+	config := showcase.Config{Locale: "en"}
+	// Use equivalent English sample text without changing the website demos.
+	switch d.ID {
+	case "footer":
+		config.Values = map[string]any{"label": "A native workspace built with NuxtUI Go, with room for a longer status message."}
+	case "footer-columns":
+		d.Body = strings.ReplaceAll(d.Body, `"完整组件说明与使用指南"`, `"Complete component documentation and usage guide"`)
+	}
+	_, full, err := d.Source(config)
 	if err != nil {
 		return "", err
 	}

@@ -177,30 +177,37 @@ type FileUploadState struct {
 	jobs            map[string]uploadJob
 	identity        *byte
 	picker          ui.Handle
+	previews        uploadPreviews
 	serial, version uint64
 }
 
 // Add validates metadata and adds rejected entries with their reason. Duplicate paths are ignored.
 func (s *FileUploadState) Add(files []UploadFile, r UploadRules) {
+	if len(files) == 0 {
+		return
+	}
+	paths := make(map[string]struct{}, len(s.Files)+len(files))
+	ids := make(map[string]struct{}, len(s.Files)+len(files))
+	accepted := 0
+	for _, old := range s.Files {
+		paths[old.Path], ids[old.ID] = struct{}{}, struct{}{}
+		if old.Status != UploadRejected {
+			accepted++
+		}
+	}
 	for _, f := range files {
-		if f.Path != "" && slices.ContainsFunc(s.Files, func(old UploadFile) bool { return old.Path == f.Path }) {
+		if _, duplicate := paths[f.Path]; f.Path != "" && duplicate {
 			continue
 		}
 		for {
 			s.serial++
 			f.ID = fmt.Sprintf("file-%d", s.serial)
-			if !slices.ContainsFunc(s.Files, func(old UploadFile) bool { return old.ID == f.ID }) {
+			if _, exists := ids[f.ID]; !exists {
 				break
 			}
 		}
 		f.Progress = 0
 		f.Status = UploadReady
-		accepted := 0
-		for _, old := range s.Files {
-			if old.Status != UploadRejected {
-				accepted++
-			}
-		}
 		if err := r.Validate(f); err != nil {
 			f.Status = UploadRejected
 			f.setError(err)
@@ -209,6 +216,10 @@ func (s *FileUploadState) Add(files []UploadFile, r UploadRules) {
 			f.setError(&localizedError{key: "tooManyFiles", args: map[string]any{"count": r.MaxFiles}})
 		}
 		s.Files = append(s.Files, f)
+		paths[f.Path], ids[f.ID] = struct{}{}, struct{}{}
+		if f.Status != UploadRejected {
+			accepted++
+		}
 	}
 }
 func (s *FileUploadState) Begin(id string) (context.Context, UploadTicket) {
@@ -320,13 +331,16 @@ type FileUploadOptions struct {
 	ShowIcon, FileImage                        Optional[bool]
 	FileDeleteOptions                          *ButtonOptions
 	Dropzone, Interactive, FileDelete, Preview Optional[bool]
-	Variant                                    UploadVariant
-	Layout                                     UploadLayout
-	Position                                   UploadPosition
-	Color                                      Color
-	Size                                       Size
-	Rules                                      UploadRules
-	Dialog                                     mygo.OpenDialogOptions
+	// PreviewHeight bounds the file viewport in DIP. Unset is 320; zero hides
+	// previews. Negative and nonfinite values are invalid.
+	PreviewHeight Optional[float32]
+	Variant       UploadVariant
+	Layout        UploadLayout
+	Position      UploadPosition
+	Color         Color
+	Size          Size
+	Rules         UploadRules
+	Dialog        mygo.OpenDialogOptions
 	// Choose overrides the native dialog. It executes on a worker and must not mutate UI state.
 	Choose             func(context.Context) ([]UploadFile, error)
 	OnChange           func([]UploadFile)
@@ -357,6 +371,9 @@ const (
 )
 
 func FileUpload(c *ui.Context, t Theme, s *FileUploadState, o FileUploadOptions) ui.Element {
+	if height := valueOr(o.PreviewHeight, 320); height < 0 || math.IsNaN(float64(height)) || math.IsInf(float64(height), 0) {
+		panic("nui: invalid file upload preview height")
+	}
 	o.Disabled = o.Disabled || t.field.Disabled
 	config := selected(defaults(t, ComponentFileUpload, ComponentTheme{Color: Primary, Size: MD}), ComponentTheme{Color: o.Color, Size: inheritedSize(t, o.Size)})
 	o.Color, o.Size = config.Color, config.Size
@@ -556,107 +573,135 @@ func FileUpload(c *ui.Context, t Theme, s *FileUploadState, o FileUploadOptions)
 }
 
 func fileUploadList(c *ui.Context, t Theme, s *FileUploadState, o FileUploadOptions) {
-	if !valueOr(o.Preview, true) || len(s.Files) == 0 {
+	height := valueOr(o.PreviewHeight, 320)
+	if !valueOr(o.Preview, true) || height == 0 || len(s.Files) == 0 {
 		return
 	}
-	files := ui.Column(c.Key("files")).MinWidth(0).AlignSelf(ui.Stretch)
-	finish(t, ComponentFileUpload, List, files, PartStyle{Gap: Set(t.spacing(8))}, o.Decoration)
-	if o.Layout == UploadGrid {
-		files.Row().Wrap()
+	grid := o.Layout == UploadGrid && uploadGridFits(t, o)
+	s.previews.prepare(c, grid, s.Files)
+	var files ui.Element
+	if grid {
+		s.previews.grid.Key = func(i int) any { return s.Files[i].ID }
+		files = ui.GridView(c.Key("files-grid"), &s.previews.grid, len(s.Files), t.spacing(220), uploadGridHeight(t, o.Size), func(i int) {
+			fileUploadRow(c, t, s, o, i, true)
+		})
+		if s.previews.index >= 0 {
+			s.previews.grid.ScrollIntoView(s.previews.index)
+		}
+	} else {
+		if s.previews.index >= 0 {
+			s.previews.list.ScrollIntoView(s.previews.index)
+		}
+		files = ui.List(c.Key("files-list"), &s.previews.list, len(s.Files)).ItemKey(func(i int) any { return s.Files[i].ID })
 	}
-	files.Children(func() {
-		for i := range s.Files {
-			s.Files[i].localizeError(c.Locale())
-			f := s.Files[i]
-			row := ui.Row(c.Key(f.ID)).MinWidth(0).Gap(8).AlignItems(ui.Center)
-			if o.Layout == UploadGrid {
-				row.Column().Width(220).AlignItems(ui.Stretch)
+	files.MinWidth(0).AlignSelf(ui.Stretch).Height(height).Basis(height).Shrink(0).Label(message(c, "filePreviews"))
+	finish(t, ComponentFileUpload, List, files, PartStyle{Gap: Set(t.spacing(8))}, o.Decoration)
+	if !grid {
+		files.Rows(func(r ui.ListRow) { fileUploadRow(r.Context, t, s, o, r.Index, false) })
+	}
+}
+
+func fileUploadRow(c *ui.Context, t Theme, s *FileUploadState, o FileUploadOptions, i int, grid bool) {
+	s.Files[i].localizeError(c.Locale())
+	f := s.Files[i]
+	m := buttonMetrics(t, o.Size)
+	row := ui.Row(c.Key(f.ID)).MinWidth(0).Gap(t.spacing(8)).AlignItems(ui.Center).Role(ui.RoleGroup).Label(f.Name).Description(f.Error)
+	if grid {
+		row.Column().Fill().AlignItems(ui.Stretch)
+	}
+	finish(t, ComponentFileUpload, Item, row, PartStyle{BorderWidth: Set(float32(1)), BorderColor: Set(t.Border), Radius: Set(t.radius(6)), PaddingX: Set(t.spacing(12)), PaddingY: Set(t.spacing(8))}, o.Decoration)
+	row.Children(func() {
+		avatar := AvatarOptions{Icon: o.FileIcon, Size: o.Size, Alt: f.Name}
+		if valueOr(o.FileImage, true) && f.Avatar != nil {
+			avatar = *f.Avatar
+			if avatar.Size == SizeDefault {
+				avatar.Size = o.Size
 			}
-			finish(t, ComponentFileUpload, Item, row, PartStyle{BorderWidth: Set(float32(1)), BorderColor: Set(t.Border), Radius: Set(t.radius(6)), PaddingX: Set(t.spacing(12)), PaddingY: Set(t.spacing(8))}, o.Decoration)
-			row.Children(func() {
-				avatar := AvatarOptions{Icon: o.FileIcon, Size: o.Size, Alt: f.Name}
-				if valueOr(o.FileImage, true) && f.Avatar != nil {
-					avatar = *f.Avatar
-					if avatar.Size == SizeDefault {
-						avatar.Size = o.Size
-					}
-					if avatar.Alt == "" {
-						avatar.Alt = f.Name
-					}
+			if avatar.Alt == "" {
+				avatar.Alt = f.Name
+			}
+		}
+		if avatar.Icon == nil && avatar.Text == "" {
+			avatar.Icon = o.FileIcon
+			if avatar.Icon == nil {
+				avatar.Icon = lucide.File()
+			}
+		}
+		leading := Avatar(c.Key("avatar"), t, avatar).Shrink(0)
+		finish(t, ComponentFileUpload, ItemLeadingSlot, leading, PartStyle{}, o.Decoration)
+		ui.Column(c.Key("details")).Grow(1).MinWidth(0).Gap(t.spacing(4)).Children(func() {
+			label := ui.Text(c.Key("name"), f.Name).SingleLine().Description(f.Path)
+			finish(t, ComponentFileUpload, ItemLabelSlot, label, PartStyle{Foreground: Set(t.Text), Font: Set(t.Font), FontSize: Set(m.Font), LineHeight: Set(m.Line / m.Font)}, o.Decoration)
+			status := ui.Text(c.Key("status"), formatMessage(c, "fileSize", map[string]any{"size": formatFileSize(f.Size), "status": uploadStatusLabel(c, f.Status)}))
+			finish(t, ComponentFileUpload, StatusSlot, status, PartStyle{FontSize: Set(t.text(12)), LineHeight: Set(float32(4.0 / 3)), Foreground: Set(t.Muted)}, o.Decoration)
+			if grid {
+				status.SingleLine()
+			}
+			if f.Error != "" {
+				errorText := ui.Text(c.Key("error"), f.Error).Description(f.Error)
+				if grid {
+					errorText.MaxLines(2).Focusable()
 				}
-				if avatar.Icon == nil && avatar.Text == "" {
-					avatar.Icon = o.FileIcon
-					if avatar.Icon == nil {
-						avatar.Icon = lucide.File()
-					}
-				}
-				leading := Avatar(c.Key("avatar"), t, avatar).Shrink(0)
-				finish(t, ComponentFileUpload, ItemLeadingSlot, leading, PartStyle{}, o.Decoration)
-				ui.Column(c).Grow(1).MinWidth(0).Gap(4).Children(func() {
-					label := ui.Text(c.Key("name"), f.Name).SingleLine().Description(f.Path)
-					finish(t, ComponentFileUpload, ItemLabelSlot, label, PartStyle{Foreground: Set(t.Text), FontSize: Set(buttonMetrics(t, o.Size).Font)}, o.Decoration)
-					status := ui.Text(c.Key("status"), formatMessage(c, "fileSize", map[string]any{"size": formatFileSize(f.Size), "status": uploadStatusLabel(c, f.Status)}))
-					finish(t, ComponentFileUpload, StatusSlot, status, PartStyle{FontSize: Set(t.text(12)), Foreground: Set(t.Muted)}, o.Decoration)
-					if f.Error != "" {
-						errorText := ui.Text(c.Key("error"), f.Error)
-						finish(t, ComponentFileUpload, ErrorSlot, errorText, PartStyle{Foreground: Set(t.Error)}, o.Decoration)
-					}
-					if f.Status == UploadRunning {
-						Progress(c, t, f.Progress*100, ProgressOptions{Label: namedMessage(c, "progressNamed", f.Name)})
-					}
-				})
-				if f.Status == UploadRunning {
-					button := Button(c.Key("cancel"), t, message(c, "cancel"), ButtonOptions{AccessibleLabel: namedMessage(c, "cancelNamed", f.Name), Variant: Ghost, Color: Neutral, Size: o.Size}).OnClick(func() {
-						s.Cancel(f.ID)
-						s.picker.Focus()
-						if o.OnCancel != nil {
-							o.OnCancel(f.ID)
-						}
-					})
-					finish(t, ComponentFileUpload, ItemTrailingSlot, button, PartStyle{}, o.Decoration)
-				} else if valueOr(o.FileDelete, true) {
-					deleteOptions := ButtonOptions{Square: true, Variant: LinkVariant, Color: Neutral, Size: o.Size}
-					if o.Layout == UploadGrid {
-						deleteOptions.Variant, deleteOptions.Size = Solid, XS
-					}
-					if o.FileDeleteOptions != nil {
-						custom := *o.FileDeleteOptions
-						if custom.Variant == VariantDefault {
-							custom.Variant = deleteOptions.Variant
-						}
-						if custom.Color == ColorDefault {
-							custom.Color = deleteOptions.Color
-						}
-						if custom.Size == SizeDefault {
-							custom.Size = deleteOptions.Size
-						}
-						deleteOptions = custom
-					}
-					if deleteOptions.AccessibleLabel == "" {
-						deleteOptions.AccessibleLabel = namedMessage(c, "removeNamed", f.Name)
-					}
-					if deleteOptions.Leading == nil && deleteOptions.Trailing == nil {
-						deleteOptions.Trailing = o.FileDeleteIcon
-						if deleteOptions.Trailing == nil {
-							deleteOptions.Trailing = lucide.X()
-						}
-					}
-					button := Button(c.Key("remove"), t, "", deleteOptions).OnClick(func() {
-						s.Remove(f.ID)
-						s.picker.Focus()
-						if o.OnChange != nil {
-							o.OnChange(slices.Clone(s.Files))
-						}
-						if o.OnRemove != nil {
-							o.OnRemove(f.ID)
-						}
-					})
-					finish(t, ComponentFileUpload, ItemTrailingSlot, button, PartStyle{}, o.Decoration)
+				errorText.Tooltip(f.Error)
+				finish(t, ComponentFileUpload, ErrorSlot, errorText, PartStyle{Foreground: Set(t.Error), Font: Set(t.Font), FontSize: Set(m.Font), LineHeight: Set(m.Line / m.Font)}, o.Decoration)
+			}
+			if f.Status == UploadRunning {
+				Progress(c, t, f.Progress*100, ProgressOptions{Label: namedMessage(c, "progressNamed", f.Name)})
+			}
+		})
+		if f.Status == UploadRunning {
+			button := Button(c.Key("cancel"), t, message(c, "cancel"), ButtonOptions{AccessibleLabel: namedMessage(c, "cancelNamed", f.Name), Variant: Ghost, Color: Neutral, Size: o.Size}).OnClick(func() {
+				s.Cancel(f.ID)
+				s.picker.Focus()
+				if o.OnCancel != nil {
+					o.OnCancel(f.ID)
 				}
 			})
+			finish(t, ComponentFileUpload, ItemTrailingSlot, button, PartStyle{}, o.Decoration)
+			s.previews.bindAction(c, button, f.ID)
+		} else if valueOr(o.FileDelete, true) {
+			deleteOptions := ButtonOptions{Square: true, Variant: LinkVariant, Color: Neutral, Size: o.Size}
+			if o.Layout == UploadGrid {
+				deleteOptions.Variant, deleteOptions.Size = Solid, XS
+			}
+			if o.FileDeleteOptions != nil {
+				custom := *o.FileDeleteOptions
+				if custom.Variant == VariantDefault {
+					custom.Variant = deleteOptions.Variant
+				}
+				if custom.Color == ColorDefault {
+					custom.Color = deleteOptions.Color
+				}
+				if custom.Size == SizeDefault {
+					custom.Size = deleteOptions.Size
+				}
+				deleteOptions = custom
+			}
+			if deleteOptions.AccessibleLabel == "" {
+				deleteOptions.AccessibleLabel = namedMessage(c, "removeNamed", f.Name)
+			}
+			if deleteOptions.Leading == nil && deleteOptions.Trailing == nil {
+				deleteOptions.Trailing = o.FileDeleteIcon
+				if deleteOptions.Trailing == nil {
+					deleteOptions.Trailing = lucide.X()
+				}
+			}
+			button := Button(c.Key("remove"), t, "", deleteOptions).OnClick(func() {
+				s.Remove(f.ID)
+				s.picker.Focus()
+				if o.OnChange != nil {
+					o.OnChange(slices.Clone(s.Files))
+				}
+				if o.OnRemove != nil {
+					o.OnRemove(f.ID)
+				}
+			})
+			finish(t, ComponentFileUpload, ItemTrailingSlot, button, PartStyle{}, o.Decoration)
+			s.previews.bindAction(c, button, f.ID)
 		}
 	})
 }
+
 func uploadStatusLabel(c *ui.Context, s UploadStatus) string {
 	switch s {
 	case UploadRunning:

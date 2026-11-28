@@ -243,13 +243,15 @@ func TestSliderStepOrientationAndDisabled(t *testing.T) {
 func TestSelectStableHighlightDisabledAndEmptyValue(t *testing.T) {
 	value := nui.Optional[string]{}
 	options := []nui.Option[nui.Optional[string]]{{Value: nui.Optional[string]{}, Label: "None"}, {Value: nui.Set("a"), Label: "Same", Description: "Asia"}, {Value: nui.Set("b"), Label: "Blocked", Disabled: true}, {Value: nui.Set("c"), Label: "Same", Description: "Europe"}}
+	selectState := submittedSelect(options)
 	tt := ui.NewTester(func(c *ui.Context) {
 		theme := nui.App(c, nui.AppConfig{})
-		ui.Column(c).Padding(12).Children(func() { nui.Select(c, theme, &value, options, nui.SelectOptions{Label: "Region"}).Width(250) })
+		ui.Column(c).Padding(12).Children(func() { nui.Select(c, theme, &value, selectState, nui.SelectOptions{Label: "Region"}).Width(250) })
 	}, 400, 340)
 	click(t, tt, "Region")
 	tt.Key(0, ui.KeyDown)
 	options[1], options[3] = options[3], options[1]
+	selectState.SetOptions(options)
 	tt.Frame()
 	tt.Key(0, ui.KeyEnter)
 	if value != nui.Set("a") {
@@ -268,6 +270,7 @@ func TestSelectStableHighlightDisabledAndEmptyValue(t *testing.T) {
 		t.Fatal("disabled keyboard filtering")
 	}
 	options = nil
+	selectState.SetOptions(options)
 	tt.Frame()
 	click(t, tt, "Region")
 	if !tt.HasText("No data") {
@@ -280,10 +283,11 @@ func TestInputMenuEmptyDisabledCustomAndReorder(t *testing.T) {
 	state := nui.SearchState{}
 	selected, submitted, cleared := 0, 0, 0
 	options := []nui.Option[string]{{Value: "a", Label: "Same", Description: "Asia"}, {Value: "b", Label: "Same", Description: "Europe"}, {Value: "x", Label: "Blocked", Disabled: true}}
+	state.SetOptions(options)
 	tt := ui.NewTester(func(c *ui.Context) {
 		theme := nui.App(c, nui.AppConfig{})
 		ui.Column(c).Padding(12).Children(func() {
-			nui.InputMenu(c, theme, &state, options, nui.InputMenuOptions{Label: "Owner", Clearable: true, OnClear: func() { cleared++ }, OnSubmit: func(string) { submitted++ }, AllowCustom: true, FilterFields: []string{"label", "description"}, OnSelect: func(string) { selected++ }}).Width(260)
+			nui.InputMenu(c, theme, &state, nui.InputMenuOptions{Label: "Owner", Clearable: true, OnClear: func() { cleared++ }, OnSubmit: func(string) { submitted++ }, AllowCustom: true, FilterFields: []string{"label", "description"}, OnSelect: func(string) { selected++ }}).Width(260)
 		})
 	}, 400, 350)
 	click(t, tt, "Owner")
@@ -315,6 +319,7 @@ func TestInputMenuEmptyDisabledCustomAndReorder(t *testing.T) {
 	tt.Key(ui.Ctrl, ui.KeyA)
 	tt.Type("Same")
 	options[0], options[1] = options[1], options[0]
+	state.SetOptions(options)
 	tt.Frame()
 	if tt.HasText("Europe") {
 		t.Fatal("changed data should dismiss index-based popup")
@@ -342,6 +347,8 @@ func TestPopoverNestedDismissAndEdgePosition(t *testing.T) {
 	dialog := false
 	chosen := "a"
 	outside := 0
+	selectState := submittedSelect([]nui.Option[string]{{Value: "a", Label: "Option A"}, {Value: "b", Label: "Option B"}})
+	search.SetOptions(nil)
 	tt := ui.NewTester(func(c *ui.Context) {
 		theme := nui.App(c, nui.AppConfig{})
 		ui.Column(c).Fill().Padding(12).Children(func() {
@@ -354,8 +361,8 @@ func TestPopoverNestedDismissAndEdgePosition(t *testing.T) {
 				nui.Button(c, inner, "Dismiss", nui.ButtonOptions{}).OnClick(func() { open = false })
 			})
 			nui.Modal(c, theme, &dialog, "Nested dialog", func(inner nui.Theme) {
-				nui.InputMenu(c, inner, &search, nil, nui.InputMenuOptions{Label: "Empty search"})
-				nui.Select(c, inner, &chosen, []nui.Option[string]{{Value: "a", Label: "Option A"}, {Value: "b", Label: "Option B"}}, nui.SelectOptions{Label: "Nested select"})
+				nui.InputMenu(c, inner, &search, nui.InputMenuOptions{Label: "Empty search"})
+				nui.Select(c, inner, &chosen, selectState, nui.SelectOptions{Label: "Nested select"})
 			})
 		})
 	}, 500, 380)
@@ -449,5 +456,40 @@ func TestPopoverSidePlacement(t *testing.T) {
 		if p.Y != a.Y || (placement == nui.RightStart && p.X < a.X+a.W) || (placement == nui.LeftStart && p.X+p.W > a.X) {
 			t.Fatalf("placement %v: anchor=%v panel=%v", placement, a, p)
 		}
+	}
+}
+
+func TestFormVisibilityMembershipRejectsBalancedChanges(t *testing.T) {
+	var form nui.FormState
+	first, second := "same", "same"
+	name, disabled := "one", false
+	tt := ui.NewTester(func(c *ui.Context) {
+		th := nui.App(c, nui.AppConfig{DisableAnimations: true})
+		nui.Form(c.Key("form"), th, &form, nui.FormOptions{LoadingAuto: nui.Set(false)}, func(inner nui.Theme) {
+			nui.FormField(c.Key("fixed"), inner, nui.FormFieldOptions{Name: "fixed", Value: first}, func(t nui.Theme) { nui.Input(c, t, &first, nui.InputOptions{}) })
+			nui.FormField(c.Key(name), inner, nui.FormFieldOptions{Name: name, Value: second, Disabled: disabled}, func(t nui.Theme) { nui.Input(c, t, &second, nui.InputOptions{}) })
+		})
+	}, 400, 260)
+	ticket := form.BeginAsync()
+	tt.Frame()
+	if !form.CompleteAsync(ticket, nil) {
+		t.Fatal("unchanged visibility invalidated a ticket")
+	}
+	ticket = form.BeginAsync()
+	name = "two"
+	tt.Frame()
+	if form.CompleteAsync(ticket, nil) || form.Field("one").Visible || !form.Field("two").Visible || form.Field("one").Value != second {
+		t.Fatal("equal-count visibility replacement accepted a stale ticket or lost the retained value")
+	}
+	ticket = form.BeginAsync()
+	disabled = true
+	tt.Frame()
+	if form.CompleteAsync(ticket, nil) || len(form.Values()) != 1 {
+		t.Fatal("disabled membership accepted a stale ticket")
+	}
+	disabled, name = false, "one"
+	tt.Frame()
+	if !form.Field("one").Visible || form.Field("one").Value != second {
+		t.Fatal("reappearing field lost retained state")
 	}
 }

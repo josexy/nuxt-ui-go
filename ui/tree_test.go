@@ -607,3 +607,63 @@ func TestTreeAdjacentSelectionSurfaceGap(t *testing.T) {
 		}
 	}
 }
+
+func TestTreeSummaryModesWithCustomParts(t *testing.T) {
+	for _, part := range []string{"content", "leading", "trailing"} {
+		for _, multiple := range []bool{false, true} {
+			t.Run(fmt.Sprintf("Part=%s/UnlinkedMultiple=%v", part, multiple), func(t *testing.T) {
+				var state nui.TreeState
+				state.SetNodes([]nui.TreeNode{{ID: "root", Label: "Root", Children: []nui.TreeNode{
+					{ID: "a", Label: "A"}, {ID: "b", Label: "B"},
+					{ID: "disabled", Disabled: true, Children: []nui.TreeNode{{ID: "hidden", Label: "Hidden"}}},
+				}}})
+				state.Selection.Add("a")
+				partial, changes := false, 0
+				build := func(c *ui.Context, _ nui.Theme, item nui.TreeItemState) {
+					if item.ID == "root" {
+						partial = item.Indeterminate
+					}
+					ui.Text(c.Key("custom"), item.Label)
+				}
+				o := nui.TreeOptions{Multiple: true, BubbleSelect: true, OnChange: func() { changes++ }}
+				switch part {
+				case "content":
+					o.Build = build
+				case "leading":
+					o.BuildLeading = build
+				case "trailing":
+					o.BuildTrailing = build
+				}
+				tt := ui.NewTester(func(c *ui.Context) {
+					nui.Tree(c.Key("tree"), nui.App(c, nui.AppConfig{DisableAnimations: true}), &state, o).Width(300)
+				}, 500, 400)
+				if !partial {
+					t.Fatal("linked root should be mixed")
+				}
+				o.Multiple, o.BubbleSelect = multiple, false
+				tt.Frame()
+				if partial {
+					t.Fatal("unlinked custom part observed a stale mixed state")
+				}
+				state.Selection.Clear()
+				state.Selection.Add("b")
+				state.SetNodes([]nui.TreeNode{{ID: "root", Label: "Changed", Children: []nui.TreeNode{
+					{ID: "b", Label: "B"}, {ID: "disabled", Disabled: true, Children: []nui.TreeNode{{ID: "hidden", Label: "Hidden"}}},
+				}}})
+				tt.Frame()
+				o.Multiple, o.BubbleSelect = true, true
+				tt.Frame()
+				if partial || changes != 0 {
+					t.Fatalf("re-entry ignored current data/disabled descendants: mixed=%v changes=%d", partial, changes)
+				}
+				state.Selection.Clear()
+				state.Selection.Add("root")
+				o.BubbleSelect, o.PropagateSelect = false, true
+				tt.Frame()
+				if !partial || changes != 0 {
+					t.Fatal("propagation did not recompute its own summary")
+				}
+			})
+		}
+	}
+}

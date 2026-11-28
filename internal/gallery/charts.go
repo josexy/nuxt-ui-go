@@ -73,21 +73,15 @@ func (a *State) chartDemo(c *ui.Context, t nui.Theme) {
 	ui.Row(c.Key("chart-options")).Wrap().Gap(12).Children(func() {
 		ui.Column(c.Key("axis")).Gap(4).Children(func() {
 			ui.Text(c, "X axis").FontSize(12).TextColor(t.Muted)
-			nui.Select(c, t, &s.ChartAxis, []nui.Option[string]{{Value: "numeric", Label: "Numeric"}, {Value: "category", Label: "Categories"}, {Value: "time", Label: "Time"}}, nui.SelectOptions{Label: "Chart X axis", Disabled: radial, OnChange: s.updateChartData}).Width(150)
+			nui.Select(c, t, &s.ChartAxis, &s.ChartAxisOptions, nui.SelectOptions{Label: "Chart X axis", Disabled: radial, OnChange: s.updateChartData}).Width(150)
 		})
 		ui.Column(c.Key("curve")).Gap(4).Children(func() {
 			ui.Text(c, "Curve").FontSize(12).TextColor(t.Muted)
-			nui.Select(c, t, &s.ChartCurve, []nui.Option[nui.ChartCurve]{
-				{Value: nui.ChartCurveLinear, Label: "Linear"}, {Value: nui.ChartCurveMonotone, Label: "Monotone"},
-				{Value: nui.ChartCurveStepAfter, Label: "Step after"}, {Value: nui.ChartCurveStepBefore, Label: "Step before"}, {Value: nui.ChartCurveStep, Label: "Step middle"},
-			}, nui.SelectOptions{Label: "Chart curve", Disabled: s.ChartKind != nui.ChartLine && s.ChartKind != nui.ChartArea}).Width(160)
+			nui.Select(c, t, &s.ChartCurve, &s.ChartCurveOptions, nui.SelectOptions{Label: "Chart curve", Disabled: s.ChartKind != nui.ChartLine && s.ChartKind != nui.ChartArea}).Width(160)
 		})
 		ui.Column(c.Key("stack")).Gap(4).Children(func() {
 			ui.Text(c, "Stack").FontSize(12).TextColor(t.Muted)
-			nui.Select(c, t, &s.ChartStack, []nui.Option[nui.ChartStackMode]{
-				{Value: nui.ChartStackNone, Label: "None"}, {Value: nui.ChartStackStandard, Label: "Standard"},
-				{Value: nui.ChartStackNormalized, Label: "Normalized"}, {Value: nui.ChartStackCenter, Label: "Centered"},
-			}, nui.SelectOptions{Label: "Chart stacking", Disabled: s.ChartKind != nui.ChartBar && s.ChartKind != nui.ChartArea}).Width(160)
+			nui.Select(c, t, &s.ChartStack, &s.ChartStackOptions, nui.SelectOptions{Label: "Chart stacking", Disabled: s.ChartKind != nui.ChartBar && s.ChartKind != nui.ChartArea}).Width(160)
 		})
 	})
 	ui.Row(c.Key("chart-actions")).Wrap().AlignItems(ui.Center).Gap(12).Children(func() {

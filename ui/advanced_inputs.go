@@ -56,10 +56,20 @@ func addTags(tags []string, text, separators string, limit int, duplicate bool) 
 		separators = ","
 	}
 	out := slices.Clone(tags)
+	var members map[string]bool
+	if !duplicate {
+		members = make(map[string]bool, len(tags))
+		for _, tag := range tags {
+			members[tag] = true
+		}
+	}
 	for _, v := range strings.FieldsFunc(text, func(r rune) bool { return strings.ContainsRune(separators, r) }) {
 		v = strings.TrimSpace(v)
-		if v != "" && (duplicate || !slices.Contains(out, v)) && (limit <= 0 || len(out) < limit) {
+		if v != "" && (duplicate || !members[v]) && (limit <= 0 || len(out) < limit) {
 			out = append(out, v)
+			if !duplicate {
+				members[v] = true
+			}
 		}
 	}
 	return out
@@ -84,7 +94,11 @@ func InputTags(c *ui.Context, t Theme, value *[]string, s *TagsState, o InputTag
 		panic("nui: InputTags requires value and state")
 	}
 	keys := tagKeys(*value)
-	if s.active.Set && !slices.Contains(keys, s.active.Value) {
+	present := make(map[tagKey]bool, len(keys))
+	for _, key := range keys {
+		present[key] = true
+	}
+	if s.active.Set && !present[s.active.Value] {
 		s.active = Optional[tagKey]{}
 	}
 	if s.removers == nil {
@@ -108,6 +122,13 @@ func InputTags(c *ui.Context, t Theme, value *[]string, s *TagsState, o InputTag
 			return false
 		}
 		next := slices.Clone(*value)
+		var members map[string]bool
+		if !o.Duplicate {
+			members = make(map[string]bool, len(next))
+			for _, tag := range next {
+				members[tag] = true
+			}
+		}
 		var added []string
 		for _, candidate := range strings.FieldsFunc(text, func(r rune) bool { return strings.ContainsRune(separators, r) }) {
 			candidate = strings.TrimSpace(candidate)
@@ -117,13 +138,16 @@ func InputTags(c *ui.Context, t Theme, value *[]string, s *TagsState, o InputTag
 			if o.ConvertValue != nil {
 				candidate = o.ConvertValue(candidate)
 			}
-			if candidate == "" || o.MaxTags > 0 && len(next) >= o.MaxTags || !o.Duplicate && slices.Contains(next, candidate) {
+			if candidate == "" || o.MaxTags > 0 && len(next) >= o.MaxTags || !o.Duplicate && members[candidate] {
 				if o.OnInvalid != nil {
 					o.OnInvalid(candidate)
 				}
 				continue
 			}
 			next = append(next, candidate)
+			if !o.Duplicate {
+				members[candidate] = true
+			}
 			added = append(added, candidate)
 		}
 		if len(added) == 0 {
@@ -310,7 +334,7 @@ func InputTags(c *ui.Context, t Theme, value *[]string, s *TagsState, o InputTag
 		return editor
 	}, nil)
 	for key, handle := range s.removers {
-		if !slices.Contains(keys, key) {
+		if !present[key] {
 			if !root.IsDisabled() && handle.Focused(c) {
 				s.Handle.Focus(c)
 			}
@@ -715,12 +739,8 @@ func InputRating(c *ui.Context, t Theme, value *int, o InputRatingOptions) ui.El
 			if interactive && e.Hovered() {
 				scale = 1.1
 			}
-			if t.moves(c) && t.Motion.Transition > 0 {
-				scale = e.AnimateWith("nui-rating-scale", scale, t.Motion.Transition, ui.EaseOut)
-			} else {
-				e.Jump("nui-rating-scale", scale)
-			}
-			e.TransformOrigin(.5, .5).Scale(scale, scale)
+			e.TransformOrigin(.5, .5)
+			t.scaleFeedback(c, e, scale)
 			// The ring marks the current star: the rated one, or the first of an empty rating.
 			if focus && i == max(1, *value) {
 				e.Shadow(0, 0, 0, 3, inputFocusColor(t, tone))

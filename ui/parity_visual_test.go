@@ -329,11 +329,12 @@ func TestTooltipSeparatesKeys(t *testing.T) {
 
 func TestMenuWidthChecksAndKeys(t *testing.T) {
 	var state nui.MenuState
+	state.SetItems([]nui.MenuItem{{ID: "grid", Label: "Grid", Checked: nui.Set(true)}, {ID: "open", Label: "Open", Shortcut: "Ctrl+O"}})
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
 		ui.Column(c).Padding(20).Children(func() {
 			anchor := nui.Button(c, th, "View", nui.ButtonOptions{})
-			nui.DropdownMenu(c, th, anchor, &state, []nui.MenuItem{{ID: "grid", Label: "Grid", Checked: nui.Set(true)}, {ID: "open", Label: "Open", Shortcut: "Ctrl+O"}}, nui.MenuOptions{Label: "View menu"})
+			nui.DropdownMenu(c, th, anchor, &state, nui.MenuOptions{Label: "View menu"})
 		})
 	}, 500, 400)
 	click(t, tt, "View")
@@ -459,10 +460,12 @@ func TestSelectMenuFlatPopup(t *testing.T) {
 	var values []string
 	var s nui.SelectMenuState
 	created := ""
+	listSelection := chosenSelection(values)
+	s.SetItems([]nui.ListboxItem{{ID: "a", Label: "Alpha"}, {ID: "b", Label: "Beta"}})
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
 		ui.Column(c).Padding(20).Children(func() {
-			nui.SelectMenu(c, th, &values, &s, []nui.ListboxItem{{ID: "a", Label: "Alpha"}, {ID: "b", Label: "Beta"}}, nui.SelectMenuOptions{Label: "Letters", Clearable: true, OnCreate: func(v string) { created = v }, Popup: nui.PopoverOptions{Label: "Letters popup"}}).Width(260)
+			nui.SelectMenu(c, th, listSelection, &s, nui.SelectMenuOptions{Label: "Letters", Clearable: true, OnCreate: func(v string) { created = v }, Popup: nui.PopoverOptions{Label: "Letters popup"}}).Width(260)
 		})
 	}, 400, 400)
 	th := nui.Light()
@@ -487,24 +490,27 @@ func TestSelectMenuFlatPopup(t *testing.T) {
 	tt.Type("Gamma")
 	tt.Key(0, ui.KeyDown)
 	tt.Key(0, ui.KeyEnter)
-	if created != "Gamma" || len(values) != 0 {
-		t.Fatalf("create row: created %q, values %v", created, values)
+	if created != "Gamma" || listSelection.Len() != 0 {
+		t.Fatalf("create row: created %q, values %v", created, listSelection.Values())
 	}
-	values = []string{"a"}
+	listSelection.Set([]string{"a"})
+
 	s.Open = false
 	tt.Frame()
 	click(t, tt, "Clear selection")
-	if len(values) != 0 || s.Open {
-		t.Fatalf("trigger clear: values %v, open %v", values, s.Open)
+	if listSelection.Len() != 0 || s.Open {
+		t.Fatalf("trigger clear: values %v, open %v", listSelection.Values(), s.Open)
 	}
 }
 
 func TestInputMenuToggleAndTagChips(t *testing.T) {
-	state := nui.SearchState{SelectedValues: []string{"b"}}
+	state := nui.SearchState{}
+	state.SelectedValues.Set([]string{"b"})
+	state.SetOptions([]nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}})
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		ui.Column(c).Padding(20).Children(func() {
-			nui.InputMenu(c, th, &state, []nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}}, nui.InputMenuOptions{Label: "Letters", Multiple: true}).Width(300)
+			nui.InputMenu(c, th, &state, nui.InputMenuOptions{Label: "Letters", Multiple: true}).Width(300)
 		})
 	}, 400, 400)
 	click(t, tt, "Show options")
@@ -521,11 +527,11 @@ func TestInputMenuToggleAndTagChips(t *testing.T) {
 		t.Fatalf("chip text line %v, want 16", beta.H)
 	}
 	tt.ClickAt(beta.X+2, beta.Y+beta.H/2)
-	if len(state.SelectedValues) != 1 {
+	if state.SelectedValues.Len() != 1 {
 		t.Fatal("clicking the chip's text removed it")
 	}
 	click(t, tt, "Remove Beta")
-	if len(state.SelectedValues) != 0 {
+	if state.SelectedValues.Len() != 0 {
 		t.Fatal("the chip's x did not remove it")
 	}
 }
@@ -533,32 +539,38 @@ func TestInputMenuToggleAndTagChips(t *testing.T) {
 func TestInputMenuMultipleTagsPrecedeEditor(t *testing.T) {
 	for _, direction := range []ui.Direction{ui.LeftToRight, ui.RightToLeft} {
 		t.Run(map[ui.Direction]string{ui.LeftToRight: "ltr", ui.RightToLeft: "rtl"}[direction], func(t *testing.T) {
-			state := nui.SearchState{SelectedValues: []string{"rust", "ts", "go"}}
+			state := nui.SearchState{}
+			state.SelectedValues.Set([]string{"rust", "ts", "go"})
 			width := float32(440)
 			changes := 0
+			state.SetOptions([]nui.Option[string]{{Value: "rust", Label: "Rust"}, {Value: "ts", Label: "TypeScript"}, {Value: "go", Label: "Go"}})
 
 			tt := ui.NewTester(func(c *ui.Context) {
 				th := nui.App(c, nui.AppConfig{Mode: nui.LightMode})
 				ui.Column(c).Padding(20).Children(func() {
-					nui.InputMenu(c, th, &state, []nui.Option[string]{{Value: "rust", Label: "Rust"}, {Value: "ts", Label: "TypeScript"}, {Value: "go", Label: "Go"}}, nui.InputMenuOptions{
+					nui.InputMenu(c, th, &state, nui.InputMenuOptions{
 						Label: "Languages", Placeholder: "Type something...", Multiple: true,
-						OnValuesChange: func([]string) { changes++ },
+						OnValuesChange: func() { changes++ },
 						Style:          func(root, editor, leading, trailing ui.Element) { root.Label("Language field") },
 					}).Width(width)
 				})
 			}, 500, 300)
 			tt.SetDirection(direction)
 			arrow := bounds(t, tt, "Show options")
-			previous := bounds(t, tt, "Rust")
-			for _, label := range []string{"TypeScript", "Go", "Languages", "Show options"} {
+			viewport := bounds(t, tt, "Languages selected options")
+			if viewport.H <= 0 || viewport.H > 96 {
+				t.Fatalf("selected-tag viewport escaped its bound: %v", viewport)
+			}
+			previousBottom := viewport.Y
+			for _, label := range []string{"Rust", "TypeScript", "Go"} {
 				next := bounds(t, tt, label)
-				if direction == ui.LeftToRight && previous.X+previous.W > next.X || direction == ui.RightToLeft && next.X+next.W > previous.X {
-					t.Fatalf("%s is not after the preceding tag/editor: previous %v, next %v", label, previous, next)
+				if next.H <= 0 || next.Y < previousBottom || next.Y+next.H > viewport.Y+viewport.H {
+					t.Fatalf("%s is not a visible ordered tag: %v in %v", label, next, viewport)
 				}
-				if next.Y+next.H/2 != arrow.Y+arrow.H/2 {
-					t.Fatalf("%s unexpectedly wrapped in a wide field: %v, arrow %v", label, next, arrow)
-				}
-				previous = next
+				previousBottom = next.Y + next.H
+			}
+			if editor := bounds(t, tt, "Languages"); editor.Y < viewport.Y+viewport.H || editor.H <= 0 {
+				t.Fatalf("draft editor overlaps the selected-tag viewport: %v, %v", editor, viewport)
 			}
 			click(t, tt, "Languages")
 			tt.Type("draft")
@@ -568,7 +580,7 @@ func TestInputMenuMultipleTagsPrecedeEditor(t *testing.T) {
 			editor := bounds(t, tt, "Languages")
 			arrow = bounds(t, tt, "Show options")
 			if editor.Y <= bounds(t, tt, "Rust").Y || editor.W < 20 || editor.H <= 0 {
-				t.Fatalf("narrow field did not wrap tags and retain usable editor: %v", editor)
+				t.Fatalf("narrow field did not retain a separate usable editor: %v", editor)
 			}
 			for _, label := range []string{"Rust", "TypeScript", "Go", "Languages", "Show options"} {
 				r := bounds(t, tt, label)
@@ -580,16 +592,16 @@ func TestInputMenuMultipleTagsPrecedeEditor(t *testing.T) {
 				t.Fatalf("arrow is not at the trailing edge: editor %v, arrow %v", editor, arrow)
 			}
 			if state.Query != "draft" || !tt.Focused("Languages") {
-				t.Fatalf("wrapping discarded the draft or focus: %+v", state)
+				t.Fatalf("resizing discarded the draft or focus: %+v", state)
 			}
 			click(t, tt, "Remove TypeScript")
-			if !slices.Equal(state.SelectedValues, []string{"rust", "go"}) || changes != 1 || !tt.Focused("Languages") {
+			if !slices.Equal(state.SelectedValues.Values(), []string{"rust", "go"}) || changes != 1 || !tt.Focused("Languages") {
 				t.Fatalf("tag removal lost focus or emitted incorrect selection: %+v, changes %d", state, changes)
 			}
 			tt.Key(ui.Ctrl, ui.KeyA)
 			tt.Key(0, ui.KeyBackspace)
 			tt.Key(0, ui.KeyBackspace)
-			if !slices.Equal(state.SelectedValues, []string{"rust"}) || changes != 2 {
+			if !slices.Equal(state.SelectedValues.Values(), []string{"rust"}) || changes != 2 {
 				t.Fatalf("empty editor Backspace did not remove the last tag once: %+v, changes %d", state, changes)
 			}
 		})

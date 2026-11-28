@@ -20,6 +20,8 @@ type Record struct {
 }
 
 type State struct {
+	themeMenuConfig                       themeMenuConfig
+	themeMenusReady                       bool
 	ActiveID, DirectorySearch             string
 	pages                                 map[string]*componentPage
 	directoryToggle, directorySearch      ui.Handle
@@ -149,4 +151,11 @@ func (a *State) richActions(c *ui.Context, s nui.Theme, anchor ui.Element) {
 	if !a.RichOpen {
 		a.RichSubOpen = false
 	}
+}
+
+// submittedSelect creates per-scene persistent state during gallery setup.
+func submittedSelect[T comparable](options []nui.Option[T]) *nui.SelectState[T] {
+	state := &nui.SelectState[T]{}
+	state.SetOptions(options)
+	return state
 }

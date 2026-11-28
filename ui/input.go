@@ -18,7 +18,7 @@ type InputOptions struct {
 	LoadingIcon                                      *ui.SVG
 	LoadingTrailing                                  bool
 	Highlight                                        bool
-	MaxLength                                        int // UTF-16 units; 0 is unlimited.
+	MaxLength                                        int // Native insertion limit in UTF-16 units; <= 0 is unlimited.
 	OnChange, OnSubmit                               func(string)
 	OnClear                                          func()
 	UI                                               Styles
@@ -141,7 +141,6 @@ func inputShell(c *ui.Context, t Theme, value *string, o InputOptions, id Compon
 	loadingLeading := o.Loading && (!o.LoadingTrailing || o.Leading != nil)
 	var editor, leading, trailing, clear, loader ui.Element
 	root.Children(func() {
-		previous := *value // Capture before TextInputBase applies this frame's bound edit.
 		if loadingLeading {
 			leading = ui.Box(c.Key("leading")).Size(m.Icon, m.Icon).Shrink(0)
 			loader = leading
@@ -155,7 +154,7 @@ func inputShell(c *ui.Context, t Theme, value *string, o InputOptions, id Compon
 			leading = avatar(c.Key("leading"), t, *o.Avatar, diameter)
 		}
 		// Nuxt's placeholder:text-dimmed; MyGo would otherwise use the theme's TextMuted.
-		editor = makeEditor().Grow(1).MinWidth(0).Font(t.Font).FontSize(m.Font).LineHeight(m.Line / m.Font).Placeholder(o.Placeholder).PlaceholderColor(t.Dimmed).ReadOnly(o.ReadOnly).FocusRing(false)
+		editor = makeEditor().Grow(1).MinWidth(0).Font(t.Font).FontSize(m.Font).LineHeight(m.Line / m.Font).Placeholder(o.Placeholder).PlaceholderColor(t.Dimmed).ReadOnly(o.ReadOnly).MaxLength(o.MaxLength).FocusRing(false)
 		if minRows > 0 {
 			editor.Lines(minRows, maxRows)
 		}
@@ -164,18 +163,8 @@ func inputShell(c *ui.Context, t Theme, value *string, o InputOptions, id Compon
 		}
 		fieldSemantics(c, editor, t, o)
 
-		if o.OnChange != nil || o.MaxLength > 0 {
-			editor.OnChange(func() {
-				rejected := false
-				if o.MaxLength > 0 {
-					limited := limitTextEdit(previous, *value, o.MaxLength)
-					rejected = limited == previous && limited != *value
-					*value = limited
-				}
-				if !rejected && o.OnChange != nil {
-					o.OnChange(*value)
-				}
-			})
+		if o.OnChange != nil {
+			editor.OnChange(func() { o.OnChange(*value) })
 		}
 		if o.OnSubmit != nil {
 			editor.OnSubmit(func() { o.OnSubmit(*value) })
@@ -208,7 +197,7 @@ func inputShell(c *ui.Context, t Theme, value *string, o InputOptions, id Compon
 	// MyGo's FocusVisible only tracks keyboard navigation, so use actual focus.
 	focused := editor.Focused() || o.focusWithin && root.FocusWithin()
 	config, styles := resolve(t, id, ComponentTheme{Color: Primary, Size: MD, Variant: Outline}, ComponentTheme{Color: o.Color, Size: inheritedSize(t, o.Size), Variant: o.Variant, UI: o.UI}, func(v ComponentTheme) Styles {
-		styles := inputRecipe(t, v, focused, root.Hovered() && !root.IsDisabled(), fieldInvalid(t, o))
+		styles := inputRecipe(t, v, focused, inputHover(root, v.Variant), fieldInvalid(t, o))
 		if o.Highlight && !fieldInvalid(t, o) {
 			s := styles[Root]
 			s.BorderWidth, s.BorderColor = Set(float32(1)), Set(inputColor(t, v.Color))
@@ -285,4 +274,9 @@ func trackFieldEdit(t Theme, text, message, messageKey string) {
 		f.controlError = message
 		f.controlErrorKey = messageKey
 	}
+}
+
+// Only soft/ghost editor recipes need to observe hover state.
+func inputHover(e ui.Element, variant Variant) bool {
+	return (variant == Soft || variant == Ghost) && !e.IsDisabled() && e.Hovered()
 }

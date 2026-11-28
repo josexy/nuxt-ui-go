@@ -590,7 +590,7 @@ func segmentedInput(c *ui.Context, t Theme, fields []segmentField, o InputOption
 	})
 	focused := root.FocusWithin()
 	_, styles := resolve(t, id, ComponentTheme{Color: Primary, Size: MD, Variant: Outline}, ComponentTheme{Color: o.Color, Size: inheritedSize(t, o.Size), Variant: o.Variant, UI: o.UI}, func(v ComponentTheme) Styles {
-		s := inputRecipe(t, v, focused, root.Hovered() && !root.IsDisabled(), fieldInvalid(t, o))
+		s := inputRecipe(t, v, focused, inputHover(root, v.Variant), fieldInvalid(t, o))
 		if o.Highlight && !fieldInvalid(t, o) {
 			r := s[Root]
 			r.BorderWidth, r.BorderColor = Set(float32(1)), Set(inputColor(t, v.Color))

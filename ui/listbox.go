@@ -46,19 +46,21 @@ type ListboxEvent struct {
 func (e *ListboxEvent) PreventDefault() { e.prevented = true }
 
 type ListboxState struct {
-	Active          string
-	Query           string
-	QueryHandle     ui.Handle
-	List            ui.ListState
-	prefix          string
-	typed           time.Time
-	horizontal      ui.ScrollState
-	scrollTo        string
-	selectionAnchor string
-	data            listboxData
-	selection       stringSelection
-	source          listboxItems
-	filter          listboxFilter
+	Active            string
+	Query             string
+	QueryHandle       ui.Handle
+	List              ui.ListState
+	prefix            string
+	typed             time.Time
+	horizontal        ui.ScrollState
+	scrollTo          string
+	selectionAnchor   string
+	data              listboxData
+	selection         *SelectionState[string]
+	selectionRevision uint64
+	preferred         string
+	source            listboxItems
+	filter            listboxFilter
 }
 
 type listboxActivity struct {
@@ -87,6 +89,7 @@ type ListboxOptions struct {
 	Filter             bool
 	FilterInput        *InputOptions
 	FilterFields       []string // label (default), description, value/id, group.
+	SearchExecution    SearchExecution
 	IgnoreFilter       bool
 	SearchTerm         *string // nil uses ListboxState.Query.
 	OnSearchTermChange func(string)
@@ -96,7 +99,7 @@ type ListboxOptions struct {
 	Loop               bool
 	HighlightOnHover   Optional[bool]
 	SelectionBehavior  SelectionBehavior
-	OnChange           func([]string)
+	OnChange           func()
 	OnSelect           func(string) // Activation, including selecting an unchanged value.
 	OnHighlight        func(string) // A user action changed the highlighted item.
 	Decoration
@@ -111,15 +114,22 @@ type ListboxOptions struct {
 	heightSet      bool
 }
 
-func nextListIndex(items []ListboxItem, at, delta int) int {
-	for i := at + delta; i >= 0 && i < len(items); i += delta {
-		if !items[i].Disabled && items[i].Kind == ListboxOption {
+func nextListIndex(items *listboxItems, at, delta int) int {
+	for i := at + delta; i >= 0 && i < items.count(); i += delta {
+		if !items.item(i).Disabled && items.item(i).Kind == ListboxOption {
 			return i
 		}
 	}
 	return at
 }
-func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items []ListboxItem, o ListboxOptions) ui.Element {
+func Listbox(c *ui.Context, t Theme, selected *SelectionState[string], s *ListboxState, o ListboxOptions) ui.Element {
+	if s == nil {
+		panic("nui: Listbox requires state")
+	}
+	return listbox(c, t, selected, s, &s.source, o)
+}
+
+func listbox(c *ui.Context, t Theme, selected *SelectionState[string], s *ListboxState, source *listboxItems, o ListboxOptions) ui.Element {
 	vert := vertical(valueOr(o.Orientation, Vertical))
 	if o.SelectionBehavior > SelectionReplace {
 		panic("nui: invalid selection behavior")
@@ -143,17 +153,17 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 			}
 		}
 	}
-	publish := func(next []string) {
-		if !slices.Equal(next, *selected) {
-			*selected = next
-			s.selection.update(next)
+	notifySelection := func(changed bool) {
+		if changed {
+			s.observeSelection(selected, false)
 			if o.OnChange != nil {
-				o.OnChange(slices.Clone(next))
+				o.OnChange()
 			}
 		}
 	}
+	publish := func(next []string) { notifySelection(selected.Set(next)) }
 	choose := func(id string, toggle bool) {
-		if disabled || o.Loading {
+		if disabled || o.Loading || !s.filter.search.ready(*query) {
 			return
 		}
 		index := s.data.enabledIndex(id)
@@ -164,25 +174,23 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 			o.activate()
 			return
 		}
-		if options := s.data.items[index].Options; options != nil && options.OnSelect != nil {
-			event := &ListboxEvent{ID: id, Selected: slices.Contains(*selected, id)}
+		if options := s.data.item(index).Options; options != nil && options.OnSelect != nil {
+			event := &ListboxEvent{ID: id, Selected: selected.Has(id)}
 			options.OnSelect(event)
 			if event.prevented {
 				return
 			}
 		}
-		next := slices.Clone(*selected)
-		if toggle && (o.Multiple || slices.Contains(next, id)) {
-			if slices.Contains(next, id) {
-				next = slices.DeleteFunc(next, func(v string) bool { return v == id })
+		if toggle && (o.Multiple || selected.Has(id)) {
+			if selected.Has(id) {
+				notifySelection(selected.Remove(id))
 			} else {
-				next = append(next, id)
+				notifySelection(selected.Add(id))
 			}
 		} else {
-			next = []string{id}
 			s.selectionAnchor = id
+			publish([]string{id})
 		}
-		publish(next)
 		if o.OnSelect != nil {
 			o.OnSelect(id)
 		}
@@ -206,6 +214,7 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 	}
 	m := optionRecipe(t, config.Size)
 	root := ui.Column(c).MinWidth(0).Height(height).Clip().Disabled(o.Disabled || t.field.Disabled)
+	s.filter.search.bind(c, root, s.Close)
 	disabled = root.IsDisabled()
 	activity := ui.Local(root, "activity", func() listboxActivity { return listboxActivity{} })
 	rootStyle := PartStyle{Background: Set(t.Background), Radius: Set(t.radius(8)), BorderWidth: Set(float32(1)), BorderColor: Set(t.Border)}
@@ -286,32 +295,30 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 			bm := buttonMetrics(t, input.Size)
 			listHeight = max(0, height-bm.Line-2*bm.Y-1)
 		}
+		visible := source
 		if !o.IgnoreFilter && *query != "" {
-			s.source.update(items)
-			items = s.filter.apply(&s.source, *query, o.FilterFields)
+			visible = s.filter.visible(source, *query, o.FilterFields, o.SearchExecution)
+		} else {
+			s.filter.search.pause()
 		}
-		s.data.update(items)
-		items = s.data.items
+		loading := o.Loading || s.filter.search.pending
+		dataChanged := s.data.bind(visible)
+		items := &s.data.listboxItems
 		rows, positions := s.data.rows, s.data.positions
-		external := !slices.Equal(s.selection.values, *selected)
-		s.selection.update(*selected)
+		external := s.observeSelection(selected, dataChanged)
 		at := s.data.enabledIndex(s.Active)
 		queryChanged := activity.searchChanged || o.resetHighlight
 		if at < 0 || external || queryChanged {
 			at = -1
 			if !queryChanged {
-				for _, id := range *selected {
-					if at = s.data.enabledIndex(id); at >= 0 {
-						break
-					}
-				}
+				at = s.data.enabledIndex(s.preferred)
 			}
-			if at < 0 {
-				at = nextListIndex(items, -1, 1)
+			if at < 0 && len(s.data.enabled) > 0 {
+				at = s.data.enabled[0]
 			}
 			active := ""
 			if at >= 0 {
-				active = items[at].ID
+				active = items.item(at).ID
 			}
 			if queryChanged {
 				before := o.previousActive
@@ -326,11 +333,18 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 				s.Active = active
 			}
 		}
+		if dataChanged && at >= 0 {
+			if vert {
+				s.List.ScrollIntoView(positions[at])
+			} else {
+				s.scrollTo = s.Active
+			}
+		}
 		s.Query = *query
 		activity.searchChanged = false
-		if o.Loading {
+		if loading {
 			listboxLoading(c, t, config.Size, o)
-		} else if len(items) == 0 {
+		} else if items.count() == 0 {
 			text := o.EmptyText
 			if text == "" {
 				key := "noData"
@@ -348,7 +362,7 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 		}
 		first, last := 0, len(rows)
 		count := len(rows)
-		if o.Loading {
+		if loading {
 			count, first, last = 0, 0, 0
 		}
 		if vert {
@@ -400,12 +414,12 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 		bindField(c, list, t)
 		finish(t, ComponentListbox, List, list, PartStyle{}, o.Decoration)
 		move := func(i int) {
-			if i >= 0 && i < len(items) && !items[i].Disabled && items[i].Kind == ListboxOption {
-				highlight(items[i].ID)
+			if i >= 0 && i < items.count() && !items.item(i).Disabled && items.item(i).Kind == ListboxOption {
+				highlight(items.item(i).ID)
 				if vert {
 					s.List.ScrollIntoView(positions[i])
 				} else {
-					s.scrollTo = items[i].ID
+					s.scrollTo = items.item(i).ID
 				}
 			}
 		}
@@ -415,7 +429,7 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 				if delta > 0 {
 					i = nextListIndex(items, -1, 1)
 				} else {
-					i = nextListIndex(items, len(items), -1)
+					i = nextListIndex(items, items.count(), -1)
 				}
 			}
 			return i
@@ -428,7 +442,7 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 			}
 		}
 		navigate = func(ev ui.InputEvent) bool {
-			if o.Loading || disabled {
+			if loading || disabled {
 				return false
 			}
 			at := s.data.enabledIndex(s.Active)
@@ -438,8 +452,8 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 				}
 				s.typed = ev.Time
 				s.prefix += strings.ToLower(ev.Text)
-				if i := typeaheadIndex(s.prefix, at, len(items), func(i int) (string, bool) {
-					return items[i].Label, !items[i].Disabled && items[i].Kind == ListboxOption
+				if i := typeaheadIndex(s.prefix, at, items.count(), func(i int) (string, bool) {
+					return items.item(i).Label, !items.item(i).Disabled && items.item(i).Kind == ListboxOption
 				}); i >= 0 {
 					move(i)
 				}
@@ -450,13 +464,14 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 			}
 			if o.Multiple && ev.Key == ui.KeyA && (ev.Mods == ui.Ctrl || ev.Mods == ui.Super) {
 				all := []string{}
-				for _, it := range items {
+				for i := range items.count() {
+					it := items.item(i)
 					if !it.Disabled && it.Kind == ListboxOption && it.ID != o.actionID {
 						all = append(all, it.ID)
 					}
 				}
 				publish(all)
-				move(nextListIndex(items, len(items), -1))
+				move(nextListIndex(items, items.count(), -1))
 				return true
 			}
 			if ev.Mods & ^ui.Shift != 0 {
@@ -471,10 +486,10 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 			case ui.KeyHome:
 				move(nextListIndex(items, -1, 1))
 			case ui.KeyEnd:
-				move(nextListIndex(items, len(items), -1))
+				move(nextListIndex(items, items.count(), -1))
 			case ui.KeySpace:
 				if at >= 0 && ev.Mods == 0 {
-					choose(items[at].ID, o.SelectionBehavior != SelectionReplace)
+					choose(items.item(at).ID, o.SelectionBehavior != SelectionReplace)
 				}
 				return ev.Mods == 0
 			default:
@@ -490,8 +505,8 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 				if anchor >= 0 && to >= 0 {
 					rangeIDs := []string{}
 					for i := min(anchor, to); i <= max(anchor, to); i++ {
-						if !items[i].Disabled && items[i].Kind == ListboxOption && items[i].ID != o.actionID {
-							rangeIDs = append(rangeIDs, items[i].ID)
+						if !items.item(i).Disabled && items.item(i).Kind == ListboxOption && items.item(i).ID != o.actionID {
+							rangeIDs = append(rangeIDs, items.item(i).ID)
 						}
 					}
 					publish(rangeIDs)
@@ -501,8 +516,8 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 		}
 		list.HandleInput(navigate)
 		list.OnShortcut(0, ui.KeyEnter, func() {
-			if i := s.data.enabledIndex(s.Active); i >= 0 && !o.Loading {
-				choose(items[i].ID, o.SelectionBehavior != SelectionReplace)
+			if i := s.data.enabledIndex(s.Active); i >= 0 && !loading {
+				choose(items.item(i).ID, o.SelectionBehavior != SelectionReplace)
 			}
 		})
 		buildRow := func(r ui.ListRow) {
@@ -515,12 +530,12 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 				finish(t, ComponentListbox, Label, header, optionLabelStyle(t, config.Size), o.Decoration)
 				return
 			}
-			it := items[entry.item]
+			it := items.item(entry.item)
 			if it.Kind != ListboxOption {
 				listboxStructure(r.Context, t, config.Size, it, itemWidth, !vert, o.Decoration)
 				return
 			}
-			chosen := it.ID != o.actionID && s.selection.set[it.ID]
+			chosen := it.ID != o.actionID && selected.Has(it.ID)
 			highlighted := it.ID == s.Active
 			// Rows take their content's height; the list measures each row it shows.
 			row := ui.Row(r.Context).MinWidth(0).AlignItems(ui.Start).Role(ui.RoleListItem).Label(it.Label).Description(it.Description).Selected(chosen).Disabled(it.Disabled)
@@ -584,15 +599,19 @@ func Listbox(c *ui.Context, t Theme, selected *[]string, s *ListboxState, items 
 
 // listboxContentHeight is the height a vertical Listbox lays its rows out in:
 // items and their descriptions, group headings, the p-1 inset, or the empty state.
-func listboxContentHeight(t Theme, size Size, items []ListboxItem) float32 {
+func listboxContentHeight(t Theme, size Size, items *listboxItems, limit float32) float32 {
 	m := optionRecipe(t, size)
 	label := optionLabelStyle(t, size)
 	heading := 2*m.Pad + label.FontSize.Value*label.LineHeight.Value
-	if len(items) == 0 {
+	if items.count() == 0 {
 		return 2*t.spacing([5]float32{12, 16, 24, 28, 32}[sizeIndex(size)]) + m.Line
 	}
 	h, group := 2*t.spacing(4), ""
-	for _, it := range items {
+	for i := range items.count() {
+		it := items.item(i)
+		if h >= limit {
+			return limit
+		}
 		if it.Group != "" && it.Group != group {
 			h += heading
 		}
@@ -626,18 +645,20 @@ func listboxContentHeight(t Theme, size Size, items []ListboxItem) float32 {
 }
 
 type SelectMenuState struct {
-	Open        bool
-	Query       string
-	Handle      ui.Handle
-	QueryHandle ui.Handle
-	Listbox     ListboxState
-	clear       ui.Handle
-	wasOpen     bool
-	labels      map[string]string
-	data        listboxItems
-	labelIDs    []string
-	label       string
-	filterCache listboxFilter
+	Open                                      bool
+	Query                                     string
+	Handle                                    ui.Handle
+	QueryHandle                               ui.Handle
+	Listbox                                   ListboxState
+	clear                                     ui.Handle
+	wasOpen                                   bool
+	labels                                    map[string]string
+	data                                      listboxItems
+	labelSelection                            *SelectionState[string]
+	labelSelectionRevision, labelDataRevision uint64
+	creation                                  listboxCreation
+	label                                     string
+	filterCache                               listboxFilter
 }
 type SelectMenuOptions struct {
 	ListboxOptions
@@ -666,18 +687,14 @@ type SelectMenuOptions struct {
 	FilterFields                                   []string // label (default), description, value/id, group.
 	CreateWhenAlways, CreateAtTop                  bool
 	Popup                                          PopoverOptions
-	selectOptions                                  *SelectOptions
 }
 
-func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, items []ListboxItem, o SelectMenuOptions) ui.Element {
+func SelectMenu(c *ui.Context, t Theme, value *SelectionState[string], s *SelectMenuState, o SelectMenuOptions) ui.Element {
 	if s == nil || value == nil {
 		panic("nui: SelectMenu requires value and state")
 	}
 	opened := &s.Open
 	previousActive := s.Listbox.Active
-	if o.selectOptions != nil && o.selectOptions.Open != nil {
-		opened = o.selectOptions.Open
-	}
 	query := &s.Query
 	if o.SearchTerm != nil {
 		query = o.SearchTerm
@@ -699,8 +716,7 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 			o.OnSearchTermChange(value)
 		}
 	}
-	dataChanged := s.data.update(items)
-	items = s.data.items
+	items := &s.data
 	resetQuery := func() {
 		if *query == "" {
 			return
@@ -714,17 +730,21 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 	search := valueOr(o.SearchInput, true)
 	config := selected(defaults(t, ComponentSelectMenu, ComponentTheme{Color: Primary, Variant: Outline, Size: MD}), ComponentTheme{Color: o.Color, Variant: o.Variant, Size: inheritedSize(t, o.Size)})
 	root := ui.Column(c).MinWidth(0)
+	s.filterCache.search.bind(c, root, s.Close)
+	if !*opened {
+		s.filterCache.search.pause()
+	}
 	activity := ui.Local(root, "activity", func() listboxActivity { return listboxActivity{} })
 	if !*opened {
 		activity.submitted = 0
 	}
 	finish(t, ComponentSelectMenu, Root, root, PartStyle{Gap: Set(t.spacing(4))}, o.Decoration)
 	root.Children(func() {
-		label := s.selectionLabel(*value, dataChanged)
+		label := s.selectionLabel(value)
 		placeholder := label == ""
 		if placeholder {
 			label = o.Placeholder
-			if label == "" && o.selectOptions == nil {
+			if label == "" {
 				label = message(c, "chooseOptions")
 			}
 		}
@@ -738,7 +758,7 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 		hover := anchor.Hovered() && !anchor.IsDisabled()
 		styles := inputRecipe(t, config, anchor.FocusVisible(), hover, fieldInvalid(t, field))
 		style := styles[Root]
-		if (o.Highlight || o.selectOptions != nil && o.selectOptions.Highlight) && !fieldInvalid(t, field) {
+		if o.Highlight && !fieldInvalid(t, field) {
 			style.BorderWidth, style.BorderColor = Set(float32(1)), Set(inputColor(t, config.Color))
 		}
 		if hover {
@@ -758,7 +778,7 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 			}
 			anchor.Shadow(0, 0, 0, 3, inputFocusColor(t, color))
 		}
-		showClear := o.selectOptions == nil && o.Clearable && len(*value) > 0 && !anchor.IsDisabled() && valueOr(o.ShowTrailing, true)
+		showClear := o.Clearable && value.Len() > 0 && !anchor.IsDisabled() && valueOr(o.ShowTrailing, true)
 		if !showClear || o.ClearOptions != nil && (o.ClearOptions.Disabled || o.ClearOptions.Loading) {
 			if s.clear.Focused(c) && !anchor.IsDisabled() {
 				s.Handle.Focus(c)
@@ -768,9 +788,6 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 		var clearAnchor ui.Element
 		anchor.Children(func() {
 			triggerOptions := SelectOptions{Leading: o.Leading, Trailing: o.Trailing, Avatar: o.Avatar, Loading: o.Loading, LoadingTrailing: o.LoadingTrailing, LoadingIcon: o.LoadingIcon}
-			if o.selectOptions != nil {
-				triggerOptions = *o.selectOptions
-			}
 			triggerOptions.Style = o.Style
 			for _, part := range []Slot{Leading, Label, Trailing} {
 				styles[part] = mergeStyle(mergeStyle(styles[part], t.components[ComponentSelectMenu].UI[part]), o.UI[part])
@@ -795,10 +812,9 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 			// A popup button is an accessibility leaf. Keep its clear action a
 			// sibling, attached to the trailing slot, so it remains discoverable.
 			selectMenuClear(c.Key("clear-control"), t, config.Size, o, &s.clear, func() {
-				if valueOr(o.ResetModelValueOnClear, true) && len(*value) > 0 {
-					*value = nil
+				if valueOr(o.ResetModelValueOnClear, true) && value.Clear() {
 					if o.OnChange != nil {
-						o.OnChange(nil)
+						o.OnChange()
 					}
 				}
 				resetQuery()
@@ -916,17 +932,20 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 				}
 				s.QueryHandle.CancelFocus(c)
 			}
-			filtered := items
+			visible := &s.data
 			if !o.ExternalFilter && !o.IgnoreFilter && *query != "" {
-				filtered = s.filter(*query, o.FilterFields)
+				visible = s.filterCache.visible(&s.data, *query, o.FilterFields, o.SearchExecution)
+			} else {
+				s.filterCache.search.pause()
 			}
+			filtered := visible
 			status := func(key, text string, color ui.Color) {
 				e := statusText(c, key, text).TextColor(color).Shrink(0)
 				optionItemStyle(t, m, false).apply(e)
 				e.TextColor(color)
 				used += m.Line + 2*m.Pad
 			}
-			if o.Loading {
+			if o.Loading && !s.filterCache.search.pending {
 				status("status-loading", message(c, "loading"), t.Muted)
 			}
 			if o.Error != "" {
@@ -935,18 +954,15 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 			opts := o.ListboxOptions
 			opts.Decoration = selectMenuListDecoration(t, o)
 			opts.Color, opts.Size = config.Color, config.Size
-			opts.Filter, opts.Loading, opts.IgnoreFilter = false, false, true
+			opts.Filter, opts.Loading, opts.IgnoreFilter = false, s.filterCache.search.pending, true
 			opts.Highlight = false
 			opts.SearchTerm = nil
 			opts.submit, activity.submitted = activity.submitted, 0
 			opts.resetHighlight, activity.searchChanged = activity.searchChanged, false
 			opts.previousActive = activity.previousActive
 			s.Listbox.Query = *query
-			if o.selectOptions != nil {
-				opts.SelectedIcon = o.selectOptions.SelectedIcon
-			}
 			opts.Label = namedMessage(c, "optionsNamed", o.Label)
-			if opts.EmptyText == "" && len(items) > 0 && len(filtered) == 0 {
+			if opts.EmptyText == "" && items.count() > 0 && filtered.count() == 0 {
 				opts.EmptyText = emptyMessage(c, "noMatch", "noResults")
 			}
 			opts.embedded = true
@@ -964,21 +980,16 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 					o.OnSelect(id)
 				}
 			}
-			create := o.OnCreate != nil && strings.TrimSpace(*query) != "" && (o.CreateWhenAlways || len(filtered) == 0)
-			create = create && !slices.ContainsFunc(filtered, func(it ListboxItem) bool { return it.ID == *query && it.Kind == ListboxOption })
+			create := !s.filterCache.search.pending && o.OnCreate != nil && strings.TrimSpace(*query) != "" && (o.CreateWhenAlways || filtered.count() == 0)
+			if at, exists := visible.index[*query]; exists && visible.item(at).Kind == ListboxOption {
+				create = false
+			}
 			if create {
 				// The create entry is a row of the list, which the arrow keys reach,
 				// as in Nuxt; activating it requests creation instead of selecting.
-				createID := "\x00nui:create"
-				for slices.ContainsFunc(items, func(it ListboxItem) bool { return it.ID == createID }) {
-					createID += "_"
-				}
-				entry := ListboxItem{ID: createID, Label: namedMessage(c, "createItem", *query)}
-				if o.CreateAtTop {
-					filtered = append([]ListboxItem{entry}, filtered...)
-				} else {
-					filtered = append(slices.Clone(filtered), entry)
-				}
+				visible = s.creation.prepare(&s.data, visible, namedMessage(c, "createItem", *query), o.CreateAtTop)
+				filtered = visible
+				createID := s.creation.id
 				opts.actionID = createID
 				opts.activate = func() {
 					o.OnCreate(strings.TrimSpace(*query))
@@ -994,10 +1005,10 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 			}
 			if opts.Height <= 0 {
 				// The list fits its rows within the popup's maximum height.
-				opts.Height = max(0, min(listboxContentHeight(t, config.Size, filtered), popup.MaxHeight.Value-used))
+				opts.Height = max(0, min(listboxContentHeight(t, config.Size, filtered, popup.MaxHeight.Value-used), popup.MaxHeight.Value-used))
 				opts.heightSet = true
 			}
-			Listbox(c.Key("choices"), inner, value, &s.Listbox, filtered, opts).FillWidth()
+			listbox(c.Key("choices"), inner, value, &s.Listbox, visible, opts).FillWidth()
 		})
 		if panel.Valid() && panel.Dismissed() && !*opened && o.OnOpenChange != nil {
 			o.OnOpenChange(false)
@@ -1005,8 +1016,8 @@ func SelectMenu(c *ui.Context, t Theme, value *[]string, s *SelectMenuState, ite
 		if s.wasOpen && !*opened && valueOr(o.ResetSearchTermOnBlur, true) {
 			resetQuery()
 		}
-		if o.selectOptions != nil && s.wasOpen && !*opened && !anchor.IsDisabled() {
-			anchor.Focus()
+		if !*opened {
+			s.filterCache.search.pause()
 		}
 		s.Open, s.wasOpen, s.Query = *opened, *opened, *query
 	})
@@ -1063,4 +1074,30 @@ func (s *QueryState[T]) Complete(ticket QueryTicket, items []T, err error) bool 
 		s.Error = err.Error()
 	}
 	return true
+}
+
+// Searching reports whether local matching is pending. Application-owned
+// remote loading remains the caller's responsibility.
+func (s *ListboxState) Searching() bool { return s.filter.search.pending }
+
+// Close cancels local search and outstanding focus requests, retaining the
+// submitted data, query and app-owned selection. A later mounted view can search
+// again. Owners may call Close during disposal; unmount also cancels work.
+func (s *ListboxState) Close() {
+	s.filter.reset()
+	s.scrollTo, s.prefix = "", ""
+	s.QueryHandle.CancelFocus()
+	s.List.CancelFocus()
+}
+
+func (s *SelectMenuState) Searching() bool { return s.filterCache.search.pending }
+
+// Close dismisses the popup and cancels local search/focus requests without
+// changing submitted data, the draft or selection.
+func (s *SelectMenuState) Close() {
+	s.Open, s.wasOpen = false, false
+	s.filterCache.reset()
+	s.Listbox.Close()
+	s.Handle.CancelFocus()
+	s.QueryHandle.CancelFocus()
 }

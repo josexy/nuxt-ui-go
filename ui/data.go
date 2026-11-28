@@ -15,6 +15,9 @@ type TableColumn[T any] struct {
 	Width, MinWidth, MaxWidth float32
 	Align                     ui.Align
 	Fixed                     bool // Prevents resizing/reordering; it does not freeze a scrolling column.
+	// RowHeader uses native whole-row/table selection with List.CellSelect.
+	// It never sorts, even when Sortable or Compare is supplied.
+	RowHeader bool
 	// Sortable defaults to whether Compare is provided. Explicit true without
 	// Compare requires ManualSorting; false disables this column's sort UI.
 	Sortable Optional[bool]
@@ -203,6 +206,12 @@ func (s *KeyedTableState[T, K]) activeRowID() (K, bool) {
 
 func (s *KeyedTableState[T, K]) restoreActiveRow(id K, present bool) {
 	if present {
+		if s.active >= 0 && s.active < s.Len() && s.RowID(s.active) == id {
+			// Still call Choose: it commits the cursor's stable identity after
+			// a snapshot, including multiple updates before the next build.
+			s.List.Choose(s.active)
+			return
+		}
 		index := -1
 		for i := range s.Len() {
 			if s.RowID(i) == id {
@@ -246,7 +255,7 @@ func (s *KeyedTableState[T, K]) InvalidateSort() { s.revision++ }
 func (s *KeyedTableState[T, K]) sort(columns []TableColumn[T], manual bool) {
 	by := map[string]TableColumn[T]{}
 	for _, col := range columns {
-		if valueOr(col.Sortable, col.Compare != nil) {
+		if !col.RowHeader && valueOr(col.Sortable, col.Compare != nil) {
 			by[col.ID] = col
 		}
 	}
@@ -320,10 +329,11 @@ type KeyedTableOptions[K TableKey] struct {
 	LoadingAnimation                       TableLoadingAnimation
 	BuildCaption, BuildEmpty, BuildLoading func(*ui.Context, Theme)
 	OnSortChange                           func([]ui.SortOrder)
-	OnSelectionChange                      func([]K)
 	// OnActivate reports the row ID on Enter or double-click.
 	OnActivate func(K)
-	OnChange   func()
+	// OnChange reports native cursor, selection, sort and column-layout changes.
+	// Read Selection explicitly here only when the application needs its keys.
+	OnChange func()
 	Decoration
 }
 
@@ -341,13 +351,15 @@ func Table[T any, K TableKey](c *ui.Context, t Theme, s *KeyedTableState[T, K], 
 	}
 	seen := map[string]bool{}
 	native := make([]ui.TableColumn, len(columns))
+	cellStyles := make([]tableCellStyle, len(columns))
 	for i, col := range columns {
 		checkID(seen, col.ID, "Table columns")
-		sortable := valueOr(col.Sortable, col.Compare != nil)
+		sortable := !col.RowHeader && valueOr(col.Sortable, col.Compare != nil)
 		if sortable && col.Compare == nil && !o.ManualSorting {
 			panic("nui: sortable Table columns require Compare or ManualSorting")
 		}
-		native[i] = ui.TableColumn{ID: col.ID, Title: col.Title, Width: col.Width, MinWidth: col.MinWidth, MaxWidth: col.MaxWidth, Align: col.Align, Sortable: sortable, Fixed: col.Fixed}
+		native[i] = ui.TableColumn{ID: col.ID, Title: col.Title, Width: col.Width, MinWidth: col.MinWidth, MaxWidth: col.MaxWidth, Align: col.Align, Sortable: sortable, Fixed: col.Fixed, RowHeader: col.RowHeader}
+		cellStyles[i] = newTableCellStyle(t, o.Decoration, col)
 	}
 	s.sort(columns, o.ManualSorting)
 	s.List.Key = func(i int) any { return s.RowID(i) }
@@ -378,7 +390,7 @@ func Table[T any, K TableKey](c *ui.Context, t Theme, s *KeyedTableState[T, K], 
 	// enough for scaled text, even when a compact density was requested.
 	theme.Spacing = max(theme.Spacing, t.text(4))
 	root := ui.Themed(c, theme).Background(ui.Transparent).MinWidth(0).MinHeight(0).Height(height).Disabled(o.Disabled || t.field.Disabled)
-	events := ui.Local(root, "events", func() tableEvents[K] { return tableEvents[K]{} })
+	events := ui.Local(root, "events", func() tableEvents { return tableEvents{} })
 	finish(t, ComponentTable, Root, root, PartStyle{Radius: Set(t.radius(8)), BorderWidth: Set(float32(1)), BorderColor: Set(t.Border)}, o.Decoration)
 	root.Children(func() {
 		if o.BuildCaption != nil {
@@ -395,11 +407,15 @@ func Table[T any, K TableKey](c *ui.Context, t Theme, s *KeyedTableState[T, K], 
 					return
 				}
 				s.CellBuilds++
-				value, id := s.Row(row), s.RowID(row)
-				column := columns[col]
-				chosen := s.Selection.Has(id)
+				value := s.Row(row)
+				column, style := columns[col], &cellStyles[col]
+				if style.direct {
+					style.label.apply(ui.Text(c, column.Value(value)).SingleLine())
+					return
+				}
+				chosen := s.Selection.Has(s.RowID(row))
 				cell := ui.Row(c).MinWidth(0).AlignItems(ui.Center)
-				finishTableCell(t, Item, cell, PartStyle{Gap: Set(t.spacing(6))}, o.Decoration, column.Decoration)
+				finishTableCell(Item, cell, style.item, o.Decoration, column.Decoration)
 				cell.Children(func() {
 					if column.BuildCell != nil {
 						column.BuildCell(c, t, cell, TableCell[T]{Value: value, Index: row, Selected: chosen})
@@ -407,7 +423,7 @@ func Table[T any, K TableKey](c *ui.Context, t Theme, s *KeyedTableState[T, K], 
 						column.Cell(c, t, value, chosen)
 					} else if column.Value != nil {
 						label := ui.Text(c, column.Value(value)).SingleLine()
-						finishTableCell(t, Label, label, PartStyle{}, o.Decoration, column.Decoration)
+						finishTableCell(Label, label, style.label, o.Decoration, column.Decoration)
 					}
 				})
 			}).Fill().Label(o.Label).Description(o.Caption)
@@ -419,31 +435,14 @@ func Table[T any, K TableKey](c *ui.Context, t Theme, s *KeyedTableState[T, K], 
 				if !events.initialized || !slices.Equal(events.sort, s.applied) {
 					events.sort = slices.Clone(s.applied)
 				}
-				// Every build compares, so that outside edits never count as the
-				// user's; an unchanged choice reads it without copying it.
-				if o.OnSelectionChange != nil && (!events.initialized || tableSelectionDiffers(events.selection, &s.Selection)) {
-					events.selection = snapshotTableSelection(events.selection, &s.Selection)
-				}
 				events.initialized = true
 			}
 			table.OnChange(func() {
 				previousSort := events.sort
 				s.sort(columns, o.ManualSorting)
 				events.sort = slices.Clone(s.applied)
-				selectionChanged := false
-				if o.OnSelectionChange != nil {
-					selectionChanged = tableSelectionDiffers(events.selection, &s.Selection)
-					if selectionChanged {
-						events.selection = snapshotTableSelection(events.selection, &s.Selection)
-					}
-				}
 				if o.OnSortChange != nil && !slices.Equal(previousSort, events.sort) {
 					o.OnSortChange(slices.Clone(events.sort))
-				}
-				if selectionChanged {
-					ids := slices.Clone(events.selection)
-					slices.Sort(ids)
-					o.OnSelectionChange(ids)
 				}
 				if o.OnChange != nil {
 					o.OnChange()

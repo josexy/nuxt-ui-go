@@ -292,8 +292,8 @@
     "en": "Mask the entered text."
   },
   "MaxLength": {
-    "zh": "限制可输入的长度，0 表示不限。原生文本按 UTF-16 单元计数，部分字符占两个单元。",
-    "en": "Limit input length; 0 means unlimited. Native text counts UTF-16 units, so some characters count as two."
+    "zh": "限制用户可插入的 UTF-16 单元数，0 或负数表示不限。被拒绝的输入不改变光标和撤销记录，也不触发 OnChange；外部赋值不会被截断。",
+    "en": "Limits how many UTF-16 units the user can insert; 0 or less means no limit. A rejected insertion keeps the caret and undo history and fires no OnChange; values assigned from code are not truncated."
   },
   "Rows": {
     "zh": "输入框显示的基础行数。",
@@ -3863,17 +3863,13 @@
     "zh": "用户更改排序后通知一次，参数是独立的排序列表。外部赋值及移除无效排序列不通知。",
     "en": "Notifies once after a user sort change, with an independent sort slice. External changes and invalid-column cleanup do not notify."
   },
-  "TableOptions.OnSelectionChange": {
-    "zh": "用户更改选中项后通知一次，参数为按字典序排列的稳定 ID；外部修改选中或 SetRows 清理不触发。",
-    "en": "Fires once when user input changes the selection, passing sorted stable IDs; external updates and SetRows pruning are silent."
-  },
   "TableOptions.OnActivate": {
     "zh": "按 Enter 或双击行时触发，返回该行稳定 ID（不同于 Nuxt UI 的单击 select）。未绑定 List.Selected 时自动跟踪组件内部活动行。",
     "en": "Fires on Enter or double-click with the row's stable ID (unlike Nuxt UI's single-click select). Tracks an internal active row when List.Selected is unset."
   },
   "TableOptions.OnChange": {
-    "zh": "表格综合变更回调：在用户排序、改变选择，或完成列拖拽/调宽/双击自适应时各触发一次（可在此持久化 List.Columns）。",
-    "en": "Combined table change callback: fires once after user sorting, selection changes, or finished column moves/resizes (useful for saving List.Columns)."
+    "en": "Fires once per user change: cursor move, selection, sort, or a finished column move, resize, or fit. It does not mean the selection changed; read Selection when you need it. Changes from code are silent.",
+    "zh": "每次用户更改后触发一次：移动游标、更改选择、排序，或完成列拖拽、调宽、双击自适应。触发不代表选择一定变化，需要时读取 Selection。代码中的修改不触发。"
   },
   "TableOptions.UI": {
     "zh": "支持 root、caption、body、panel、item、label、empty、loading、indicator、separator（表头分隔线颜色用 SeparatorSlot.Background；原生表头和整行不作为独立部件暴露）。",
@@ -4036,8 +4032,8 @@
     "en": "Expansion state in the current build."
   },
   "TreeItemState.Indeterminate": {
-    "zh": "多选联动的部分选中状态；单选或没有启用联动时为 false。",
-    "en": "Mixed selection state for multiple-selection linkage; false in single mode or with no linkage enabled."
+    "zh": "多选联动（BubbleSelect 或 PropagateSelect）下的部分选中状态；单选或未联动时为 false。",
+    "en": "Mixed selection state with linked multiple selection (BubbleSelect or PropagateSelect); false in single mode or without linking."
   },
   "TreeItemState.Loading": {
     "zh": "该节点是否有正在等待的加载请求。",
@@ -4504,8 +4500,8 @@
     "en": "Defaults to UploadArea; UploadButton shows a picker button while retaining the native queue model."
   },
   "FileUploadOptions.Layout": {
-    "zh": "默认 UploadGrid；网格保留文件名、状态和进度，UploadList 使用横向文件行。示例默认列表。",
-    "en": "Defaults to UploadGrid; cards retain names, status and progress; UploadList uses horizontal file rows. The example uses a list."
+    "zh": "默认 UploadGrid，使用固定高度的卡片；UploadList 使用按内容调整高度的文件行。自定义删除按钮或改变行尺寸的样式会改用列表行。",
+    "en": "Defaults to UploadGrid with fixed-height cards; UploadList uses rows that fit their content. Custom delete buttons or styles that change row sizing switch to list rows."
   },
   "FileUploadOptions.Interactive": {
     "zh": "默认 true（点击或按 Enter/Space 触发选择）；设为 false 改为显示独立选择按钮（UploadButton 始终使用按钮）。",
@@ -4954,5 +4950,29 @@
   "TableCell.Selected": {
     "en": "Whether this row is selected.",
     "zh": "当前行是否已选中。"
+  },
+  "InputMenuOptions.OnValuesChange": {
+    "zh": "用户每次更改多选时触发一次，无参数；需要选中的 ID 时读取 SelectedValues.Values()。代码中的修改不触发。",
+    "en": "Fires once, without arguments, each time the user changes the multiple selection; read SelectedValues.Values() for the IDs. Changes from code are silent."
+  },
+  "ListboxOptions.OnChange": {
+    "zh": "用户每次更改选择时触发一次，无参数；需要选中的 ID 时调用 Values()。代码中修改 SelectionState 不触发。",
+    "en": "Fires once, without arguments, each time the user changes the selection; call Values() for the IDs. Changes made to the SelectionState from code are silent."
+  },
+  "SearchExecution": {
+    "zh": "本地筛选在哪里执行：默认 SearchAuto 在超过 2,048 项时转到后台；SearchImmediate 总是立即执行，SearchBackground 总是在后台执行。后台筛选期间仍可输入，旧结果不能被选中。",
+    "en": "Where local filtering runs: SearchAuto (the default) moves it to the background above 2,048 items, SearchImmediate always runs it at once, and SearchBackground always in the background. The query stays editable meanwhile, and stale results cannot be chosen."
+  },
+  "MenuContentOptions.SearchExecution": {
+    "zh": "未设置时继承根菜单策略；Set(SearchAuto/Immediate/Background) 显式覆盖本层的本地筛选执行方式。",
+    "en": "Unset inherits the root menu policy; Set(SearchAuto/Immediate/Background) explicitly overrides local filtering for this level."
+  },
+  "TableColumn.RowHeader": {
+    "en": "False by default. With List.CellSelect, cells select whole rows and the header selects all rows. Never sorts or becomes the cell cursor, even with Sortable/Compare.",
+    "zh": "默认 false。配合 List.CellSelect，单元格选择整行，标题选择全部行。即使提供 Sortable/Compare 也不排序，不作为单元格游标。"
+  },
+  "FileUploadOptions.PreviewHeight": {
+    "zh": "文件列表的滚动区域高度（DIP）。未设置为 320，0 隐藏列表；负数或非有限值会 panic。",
+    "en": "Height of the scrolling file list in DIP. Unset is 320 and 0 hides the list; a negative or non-finite value panics."
   }
 }

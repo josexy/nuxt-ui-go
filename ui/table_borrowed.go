@@ -49,8 +49,19 @@ func (s *KeyedTableState[T, K]) SetBorrowedRows(rows []T, key func(T) K) bool {
 	}
 	s.revision++
 	s.selectionPeak = max(s.selectionPeak, s.Selection.Len())
-	if s.Selection.Len() > 0 {
-		missing := make(map[K]struct{}, s.Selection.Len())
+	// Usually every chosen ID is still bound: count them without allocating,
+	// stopping once all are found, and look for the missing ones only then.
+	found, chosen := 0, s.Selection.Len()
+	for _, id := range ids {
+		if found == chosen {
+			break
+		}
+		if s.Selection.Has(id) {
+			found++
+		}
+	}
+	if found < chosen {
+		missing := make(map[K]struct{}, chosen)
 		for id := range s.Selection.All() {
 			missing[id] = struct{}{}
 		}

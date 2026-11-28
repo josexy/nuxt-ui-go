@@ -54,7 +54,7 @@ func TestAPISourcePathsAreRepositoryRelative(t *testing.T) {
 func TestTableOptionsAliasHasConcreteCallbackFields(t *testing.T) {
 	e := extract("../../..")
 	fields := e.fields(e.types["TableOptions"], map[string]bool{}, "TableOptions")
-	want := map[string]string{"OnActivate": "func(string)", "OnSelectionChange": "func([]string)"}
+	want := map[string]string{"OnActivate": "func(string)", "OnChange": "func()"}
 	for _, field := range fields {
 		if kind, ok := want[field.Name]; ok {
 			if field.Type != kind || field.Description != e.notes["TableOptions."+field.Name] {

@@ -74,10 +74,11 @@ func scrollToEnd(t *testing.T, tt *ui.Tester, first string) {
 
 func TestPopupPlacementDropdownMenuFitsBelow(t *testing.T) {
 	var state nui.MenuState
+	state.SetItems(placementItems(20))
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := placementTheme(c)
 		a := nui.Button(c, th, "Actions", nui.ButtonOptions{}).Absolute().Left(20).Top(20)
-		nui.DropdownMenu(c, th, a, &state, placementItems(20), nui.MenuOptions{Label: "Menu panel"})
+		nui.DropdownMenu(c, th, a, &state, nui.MenuOptions{Label: "Menu panel"})
 	}, shortW, shortH)
 	click(t, tt, "Actions")
 	panel := bounds(t, tt, "Menu panel")
@@ -93,10 +94,11 @@ func TestPopupPlacementDropdownMenuFitsBelow(t *testing.T) {
 
 func TestPopupPlacementDropdownMenuOpensAboveNearBottom(t *testing.T) {
 	var state nui.MenuState
+	state.SetItems(placementItems(20))
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := placementTheme(c)
 		a := nui.Button(c, th, "Actions", nui.ButtonOptions{}).Absolute().Left(20).Top(170)
-		nui.DropdownMenu(c, th, a, &state, placementItems(20), nui.MenuOptions{Label: "Menu panel"})
+		nui.DropdownMenu(c, th, a, &state, nui.MenuOptions{Label: "Menu panel"})
 	}, shortW, shortH)
 	click(t, tt, "Actions")
 	panel, trigger := bounds(t, tt, "Menu panel"), bounds(t, tt, "Actions")
@@ -112,10 +114,11 @@ func TestPopupPlacementDropdownMenuOpensAboveNearBottom(t *testing.T) {
 
 func TestPopupPlacementFilteredDropdownMenu(t *testing.T) {
 	var state nui.MenuState
+	state.SetItems(placementItems(20))
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := placementTheme(c)
 		a := nui.Button(c, th, "Actions", nui.ButtonOptions{}).Absolute().Left(20).Top(90)
-		nui.DropdownMenu(c, th, a, &state, placementItems(20), nui.MenuOptions{Label: "Menu panel", Filter: true, FilterInput: &nui.InputOptions{Label: "Filter items"}})
+		nui.DropdownMenu(c, th, a, &state, nui.MenuOptions{Label: "Menu panel", Filter: true, FilterInput: &nui.InputOptions{Label: "Filter items"}})
 	}, shortW, shortH)
 	click(t, tt, "Actions")
 	panel := bounds(t, tt, "Menu panel")
@@ -131,10 +134,11 @@ func TestPopupPlacementFilteredDropdownMenu(t *testing.T) {
 
 func TestPopupPlacementContextMenu(t *testing.T) {
 	var state nui.MenuState
+	state.SetItems(placementItems(20))
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := placementTheme(c)
 		area := ui.Box(c).Absolute().Left(20).Top(20).Size(200, 200).Label("Area")
-		nui.ContextMenu(c, th, area, &state, placementItems(20), nui.MenuOptions{Label: "Menu panel"})
+		nui.ContextMenu(c, th, area, &state, nui.MenuOptions{Label: "Menu panel"})
 	}, shortW, shortH)
 	tt.RightClickAt(60, 150)
 	tt.Frame()
@@ -148,6 +152,7 @@ func TestPopupPlacementContextMenu(t *testing.T) {
 func TestPopupPlacementSelectionLists(t *testing.T) {
 	popup := nui.PopoverOptions{Label: "List panel"}
 	// Each case returns the view of one component, over state of its own.
+	selectState := submittedSelect(placementOptions(20))
 	cases := []struct {
 		name string
 		view func() func(c *ui.Context, th nui.Theme)
@@ -156,20 +161,23 @@ func TestPopupPlacementSelectionLists(t *testing.T) {
 		{"Select", func() func(*ui.Context, nui.Theme) {
 			value := ""
 			return func(c *ui.Context, th nui.Theme) {
-				nui.Select(c, th, &value, placementOptions(20), nui.SelectOptions{Placeholder: "Pick one", Popup: popup})
+				nui.Select(c, th, &value, selectState, nui.SelectOptions{Placeholder: "Pick one", Popup: popup})
 			}
 		}, "Pick one"},
 		{"SelectMenu", func() func(*ui.Context, nui.Theme) {
 			var value []string
 			var state nui.SelectMenuState
+			listSelection := chosenSelection(value)
+			state.SetItems(placementListboxItems(20))
 			return func(c *ui.Context, th nui.Theme) {
-				nui.SelectMenu(c, th, &value, &state, placementListboxItems(20), nui.SelectMenuOptions{Placeholder: "Pick some", Popup: popup})
+				nui.SelectMenu(c, th, listSelection, &state, nui.SelectMenuOptions{Placeholder: "Pick some", Popup: popup})
 			}
 		}, "Pick some"},
 		{"InputMenu", func() func(*ui.Context, nui.Theme) {
 			var state nui.SearchState
+			state.SetOptions(placementOptions(20))
 			return func(c *ui.Context, th nui.Theme) {
-				nui.InputMenu(c, th, &state, placementOptions(20), nui.InputMenuOptions{Label: "Search", OpenOnClick: nui.Set(true), Popup: popup})
+				nui.InputMenu(c, th, &state, nui.InputMenuOptions{Label: "Search", OpenOnClick: nui.Set(true), Popup: popup})
 			}
 		}, "Search"},
 	}
@@ -195,10 +203,11 @@ func TestPopupPlacementSelectionLists(t *testing.T) {
 
 func TestPopupPlacementInputMenuEmptyMessage(t *testing.T) {
 	var state nui.SearchState
+	state.SetOptions(placementOptions(20))
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := placementTheme(c)
 		ui.Box(c).Absolute().Left(20).Top(90).Width(200).Children(func() {
-			nui.InputMenu(c, th, &state, placementOptions(20), nui.InputMenuOptions{Label: "Search", OpenOnClick: nui.Set(true), Popup: nui.PopoverOptions{Label: "List panel"}})
+			nui.InputMenu(c, th, &state, nui.InputMenuOptions{Label: "Search", OpenOnClick: nui.Set(true), Popup: nui.PopoverOptions{Label: "List panel"}})
 		})
 	}, shortW, shortH)
 	click(t, tt, "Search")
@@ -244,10 +253,11 @@ func TestPopupPlacementPopover(t *testing.T) {
 func TestPopupPlacementFittingPopupKeepsItsSize(t *testing.T) {
 	t.Run("short menu", func(t *testing.T) {
 		var state nui.MenuState
+		state.SetItems(placementItems(3))
 		tt := ui.NewTester(func(c *ui.Context) {
 			th := placementTheme(c)
 			a := nui.Button(c, th, "Actions", nui.ButtonOptions{}).Absolute().Left(20).Top(20)
-			nui.DropdownMenu(c, th, a, &state, placementItems(3), nui.MenuOptions{Label: "Menu panel"})
+			nui.DropdownMenu(c, th, a, &state, nui.MenuOptions{Label: "Menu panel"})
 		}, 500, 400)
 		click(t, tt, "Actions")
 		panel, first, last := bounds(t, tt, "Menu panel"), bounds(t, tt, "Item 0"), bounds(t, tt, "Item 2")
@@ -258,10 +268,11 @@ func TestPopupPlacementFittingPopupKeepsItsSize(t *testing.T) {
 	})
 	t.Run("MaxHeight in a tall window", func(t *testing.T) {
 		value := ""
+		selectState := submittedSelect(placementOptions(40))
 		tt := ui.NewTester(func(c *ui.Context) {
 			th := placementTheme(c)
 			ui.Box(c).Absolute().Left(20).Top(20).Width(200).Children(func() {
-				nui.Select(c, th, &value, placementOptions(40), nui.SelectOptions{Placeholder: "Pick one", Popup: nui.PopoverOptions{Label: "List panel"}})
+				nui.Select(c, th, &value, selectState, nui.SelectOptions{Placeholder: "Pick one", Popup: nui.PopoverOptions{Label: "List panel"}})
 			})
 		}, 500, 800)
 		click(t, tt, "Pick one")

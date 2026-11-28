@@ -65,8 +65,13 @@ func Tree(c *ui.Context, t Theme, s *TreeState, o TreeOptions) ui.Element {
 		}
 	}
 	s.visibleRows()
-	if o.Build != nil || o.BuildLeading != nil || o.BuildTrailing != nil || (o.Multiple && (o.BubbleSelect || o.PropagateSelect)) {
+	if o.Multiple && (o.BubbleSelect || o.PropagateSelect) {
 		s.selectionSummary(o)
+	} else {
+		// Custom rows alone need no descendant analysis. Drop linked summaries
+		// before any builder observes them, and recompute on a later mode entry.
+		s.selected, s.partial = nil, nil
+		s.partialMode, s.summaryDirty = 0, true
 	}
 	_, ok := s.positions[s.Active]
 	if !ok || s.nodes[s.Active].node.Disabled {

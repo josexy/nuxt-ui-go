@@ -43,14 +43,18 @@ type optionIdentity[T comparable] struct {
 	disabled           bool
 }
 
-type optionListState[T comparable] struct {
-	list         ui.ListState
+type optionMetadata[T comparable] struct {
 	identities   []optionIdentity[T]
 	index        map[T]int
 	keys         []any
-	active       Optional[T]
 	descriptions int
 	enabledCount int
+}
+
+type optionListState[T comparable] struct {
+	optionMetadata[T]
+	list   ui.ListState
+	active Optional[T]
 }
 
 func (s *optionListState[T]) update(options []Option[T]) bool {

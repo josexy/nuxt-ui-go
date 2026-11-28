@@ -6,6 +6,9 @@ import (
 )
 
 type advancedState struct {
+	ChartAxisOptions         nui.SelectState[string]
+	ChartCurveOptions        nui.SelectState[nui.ChartCurve]
+	ChartStackOptions        nui.SelectState[nui.ChartStackMode]
 	Chart                    nui.ChartState
 	ChartKind                nui.ChartKind
 	ChartCurve               nui.ChartCurve
@@ -17,6 +20,15 @@ type advancedState struct {
 
 func newAdvanced() advancedState {
 	s := advancedState{ChartAxis: "category", ChartCurve: nui.ChartCurveMonotone}
+	s.ChartAxisOptions.SetOptions([]nui.Option[string]{{Value: "numeric", Label: "Numeric"}, {Value: "category", Label: "Categories"}, {Value: "time", Label: "Time"}})
+	s.ChartCurveOptions.SetOptions([]nui.Option[nui.ChartCurve]{
+		{Value: nui.ChartCurveLinear, Label: "Linear"}, {Value: nui.ChartCurveMonotone, Label: "Monotone"},
+		{Value: nui.ChartCurveStepAfter, Label: "Step after"}, {Value: nui.ChartCurveStepBefore, Label: "Step before"}, {Value: nui.ChartCurveStep, Label: "Step middle"},
+	})
+	s.ChartStackOptions.SetOptions([]nui.Option[nui.ChartStackMode]{
+		{Value: nui.ChartStackNone, Label: "None"}, {Value: nui.ChartStackStandard, Label: "Standard"},
+		{Value: nui.ChartStackNormalized, Label: "Normalized"}, {Value: nui.ChartStackCenter, Label: "Centered"},
+	})
 	s.updateChartData()
 	return s
 }

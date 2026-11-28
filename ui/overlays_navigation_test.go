@@ -53,15 +53,19 @@ func TestSidesResizeReduceMotionAndFocusTrap(t *testing.T) {
 func TestMenuHoverKeyboardAndRemoval(t *testing.T) {
 	var state nui.MenuState
 	remove := false
+	submit := func() {
+		items := []nui.MenuItem{{ID: "export", Label: "Export", Children: []nui.MenuItem{{ID: "csv", Label: "CSV"}}}, {ID: "rename", Label: "Rename"}}
+		if remove {
+			items = items[1:]
+		}
+		state.SetItems(items)
+	}
+	submit()
 	tt := ui.NewTester(func(c *ui.Context) {
 		theme := nui.App(c, nui.AppConfig{})
 		ui.Column(c).Padding(20).Gap(12).Children(func() {
 			anchor := nui.Button(c, theme, "Actions", nui.ButtonOptions{})
-			items := []nui.MenuItem{{ID: "export", Label: "Export", Children: []nui.MenuItem{{ID: "csv", Label: "CSV"}}}, {ID: "rename", Label: "Rename"}}
-			if remove {
-				items = items[1:]
-			}
-			nui.DropdownMenu(c, theme, anchor, &state, items, nui.MenuOptions{})
+			nui.DropdownMenu(c, theme, anchor, &state, nui.MenuOptions{})
 			nui.Button(c, theme, "After menu", nui.ButtonOptions{})
 		})
 	}, 600, 400)
@@ -77,6 +81,7 @@ func TestMenuHoverKeyboardAndRemoval(t *testing.T) {
 	}
 	tt.Key(0, ui.KeyRight)
 	remove = true
+	submit()
 	tt.Frame()
 	if tt.HasText("CSV") {
 		t.Fatal("removed submenu survived")
@@ -140,21 +145,26 @@ func TestMenusKeyboardIdentityAndSubmenus(t *testing.T) {
 	chosen := ""
 	calls := 0
 	swap := false
+	var submit func()
+	submit = func() {
+		items := []nui.MenuItem{
+			{ID: "rename", Label: "Rename", OnSelect: func() { chosen = "rename"; calls++ }},
+			{ID: "disabled", Label: "Unavailable", Disabled: true, OnSelect: func() { t.Error("disabled action") }},
+			{ID: "pin", Label: "Pinned", Checked: nui.Set(checked), OnSelect: func() { checked = !checked; calls++; submit() }},
+			{ID: "export", Label: "Export", Description: "Choose a format", Children: []nui.MenuItem{{ID: "csv", Label: "CSV", OnSelect: func() { chosen = "csv"; calls++ }}, {ID: "advanced", Label: "Advanced formats", Children: []nui.MenuItem{{ID: "json", Label: "JSON", OnSelect: func() { chosen = "json"; calls++ }}}}}},
+			{ID: "delete", Label: "Delete", Color: nui.Error, OnSelect: func() { chosen = "delete"; calls++ }},
+		}
+		if swap {
+			items[0], items[4] = items[4], items[0]
+		}
+		menu.SetItems(items)
+	}
+	submit()
 	tt := ui.NewTester(func(c *ui.Context) {
 		theme := nui.App(c, nui.AppConfig{})
 		ui.Column(c).Padding(12).Gap(12).Children(func() {
 			anchor := nui.Button(c, theme, "Actions", nui.ButtonOptions{})
-			items := []nui.MenuItem{
-				{ID: "rename", Label: "Rename", OnSelect: func() { chosen = "rename"; calls++ }},
-				{ID: "disabled", Label: "Unavailable", Disabled: true, OnSelect: func() { t.Error("disabled action") }},
-				{ID: "pin", Label: "Pinned", Checked: nui.Set(checked), OnSelect: func() { checked = !checked; calls++ }},
-				{ID: "export", Label: "Export", Description: "Choose a format", Children: []nui.MenuItem{{ID: "csv", Label: "CSV", OnSelect: func() { chosen = "csv"; calls++ }}, {ID: "advanced", Label: "Advanced formats", Children: []nui.MenuItem{{ID: "json", Label: "JSON", OnSelect: func() { chosen = "json"; calls++ }}}}}},
-				{ID: "delete", Label: "Delete", Color: nui.Error, OnSelect: func() { chosen = "delete"; calls++ }},
-			}
-			if swap {
-				items[0], items[4] = items[4], items[0]
-			}
-			nui.DropdownMenu(c, theme, anchor, &menu, items, nui.MenuOptions{Label: "Actions menu"})
+			nui.DropdownMenu(c, theme, anchor, &menu, nui.MenuOptions{Label: "Actions menu"})
 			nui.Button(c, theme, "Outside", nui.ButtonOptions{})
 		})
 	}, 600, 480)
@@ -191,6 +201,7 @@ func TestMenusKeyboardIdentityAndSubmenus(t *testing.T) {
 	}
 	tt.Key(0, ui.KeyHome)
 	swap = true
+	submit()
 	tt.Frame()
 	tt.Key(0, ui.KeyEnter)
 	if chosen != "rename" || calls != 2 {
@@ -210,18 +221,19 @@ func TestMenusKeyboardIdentityAndSubmenus(t *testing.T) {
 func TestMenuPointerContextAndEmpty(t *testing.T) {
 	var menu, context nui.MenuState
 	result := ""
-	empty := false
+	menu.SetItems([]nui.MenuItem{{ID: "export", Label: "Export", Children: []nui.MenuItem{{ID: "csv", Label: "Export CSV", OnSelect: func() {
+		result = "csv"
+	}}}}})
+	context.SetItems([]nui.MenuItem{{ID: "copy", Label: "Copy path", OnSelect: func() {
+		result = "copy"
+	}}})
 	tt := ui.NewTester(func(c *ui.Context) {
 		theme := nui.App(c, nui.AppConfig{})
 		ui.Column(c).Padding(16).Gap(24).Children(func() {
 			anchor := nui.Button(c, theme, "More", nui.ButtonOptions{})
-			items := []nui.MenuItem{{ID: "export", Label: "Export", Children: []nui.MenuItem{{ID: "csv", Label: "Export CSV", OnSelect: func() { result = "csv" }}}}}
-			if empty {
-				items = nil
-			}
-			nui.DropdownMenu(c, theme, anchor, &menu, items, nui.MenuOptions{})
+			nui.DropdownMenu(c, theme, anchor, &menu, nui.MenuOptions{})
 			target := nui.Button(c, theme, "Context target", nui.ButtonOptions{}).Width(240).Height(80)
-			nui.ContextMenu(c, theme, target, &context, []nui.MenuItem{{ID: "copy", Label: "Copy path", OnSelect: func() { result = "copy" }}}, nui.MenuOptions{Label: "Context actions"})
+			nui.ContextMenu(c, theme, target, &context, nui.MenuOptions{Label: "Context actions"})
 		})
 	}, 600, 400)
 	click(t, tt, "More")
@@ -263,7 +275,7 @@ func TestMenuPointerContextAndEmpty(t *testing.T) {
 		t.Fatal("Menu key")
 	}
 	tt.Key(0, ui.KeyEscape)
-	empty = true
+	menu.SetItems(nil)
 	click(t, tt, "More")
 	if !tt.HasText("No actions") {
 		t.Fatal("empty menu")
@@ -279,6 +291,7 @@ func TestModalSlideoverFocusAndDismiss(t *testing.T) {
 	dismissible := false
 	outside, closed := 0, 0
 	value := "a"
+	selectState := submittedSelect([]nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}})
 	tt := ui.NewTester(func(c *ui.Context) {
 		theme := nui.App(c, nui.AppConfig{})
 		ui.Column(c).Padding(16).Gap(12).Children(func() {
@@ -288,7 +301,7 @@ func TestModalSlideoverFocusAndDismiss(t *testing.T) {
 			nui.ModalWithOptions(c, theme, &modal, nui.ModalOptions{Title: "Edit workspace", Description: "Changes stay local", Dismissible: nui.Set(dismissible), OnClose: func() { closed++ }, Footer: func(c *ui.Context, t nui.Theme) {
 				nui.Button(c, t, "Done", nui.ButtonOptions{}).OnClick(func() { modal = false })
 			}}, func(t nui.Theme) {
-				nui.Select(c, t, &value, []nui.Option[string]{{Value: "a", Label: "Alpha"}, {Value: "b", Label: "Beta"}}, nui.SelectOptions{Label: "Plan"})
+				nui.Select(c, t, &value, selectState, nui.SelectOptions{Label: "Plan"})
 			})
 			nui.Slideover(c, theme, &side, nui.SlideoverOptions{Title: "Filters", Extent: nui.Set(float32(300))}, func(t nui.Theme) { nui.Button(c, t, "Apply", nui.ButtonOptions{}).OnClick(func() { side = false }) })
 		})
@@ -600,12 +613,13 @@ func TestKeyedOptionalOverlaysPreserveFollowingEditor(t *testing.T) {
 	var state nui.MenuState
 	popover := false
 	draft := "Draft"
+	state.SetItems([]nui.MenuItem{{ID: "one", Label: "One"}})
 	tt := ui.NewTester(func(c *ui.Context) {
 		theme := nui.App(c, nui.AppConfig{})
 		ui.Column(c).Padding(20).Gap(12).Children(func() {
 			anchor := nui.Button(c, theme, "Actions", nui.ButtonOptions{})
 			nui.Tooltip(c.Key("help"), theme, anchor, "Action help", nui.TooltipOptions{})
-			nui.DropdownMenu(c.Key("menu"), theme, anchor, &state, []nui.MenuItem{{ID: "one", Label: "One"}}, nui.MenuOptions{})
+			nui.DropdownMenu(c.Key("menu"), theme, anchor, &state, nui.MenuOptions{})
 			help := nui.Button(c, theme, "Help", nui.ButtonOptions{}).OnClick(func() { popover = !popover })
 			nui.Popover(c.Key("help-panel"), theme, help, &popover, nui.PopoverOptions{}, func(t nui.Theme) { ui.Text(c, "Details") })
 			nui.Input(c, theme, &draft, nui.InputOptions{Label: "Following editor"})

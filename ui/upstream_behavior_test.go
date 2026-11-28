@@ -18,40 +18,55 @@ func TestUpstreamHandleFocusTakesNoOptions(t *testing.T) {
 	}
 }
 
-// This is an upstream parity probe, NOT an acceptance of lossless cancellation.
-// Replacing a selection with composition and cancelling keeps the deletion.
-// Keeping this executable makes an upstream upgrade's behavior change visible.
+// docs/compatibility.md documents that cancelling a composition over selected
+// text loses the selection, and that undo restores it. This fails once MyGo
+// keeps the selection; update that section with it.
 func TestUpstreamSelectedIMECancellationParity(t *testing.T) {
-	for _, wrapped := range []bool{false, true} {
-		value := "Draft"
-		tt := ui.NewTester(func(c *ui.Context) {
-			theme := nui.App(c, nui.AppConfig{})
-			if wrapped {
-				nui.Input(c, theme, &value, nui.InputOptions{Label: "Name"})
-			} else {
-				ui.TextInputBase(c, &value).Label("Name")
+	for _, kind := range []string{"TextInputBase", "Input", "Textarea", "PinInput"} {
+		t.Run(kind, func(t *testing.T) {
+			value := "Draft"
+			var pin nui.PinState
+			tt := ui.NewTester(func(c *ui.Context) {
+				th := nui.App(c, nui.AppConfig{})
+				switch kind {
+				case "TextInputBase":
+					ui.TextInputBase(c, &value).Label("Field")
+				case "Input":
+					nui.Input(c, th, &value, nui.InputOptions{Label: "Field"})
+				case "Textarea":
+					nui.Textarea(c, th, &value, nui.TextareaOptions{Label: "Field"})
+				case "PinInput":
+					nui.PinInput(c, th, &value, &pin, nui.PinInputOptions{Label: "PIN", Style: func(slot nui.Slot, e ui.Element) {
+						if slot == nui.Item {
+							e.Label("Field")
+						}
+					}})
+				}
+			}, 400, 200)
+			click(t, tt, "Field")
+			tt.Key(ui.Ctrl, ui.KeyA)
+			tt.Compose("lin", 3)
+			tt.Compose("", 0)
+			if value != "" {
+				t.Fatalf("cancelling a composition over a selection now leaves %q: the known issue is gone, update docs/compatibility.md", value)
 			}
-		}, 400, 100)
-		click(t, tt, "Name")
-		tt.Key(ui.Ctrl, ui.KeyA)
-		tt.Compose("lin", 3)
-		tt.Compose("", 0)
-		if value != "" {
-			t.Fatalf("wrapped=%v upstream behavior changed to %q; reassess selected-text IME cancellation", wrapped, value)
-		}
-		tt.Command("undo")
-		if value != "Draft" {
-			t.Fatalf("wrapped=%v undo could not restore selected text", wrapped)
-		}
-		tt.Key(0, ui.KeyEnd)
-		tt.Compose("lin", 3)
-		if value != "Draft" {
-			t.Fatalf("wrapped=%v composition unexpectedly changed value to %q", wrapped, value)
-		}
-		tt.Compose("", 0)
-		if value != "Draft" {
-			t.Fatal("cancellation without a selection lost text")
-		}
+			tt.Command("undo")
+			if value != "Draft" {
+				t.Fatalf("undo restored %q", value)
+			}
+			if kind == "PinInput" {
+				return
+			}
+			tt.Key(0, ui.KeyEnd)
+			tt.Compose("lin", 3)
+			if value != "Draft" {
+				t.Fatalf("composition committed early: %q", value)
+			}
+			tt.Compose("", 0)
+			if value != "Draft" {
+				t.Fatalf("cancellation without a selection changed the value to %q", value)
+			}
+		})
 	}
 }
 

@@ -11,6 +11,8 @@ import (
 )
 
 type State struct {
+	pendingToasts                                                []nui.ToastOptions
+	RegionOptions                                                nui.SelectState[nui.Optional[string]]
 	Wizard                                                       WizardState
 	EditOpen, ConfirmReset, FiltersOpen, EditAttempted, Advanced bool
 	EditName, EditEmail                                          string
@@ -34,10 +36,18 @@ type State struct {
 }
 
 func New() *State {
-	return &State{Config: nui.DefaultApp(), Name: "Lin Chen / 林晓", Email: "lin@example.com", Bio: "为团队构建可复用的原生桌面工具。", Slug: "desktop-team", Notify: true, Sync: true, Policy: true, Channels: []string{"email"}, Plan: "team", Volume: 40}
+	a := &State{Config: nui.DefaultApp(), Name: "Lin Chen / 林晓", Email: "lin@example.com", Bio: "为团队构建可复用的原生桌面工具。", Slug: "desktop-team", Notify: true, Sync: true, Policy: true, Channels: []string{"email"}, Plan: "team", Volume: 40}
+	a.RegionOptions.SetOptions([]nui.Option[nui.Optional[string]]{{Value: nui.Optional[string]{}, Label: "No region"}, {Value: nui.Set("eu"), Label: "Europe", Description: "Frankfurt"}, {Value: nui.Set("ap"), Label: "Asia Pacific", Description: "Singapore"}, {Value: nui.Set("us"), Label: "United States", Disabled: true}})
+	a.Owner.SetOptions([]nui.Option[string]{{Value: "alex-berlin", Label: "Alex Chen", Description: "Berlin team"}, {Value: "alex-taipei", Label: "Alex Chen", Description: "Taipei team"}, {Value: "lin", Label: "林晓", Description: "Desktop team", Icon: lucide.UserRound()}, {Value: "guest", Label: "Guest", Description: "Cannot own a workspace", Disabled: true}})
+	a.setupActions()
+	return a
 }
 func (a *State) View(c *ui.Context) {
 	t := nui.App(c, a.Config)
+	for _, toast := range a.pendingToasts {
+		nui.Toast(c, t, toast)
+	}
+	a.pendingToasts = nil
 	nui.ToastViewport(c, t, nui.ToastViewportOptions{})
 
 	ui.Column(c).Fill().Children(func() {
@@ -192,10 +202,10 @@ func (a *State) workspace(c *ui.Context, t nui.Theme) {
 		nui.RadioGroup(c, inner, &a.Plan, []nui.Option[string]{{Value: "personal", Label: "Personal", Description: "For individual work."}, {Value: "team", Label: "Team", Description: "Share projects with your teammates."}, {Value: "enterprise", Label: "Enterprise", Description: "Contact an administrator.", Disabled: true}}, nui.RadioGroupOptions{Label: "Plan"})
 	})
 	nui.FormField(c, t, nui.FormFieldOptions{Label: "Region", Help: "Choose the default region for new projects."}, func(inner nui.Theme) {
-		nui.Select(c, inner, &a.Region, []nui.Option[nui.Optional[string]]{{Value: nui.Optional[string]{}, Label: "No region"}, {Value: nui.Set("eu"), Label: "Europe", Description: "Frankfurt"}, {Value: nui.Set("ap"), Label: "Asia Pacific", Description: "Singapore"}, {Value: nui.Set("us"), Label: "United States", Disabled: true}}, nui.SelectOptions{Label: "Region"}).FillWidth()
+		nui.Select(c, inner, &a.Region, &a.RegionOptions, nui.SelectOptions{Label: "Region"}).FillWidth()
 	})
 	nui.FormField(c, t, nui.FormFieldOptions{Label: "Workspace owner", Help: "Search by name or team. A typed draft does not change the selected owner."}, func(inner nui.Theme) {
-		nui.InputMenu(c, inner, &a.Owner, []nui.Option[string]{{Value: "alex-berlin", Label: "Alex Chen", Description: "Berlin team"}, {Value: "alex-taipei", Label: "Alex Chen", Description: "Taipei team"}, {Value: "lin", Label: "林晓", Description: "Desktop team", Icon: lucide.UserRound()}, {Value: "guest", Label: "Guest", Description: "Cannot own a workspace", Disabled: true}}, nui.InputMenuOptions{Label: "Workspace owner", Placeholder: "Search people…", Leading: lucide.Search(), EmptyText: "No people match your search", FilterFields: []string{"label", "description"}}).FillWidth()
+		nui.InputMenu(c, inner, &a.Owner, nui.InputMenuOptions{Label: "Workspace owner", Placeholder: "Search people…", Leading: lucide.Search(), EmptyText: "No people match your search", FilterFields: []string{"label", "description"}}).FillWidth()
 	})
 	nui.Switch(c, t, &a.Sync, nui.SwitchOptions{Label: "Sync preferences", Description: "Keep these preferences available on your other computers."})
 	help := nui.Button(c, t, "About workspace access", nui.ButtonOptions{Variant: nui.LinkVariant, Leading: lucide.Info()}).OnClick(func() { a.Help = !a.Help })

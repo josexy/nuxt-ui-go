@@ -179,18 +179,22 @@ func TestLocaleSwitchRefreshesExistingFormErrors(t *testing.T) {
 func TestLocaleSwitchInsideSelectMenu(t *testing.T) {
 	state, plain := nui.SelectMenuState{}, nui.SelectMenuState{Open: true, Query: "draft"}
 	selected, none := []string{"go"}, []string(nil)
+	listSelection1 := chosenSelection(selected)
+	state.SetItems([]nui.ListboxItem{{ID: "go", Label: "Go"}})
+	listSelection2 := chosenSelection(none)
+	plain.SetItems([]nui.ListboxItem{{ID: "go", Label: "Go"}})
 	tt := ui.NewTester(func(c *ui.Context) {
 		th := nui.App(c, nui.AppConfig{})
 		ui.Column(c).Gap(8).Children(func() {
-			nui.SelectMenu(c, th, &selected, &state, []nui.ListboxItem{{ID: "go", Label: "Go"}}, nui.SelectMenuOptions{Label: "Choices", Clearable: true, OnCreate: func(string) {}})
+			nui.SelectMenu(c, th, listSelection1, &state, nui.SelectMenuOptions{Label: "Choices", Clearable: true, OnCreate: func(string) {}})
 			// Without OnCreate, an unmatched query shows the empty state.
-			nui.SelectMenu(c, th, &none, &plain, []nui.ListboxItem{{ID: "go", Label: "Go"}}, nui.SelectMenuOptions{Label: "Plain", Popup: nui.PopoverOptions{Placement: nui.TopStart}})
+			nui.SelectMenu(c, th, listSelection2, &plain, nui.SelectMenuOptions{Label: "Plain", Popup: nui.PopoverOptions{Placement: nui.TopStart}})
 		})
 	}, 500, 460)
 	click(t, tt, "Choices")
 	tt.Type("draft")
 	tt.SetLocale("zh-Hans")
-	if !state.Open || !tt.Focused("搜索Choices") || state.Query != "draft" || !slices.Equal(selected, []string{"go"}) {
+	if !state.Open || !tt.Focused("搜索Choices") || state.Query != "draft" || !slices.Equal(listSelection1.Values(), []string{"go"}) {
 		t.Fatal("open search lost state or focus during language change")
 	}
 	// Clicking the first menu dismissed the second, which reset its search.
@@ -202,7 +206,7 @@ func TestLocaleSwitchInsideSelectMenu(t *testing.T) {
 		}
 	}
 	click(t, tt, "清空选择")
-	if len(selected) != 0 || state.Query != "" {
+	if listSelection1.Len() != 0 || state.Query != "" {
 		t.Fatal("translated clear action stopped working")
 	}
 	state.Open, state.Query = true, "draft"

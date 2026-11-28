@@ -15,7 +15,8 @@ import (
 )
 
 func (d Demo) dataBindings() []Binding {
-	if !slices.Contains([]string{"tree", "command-palette", "chart"}, d.ID) {
+	choice := map[string]string{"select": "Select", "listbox": "Listbox", "select-menu": "SelectMenu", "input-menu": "InputMenu", "dropdown-menu": "DropdownMenu", "context-menu": "ContextMenu"}[d.ID]
+	if choice == "" && !slices.Contains([]string{"tree", "command-palette", "chart"}, d.ID) {
 		return nil
 	}
 	prefix := "package main\nfunc example(){\n"
@@ -25,19 +26,34 @@ func (d Demo) dataBindings() []Binding {
 		panic(err)
 	}
 	var bindings []Binding
+	assigned := map[string]*ast.CompositeLit{}
+	ast.Inspect(file, func(n ast.Node) bool {
+		if assignment, ok := n.(*ast.AssignStmt); ok && len(assignment.Lhs) == len(assignment.Rhs) {
+			for i, rhs := range assignment.Rhs {
+				if literal, ok := rhs.(*ast.CompositeLit); ok {
+					assigned[nodeText(assignment.Lhs[i])] = literal
+				}
+			}
+		}
+		return true
+	})
+	counts := map[string]int{}
 	ast.Inspect(file, func(n ast.Node) bool {
 		call, ok := n.(*ast.CallExpr)
 		if !ok {
 			return true
 		}
 		fn, ok := call.Fun.(*ast.SelectorExpr)
-		if !ok || !slices.Contains([]string{"SetNodes", "NewCommandIndex", "SetCategories", "SetSlices"}, fn.Sel.Name) {
+		if !ok || !slices.Contains([]string{"SetNodes", "NewCommandIndex", "SetCategories", "SetSlices", "SetOptions", "SetItems"}, fn.Sel.Name) {
 			return true
 		}
 		for _, arg := range call.Args {
 			literal, ok := arg.(*ast.CompositeLit)
 			if !ok {
-				continue
+				literal = assigned[nodeText(arg)]
+				if literal == nil {
+					continue
+				}
 			}
 			typ := expressionType(literal.Type)
 			if typ == nil || typ.Kind() != reflect.Slice {
@@ -46,6 +62,16 @@ func (d Demo) dataBindings() []Binding {
 			name := typ.Elem().Name() + "Items"
 			if typ.Elem().Kind() == reflect.String {
 				name = "Categories"
+			}
+			if choice != "" {
+				name = choice + "Items"
+				if d.ID == "select" && nodeText(fn.X) == "s.MultipleOptions" {
+					name = "SelectMultipleItems"
+				}
+				counts[name]++
+				if counts[name] > 1 {
+					name += strconv.Itoa(counts[name])
+				}
 			}
 			defaults := literalDefaults(literal, typ, Config{})
 			bindings = append(bindings, Binding{ID: name, Name: name, Type: goType(typ), Defaults: defaults, typ: typ, literal: literal, start: set.Position(literal.Pos()).Offset - len(prefix), end: set.Position(literal.End()).Offset - len(prefix)})

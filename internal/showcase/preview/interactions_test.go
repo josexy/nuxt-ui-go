@@ -1,6 +1,7 @@
 package preview
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -8,6 +9,40 @@ import (
 	"github.com/josexy/nuxt-ui-go/internal/showcase"
 	nui "github.com/josexy/nuxt-ui-go/ui"
 )
+
+func TestExampleUploadBoundedConfiguration(t *testing.T) {
+	tester, cfg := exampleTester(t, "file-upload")
+	cfg.Values["previewHeight"] = float64(0)
+	tester.Frame()
+	if tester.HasText("File previews") {
+		t.Fatal("explicit zero retained the preview viewport")
+	}
+	clickExample(t, tester, "Load 10,000 previews")
+	cfg.Values["previewHeight"] = float64(160)
+	tester.Frame()
+	if box, ok := tester.Find("File previews"); !ok || box.H != 160 {
+		t.Fatalf("configured preview height=%v, present=%v", box, ok)
+	}
+	if !tester.HasText("Changes: 0 · Rejected: 0") {
+		t.Fatal("external sample loading emitted queue callbacks")
+	}
+	cfg.Values["layout"] = "grid"
+	tester.Frame()
+	tester.Frame()
+	count := 0
+	for _, label := range tester.Texts() {
+		if strings.HasPrefix(label, "Remove Sample ") {
+			count++
+		}
+	}
+	if count < 1 || count > 24 {
+		t.Fatalf("large preview built %d action controls", count)
+	}
+	clickExample(t, tester, "Show long error")
+	if !tester.HasText(strings.Repeat("The remote service could not store this file. ", 12)) {
+		t.Fatal("long-error example lost its full error text")
+	}
+}
 
 func exampleTester(t *testing.T, id string) (*ui.Tester, *showcase.Config) {
 	t.Helper()
@@ -69,6 +104,90 @@ func TestExampleMenusReportEveryAction(t *testing.T) {
 				if tester.HasText("Project actions") {
 					t.Fatal("menu stayed open after selection")
 				}
+			}
+		})
+	}
+}
+
+func TestExamplePlainCommandsUseNativeMenu(t *testing.T) {
+	for _, id := range []string{"dropdown-menu", "context-menu"} {
+		t.Run(id, func(t *testing.T) {
+			tester, cfg := exampleTester(t, id)
+			open := func() {
+				t.Helper()
+				clickExample(t, tester, "Plain commands")
+				if id == "context-menu" {
+					tester.Key(ui.Shift, ui.KeyF10)
+				}
+				if len(tester.Menu()) != 5 {
+					t.Fatalf("native command menu = %v", tester.Menu())
+				}
+			}
+			open()
+			if err := tester.ChooseMenuItem("Unavailable command"); err == nil {
+				t.Fatal("disabled native command accepted")
+			}
+			if err := tester.ChooseMenuItem("Duplicate command"); err != nil {
+				t.Fatal(err)
+			}
+			if !tester.HasText("Plain actions: 1 · Result: Duplicated · Pinned: false") {
+				t.Fatal("native command did not notify exactly once")
+			}
+			open()
+			if err := tester.ChooseMenuItem("Pin command"); err != nil {
+				t.Fatal(err)
+			}
+			open()
+			if err := tester.ChooseMenuItem("Export format", "CSV command"); err != nil {
+				t.Fatal(err)
+			}
+			if !tester.HasText("Plain actions: 3 · Result: CSV · Pinned: true") {
+				t.Fatal("checked/submenu native actions failed")
+			}
+			open()
+			tester.CloseMenu()
+			tester.Frame()
+			if len(tester.Menu()) != 0 || !tester.Focused("Plain commands") {
+				t.Fatal("native dismissal lost trigger focus")
+			}
+			if id == "dropdown-menu" {
+				tester.Key(0, ui.KeyDown)
+			} else {
+				tester.Key(0, ui.KeyContextMenu)
+			}
+			if len(tester.Menu()) != 5 {
+				t.Fatal("native keyboard opening failed")
+			}
+			tester.CloseMenu()
+			cfg.Values["disabledMenu"] = true
+			tester.Frame()
+			clickExample(t, tester, "Plain commands")
+			tester.Key(ui.Shift, ui.KeyF10)
+			if len(tester.Menu()) != 0 {
+				t.Fatal("disabled native target opened")
+			}
+		})
+	}
+}
+
+func TestExampleLargeMenusUseSubmittedConfiguration(t *testing.T) {
+	for _, id := range []string{"dropdown-menu", "context-menu"} {
+		t.Run(id, func(t *testing.T) {
+			tester, cfg := exampleTester(t, id)
+			cfg.Values["large"] = true
+			tester.Frame()
+			if id == "dropdown-menu" {
+				clickExample(t, tester, cfg.String("label"))
+			} else if err := tester.RightClick(cfg.String("label")); err != nil {
+				t.Fatal(err)
+			}
+			tester.Key(0, ui.KeyEnd)
+			if !tester.Focused("Command 09999") {
+				t.Fatal("large preview configuration did not submit commands")
+			}
+			tester.Key(0, ui.KeyEnter)
+			if !tester.HasText("Command 09999") {
+				t.Fatal("large preview action failed")
 			}
 		})
 	}
@@ -339,7 +458,7 @@ func TestExampleSelectionAndDisclosure(t *testing.T) {
 		clickExample(t, tester, "Project")
 		clickExample(t, tester, "Documentation")
 		tester.Key(0, ui.KeyEnter)
-		if !tester.HasText("Sort changes: 1 · Selection changes: 1 · Activated: Documentation") {
+		if !tester.HasText("Sort changes: 1 · Table changes: 2 · Activated: Documentation") {
 			t.Fatal("table model notifications missing")
 		}
 		clickExample(t, tester, "Restore input order")
@@ -395,6 +514,16 @@ func TestExampleSelectionAndDisclosure(t *testing.T) {
 				clickExample(t, tester, "main.go")
 				if !tester.HasText("Mixed") {
 					t.Fatal("tree custom trailing state missing")
+				}
+				cfg.Values["multiple"] = false
+				tester.Frame()
+				if tester.HasText("Mixed") {
+					t.Fatal("unlinked preview retained mixed state")
+				}
+				cfg.Values["multiple"] = true
+				tester.Frame()
+				if !tester.HasText("Mixed") {
+					t.Fatal("linked preview did not restore current mixed state")
 				}
 				clickExample(t, tester, "Remote files")
 				clickExample(t, tester, "Collapse remote")

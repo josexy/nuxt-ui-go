@@ -1,0 +1,183 @@
+<!-- Generated from the nuxt-ui-go source. DO NOT EDIT. -->
+
+# PinInput
+
+Enter a verification code or fixed-length short code cell by cell.
+
+- Category: Forms and data
+- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Functions: `PinInput`
+- Types: `PinInputOptions`
+- Theme key: `nui.ComponentPinInput` (for `Theme.WithComponent`)
+- Sections: Usage · Things to know · API · Documentation excerpts · Complete example
+
+## Usage
+
+`PinInput` binds a `*string` over one real text editor (a single `Tab` stop), defaulting to 5 cells. `Numeric` restricts input to ASCII digits, and `OnComplete` fires once user input reaches `Length`.
+
+## Things to know
+
+- `Length` supports 1–32 runes (default 5); `Separator` and `SeparatorEvery` merge without duplicates.
+- Changing `Length` or `Numeric` externally normalizes the value silently without firing input callbacks.
+- SMS reading and browser OTP autofill are not available; manage focus with `PinState.Handle`.
+
+## API
+
+```go
+// PinInput uses one real editor, preserving paste, selection and Backspace across all slots.
+func PinInput(c *ui.Context, t Theme, value *string, s *PinState, o PinInputOptions) ui.Element
+```
+
+### PinInputOptions
+
+```go
+type PinInputOptions struct {
+	Label                string
+	Length               int
+	Disabled, Mask       bool
+	Numeric, ReadOnly    bool // Text is the default; Numeric keeps only ASCII digits.
+	Highlight            bool
+	Placeholder          string
+	Color                Color
+	Variant              Variant
+	Size                 Size
+	Separator            []int // Insert a separator after these 1-based slots.
+	SeparatorEvery       int   // Insert after every N slots; Separator also applies.
+	OnChange, OnComplete func(string)
+	Decoration
+}
+```
+
+### Related types
+
+```go
+type PinState struct {
+	Handle ui.Handle
+	// contains filtered or unexported fields
+}
+```
+
+Types documented in other references: `Color` → [theme.md](theme.md), `Decoration` → [theme.md](theme.md), `Size` → [theme.md](theme.md), `Theme` → [theme.md](theme.md), `Variant` → [theme.md](theme.md).
+
+## Documentation excerpts
+
+From the library documentation. Links point to other component references in this folder.
+
+### Forms, dates, and data components
+
+#### Lifecycle and themes (excerpt)
+
+InputNumber, InputDate, and InputTime share Input's sizes, five field variants, colors, read-only and disabled states, icons, and error settings. InputNumber, InputTags, PinInput cells, the SelectMenu trigger, Listbox and Tree rows, Calendar cells and card-variant CheckboxGroup items fade their background, border and focus ring over `Motion.Transition` (150 ms) at the Full and Reduced motion levels, as Nuxt UI's `transition-colors`; text colours change at once, and the Off motion level shows every change at once. InputDate and InputTime fields do not fade. Other components are configured through their own Options at the end of this page.
+
+#### Numbers, tags, PINs, and ratings › PinInput
+
+PinInput binds a `*string` and keeps a separate PinState. It defaults to 5 text cells; for a six-digit verification code, use `PinInputOptions{Numeric: true, Length: 6}`. Length ranges from 1 to 32 and is counted in runes. Numeric accepts only ASCII digits.
+
+Highlight defaults to false; when enabled, all cells show a border in the current color, and a field error takes precedence. UI and Style support Root, Item, Label, and SeparatorSlot. Root.Gap/Padding and the separator's font, font size, and padding are included in the overall size calculation, and an explicit 0 is honored. If a raw Style callback changes the width or height directly, your app coordinates the parent's size.
+
+PinInput uses one real editor behind several visual cells, so Tab enters it only once. That editor handles editing, pasting, selection, copying, and undo/redo. Numeric mode does not enable IME; text mode does. OnComplete fires only when the required length is reached and the value has changed. The component does not read SMS messages or submit automatically.
+
+| Action or option | Behavior |
+| --- | --- |
+| Click an existing character | Selects that position; typing replaces it and moves to the next. Typing at the last position replaces the last character |
+| Paste several characters | Overwrites the corresponding positions without pushing later characters back |
+| Backspace | Deletes the selected character. Clicking an empty cell or the gap between cells moves the cursor to the end of the existing content |
+| SeparatorEvery / Separator | Groups cells at a fixed interval or at given positions, for example `SeparatorEvery: 2` or `Separator: []int{3}` |
+| ReadOnly / Placeholder / masking | Control read-only state, text in empty cells, and whether the content is shown |
+
+Cells are 6 DIP apart, scaled by Density. The separator is a centered dot in the Dimmed color with equal space on both sides. The current cell shows a 3 DIP focus ring in the theme color at 25% opacity. In the error state it uses Error, in high contrast mode the ring is opaque, and None shows no ring.
+
+A focused empty cell hides its Placeholder and shows a blinking cursor. It blinks under reduced motion too, as MyGo's own text caret does, and stays solid at the Off motion level; it is hidden when read-only, disabled, or unfocused. When FormField has an Error, every cell shows the error border. Text scaling and masking do not affect hit testing.
+
+#### Style part index (excerpt)
+
+| Component | Parts |
+| --- | --- |
+| PinInput | Root, Item, Label, SeparatorSlot |
+
+#### Examples (excerpt)
+
+Text input in InputTags, PinInput in text mode, the Listbox filter field, SelectMenu, and ColorPicker is affected by the known IME cancel issue.
+
+### Options and defaults
+
+#### Common options by component › Switches, tags, and ratings (excerpt)
+
+| Component | Common options and behavior |
+| --- | --- |
+| PinInput | Color, Variant, and Size set the appearance. `Separator: []int{3}` adds a group break after the third cell; the control still uses one editor and one Tab stop |
+
+InputNumber's StepSnapping, FocusOnChange, Increment, and Decrement default to true, and the mouse wheel is enabled by default. The first increment or decrement from an empty value uses StartingValue instead of adding an extra step. PinInput.Highlight defaults to false; SeparatorSlot and Root.Gap/Padding adjust the separator and spacing.
+
+### Inputs, selection, and fields
+
+#### State, themes, and events › Sizes, variants, and disabled state (excerpt)
+
+Input, Textarea, InputNumber, InputTags, PinInput cells, and the Select, SelectMenu and InputMenu triggers fade their background, border and focus ring over `Motion.Transition` (150 ms) when hover, focus or invalid state changes, as Nuxt UI's `transition-colors`. The fade also runs under reduced motion; `Motion.Transition = 0` or the Off motion level shows the change at once. Text and icon colours change at once.
+
+### Compatibility and known limitations
+
+#### Canceling IME composition (excerpt)
+
+The pinned MyGo version has this known issue: **if you select text, start an IME composition, and then cancel it, the selected text is lost.** Undo restores it. Headless `ui.Tester` checks reproduce it with Input, Textarea and PinInput's text mode, and fail once MyGo keeps the selection, so that this section is updated with it.
+
+Affected inputs: Input, Textarea, InputMenu, InputTags, PinInput in text mode, the Listbox filter field, SelectMenu, the HEX field inside ColorPicker, and CommandPalette. If your app edits important text, test this flow with the IMEs on your target systems.
+
+### Internationalization
+
+#### What gets translated › Defaults that are easy to confuse (excerpt)
+
+| Situation | Message and key |
+| --- | --- |
+| PinInput's default accessible name | `pinCharacters` in text mode and `pinDigits` in numeric mode; the count follows `Length` |
+
+For example, in English a 5-cell PinInput is named `5 characters`, or `5 digits` in numeric mode; these names follow the active locale. This is the editor's accessible name; the placeholder shown in each cell still comes from `Placeholder`. An explicit `Label` or FormField label takes precedence.
+
+## Complete example
+
+A runnable program. App state lives in `example`, outside the view, and the view only builds UI.
+
+```go
+package main
+
+import (
+	"log"
+
+	"github.com/egoist/mygo"
+	"github.com/egoist/mygo/ui"
+	nui "github.com/josexy/nuxt-ui-go/ui"
+)
+
+type example struct {
+	Value             string
+	Pin               nui.PinState
+	Changes, Complete int
+}
+
+func (s *example) view(c *ui.Context, t nui.Theme) {
+	var parts nui.Styles
+
+	nui.PinInput(c.Key("pin"), t, &s.Value, &s.Pin, nui.PinInputOptions{Label: "Verification code", Length: 6, Numeric: true, OnChange: func(string) { s.Changes++ }, OnComplete: func(string) { s.Complete++ }, Decoration: nui.Decoration{UI: parts}})
+	ui.Textf(c, "Characters: %d · Changes: %d · Complete: %d", len([]rune(s.Value)), s.Changes, s.Complete)
+}
+
+func main() {
+	s := &example{}
+
+	palettes := nui.DefaultPalettes()
+	palettes.Primary, _ = nui.PaletteByName("green")
+	palettes.Neutral, _ = nui.PaletteByName("slate")
+	config := nui.AppConfig{Mode: nui.LightMode, Light: nui.NewTheme(false, palettes), Dark: nui.NewTheme(true, palettes)}
+	mygo.App.SetLanguages(nui.SupportedLocales()...)
+	mygo.App.WhenReady(func() {
+		mygo.App.SetLocale("en")
+		mygo.NewWindow(mygo.WindowOptions{Title: "PinInput · NuxtUI Go", Width: 760, Height: 560, Content: ui.View(func(c *ui.Context) {
+			t := nui.App(c, config)
+			ui.Column(c).Fill().Padding(24).Gap(16).Children(func() { s.view(c, t) })
+		})})
+	})
+	if err := mygo.App.Run(); err != nil {
+		log.Fatal(err)
+	}
+}
+```

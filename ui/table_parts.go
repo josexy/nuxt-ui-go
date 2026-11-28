@@ -15,11 +15,8 @@ const (
 	TableLoadingElastic         = LoadingElastic
 )
 
-type tableEvents[K TableKey] struct {
-	sort []ui.SortOrder
-	// selection holds the IDs chosen as of the last build without an input
-	// notice, in no order: the notice compares the new choice against it.
-	selection   []K
+type tableEvents struct {
+	sort        []ui.SortOrder
 	initialized bool
 }
 
@@ -53,34 +50,31 @@ func (m tableDividerMaterial) PaintMaterial(p *ui.Painter, r ui.Rect, _ [4]float
 	p.Fill(lineRect(r, p.Scale(), false, true, -1), m.color, 0)
 }
 
-// tableSelectionDiffers reports whether selection holds other IDs than keys,
-// which hold no duplicates: it reads the selection without copying it.
-func tableSelectionDiffers[K TableKey](keys []K, selection *ui.Selection[K]) bool {
-	if len(keys) != selection.Len() {
-		return true
-	}
-	for _, id := range keys {
-		if !selection.Has(id) {
-			return true
-		}
-	}
-	return false
+// tableCellStyle is a column's cell styling for one build, merged once rather
+// than for every visible cell: global, then table, then column overrides.
+type tableCellStyle struct {
+	item, label PartStyle
+	// direct puts a Value column's text straight into the native cell, which
+	// aligns it as the decorated Item row would. Label styling still applies
+	// to that text; Item styling, Style callbacks and custom cells need the
+	// decorated container.
+	direct bool
 }
 
-// snapshotTableSelection refills keys, reusing its room, with the IDs of selection.
-func snapshotTableSelection[K TableKey](keys []K, selection *ui.Selection[K]) []K {
-	keys = keys[:0]
-	for id := range selection.All() {
-		keys = append(keys, id)
+func newTableCellStyle[T any](t Theme, table Decoration, column TableColumn[T]) tableCellStyle {
+	global := t.components[ComponentTable].UI
+	s := tableCellStyle{
+		item:  mergeStyle(mergeStyle(mergeStyle(PartStyle{Gap: Set(t.spacing(6))}, global[Item]), table.UI[Item]), column.UI[Item]),
+		label: mergeStyle(mergeStyle(mergeStyle(PartStyle{}, global[Label]), table.UI[Label]), column.UI[Label]),
 	}
-	return keys
+	s.direct = column.Value != nil && column.Cell == nil && column.BuildCell == nil &&
+		table.Style == nil && column.Style == nil &&
+		global[Item] == (PartStyle{}) && table.UI[Item] == (PartStyle{}) && column.UI[Item] == (PartStyle{})
+	return s
 }
 
-func finishTableCell(t Theme, slot Slot, e ui.Element, base PartStyle, table, column Decoration) {
-	base = mergeStyle(base, t.components[ComponentTable].UI[slot])
-	base = mergeStyle(base, table.UI[slot])
-	base = mergeStyle(base, column.UI[slot])
-	base.apply(e)
+func finishTableCell(slot Slot, e ui.Element, style PartStyle, table, column Decoration) {
+	style.apply(e)
 	if table.Style != nil {
 		table.Style(slot, e)
 	}

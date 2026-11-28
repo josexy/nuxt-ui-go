@@ -220,7 +220,8 @@ type CommandPaletteState struct {
 	mailbox                                chan commandResult
 	list                                   ListboxState
 	editor                                 ui.Handle
-	selected, previous                     []string
+	selected                               SelectionState[string]
+	previous                               []string
 	rows                                   commandRowsCache
 }
 
@@ -386,7 +387,7 @@ func CommandPalette(c *ui.Context, t Theme, s *CommandPaletteState, o CommandPal
 		s.lastQuery, s.lastParent = s.Query, s.parent()
 		s.lastLimit = limit
 		s.lastFields, s.lastIgnore, s.lastExternal = fields, o.IgnoreFilter, o.Search != nil
-		s.selected = nil
+		s.selected.Clear()
 		s.list.Active = ""
 		s.list.List.ScrollTo(0, ui.Start)
 	}

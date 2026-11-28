@@ -2655,8 +2655,8 @@
       "en": "Display a user's avatar, name, and short description."
     },
     "guide": {
-      "zh": "### 基本用法\n\n设置 `Name`、`Description` 和 `Avatar` 展示用户信息；`Avatar` 全为空时不显示头像区域。`Chip` 仅在默认头像存在时显示。传入 `OnActivate` 后，整个组件变为可点击、可键盘触发的按钮。\n\n### 在预览中试一试\n\n1. 切换头像、角标、纵向布局和尺寸，观察排版变化。\n2. 开启「可激活」，用鼠标或 `Enter` / `Space` 触发操作，再对比禁用状态。\n3. 开启「自定义内容」，体验用 `Body` 替换默认姓名和简介。",
-      "en": "### Basic usage\n\nSet `Name`, `Description`, and `Avatar` to display a user (an empty `Avatar` hides the avatar slot). `Chip` appears only with the default avatar. Passing `OnActivate` turns the component into a focusable, clickable button.\n\n### Try the preview\n\n1. Toggle avatar, chip, vertical layout, and size.\n2. Enable Interactive and activate with a click, `Enter`, or `Space`, then test Disabled.\n3. Enable Custom content to replace the default text with `Body`."
+      "zh": "### 基本用法\n\n设置 `Name`、`Description` 和 `Avatar` 展示用户信息；`Avatar` 全为空时不显示头像区域。`Chip` 仅在默认头像存在时显示。传入 `OnActivate` 后，整个组件变为可点击、可键盘触发的按钮。\n\n### 在预览中试一试\n\n1. 切换头像、角标、纵向布局和尺寸，观察排版变化。\n2. 开启「可激活」，用鼠标或 `Enter` / `Space` 触发操作，再对比禁用状态。\n3. 开启「自定义内容」，体验用 `Body` 替换默认姓名和简介。\n\n### 缩放反馈\n\n启用交互（User）或悬停星标（InputRating），可观察原生 AnimatePose 缩放：目标变化时可以构建一次，后续动画帧仅重绘。Motion.Transition 控制时长；零或负时长、减少动态效果及关闭动效模式立即显示最终大小。动画途中关闭动效会停止后续帧，同时保留焦点与激活行为。",
+      "en": "### Basic usage\n\nSet `Name`, `Description`, and `Avatar` to display a user (an empty `Avatar` hides the avatar slot). `Chip` appears only with the default avatar. Passing `OnActivate` turns the component into a focusable, clickable button.\n\n### Try the preview\n\n1. Toggle avatar, chip, vertical layout, and size.\n2. Enable Interactive and activate with a click, `Enter`, or `Space`, then test Disabled.\n3. Enable Custom content to replace the default text with `Body`.\n\n### Scale feedback\n\nEnable interaction (User) or hover a star (InputRating). Scale feedback uses native AnimatePose: the target change can build once, while later animation ticks only paint. Motion.Transition controls duration; zero/negative duration, Reduced and Off show the final scale immediately. Disabling motion during a pose stops its remaining ticks without losing focus or activation."
     },
     "note": {
       "zh": "- `User.Size` 会统一控制头像和角标尺寸，`Chip.Inset` 固定为 `true`。\n- 使用 `Body` 自定义内容且可激活时，仍建议提供 `Name` 作为无障碍名称；页面跳转请在 `OnActivate` 中处理。",
@@ -2763,11 +2763,20 @@
         },
         "kind": "boolean",
         "default": false
+      },
+      {
+        "key": "reduceMotion",
+        "label": {
+          "zh": "减少动态效果",
+          "en": "Reduce motion"
+        },
+        "kind": "boolean",
+        "default": false
       }
     ],
     "state": "Activated int",
     "setup": "",
-    "body": "avatar := nui.AvatarOptions{}\nif {{avatar}} { avatar.Alt = {{label}} }\nvar chip *nui.ChipOptions\nif {{chip}} { chip = &nui.ChipOptions{Color: nui.Success, Text: \"3\"} }\nvar activate func()\nif {{interactive}} { activate = func() { s.Activated++ } }\nvar body func()\nif {{customBody}} { body = func() { ui.Text(c, \"Custom user content\"); ui.Text(c, {{label}}) } }\nnui.User(c.Key(\"user\"), t, nui.UserOptions{Name: {{label}}, Description: \"Maintainer\", Avatar: avatar, Chip: chip, Size: {{size}}, Vertical: {{vertical}}, Disabled: {{disabled}}, OnActivate: activate, Body: body})\nui.Textf(c, \"Activated: %d\", s.Activated)",
+    "body": "if {{reduceMotion}} { t.Motion.Reduce = true }\navatar := nui.AvatarOptions{}\nif {{avatar}} { avatar.Alt = {{label}} }\nvar chip *nui.ChipOptions\nif {{chip}} { chip = &nui.ChipOptions{Color: nui.Success, Text: \"3\"} }\nvar activate func()\nif {{interactive}} { activate = func() { s.Activated++ } }\nvar body func()\nif {{customBody}} { body = func() { ui.Text(c, \"Custom user content\"); ui.Text(c, {{label}}) } }\nnui.User(c.Key(\"user\"), t, nui.UserOptions{Name: {{label}}, Description: \"Maintainer\", Avatar: avatar, Chip: chip, Size: {{size}}, Vertical: {{vertical}}, Disabled: {{disabled}}, OnActivate: activate, Body: body})\nui.Textf(c, \"Activated: %d\", s.Activated)",
     "height": 380
   },
   {
@@ -2779,12 +2788,12 @@
       "en": "Single-line text input with icons, clear button, read-only, and loading states."
     },
     "guide": {
-      "zh": "### 基本用法\n\n将 `*string` 指针传给 `nui.Input`，组件会实时更新该字符串。请将字符串保存在视图函数外部，避免重绘时重置输入。`Label` 用于无障碍名称，`Placeholder` 提供输入提示。\n\n### 在预览中试一试\n\n1. 输入文字并按 `Enter` 或点击清空按钮，观察当前值与回调计数。\n2. 对比「只读」（可选择和复制）与「禁用」（不可交互）的区别。\n3. 开启头像和加载状态，对比前导加载（替换头像）与尾部加载（保留头像）的效果。",
-      "en": "### Basic usage\n\nPass a `*string` pointer to `nui.Input`; the component updates it as the user types. Keep the string outside the view function so rebuilds do not reset it. `Label` names the field and `Placeholder` hints what to enter.\n\n### Try the preview\n\n1. Type text, press `Enter`, or click clear to watch the value and callback counts.\n2. Compare Read-only (selectable/copyable) with Disabled (non-interactive).\n3. Enable avatar and loading to see how a leading loader replaces the avatar while a trailing loader keeps it."
+      "zh": "### 基本用法\n\n将 `*string` 指针传给 `nui.Input`，组件会实时更新该字符串。请将字符串保存在视图函数外部，避免重绘时重置输入。`Label` 用于无障碍名称，`Placeholder` 提供输入提示。\n\n### 在预览中试一试\n\n1. 输入文字并按 `Enter` 或点击清空按钮，观察当前值与回调计数。\n2. 对比「只读」（可选择和复制）与「禁用」（不可交互）的区别。\n3. 开启头像和加载状态，对比前导加载（替换头像）与尾部加载（保留头像）的效果。\n4. 在 API 选项中将 MaxLength 设为 4，输入 `abcd`，按 Home 再按两次右方向键后输入 `X`：该输入被拒绝且光标不动，因此接着按 Backspace 得到 `acd`。",
+      "en": "### Basic usage\n\nPass a `*string` pointer to `nui.Input`; the component updates it as the user types. Keep the string outside the view function so rebuilds do not reset it. `Label` names the field and `Placeholder` hints what to enter.\n\n### Try the preview\n\n1. Type text, press `Enter`, or click clear to watch the value and callback counts.\n2. Compare Read-only (selectable/copyable) with Disabled (non-interactive).\n3. Enable avatar and loading to see how a leading loader replaces the avatar while a trailing loader keeps it.\n4. In the API options, set MaxLength to 4, type `abcd`, press Home and then Right twice, and type `X`: it is rejected without moving the caret, so the next Backspace gives `acd`."
     },
     "note": {
-      "zh": "- `Loading` 仅显示加载指示，不阻止继续编辑；若同时设置了 `Leading` 图标，加载图标优先显示在前方。\n- `MaxLength` 按 UTF-16 字符单元限制用户输入；外部直接修改绑定字符串不会自动截断，也不会触发 `OnChange`。",
-      "en": "- `Loading` shows an indicator while keeping the field editable; an explicit `Leading` icon keeps the loader on the leading side.\n- `MaxLength` limits user input by UTF-16 code units; direct external string assignments are not truncated and do not emit `OnChange`."
+      "zh": "- `Loading` 仅显示加载指示，不阻止继续编辑；若同时设置了 `Leading` 图标，加载图标优先显示在前方。\n- `MaxLength` 按 UTF-16 单元限制用户输入。被拒绝的输入不改变光标和撤销记录，也不触发 `OnChange`；在代码中直接赋值不会被截断。",
+      "en": "- `Loading` shows an indicator while keeping the field editable; an explicit `Leading` icon keeps the loader on the leading side.\n- `MaxLength` limits user input in UTF-16 code units. A rejected insertion keeps the caret and undo history and fires no `OnChange`; assigning the string from code does not truncate it."
     },
     "symbols": ["Input"],
     "types": ["InputOptions"],
@@ -3019,12 +3028,12 @@
       "en": "Multiline text input that can grow automatically with content."
     },
     "guide": {
-      "zh": "### 基本用法\n\n`Textarea` 绑定 `*string`，复用嵌入的 `InputOptions` 进行外观、图标和状态配置。`Rows` 设置初始行数，开启 `AutoResize` 后高度会随换行自动增长，配合 `MaxRows` 可限制最高行数。\n\n### 在预览中试一试\n\n1. 输入多行内容并调整初始行数。\n2. 开启「自动调整高度」并设置「最多行数」（例如 `4`），观察超出后转为内部滚动。\n3. 尝试头像、加载图标和清空按钮，观察前后配件与第一行对齐。",
-      "en": "### Basic usage\n\n`Textarea` binds a `*string` and inherits shared settings from `InputOptions`. `Rows` sets the starting height, `AutoResize` grows with new lines, and `MaxRows` caps growth.\n\n### Try the preview\n\n1. Enter multiple lines and adjust `Rows`.\n2. Enable `Auto resize` with `Maximum rows` (e.g. `4`) to see internal scrolling once capped.\n3. Try the avatar, loader, and clear button to see accessories aligned to the first line."
+      "zh": "### 基本用法\n\n`Textarea` 绑定 `*string`，复用嵌入的 `InputOptions` 进行外观、图标和状态配置。`Rows` 设置初始行数，开启 `AutoResize` 后高度会随换行自动增长，配合 `MaxRows` 可限制最高行数。\n\n### 在预览中试一试\n\n1. 输入多行内容并调整初始行数。\n2. 开启「自动调整高度」并设置「最多行数」（例如 `4`），观察超出后转为内部滚动。\n3. 尝试头像、加载图标和清空按钮，观察前后配件与第一行对齐。\n4. 在 API 选项中将 MaxLength 设为 4，输入 `abcd`，按 Home 再按两次右方向键后输入 `X`：该输入被拒绝且光标不动，因此接着按 Backspace 得到 `acd`。",
+      "en": "### Basic usage\n\n`Textarea` binds a `*string` and inherits shared settings from `InputOptions`. `Rows` sets the starting height, `AutoResize` grows with new lines, and `MaxRows` caps growth.\n\n### Try the preview\n\n1. Enter multiple lines and adjust `Rows`.\n2. Enable `Auto resize` with `Maximum rows` (e.g. `4`) to see internal scrolling once capped.\n3. Try the avatar, loader, and clear button to see accessories aligned to the first line.\n4. In the API options, set MaxLength to 4, type `abcd`, press Home and then Right twice, and type `X`: it is rejected without moving the caret, so the next Backspace gives `acd`."
     },
     "note": {
-      "zh": "- `Rows <= 0` 默认 3 行；`MaxRows` 仅在开启 `AutoResize` 时生效（`<= 0` 不限，小于 `Rows` 按 `Rows` 计）。\n- `Enter` 和 `Shift+Enter` 用于换行，不触发 `OnSubmit`；共享字段 `Password` 对多行输入不生效，且不提供拖拽改高手柄。",
-      "en": "- `Rows <= 0` defaults to 3. `MaxRows` applies only with `AutoResize` (`<= 0` means unlimited; values below `Rows` use `Rows`).\n- `Enter` and `Shift+Enter` insert newlines without calling `OnSubmit`. `Password` has no effect on multiline input, and there is no resize handle."
+      "zh": "- `Rows <= 0` 默认 3 行；`MaxRows` 仅在开启 `AutoResize` 时生效（`<= 0` 不限，小于 `Rows` 按 `Rows` 计）。\n- `Enter` 和 `Shift+Enter` 用于换行，不触发 `OnSubmit`；共享字段 `Password` 对多行输入不生效，且不提供拖拽改高手柄。\n- `MaxLength` 按 UTF-16 单元限制用户输入。被拒绝的输入不改变光标和撤销记录，也不触发 `OnChange`；在代码中直接赋值不会被截断。",
+      "en": "- `Rows <= 0` defaults to 3. `MaxRows` applies only with `AutoResize` (`<= 0` means unlimited; values below `Rows` use `Rows`).\n- `Enter` and `Shift+Enter` insert newlines without calling `OnSubmit`. `Password` has no effect on multiline input, and there is no resize handle.\n- `MaxLength` limits user input in UTF-16 code units. A rejected insertion keeps the caret and undo history and fires no `OnChange`; assigning the string from code does not truncate it."
     },
     "symbols": ["Textarea"],
     "types": ["TextareaOptions"],
@@ -4454,8 +4463,8 @@
       "en": "Open a dropdown list to pick one or more options."
     },
     "guide": {
-      "zh": "### 基本用法\n\n单选用 `Select` 绑定单个值，多选用 `SelectMultiple` 绑定值切片。`Option.Value` 作为唯一值，`Label` 和 `Description` 用于展示。可选的 `Open` 指针可用于外部控制或读取展开状态。\n\n### 在预览中试一试\n\n1. 打开单选或多选下拉列表选择项目；也可以直接聚焦单选框并键入首字母（如 `r`）快速选中。\n2. 切换加载状态、头像、高亮边框和自定义图标（加载期间仍允许选择）。\n3. 点击 `Toggle single select` / `Toggle multiple select` 从外部控制开关，按 `Escape` 关闭并将焦点还给触发器。",
-      "en": "### Basic usage\n\nUse `Select` for one value or `SelectMultiple` for a slice. `Option.Value` is the unique key, while `Label` and `Description` provide display text. Pass an optional `Open` pointer to control or observe popup visibility.\n\n### Try the preview\n\n1. Pick items from the single or multiple dropdown, or focus the single trigger and type a letter (like `r`) for typeahead.\n2. Try loading, avatar, highlight, and custom icons—selection remains available while loading.\n3. Use the Toggle buttons to open/close externally, then press `Escape` to return focus to the trigger."
+      "zh": "### 基本用法\n\n单选用 `Select` 绑定单个值，多选用 `SelectMultiple` 绑定持久的 `SelectionState[T]`。`Option.Value` 作为唯一值，`Label` 和 `Description` 用于展示。可选的 `Open` 指针可用于外部控制或读取展开状态。\n\n### 在预览中试一试\n\n1. 打开单选或多选下拉列表选择项目；也可以直接聚焦单选框并键入首字母（如 `r`）快速选中。\n2. 切换加载状态、头像、高亮边框和自定义图标（加载期间仍允许选择）。\n3. 点击 `Toggle single select` / `Toggle multiple select` 从外部控制开关，按 `Escape` 关闭并将焦点还给触发器。\n\n### 数据与选择状态\n\n每个控件保留独立的 SelectState，在初始化或数据变化时调用 SetOptions。单选和多选均使用保留业务值类型的原生虚拟列表。多选使用 SelectionState：Set/Add/Remove/Clear 修改选择，Values() 显式返回独立快照。外部更新不触发通知；OnChange 对每次已接受的用户选择变化通知一次。SetOptions(nil) 释放选项并保留选择。不变的视图构建不扫描全部选项或选择；数据提交和批量操作的成本仍随数据量增长。",
+      "en": "### Basic usage\n\nUse `Select` for one value or `SelectMultiple` with persistent `SelectionState[T]`. `Option.Value` is the unique key, while `Label` and `Description` provide display text. Pass an optional `Open` pointer to control or observe popup visibility.\n\n### Try the preview\n\n1. Pick items from the single or multiple dropdown, or focus the single trigger and type a letter (like `r`) for typeahead.\n2. Try loading, avatar, highlight, and custom icons—selection remains available while loading.\n3. Use the Toggle buttons to open/close externally, then press `Escape` to return focus to the trigger.\n\n### Data and selection ownership\n\nKeep a separate SelectState for each control and call SetOptions during setup or a data change. Both controls use typed native virtual lists. Multiple selection uses SelectionState: Set/Add/Remove/Clear mutate it, while Values() explicitly returns an owned snapshot. External updates are silent; OnChange reports each accepted user change once. SetOptions(nil) releases options while keeping selection. Unchanged builds do not scan all options or selections; submission and bulk actions still depend on data size."
     },
     "note": {
       "zh": "- 空字符串和零值均是合法的 `Option.Value`；如需表示「未选择」，请使用 `Optional[T]` 或专用空值。\n- 单选值不在选项列表中时显示占位文字；多选会保留暂时缺失项的标签。\n- 外部直接赋值、修改样式或开关弹层不会触发 `OnChange`。",
@@ -4653,9 +4662,9 @@
         "default": false
       }
     ],
-    "state": "Value string; Many []string; Open, ManyOpen bool; Changes, ManyChanges int",
-    "setup": "",
-    "body": "if {{customNeutral}} { t.InvertedBackground = ui.Hex(\"#7e22ce\"); if t.Dark { t.InvertedBackground = ui.Hex(\"#c084fc\") } }\nvar avatar *nui.AvatarOptions\nif {{avatar}} { avatar = &nui.AvatarOptions{Text:\"GO\",Alt:\"Language avatar\"} }\nvar leading, trailing, selected *ui.SVG\nif {{customIcons}} { leading = lucide.Code(); trailing = lucide.ChevronsUpDown(); selected = lucide.Heart() }\nitems := []nui.Option[string]{{Value:\"go\",Label:\"Go\",Description:\"Backend services\",Icon:lucide.Code()},{Value:\"rust\",Label:\"Rust\",Description:\"Native applications\",Icon:lucide.Code()},{Value:\"blocked\",Label:\"Disabled language\",Disabled:true},{Value:\"typescript\",Label:\"TypeScript\",Description:\"Web applications\",Icon:lucide.Code()}}\nnui.Select(c.Key(\"select\"),t,&s.Value,items,nui.SelectOptions{Label:\"Language\",Placeholder:{{placeholder}},Color:{{color}},Size:{{size}},Variant:{{variant}},Disabled:{{disabled}},Avatar:avatar,Leading:leading,Trailing:trailing,SelectedIcon:selected,Loading:{{loading}},LoadingTrailing:{{loadingTrailing}},Highlight:{{highlight}},Open:&s.Open,OnChange:func(){s.Changes++}})\nui.Textf(c,\"Selected: %s · Changes: %d · Open: %v\",s.Value,s.Changes,s.Open)\nnui.SelectMultiple(c.Key(\"multiple\"),t,&s.Many,items,nui.SelectOptions{Label:\"Multiple languages\",Placeholder:{{placeholder}},Color:{{color}},Size:{{size}},Variant:{{variant}},Disabled:{{disabled}},Avatar:avatar,Leading:leading,Trailing:trailing,SelectedIcon:selected,Loading:{{loading}},LoadingTrailing:{{loadingTrailing}},Highlight:{{highlight}},Open:&s.ManyOpen,OnChange:func(){s.ManyChanges++}})\nui.Textf(c,\"Selected IDs: %v · Changes: %d · Open: %v\",s.Many,s.ManyChanges,s.ManyOpen)\nnui.Button(c.Key(\"open-one\"),t,\"Toggle single select\",nui.ButtonOptions{Variant:nui.Outline,Disabled:{{disabled}}}).OnClick(func(){s.Open=!s.Open})\nnui.Button(c.Key(\"open-many\"),t,\"Toggle multiple select\",nui.ButtonOptions{Variant:nui.Outline,Disabled:{{disabled}}}).OnClick(func(){s.ManyOpen=!s.ManyOpen})",
+    "state": "Value string; Many nui.SelectionState[string]; SingleOptions, MultipleOptions nui.SelectState[string]; Open, ManyOpen bool; Changes, ManyChanges int",
+    "setup": "s.SingleOptions.SetOptions([]nui.Option[string]{{Value:\"go\",Label:\"Go\",Description:\"Backend services\",Icon:lucide.Code()},{Value:\"rust\",Label:\"Rust\",Description:\"Native applications\",Icon:lucide.Code()},{Value:\"blocked\",Label:\"Disabled language\",Disabled:true},{Value:\"typescript\",Label:\"TypeScript\",Description:\"Web applications\",Icon:lucide.Code()}})\ns.MultipleOptions.SetOptions([]nui.Option[string]{{Value:\"go\",Label:\"Go\",Description:\"Backend services\",Icon:lucide.Code()},{Value:\"rust\",Label:\"Rust\",Description:\"Native applications\",Icon:lucide.Code()},{Value:\"blocked\",Label:\"Disabled language\",Disabled:true},{Value:\"typescript\",Label:\"TypeScript\",Description:\"Web applications\",Icon:lucide.Code()}})",
+    "body": "if {{customNeutral}} { t.InvertedBackground = ui.Hex(\"#7e22ce\"); if t.Dark { t.InvertedBackground = ui.Hex(\"#c084fc\") } }\nvar avatar *nui.AvatarOptions\nif {{avatar}} { avatar = &nui.AvatarOptions{Text:\"GO\",Alt:\"Language avatar\"} }\nvar leading, trailing, selected *ui.SVG\nif {{customIcons}} { leading = lucide.Code(); trailing = lucide.ChevronsUpDown(); selected = lucide.Heart() }\nnui.Select(c.Key(\"select\"),t,&s.Value,&s.SingleOptions,nui.SelectOptions{Label:\"Language\",Placeholder:{{placeholder}},Color:{{color}},Size:{{size}},Variant:{{variant}},Disabled:{{disabled}},Avatar:avatar,Leading:leading,Trailing:trailing,SelectedIcon:selected,Loading:{{loading}},LoadingTrailing:{{loadingTrailing}},Highlight:{{highlight}},Open:&s.Open,OnChange:func(){s.Changes++}})\nui.Textf(c,\"Selected: %s · Changes: %d · Open: %v\",s.Value,s.Changes,s.Open)\nnui.SelectMultiple(c.Key(\"multiple\"),t,&s.Many,&s.MultipleOptions,nui.SelectOptions{Label:\"Multiple languages\",Placeholder:{{placeholder}},Color:{{color}},Size:{{size}},Variant:{{variant}},Disabled:{{disabled}},Avatar:avatar,Leading:leading,Trailing:trailing,SelectedIcon:selected,Loading:{{loading}},LoadingTrailing:{{loadingTrailing}},Highlight:{{highlight}},Open:&s.ManyOpen,OnChange:func(){s.ManyChanges++}})\nui.Textf(c,\"Selected IDs: %v · Changes: %d · Open: %v\",s.Many.Values(),s.ManyChanges,s.ManyOpen)\nnui.Button(c.Key(\"open-one\"),t,\"Toggle single select\",nui.ButtonOptions{Variant:nui.Outline,Disabled:{{disabled}}}).OnClick(func(){s.Open=!s.Open})\nnui.Button(c.Key(\"open-many\"),t,\"Toggle multiple select\",nui.ButtonOptions{Variant:nui.Outline,Disabled:{{disabled}}}).OnClick(func(){s.ManyOpen=!s.ManyOpen})",
     "height": 520
   },
   {
@@ -4667,8 +4676,8 @@
       "en": "Type to filter suggestions inside an input and choose or submit a value."
     },
     "guide": {
-      "zh": "### 基本用法\n\n`SearchState.Query` 保存输入草稿，`Selected` / `SelectedValues` 保存单选或多选 ID，`Open` 可选控制弹层开关。支持组合框（`InputMenuCombobox`）和自动补全（`InputMenuAutocomplete`）两种模式。\n\n### 在预览中试一试\n\n1. 输入关键词或按方向键打开候选列表并回车选择；开启「点击打开」可改为点击即展开。\n2. 开启「多选」选择多个标签，试试清空按钮以及「清空时重置选中值」开关的区别。\n3. 切换到 `Autocomplete` 模式，体验选择建议或直接提交自由文本；也可开启「允许创建新项」测试创建回调。",
-      "en": "### Basic usage\n\n`SearchState.Query` holds the input draft, `Selected` / `SelectedValues` store single or multiple IDs, and `Open` optionally controls the popup. Supports both combobox (`InputMenuCombobox`) and autocomplete (`InputMenuAutocomplete`) modes.\n\n### Try the preview\n\n1. Type or press an arrow key to open suggestions and hit `Enter` to select; enable `Open on click` for click-to-open.\n2. Turn on `Multiple`, pick several tags, and test the clear button with and without `Reset selection on clear`.\n3. Switch to `Autocomplete` to submit free text, or enable `Allow creating items` to test creation requests."
+      "zh": "### 基本用法\n\n`SearchState.Query` 保存输入草稿，`Selected` / `SelectedValues` 保存单选或多选 ID，`Open` 可选控制弹层开关。支持组合框（`InputMenuCombobox`）和自动补全（`InputMenuAutocomplete`）两种模式。\n\n### 在预览中试一试\n\n1. 输入关键词或按方向键打开候选列表并回车选择；开启「点击打开」可改为点击即展开。\n2. 开启「多选」选择多个标签，试试清空按钮以及「清空时重置选中值」开关的区别。\n3. 切换到 `Autocomplete` 模式，体验选择建议或直接提交自由文本；也可开启「允许创建新项」测试创建回调。\n\n### 提交选项与已选标签\n\n每个控件保留独立的 SearchState，在初始化或选项变化时调用 SetOptions；视图只传入状态。SelectedValues 是 SelectionState[string]。OnValuesChange 无参数，代码中的修改不会触发。\n\n已选标签在最高 96 DIP 的区域内滚动，编辑器位于其下方。Tab、Shift+Tab、方向键、Home 和 End 在标签之间移动；删除标签后焦点回到编辑器并保留草稿。只读和禁用状态不能删除标签。\n\n### 本地搜索执行\n\n将“本地搜索执行”设为 background 后在筛选框中输入，即可观察后台搜索。默认的 SearchAuto 在超过 2,048 项时转到后台。搜索期间列表显示加载提示，查询仍可编辑，但 Enter 和点击会被忽略，避免选中过期结果。新的查询、关闭或卸载都会取消搜索；自行销毁状态时请调用 Close()。",
+      "en": "### Basic usage\n\n`SearchState.Query` holds the input draft, `Selected` / `SelectedValues` store single or multiple IDs, and `Open` optionally controls the popup. Supports both combobox (`InputMenuCombobox`) and autocomplete (`InputMenuAutocomplete`) modes.\n\n### Try the preview\n\n1. Type or press an arrow key to open suggestions and hit `Enter` to select; enable `Open on click` for click-to-open.\n2. Turn on `Multiple`, pick several tags, and test the clear button with and without `Reset selection on clear`.\n3. Switch to `Autocomplete` to submit free text, or enable `Allow creating items` to test creation requests.\n\n### Submitted options and selected tags\n\nKeep one SearchState per control and call SetOptions during setup or when the options change; the view passes only the state. SelectedValues is a SelectionState[string]. OnValuesChange takes no arguments, and changes made from code are silent.\n\nSelected tags scroll inside an area up to 96 DIP tall, with the editor below. Tab, Shift+Tab, the arrow keys, Home, and End move between tags; removing a tag returns focus to the editor and keeps the draft. Read-only and disabled states prevent removal.\n\n### Local search execution\n\nSet Local search execution to background and type into the filter to watch a background search. SearchAuto, the default, searches in the background above 2,048 items. While a search runs, the list shows a loading message and the query stays editable, but Enter and clicks are ignored so that a stale result cannot be chosen. A newer query, closing, or unmounting cancels the search; call Close() when you dispose of the state yourself."
     },
     "note": {
       "zh": "- 回调分工：`OnChange` 报告输入草稿变化，`OnSelect` 报告选中项，`OnValuesChange` 报告多选变化，`OnClear` 报告清空操作（删除标签不触发 `OnSelect`）。\n- 内置过滤不区分大小写且保持原顺序，不做相关度排序；选项列表更新时会自动关闭旧弹层。\n- 创建新项仅触发回调，是否真正加入列表由应用决定；`SearchSelect` 保留旧版点击即打开行为。",
@@ -4983,11 +4992,35 @@
             "go": "nui.InputMenuAutocomplete"
           }
         ]
+      },
+      {
+        "key": "searchExecution",
+        "label": {
+          "zh": "本地搜索执行",
+          "en": "Local search execution"
+        },
+        "kind": "select",
+        "default": "auto",
+        "goType": "nui.SearchExecution",
+        "choices": [
+          {
+            "value": "auto",
+            "go": "nui.SearchAuto"
+          },
+          {
+            "value": "immediate",
+            "go": "nui.SearchImmediate"
+          },
+          {
+            "value": "background",
+            "go": "nui.SearchBackground"
+          }
+        ]
       }
     ],
     "state": "Search nui.SearchState; Open bool; Queries, Selections, Values, Clears, Submits int; Created string",
-    "setup": "",
-    "body": "disabled, readOnly := {{disabled}}, {{readOnly}}\nvar avatar *nui.AvatarOptions\nif {{avatar}} { avatar = &nui.AvatarOptions{Text:\"GO\",Alt:\"Search avatar\"} }\nvar selectedIcon, deleteIcon, clearIcon *ui.SVG\nif {{customIcons}} { selectedIcon=lucide.Heart(); deleteIcon=lucide.Minus(); clearIcon=lucide.Eraser() }\nvar onCreate func(string)\nif {{create}} { onCreate=func(value string){s.Created=value} }\nnui.InputMenu(c.Key(\"menu\"),t,&s.Search,[]nui.Option[string]{{Value:\"go\",Label:\"Go\",Description:\"Backend services\",Icon:lucide.Code()},{Value:\"rust\",Label:\"Rust\",Description:\"Native applications\",Icon:lucide.Code()},{Value:\"blocked\",Label:\"Disabled language\",Disabled:true},{Value:\"typescript\",Label:\"TypeScript\",Description:\"Web applications\",Icon:lucide.Code()}},nui.InputMenuOptions{InputOptions:nui.InputOptions{Label:cmp.Or({{label}},\"Language search\"),Placeholder:{{placeholder}},Color:{{color}},Size:{{size}},Variant:{{variant}},Disabled:{{disabled}},ReadOnly:{{readOnly}},Loading:{{loading}},LoadingTrailing:{{loadingTrailing}},Avatar:avatar,Clearable:{{clearable}},OnChange:func(string){s.Queries++},OnClear:func(){s.Clears++},OnSubmit:func(string){s.Submits++}},Multiple:{{multiple}},Mode:{{mode}},Open:&s.Open,Loop:{{loop}},HighlightOnHover:{{highlightOnHover}},OpenOnClick:{{openOnClick}},OpenOnFocus:{{openOnFocus}},ResetSearchTermOnSelect:{{resetOnSelect}},ResetSearchTermOnBlur:{{resetOnBlur}},ResetModelValueOnClear:{{resetModel}},SelectedIcon:selectedIcon,DeleteIcon:deleteIcon,ClearIcon:clearIcon,OnCreate:onCreate,CreateAtTop:{{createAtTop}},OnSelect:func(string){s.Selections++},OnValuesChange:func([]string){s.Values++}})\nui.Textf(c,\"Query: %s · Selected: %s · IDs: %v\",s.Search.Query,s.Search.Selected,s.Search.SelectedValues)\nui.Textf(c,\"Events: query %d · select %d · values %d · clear %d · submit %d\",s.Queries,s.Selections,s.Values,s.Clears,s.Submits)\nui.Textf(c,\"Open: %v · Create request: %s\",s.Open,s.Created)\nnui.Button(c.Key(\"toggle\"),t,\"Toggle search list\",nui.ButtonOptions{Variant:nui.Outline,Disabled:disabled || readOnly}).OnClick(func(){s.Open=!s.Open})",
+    "setup": "s.Search.SetOptions([]nui.Option[string]{{Value:\"go\",Label:\"Go\",Description:\"Backend services\",Icon:lucide.Code()},{Value:\"rust\",Label:\"Rust\",Description:\"Native applications\",Icon:lucide.Code()},{Value:\"blocked\",Label:\"Disabled language\",Disabled:true},{Value:\"typescript\",Label:\"TypeScript\",Description:\"Web applications\",Icon:lucide.Code()}})",
+    "body": "disabled, readOnly := {{disabled}}, {{readOnly}}\nvar avatar *nui.AvatarOptions\nif {{avatar}} { avatar = &nui.AvatarOptions{Text:\"GO\",Alt:\"Search avatar\"} }\nvar selectedIcon, deleteIcon, clearIcon *ui.SVG\nif {{customIcons}} { selectedIcon=lucide.Heart(); deleteIcon=lucide.Minus(); clearIcon=lucide.Eraser() }\nvar onCreate func(string)\nif {{create}} { onCreate=func(value string){s.Created=value} }\nnui.InputMenu(c.Key(\"menu\"),t,&s.Search,nui.InputMenuOptions{SearchExecution:{{searchExecution}},InputOptions:nui.InputOptions{Label:cmp.Or({{label}},\"Language search\"),Placeholder:{{placeholder}},Color:{{color}},Size:{{size}},Variant:{{variant}},Disabled:{{disabled}},ReadOnly:{{readOnly}},Loading:{{loading}},LoadingTrailing:{{loadingTrailing}},Avatar:avatar,Clearable:{{clearable}},OnChange:func(string){s.Queries++},OnClear:func(){s.Clears++},OnSubmit:func(string){s.Submits++}},Multiple:{{multiple}},Mode:{{mode}},Open:&s.Open,Loop:{{loop}},HighlightOnHover:{{highlightOnHover}},OpenOnClick:{{openOnClick}},OpenOnFocus:{{openOnFocus}},ResetSearchTermOnSelect:{{resetOnSelect}},ResetSearchTermOnBlur:{{resetOnBlur}},ResetModelValueOnClear:{{resetModel}},SelectedIcon:selectedIcon,DeleteIcon:deleteIcon,ClearIcon:clearIcon,OnCreate:onCreate,CreateAtTop:{{createAtTop}},OnSelect:func(string){s.Selections++},OnValuesChange:func(){s.Values++}})\nui.Textf(c,\"Query: %s · Selected: %s · IDs: %v\",s.Search.Query,s.Search.Selected,s.Search.SelectedValues.Values())\nui.Textf(c,\"Events: query %d · select %d · values %d · clear %d · submit %d\",s.Queries,s.Selections,s.Values,s.Clears,s.Submits)\nui.Textf(c,\"Open: %v · Create request: %s\",s.Open,s.Created)\nnui.Button(c.Key(\"toggle\"),t,\"Toggle search list\",nui.ButtonOptions{Variant:nui.Outline,Disabled:disabled || readOnly}).OnClick(func(){s.Open=!s.Open})",
     "height": 600
   },
   {
@@ -5480,12 +5513,7 @@
       "en": "- Default duration is 5 seconds: `Timeout == 0` uses 5s, while a **negative** value stays open (unlike Nuxt UI where `duration=0` persists).\n- MyGo shows up to 3 toasts at once; older queued items keep timing and may appear as slots free up.\n- Each toast snapshots its theme and options when published; give `ToastActionOptions` stable `ID`s to keep button focus across updates."
     },
     "symbols": ["Toast", "ToastViewport", "CloseToast"],
-    "types": [
-      "ToastOptions",
-      "ToastViewportOptions",
-      "ToastActionOptions",
-      "ToastProgressOptions"
-    ],
+    "types": ["ToastOptions", "ToastViewportOptions", "ToastActionOptions", "ToastProgressOptions"],
     "controls": [
       {
         "key": "label",
@@ -5694,8 +5722,8 @@
       "en": "Open an action menu from a button, with groups, checkboxes, submenus, and filtering."
     },
     "guide": {
-      "zh": "### 基本用法\n\n为每个触发器保存独立的 `MenuState`，并为每个 `MenuItem` 提供唯一且稳定的 `ID`。将触发按钮作为锚点传给 `DropdownMenu`，点击或按上下方向键即可展开；子菜单可通过 `MenuItem.Content` 单独配置。\n\n### 在预览中试一试\n\n1. 打开菜单体验普通项、勾选框（`Pinned`）、子菜单（`Export`）和图标/快捷键样式。\n2. 开启「显示筛选框」或「子菜单筛选框」，输入 `copy` 回车执行；按 `Escape` 先清空搜索再关闭菜单。\n3. 点击 `Reverse actions` 重排菜单项，确认键盘焦点仍紧跟原来的操作项。",
-      "en": "### Basic usage\n\nKeep a dedicated `MenuState` per trigger and assign every `MenuItem` a stable, unique `ID`. Pass the trigger button as the anchor to `DropdownMenu`—click or press Up/Down to open. Configure submenus via `MenuItem.Content`.\n\n### Try the preview\n\n1. Open the menu to try actions, checkbox items (`Pinned`), submenus (`Export`), avatars, and shortcuts.\n2. Enable `Filter input` or `Submenu filter`, type `copy` and press `Enter`; `Escape` clears the query first, then closes.\n3. Choose `Reverse actions` to confirm keyboard focus follows the same item by ID."
+      "zh": "### 基本用法\n\n为每个触发器保存独立的 `MenuState`，并为每个 `MenuItem` 提供唯一且稳定的 `ID`。将触发按钮作为锚点传给 `DropdownMenu`，点击或按上下方向键即可展开；子菜单可通过 `MenuItem.Content` 单独配置。\n\n### 在预览中试一试\n\n1. 打开菜单体验普通项、勾选框（`Pinned`）、子菜单（`Export`）和图标/快捷键样式。\n2. 开启「显示筛选框」或「子菜单筛选框」，输入 `copy` 回车执行；按 `Escape` 先清空搜索再关闭菜单。\n3. 点击 `Reverse actions` 重排菜单项，确认键盘焦点仍紧跟原来的操作项。\n\n### 显式提交菜单数据\n\n在初始化时调用 MenuState.SetItems，菜单项的文字、勾选或禁用状态、结构或回调变化时再次调用；视图只传入状态。ID 在整个菜单树中必须唯一。每个触发器、每个窗口保留独立状态。\n\n### 本地搜索执行\n\n将“本地搜索执行”设为 background 后在筛选框中输入，即可观察后台搜索。默认的 SearchAuto 在超过 2,048 项时转到后台。搜索期间列表显示加载提示，查询仍可编辑，但 Enter 和点击会被忽略，避免选中过期结果。新的查询、关闭或卸载都会取消搜索；自行销毁状态时请调用 Close()。子菜单继承该策略，除非设置了 Content.SearchExecution。显式的空 FilterFields 不匹配任何项；保留 nil 即可匹配标签。\n\n### 普通命令与大型富菜单\n\n独立的 Plain commands 控件直接调用现有 anchor.Menu/ContextMenu API。构建器仅在打开和选择命令时执行，通过 Chosen 处理操作；示例包括禁用项、勾选项、子菜单和快捷键提示（实际快捷键需另行注册）。DropdownMenu 示例用点击打开，ContextMenu 示例用右键或 Shift+F10 打开。系统菜单或窗口内菜单的呈现由 MyGo 与平台决定。普通命令优先使用这一按需构建接口；需要筛选、应用控制 Open、自定义 Build 内容或组件部件样式时使用 nui 富菜单，不会自动切换后端并丢弃这些选项。\n\n开启“添加一万个操作”，打开菜单后按 End 或 Home，或输入命令前缀。每个打开的层级只构建可见行，键盘导航会先滚动到目标项。宽度随当前已构建的行变化，需要固定宽度时请设置 Width。Build 和 Style 只对已构建的行运行，不能在其中执行应用操作。",
+      "en": "### Basic usage\n\nKeep a dedicated `MenuState` per trigger and assign every `MenuItem` a stable, unique `ID`. Pass the trigger button as the anchor to `DropdownMenu`—click or press Up/Down to open. Configure submenus via `MenuItem.Content`.\n\n### Try the preview\n\n1. Open the menu to try actions, checkbox items (`Pinned`), submenus (`Export`), avatars, and shortcuts.\n2. Enable `Filter input` or `Submenu filter`, type `copy` and press `Enter`; `Escape` clears the query first, then closes.\n3. Choose `Reverse actions` to confirm keyboard focus follows the same item by ID.\n\n### Submitted menu data\n\nCall MenuState.SetItems during setup, and again whenever an item's label, checked or disabled state, structure, or callback changes; the view passes only the state. IDs must be unique across the whole tree. Keep one state per trigger and window.\n\n### Local search execution\n\nSet Local search execution to background and type into the filter to watch a background search. SearchAuto, the default, searches in the background above 2,048 items. While a search runs, the list shows a loading message and the query stays editable, but Enter and clicks are ignored so that a stale result cannot be chosen. A newer query, closing, or unmounting cancels the search; call Close() when you dispose of the state yourself. A submenu inherits the policy unless Content.SearchExecution overrides it. An explicit empty FilterFields list matches nothing; leave it nil to match labels.\n\n### Plain commands and large rich menus\n\nThe separate Plain commands control calls the existing anchor.Menu/ContextMenu API. Its builder runs on opening and command selection; Chosen handles the action. It demonstrates a disabled action, a checked action, a submenu and a displayed shortcut (register the actual shortcut separately). Click it for DropdownMenu, or right-click/Shift+F10 for ContextMenu. System versus in-window presentation follows MyGo and the platform. Use this on-demand route for ordinary commands. Use the rich nui path for filtering, app-controlled Open, custom Build content or component part styles; no automatic backend discards these options.\n\nEnable Add 10,000 actions, open the menu, and press End or Home, or type a command prefix. Each open level builds only its visible rows, and keyboard navigation scrolls to the target first. Width follows the rows currently built, so set Width for a fixed width. Build and Style run only for built rows and must not perform app actions."
     },
     "note": {
       "zh": "- 菜单为非模态弹层：点击外部会关闭菜单，同时把点击继续传给目标元素。\n- `Shortcut` 仅用于显示快捷键提示，不会自动注册全局快捷键；`Loading` 仅显示加载图标，是否禁用由 `Disabled` 单独控制。\n- 内置筛选不区分大小写且保留原顺序；需要自定义筛选结果时开启 `IgnoreFilter`。",
@@ -5881,11 +5909,44 @@
             "go": "nui.Set(nui.LeftStart)"
           }
         ]
+      },
+      {
+        "key": "searchExecution",
+        "label": {
+          "zh": "本地搜索执行",
+          "en": "Local search execution"
+        },
+        "kind": "select",
+        "default": "auto",
+        "goType": "nui.SearchExecution",
+        "choices": [
+          {
+            "value": "auto",
+            "go": "nui.SearchAuto"
+          },
+          {
+            "value": "immediate",
+            "go": "nui.SearchImmediate"
+          },
+          {
+            "value": "background",
+            "go": "nui.SearchBackground"
+          }
+        ]
+      },
+      {
+        "key": "large",
+        "label": {
+          "zh": "添加一万个操作",
+          "en": "Add 10,000 actions"
+        },
+        "kind": "boolean",
+        "default": false
       }
     ],
-    "state": "Menu nui.MenuState;Action,Query,SubQuery string;Pinned,Reverse bool;Actions,CheckedChanges,OpenChanges,Queries int",
-    "setup": "",
-    "body": "var avatar *nui.AvatarOptions\nicon:=lucide.Pencil()\nif {{avatar}} { avatar=&nui.AvatarOptions{Alt:\"Editor avatar\",Text:\"ED\"};icon=nil }\nvar checkedIcon,loadingIcon *ui.SVG\nif {{customIcons}} {checkedIcon=lucide.Heart();loadingIcon=lucide.RefreshCw()}\nvar width nui.Optional[float32]\nif {{customWidth}} {width=nui.Set(float32({{width}}))}\nitems:=[]nui.MenuItem{\n {ID:\"edit\",Label:\"Edit\",Description:\"Change project details\",Icon:icon,Avatar:avatar,Loading:{{loading}},Shortcut:\"Ctrl+E\",OnSelect:func(){s.Action=\"Edit\";s.Actions++}},\n {ID:\"copy\",Label:\"Duplicate\",Description:\"Copy this project\",Icon:lucide.Copy(),OnSelect:func(){s.Action=\"Duplicate\";s.Actions++}},\n {ID:\"archive\",Label:\"Archive\",Disabled:{{disabled}},Color:nui.Warning,OnSelect:func(){s.Action=\"Archive\";s.Actions++}},\n {ID:\"separator\",Kind:nui.MenuSeparator},\n {ID:\"pin\",Label:\"Pinned\",Checked:nui.Set(s.Pinned),Close:nui.Set(false),OnCheckedChange:func(v bool){s.Pinned=v;s.CheckedChanges++},OnSelect:func(){s.Action=\"Pinned\";s.Actions++}},\n {ID:\"export\",Label:\"Export\",Children:[]nui.MenuItem{{ID:\"csv\",Label:\"CSV\",OnSelect:func(){s.Action=\"CSV\";s.Actions++}},{ID:\"json\",Label:\"JSON\",OnSelect:func(){s.Action=\"JSON\";s.Actions++}}},Content:&nui.MenuContentOptions{Filter:{{subFilter}},SearchTerm:&s.SubQuery,FilterInput:&nui.InputOptions{Label:\"Export search\"}}},\n {ID:\"reorder\",Label:\"Reverse actions\",Close:nui.Set(false),OnSelect:func(){s.Reverse=!s.Reverse;s.Action=\"Reordered\"}},\n}\nif s.Reverse {slices.Reverse(items)}\nanchor:=nui.Button(c.Key(\"trigger\"),t,{{label}},nui.ButtonOptions{AccessibleLabel:cmp.Or({{label}},\"Example action\"),Size:{{size}},Variant:nui.Outline})\nnui.DropdownMenu(c.Key(\"menu\"),t,anchor,&s.Menu,items,nui.MenuOptions{Label:\"Project actions\",Size:{{size}},Disabled:{{disabledMenu}},Loop:{{loop}},Width:width,Placement:{{placement}},CheckedIcon:checkedIcon,LoadingIcon:loadingIcon,Filter:{{filter}},IgnoreFilter:{{ignoreFilter}},FilterFields:[]string{\"label\",\"description\"},SearchTerm:&s.Query,FilterInput:&nui.InputOptions{Label:\"Action search\",Clearable:true},OnSearchTermChange:func(string){s.Queries++},OnOpenChange:func(bool){s.OpenChanges++}})\nui.Text(c,s.Action)\nui.Textf(c,\"Actions: %d · Checked changes: %d · Open changes: %d\",s.Actions,s.CheckedChanges,s.OpenChanges)\nui.Textf(c,\"Query: %s · Changes: %d · Pinned: %v\",s.Query,s.Queries,s.Pinned)",
+    "state": "Menu nui.MenuState;Action,Query,SubQuery string;Pinned,Reverse bool;Actions,CheckedChanges,OpenChanges,Queries int;SubmitItems func();ItemAvatar,ItemLoading,ItemDisabled,ItemSubFilter bool;ItemLarge,NativePinned bool;NativeAction string;NativeActions int",
+    "setup": "s.SubmitItems=func(){\nvar avatar *nui.AvatarOptions\nicon:=lucide.Pencil()\nif s.ItemAvatar { avatar=&nui.AvatarOptions{Alt:\"Editor avatar\",Text:\"ED\"};icon=nil }\nitems:=[]nui.MenuItem{\n {ID:\"edit\",Label:\"Edit\",Description:\"Change project details\",Icon:icon,Avatar:avatar,Loading:s.ItemLoading,Shortcut:\"Ctrl+E\",OnSelect:func(){s.Action=\"Edit\";s.Actions++}},\n {ID:\"copy\",Label:\"Duplicate\",Description:\"Copy this project\",Icon:lucide.Copy(),OnSelect:func(){s.Action=\"Duplicate\";s.Actions++}},\n {ID:\"archive\",Label:\"Archive\",Disabled:s.ItemDisabled,Color:nui.Warning,OnSelect:func(){s.Action=\"Archive\";s.Actions++}},\n {ID:\"separator\",Kind:nui.MenuSeparator},\n {ID:\"pin\",Label:\"Pinned\",Checked:nui.Set(s.Pinned),Close:nui.Set(false),OnCheckedChange:func(v bool){s.Pinned=v;s.CheckedChanges++;s.SubmitItems()},OnSelect:func(){s.Action=\"Pinned\";s.Actions++}},\n {ID:\"export\",Label:\"Export\",Children:[]nui.MenuItem{{ID:\"csv\",Label:\"CSV\",OnSelect:func(){s.Action=\"CSV\";s.Actions++}},{ID:\"json\",Label:\"JSON\",OnSelect:func(){s.Action=\"JSON\";s.Actions++}}},Content:&nui.MenuContentOptions{Filter:s.ItemSubFilter,SearchTerm:&s.SubQuery,FilterInput:&nui.InputOptions{Label:\"Export search\"}}},\n {ID:\"reorder\",Label:\"Reverse actions\",Close:nui.Set(false),OnSelect:func(){s.Reverse=!s.Reverse;s.Action=\"Reordered\";s.SubmitItems()}},\n}\nif s.ItemLarge {\n for i:=range 10000 {\n  label:=fmt.Sprintf(\"Command %05d\",i)\n  items=append(items,nui.MenuItem{ID:fmt.Sprintf(\"command-%d\",i),Label:label,OnSelect:func(){s.Action=label;s.Actions++}})\n }\n}\nif s.Reverse {slices.Reverse(items)}\ns.Menu.SetItems(items)\n}\ns.SubmitItems()",
+    "body": "avatar,loading,disabled,subFilter,large:={{avatar}},{{loading}},{{disabled}},{{subFilter}},{{large}}\nif s.ItemAvatar!=avatar || s.ItemLoading!=loading || s.ItemDisabled!=disabled || s.ItemSubFilter!=subFilter || s.ItemLarge!=large {\n s.ItemAvatar,s.ItemLoading,s.ItemDisabled,s.ItemSubFilter,s.ItemLarge=avatar,loading,disabled,subFilter,large\n s.SubmitItems()\n}\nvar checkedIcon,loadingIcon *ui.SVG\nif {{customIcons}} {checkedIcon=lucide.Heart();loadingIcon=lucide.RefreshCw()}\nvar width nui.Optional[float32]\nif {{customWidth}} {width=nui.Set(float32({{width}}))}\n\nanchor:=nui.Button(c.Key(\"trigger\"),t,{{label}},nui.ButtonOptions{AccessibleLabel:cmp.Or({{label}},\"Example action\"),Size:{{size}},Variant:nui.Outline})\nnui.DropdownMenu(c.Key(\"menu\"),t,anchor,&s.Menu,nui.MenuOptions{SearchExecution:{{searchExecution}},Label:\"Project actions\",Size:{{size}},Disabled:{{disabledMenu}},Loop:{{loop}},Width:width,Placement:{{placement}},CheckedIcon:checkedIcon,LoadingIcon:loadingIcon,Filter:{{filter}},IgnoreFilter:{{ignoreFilter}},FilterFields:[]string{\"label\",\"description\"},SearchTerm:&s.Query,FilterInput:&nui.InputOptions{Label:\"Action search\",Clearable:true},OnSearchTermChange:func(string){s.Queries++},OnOpenChange:func(bool){s.OpenChanges++}})\nui.Text(c,s.Action)\nui.Textf(c,\"Actions: %d · Checked changes: %d · Open changes: %d\",s.Actions,s.CheckedChanges,s.OpenChanges)\nui.Textf(c,\"Query: %s · Changes: %d · Pinned: %v\",s.Query,s.Queries,s.Pinned)\n\nplain:=nui.Button(c.Key(\"plain-commands\"),t,\"Plain commands\",nui.ButtonOptions{Variant:nui.Soft,Disabled:{{disabledMenu}}}).AlignSelf(ui.Start)\nplain.Menu(func(m *ui.Menu){\n if m.Item(\"Duplicate command\").ID(\"copy\").Shortcut(ui.Ctrl,ui.KeyD).Chosen(){s.NativeAction=\"Duplicated\";s.NativeActions++}\n if m.Item(\"Unavailable command\").ID(\"unavailable\").Disabled(true).Chosen(){s.NativeAction=\"Unavailable\";s.NativeActions++}\n m.Separator()\n if m.Item(\"Pin command\").ID(\"pin\").Checked(s.NativePinned).Chosen(){s.NativePinned=!s.NativePinned;s.NativeAction=\"Pinned\";s.NativeActions++}\n m.Submenu(\"Export format\",func(m *ui.Menu){\n  if m.Item(\"CSV command\").ID(\"csv\").Chosen(){s.NativeAction=\"CSV\";s.NativeActions++}\n })\n})\nui.Textf(c,\"Plain actions: %d · Result: %s · Pinned: %v\",s.NativeActions,s.NativeAction,s.NativePinned)\n",
     "height": 520
   },
   {
@@ -5897,8 +5958,8 @@
       "en": "Show a contextual action menu when right-clicking a target area."
     },
     "guide": {
-      "zh": "### 基本用法\n\n与 `DropdownMenu` 共用 `MenuState` 和 `MenuOptions`，每个菜单项需提供唯一且稳定的 `ID`。在目标区域右键点击，或聚焦后按 `Menu` 键 / `Shift+F10` 即可打开菜单。\n\n### 在预览中试一试\n\n1. 在目标区域不同位置右键点击，观察菜单在点击坐标处展开或重新定位。\n2. 尝试勾选 `Pinned`、展开 `Export` 子菜单，以及开启筛选框搜索操作。\n3. 开启「禁用整个菜单」后左键点击目标区域，确认目标自身的点击交互不受影响。",
-      "en": "### Basic usage\n\nShares `MenuState` and `MenuOptions` with `DropdownMenu`; give every item a stable, unique `ID`. Right-click the target area, or focus it and press the `Menu` key or `Shift+F10` to open.\n\n### Try the preview\n\n1. Right-click different spots in the target area to see the menu open and reposition at the pointer.\n2. Try the `Pinned` checkbox, `Export` submenu, and optional filter input.\n3. Enable `Disable menu` and left-click the target to confirm its own clicks still work."
+      "zh": "### 基本用法\n\n与 `DropdownMenu` 共用 `MenuState` 和 `MenuOptions`，每个菜单项需提供唯一且稳定的 `ID`。在目标区域右键点击，或聚焦后按 `Menu` 键 / `Shift+F10` 即可打开菜单。\n\n### 在预览中试一试\n\n1. 在目标区域不同位置右键点击，观察菜单在点击坐标处展开或重新定位。\n2. 尝试勾选 `Pinned`、展开 `Export` 子菜单，以及开启筛选框搜索操作。\n3. 开启「禁用整个菜单」后左键点击目标区域，确认目标自身的点击交互不受影响。\n\n### 显式提交菜单数据\n\n在初始化时调用 MenuState.SetItems，菜单项的文字、勾选或禁用状态、结构或回调变化时再次调用；视图只传入状态。ID 在整个菜单树中必须唯一。每个触发器、每个窗口保留独立状态。\n\n### 本地搜索执行\n\n将“本地搜索执行”设为 background 后在筛选框中输入，即可观察后台搜索。默认的 SearchAuto 在超过 2,048 项时转到后台。搜索期间列表显示加载提示，查询仍可编辑，但 Enter 和点击会被忽略，避免选中过期结果。新的查询、关闭或卸载都会取消搜索；自行销毁状态时请调用 Close()。子菜单继承该策略，除非设置了 Content.SearchExecution。显式的空 FilterFields 不匹配任何项；保留 nil 即可匹配标签。\n\n### 普通命令与大型富菜单\n\n独立的 Plain commands 控件直接调用现有 anchor.Menu/ContextMenu API。构建器仅在打开和选择命令时执行，通过 Chosen 处理操作；示例包括禁用项、勾选项、子菜单和快捷键提示（实际快捷键需另行注册）。DropdownMenu 示例用点击打开，ContextMenu 示例用右键或 Shift+F10 打开。系统菜单或窗口内菜单的呈现由 MyGo 与平台决定。普通命令优先使用这一按需构建接口；需要筛选、应用控制 Open、自定义 Build 内容或组件部件样式时使用 nui 富菜单，不会自动切换后端并丢弃这些选项。\n\n开启“添加一万个操作”，打开菜单后按 End 或 Home，或输入命令前缀。每个打开的层级只构建可见行，键盘导航会先滚动到目标项。宽度随当前已构建的行变化，需要固定宽度时请设置 Width。Build 和 Style 只对已构建的行运行，不能在其中执行应用操作。",
+      "en": "### Basic usage\n\nShares `MenuState` and `MenuOptions` with `DropdownMenu`; give every item a stable, unique `ID`. Right-click the target area, or focus it and press the `Menu` key or `Shift+F10` to open.\n\n### Try the preview\n\n1. Right-click different spots in the target area to see the menu open and reposition at the pointer.\n2. Try the `Pinned` checkbox, `Export` submenu, and optional filter input.\n3. Enable `Disable menu` and left-click the target to confirm its own clicks still work.\n\n### Submitted menu data\n\nCall MenuState.SetItems during setup, and again whenever an item's label, checked or disabled state, structure, or callback changes; the view passes only the state. IDs must be unique across the whole tree. Keep one state per trigger and window.\n\n### Local search execution\n\nSet Local search execution to background and type into the filter to watch a background search. SearchAuto, the default, searches in the background above 2,048 items. While a search runs, the list shows a loading message and the query stays editable, but Enter and clicks are ignored so that a stale result cannot be chosen. A newer query, closing, or unmounting cancels the search; call Close() when you dispose of the state yourself. A submenu inherits the policy unless Content.SearchExecution overrides it. An explicit empty FilterFields list matches nothing; leave it nil to match labels.\n\n### Plain commands and large rich menus\n\nThe separate Plain commands control calls the existing anchor.Menu/ContextMenu API. Its builder runs on opening and command selection; Chosen handles the action. It demonstrates a disabled action, a checked action, a submenu and a displayed shortcut (register the actual shortcut separately). Click it for DropdownMenu, or right-click/Shift+F10 for ContextMenu. System versus in-window presentation follows MyGo and the platform. Use this on-demand route for ordinary commands. Use the rich nui path for filtering, app-controlled Open, custom Build content or component part styles; no automatic backend discards these options.\n\nEnable Add 10,000 actions, open the menu, and press End or Home, or type a command prefix. Each open level builds only its visible rows, and keyboard navigation scrolls to the target first. Width follows the rows currently built, so set Width for a fixed width. Build and Style run only for built rows and must not perform app actions."
     },
     "note": {
       "zh": "- 菜单为非模态弹层，外部点击关闭后会继续触发目标元素；`Shortcut` 仅展示提示，不注册快捷键。\n- 筛选框、单选菜单项（`Radio`）以及 `Placement` / `Offset` 均为 Go 原生扩展（根菜单默认向右展开，间距 2 DIP）。\n- 右键弹出的菜单固定在窗口点击坐标上，目标移动时不会跟随漂移。",
@@ -6084,11 +6145,44 @@
             "go": "nui.Set(nui.LeftStart)"
           }
         ]
+      },
+      {
+        "key": "searchExecution",
+        "label": {
+          "zh": "本地搜索执行",
+          "en": "Local search execution"
+        },
+        "kind": "select",
+        "default": "auto",
+        "goType": "nui.SearchExecution",
+        "choices": [
+          {
+            "value": "auto",
+            "go": "nui.SearchAuto"
+          },
+          {
+            "value": "immediate",
+            "go": "nui.SearchImmediate"
+          },
+          {
+            "value": "background",
+            "go": "nui.SearchBackground"
+          }
+        ]
+      },
+      {
+        "key": "large",
+        "label": {
+          "zh": "添加一万个操作",
+          "en": "Add 10,000 actions"
+        },
+        "kind": "boolean",
+        "default": false
       }
     ],
-    "state": "Menu nui.MenuState;Action,Query,SubQuery string;Pinned,Reverse bool;Actions,CheckedChanges,OpenChanges,Queries int;TargetClicks int;TargetMoved bool",
-    "setup": "",
-    "body": "var avatar *nui.AvatarOptions\nicon:=lucide.Pencil()\nif {{avatar}} { avatar=&nui.AvatarOptions{Alt:\"Editor avatar\",Text:\"ED\"};icon=nil }\nvar checkedIcon,loadingIcon *ui.SVG\nif {{customIcons}} {checkedIcon=lucide.Heart();loadingIcon=lucide.RefreshCw()}\nvar width nui.Optional[float32]\nif {{customWidth}} {width=nui.Set(float32({{width}}))}\nitems:=[]nui.MenuItem{\n {ID:\"edit\",Label:\"Edit\",Description:\"Change project details\",Icon:icon,Avatar:avatar,Loading:{{loading}},Shortcut:\"Ctrl+E\",OnSelect:func(){s.Action=\"Edit\";s.Actions++}},\n {ID:\"copy\",Label:\"Duplicate\",Description:\"Copy this project\",Icon:lucide.Copy(),OnSelect:func(){s.Action=\"Duplicate\";s.Actions++}},\n {ID:\"archive\",Label:\"Archive\",Disabled:{{disabled}},Color:nui.Warning,OnSelect:func(){s.Action=\"Archive\";s.Actions++}},\n {ID:\"separator\",Kind:nui.MenuSeparator},\n {ID:\"pin\",Label:\"Pinned\",Checked:nui.Set(s.Pinned),Close:nui.Set(false),OnCheckedChange:func(v bool){s.Pinned=v;s.CheckedChanges++},OnSelect:func(){s.Action=\"Pinned\";s.Actions++}},\n {ID:\"export\",Label:\"Export\",Children:[]nui.MenuItem{{ID:\"csv\",Label:\"CSV\",OnSelect:func(){s.Action=\"CSV\";s.Actions++}},{ID:\"json\",Label:\"JSON\",OnSelect:func(){s.Action=\"JSON\";s.Actions++}}},Content:&nui.MenuContentOptions{Filter:{{subFilter}},SearchTerm:&s.SubQuery,FilterInput:&nui.InputOptions{Label:\"Export search\"}}},\n {ID:\"reorder\",Label:\"Reverse actions\",Close:nui.Set(false),OnSelect:func(){s.Reverse=!s.Reverse;s.Action=\"Reordered\"}},\n {ID:\"move-target\",Label:\"Move target\",Close:nui.Set(false),OnSelect:func(){s.TargetMoved=!s.TargetMoved}},\n}\nif s.Reverse {slices.Reverse(items)}\nleft:=float32(0)\nif s.TargetMoved {left=32}\nanchor:=nui.Button(c.Key(\"trigger\"),t,{{label}},nui.ButtonOptions{AccessibleLabel:cmp.Or({{label}},\"Example action\"),Size:{{size}},Variant:nui.Outline}).Width(280).Height(64).AlignSelf(ui.Start).Margin(0,0,0,left).OnClick(func(){s.TargetClicks++})\nnui.ContextMenu(c.Key(\"menu\"),t,anchor,&s.Menu,items,nui.MenuOptions{Label:\"Project actions\",Size:{{size}},Disabled:{{disabledMenu}},Loop:{{loop}},Width:width,Placement:{{placement}},CheckedIcon:checkedIcon,LoadingIcon:loadingIcon,Filter:{{filter}},IgnoreFilter:{{ignoreFilter}},FilterFields:[]string{\"label\",\"description\"},SearchTerm:&s.Query,FilterInput:&nui.InputOptions{Label:\"Action search\",Clearable:true},OnSearchTermChange:func(string){s.Queries++},OnOpenChange:func(bool){s.OpenChanges++}})\nui.Text(c,s.Action)\nui.Textf(c,\"Actions: %d · Checked changes: %d · Open changes: %d\",s.Actions,s.CheckedChanges,s.OpenChanges)\nui.Textf(c,\"Query: %s · Changes: %d · Pinned: %v\",s.Query,s.Queries,s.Pinned)\nnui.Button(c.Key(\"open-at-target\"),t,\"Open at target\",nui.ButtonOptions{Variant:nui.Soft}).AlignSelf(ui.Start).OnClick(func(){s.Menu.Open=true})\nui.Textf(c,\"Target clicks: %d · Moved: %v\",s.TargetClicks,s.TargetMoved)",
+    "state": "Menu nui.MenuState;Action,Query,SubQuery string;Pinned,Reverse bool;Actions,CheckedChanges,OpenChanges,Queries int;TargetClicks int;TargetMoved bool;SubmitItems func();ItemAvatar,ItemLoading,ItemDisabled,ItemSubFilter bool;ItemLarge,NativePinned bool;NativeAction string;NativeActions int",
+    "setup": "s.SubmitItems=func(){\nvar avatar *nui.AvatarOptions\nicon:=lucide.Pencil()\nif s.ItemAvatar { avatar=&nui.AvatarOptions{Alt:\"Editor avatar\",Text:\"ED\"};icon=nil }\nitems:=[]nui.MenuItem{\n {ID:\"edit\",Label:\"Edit\",Description:\"Change project details\",Icon:icon,Avatar:avatar,Loading:s.ItemLoading,Shortcut:\"Ctrl+E\",OnSelect:func(){s.Action=\"Edit\";s.Actions++}},\n {ID:\"copy\",Label:\"Duplicate\",Description:\"Copy this project\",Icon:lucide.Copy(),OnSelect:func(){s.Action=\"Duplicate\";s.Actions++}},\n {ID:\"archive\",Label:\"Archive\",Disabled:s.ItemDisabled,Color:nui.Warning,OnSelect:func(){s.Action=\"Archive\";s.Actions++}},\n {ID:\"separator\",Kind:nui.MenuSeparator},\n {ID:\"pin\",Label:\"Pinned\",Checked:nui.Set(s.Pinned),Close:nui.Set(false),OnCheckedChange:func(v bool){s.Pinned=v;s.CheckedChanges++;s.SubmitItems()},OnSelect:func(){s.Action=\"Pinned\";s.Actions++}},\n {ID:\"export\",Label:\"Export\",Children:[]nui.MenuItem{{ID:\"csv\",Label:\"CSV\",OnSelect:func(){s.Action=\"CSV\";s.Actions++}},{ID:\"json\",Label:\"JSON\",OnSelect:func(){s.Action=\"JSON\";s.Actions++}}},Content:&nui.MenuContentOptions{Filter:s.ItemSubFilter,SearchTerm:&s.SubQuery,FilterInput:&nui.InputOptions{Label:\"Export search\"}}},\n {ID:\"reorder\",Label:\"Reverse actions\",Close:nui.Set(false),OnSelect:func(){s.Reverse=!s.Reverse;s.Action=\"Reordered\";s.SubmitItems()}},\n {ID:\"move-target\",Label:\"Move target\",Close:nui.Set(false),OnSelect:func(){s.TargetMoved=!s.TargetMoved}},\n}\nif s.ItemLarge {\n for i:=range 10000 {\n  label:=fmt.Sprintf(\"Command %05d\",i)\n  items=append(items,nui.MenuItem{ID:fmt.Sprintf(\"command-%d\",i),Label:label,OnSelect:func(){s.Action=label;s.Actions++}})\n }\n}\nif s.Reverse {slices.Reverse(items)}\ns.Menu.SetItems(items)\n}\ns.SubmitItems()",
+    "body": "avatar,loading,disabled,subFilter,large:={{avatar}},{{loading}},{{disabled}},{{subFilter}},{{large}}\nif s.ItemAvatar!=avatar || s.ItemLoading!=loading || s.ItemDisabled!=disabled || s.ItemSubFilter!=subFilter || s.ItemLarge!=large {\n s.ItemAvatar,s.ItemLoading,s.ItemDisabled,s.ItemSubFilter,s.ItemLarge=avatar,loading,disabled,subFilter,large\n s.SubmitItems()\n}\nvar checkedIcon,loadingIcon *ui.SVG\nif {{customIcons}} {checkedIcon=lucide.Heart();loadingIcon=lucide.RefreshCw()}\nvar width nui.Optional[float32]\nif {{customWidth}} {width=nui.Set(float32({{width}}))}\n\nleft:=float32(0)\nif s.TargetMoved {left=32}\nanchor:=nui.Button(c.Key(\"trigger\"),t,{{label}},nui.ButtonOptions{AccessibleLabel:cmp.Or({{label}},\"Example action\"),Size:{{size}},Variant:nui.Outline}).Width(280).Height(64).AlignSelf(ui.Start).Margin(0,0,0,left).OnClick(func(){s.TargetClicks++})\nnui.ContextMenu(c.Key(\"menu\"),t,anchor,&s.Menu,nui.MenuOptions{SearchExecution:{{searchExecution}},Label:\"Project actions\",Size:{{size}},Disabled:{{disabledMenu}},Loop:{{loop}},Width:width,Placement:{{placement}},CheckedIcon:checkedIcon,LoadingIcon:loadingIcon,Filter:{{filter}},IgnoreFilter:{{ignoreFilter}},FilterFields:[]string{\"label\",\"description\"},SearchTerm:&s.Query,FilterInput:&nui.InputOptions{Label:\"Action search\",Clearable:true},OnSearchTermChange:func(string){s.Queries++},OnOpenChange:func(bool){s.OpenChanges++}})\nui.Text(c,s.Action)\nui.Textf(c,\"Actions: %d · Checked changes: %d · Open changes: %d\",s.Actions,s.CheckedChanges,s.OpenChanges)\nui.Textf(c,\"Query: %s · Changes: %d · Pinned: %v\",s.Query,s.Queries,s.Pinned)\nnui.Button(c.Key(\"open-at-target\"),t,\"Open at target\",nui.ButtonOptions{Variant:nui.Soft}).AlignSelf(ui.Start).OnClick(func(){s.Menu.Open=true})\nui.Textf(c,\"Target clicks: %d · Moved: %v\",s.TargetClicks,s.TargetMoved)\n\nplain:=nui.Button(c.Key(\"plain-commands\"),t,\"Plain commands\",nui.ButtonOptions{Variant:nui.Soft,Disabled:{{disabledMenu}}}).AlignSelf(ui.Start)\nplain.ContextMenu(func(m *ui.Menu){\n if m.Item(\"Duplicate command\").ID(\"copy\").Shortcut(ui.Ctrl,ui.KeyD).Chosen(){s.NativeAction=\"Duplicated\";s.NativeActions++}\n if m.Item(\"Unavailable command\").ID(\"unavailable\").Disabled(true).Chosen(){s.NativeAction=\"Unavailable\";s.NativeActions++}\n m.Separator()\n if m.Item(\"Pin command\").ID(\"pin\").Checked(s.NativePinned).Chosen(){s.NativePinned=!s.NativePinned;s.NativeAction=\"Pinned\";s.NativeActions++}\n m.Submenu(\"Export format\",func(m *ui.Menu){\n  if m.Item(\"CSV command\").ID(\"csv\").Chosen(){s.NativeAction=\"CSV\";s.NativeActions++}\n })\n})\nui.Textf(c,\"Plain actions: %d · Result: %s · Pinned: %v\",s.NativeActions,s.NativeAction,s.NativePinned)\n",
     "height": 600
   },
   {
@@ -8364,8 +8458,8 @@
       "en": "Select a whole-number rating with star icons."
     },
     "guide": {
-      "zh": "### 基本用法\n\n`InputRating` 绑定 `*int`（`0` 表示未评分），`Max` 默认 5（支持 1–20）。支持方向键、`Home`/`End` 调整以及 `Space` 快捷选择或清空；`Clearable` 与 `Hoverable` 默认关闭。\n\n### 在预览中试一试\n\n1. 点击星标或用方向键评分，再开启「悬停预览」与「可清空」（点击当前分值或按 `Space` 清零）。\n2. 切换「自定义两种图标」和「自定义图层颜色」，观察未选中底层图标与选中叠层的效果。\n3. 切换「只读」「纵向」和「最大评分」，观察键盘焦点与上限变化。",
-      "en": "### Basic usage\n\n`InputRating` binds an `*int` (`0` means unrated) with `Max` defaulting to 5 (supports 1–20). Supports arrow keys, `Home`/`End`, and `Space` to select or clear. `Clearable` and `Hoverable` default to `false`.\n\n### Try the preview\n\n1. Click stars or use arrow keys, then try `Hover preview` and `Clearable` (click the active star or press `Space` to clear).\n2. Toggle `Custom icon layers` and `Custom layer colors` to inspect the empty base and filled overlay.\n3. Try `Read-only`, vertical orientation, and changing `Maximum`."
+      "zh": "### 基本用法\n\n`InputRating` 绑定 `*int`（`0` 表示未评分），`Max` 默认 5（支持 1–20）。支持方向键、`Home`/`End` 调整以及 `Space` 快捷选择或清空；`Clearable` 与 `Hoverable` 默认关闭。\n\n### 在预览中试一试\n\n1. 点击星标或用方向键评分，再开启「悬停预览」与「可清空」（点击当前分值或按 `Space` 清零）。\n2. 切换「自定义两种图标」和「自定义图层颜色」，观察未选中底层图标与选中叠层的效果。\n3. 切换「只读」「纵向」和「最大评分」，观察键盘焦点与上限变化。\n\n### 缩放反馈\n\n启用交互（User）或悬停星标（InputRating），可观察原生 AnimatePose 缩放：目标变化时可以构建一次，后续动画帧仅重绘。Motion.Transition 控制时长；零或负时长、减少动态效果及关闭动效模式立即显示最终大小。动画途中关闭动效会停止后续帧，同时保留焦点与激活行为。",
+      "en": "### Basic usage\n\n`InputRating` binds an `*int` (`0` means unrated) with `Max` defaulting to 5 (supports 1–20). Supports arrow keys, `Home`/`End`, and `Space` to select or clear. `Clearable` and `Hoverable` default to `false`.\n\n### Try the preview\n\n1. Click stars or use arrow keys, then try `Hover preview` and `Clearable` (click the active star or press `Space` to clear).\n2. Toggle `Custom icon layers` and `Custom layer colors` to inspect the empty base and filled overlay.\n3. Try `Read-only`, vertical orientation, and changing `Maximum`.\n\n### Scale feedback\n\nEnable interaction (User) or hover a star (InputRating). Scale feedback uses native AnimatePose: the target change can build once, while later animation ticks only paint. Motion.Transition controls duration; zero/negative duration, Reduced and Off show the final scale immediately. Disabling motion during a pose stops its remaining ticks without losing focus or activation."
     },
     "note": {
       "zh": "- 仅支持整数评分，不提供半星步长或自定义每项内容构建器。\n- 悬停预览不修改实际值也不触发 `OnChange`；只读模式保留 `Tab` 焦点但禁止编辑。\n- 底层通过单焦点滑块语义实现（不同于网页版的单选组），校验和保存由应用负责。",
@@ -8563,8 +8657,8 @@
       "en": "Filter and select one or more items in an always-visible list."
     },
     "guide": {
-      "zh": "### 基本用法\n\n用 `[]string` 保存选中项 ID，`ListboxState` 保存搜索词、高亮项和滚动位置；列表中的每一项（含分组标题和分隔线）都必须有唯一 `ID`。开启 `Filter` 可内置筛选框，`Loading` 会显示加载图标并暂停选项操作。\n\n### 在预览中试一试\n\n1. 点击 `Go` 体验单选切换；开启「多选」后用方向键移动高亮，按 `Enter`/`Space` 勾选。\n2. 在筛选框输入 `cafe`，观察匹配排序；选中 `Café` 时测试「阻止选择 Café」的 `PreventDefault` 拦截效果。\n3. 点击 `Reorder options` 重排数据，确认选中项和高亮始终跟随稳定 ID。",
-      "en": "### Basic usage\n\nStore selected IDs in `[]string` and keep query, highlight, and scroll state in `ListboxState`. Every item—including labels and separators—requires a unique `ID`. `Filter` adds a built-in search box; `Loading` shows a spinner and pauses item actions.\n\n### Try the preview\n\n1. Click `Go` to toggle selection; enable `Multiple`, move the highlight with arrows, and toggle with `Enter`/`Space`.\n2. Search `cafe` to see match ranking, and test `Prevent Café selection` (`PreventDefault`).\n3. Click `Reorder options` to verify selection and highlight follow stable IDs."
+      "zh": "### 基本用法\n\n用 `SelectionState[string]` 保存选中项 ID，`ListboxState` 保存搜索词、高亮项和滚动位置；列表中的每一项（含分组标题和分隔线）都必须有唯一 `ID`。开启 `Filter` 可内置筛选框，`Loading` 会显示加载图标并暂停选项操作。\n\n### 在预览中试一试\n\n1. 点击 `Go` 体验单选切换；开启「多选」后用方向键移动高亮，按 `Enter`/`Space` 勾选。\n2. 在筛选框输入 `cafe`，观察匹配排序；选中 `Café` 时测试「阻止选择 Café」的 `PreventDefault` 拦截效果。\n3. 点击 `Reorder options` 重排数据，确认选中项和高亮始终跟随稳定 ID。\n\n### 显式提交数据\n\n在初始化或数据变化时调用 SetItems，不要在视图中调用；它会复制传入的数据，修改后需再次调用。传入 nil 会清空数据，但保留选择和查询。OnChange 无参数，用户每次更改选择时触发一次，需要选中的 ID 时调用 Values()。代码中修改选择不会触发回调。\n\n### 本地搜索执行\n\n将“本地搜索执行”设为 background 后在筛选框中输入，即可观察后台搜索。默认的 SearchAuto 在超过 2,048 项时转到后台。搜索期间列表显示加载提示，查询仍可编辑，但 Enter 和点击会被忽略，避免选中过期结果。新的查询、关闭或卸载都会取消搜索；自行销毁状态时请调用 Close()。",
+      "en": "### Basic usage\n\nStore selected IDs in `SelectionState[string]` and keep query, highlight, and scroll state in `ListboxState`. Every item—including labels and separators—requires a unique `ID`. `Filter` adds a built-in search box; `Loading` shows a spinner and pauses item actions.\n\n### Try the preview\n\n1. Click `Go` to toggle selection; enable `Multiple`, move the highlight with arrows, and toggle with `Enter`/`Space`.\n2. Search `cafe` to see match ranking, and test `Prevent Café selection` (`PreventDefault`).\n3. Click `Reorder options` to verify selection and highlight follow stable IDs.\n\n### Submitted data\n\nCall SetItems during setup or when the data changes, not in the view; it copies the items, so call it again after editing them. Passing nil clears the items but keeps the selection and query. OnChange takes no arguments and fires once per user change; call Values() there when you need the selected IDs. Selection changes made from code are silent.\n\n### Local search execution\n\nSet Local search execution to background and type into the filter to watch a background search. SearchAuto, the default, searches in the background above 2,048 items. While a search runs, the list shows a loading message and the query stays editable, but Enter and clicks are ignored so that a stale result cannot be chosen. A newer query, closing, or unmounting cancels the search; call Close() when you dispose of the state yourself."
     },
     "note": {
       "zh": "- 内置筛选默认仅匹配 `Label`，忽略大小写和音标符号，按「完全匹配 → 前缀 → 包含」排序。\n- 单项 `OnSelect` 中可调用 `PreventDefault` 取消本次选择。\n- 隐藏筛选框时已有查询词仍生效；如需完全由应用过滤，请设置 `IgnoreFilter: true`。",
@@ -8706,11 +8800,35 @@
         },
         "kind": "boolean",
         "default": true
+      },
+      {
+        "key": "searchExecution",
+        "label": {
+          "zh": "本地搜索执行",
+          "en": "Local search execution"
+        },
+        "kind": "select",
+        "default": "auto",
+        "goType": "nui.SearchExecution",
+        "choices": [
+          {
+            "value": "auto",
+            "go": "nui.SearchAuto"
+          },
+          {
+            "value": "immediate",
+            "go": "nui.SearchImmediate"
+          },
+          {
+            "value": "background",
+            "go": "nui.SearchBackground"
+          }
+        ]
       }
     ],
-    "state": "Values []string;List nui.ListboxState;Changes,Selections,Queries,Attempts,Highlights int;Reversed bool",
-    "setup": "",
-    "body": "items := []nui.ListboxItem{\n {ID:\"languages\",Label:\"Languages\",Kind:nui.ListboxLabel},\n {ID:\"go\",Label:\"Go\",Description:\"Native applications\",Icon:lucide.Code()},\n {ID:\"rust\",Label:\"Rust\",Description:\"Systems programming\",Chip:&nui.ChipOptions{Color:nui.Warning}},\n {ID:\"typescript\",Label:\"TypeScript\",Description:\"Web applications\",Avatar:&nui.AvatarOptions{Text:\"TS\",Alt:\"TypeScript\"}},\n {ID:\"separator\",Kind:nui.ListboxSeparator},\n {ID:\"prefix\",Label:\"Cafeteria\",Description:\"Prefix match\"},\n {ID:\"contains\",Label:\"A café\",Description:\"Contains the query\"},\n {ID:\"exact\",Label:\"Café\",Description:\"Exact match; activation can be cancelled\",Options:&nui.ListboxItemOptions{OnSelect:func(e *nui.ListboxEvent){s.Attempts++;if {{protect}} {e.PreventDefault()}},Decoration:nui.Decoration{UI:nui.Styles{nui.ItemLabelSlot:{Weight:nui.Set(600)}}}}},\n}\nif s.Reversed {items[1],items[3]=items[3],items[1]}\nnui.Listbox(c.Key(\"list\"),t,&s.Values,&s.List,items,nui.ListboxOptions{Label:\"Languages\",Multiple:{{multiple}},Disabled:{{disabled}},Color:{{color}},Size:{{size}},Highlight:{{highlight}},Loading:{{loading}},Filter:{{filter}},FilterInput:&nui.InputOptions{Label:\"Filter languages\",Placeholder:\"Search languages or cafe\"},SelectedIcon:lucide.Check(),Height:320,OnChange:func([]string){s.Changes++},OnSelect:func(string){s.Selections++},OnSearchTermChange:func(string){s.Queries++},OnHighlight:func(string){s.Highlights++}})\nnui.Button(c.Key(\"reorder\"),t,\"Reorder options\",nui.ButtonOptions{Variant:nui.Outline}).KeepFocus().OnClick(func(){s.Reversed=!s.Reversed})\nui.Textf(c,\"Selected: %v · Changes: %d · Activations: %d\",s.Values,s.Changes,s.Selections)\nui.Textf(c,\"Queries: %d · Highlights: %d · Attempts: %d\",s.Queries,s.Highlights,s.Attempts)\n",
+    "state": "Values nui.SelectionState[string];List nui.ListboxState;Changes,Selections,Queries,Attempts,Highlights int;Reversed bool;Items []nui.ListboxItem;Protect bool",
+    "setup": "\ns.Items = []nui.ListboxItem{\n {ID:\"languages\",Label:\"Languages\",Kind:nui.ListboxLabel},\n {ID:\"go\",Label:\"Go\",Description:\"Native applications\",Icon:lucide.Code()},\n {ID:\"rust\",Label:\"Rust\",Description:\"Systems programming\",Chip:&nui.ChipOptions{Color:nui.Warning}},\n {ID:\"typescript\",Label:\"TypeScript\",Description:\"Web applications\",Avatar:&nui.AvatarOptions{Text:\"TS\",Alt:\"TypeScript\"}},\n {ID:\"separator\",Kind:nui.ListboxSeparator},\n {ID:\"prefix\",Label:\"Cafeteria\",Description:\"Prefix match\"},\n {ID:\"contains\",Label:\"A café\",Description:\"Contains the query\"},\n {ID:\"exact\",Label:\"Café\",Description:\"Exact match; activation can be cancelled\",Options:&nui.ListboxItemOptions{OnSelect:func(e *nui.ListboxEvent){s.Attempts++;if s.Protect {e.PreventDefault()}},Decoration:nui.Decoration{UI:nui.Styles{nui.ItemLabelSlot:{Weight:nui.Set(600)}}}}},\n}\nif s.Reversed && len(s.Items)>3 {s.Items[1],s.Items[3]=s.Items[3],s.Items[1]}\ns.List.SetItems(s.Items)",
+    "body": "s.Protect={{protect}}\nnui.Listbox(c.Key(\"list\"),t,&s.Values,&s.List,nui.ListboxOptions{SearchExecution:{{searchExecution}},Label:\"Languages\",Multiple:{{multiple}},Disabled:{{disabled}},Color:{{color}},Size:{{size}},Highlight:{{highlight}},Loading:{{loading}},Filter:{{filter}},FilterInput:&nui.InputOptions{Label:\"Filter languages\",Placeholder:\"Search languages or cafe\"},SelectedIcon:lucide.Check(),Height:320,OnChange:func(){s.Changes++},OnSelect:func(string){s.Selections++},OnSearchTermChange:func(string){s.Queries++},OnHighlight:func(string){s.Highlights++}})\nnui.Button(c.Key(\"reorder\"),t,\"Reorder options\",nui.ButtonOptions{Variant:nui.Outline}).KeepFocus().OnClick(func(){s.Reversed=!s.Reversed;if len(s.Items)>3 {s.Items[1],s.Items[3]=s.Items[3],s.Items[1]};s.List.SetItems(s.Items)})\nui.Textf(c,\"Selected: %v · Changes: %d · Activations: %d\",s.Values.Values(),s.Changes,s.Selections)\nui.Textf(c,\"Queries: %d · Highlights: %d · Attempts: %d\",s.Queries,s.Highlights,s.Attempts)\n",
     "height": 520
   },
   {
@@ -8722,8 +8840,8 @@
       "en": "Search and select one or more options inside a popup list."
     },
     "guide": {
-      "zh": "### 基本用法\n\n`SelectMenu` 将触发按钮、搜索框与 `Listbox` 组合在一起，选中值用 ID 切片保存，`SelectMenuState` 负责管理打开状态、查询词和持久焦点。可通过 `FilterInput` 自定义搜索框，`FocusSearch` 决定打开后聚焦搜索框还是列表。\n\n### 在预览中试一试\n\n1. 打开下拉菜单搜索 `cafe` 并回车，对比开启和关闭「阻止选择 Café」的行为。\n2. 选中后点击尾部清空按钮，切换「清空时重置选中值」查看仅清空搜索词还是同时清空选中项。\n3. 开启「展示模拟远程搜索」，依次输入不同关键词后点击 `Complete stale request`，体验旧请求自动被拒绝。",
-      "en": "### Basic usage\n\n`SelectMenu` combines a trigger, search field, and `Listbox`. Store selected IDs in a slice and keep open state, query, and focus handles in `SelectMenuState`. Customize the search input via `FilterInput` and initial focus via `FocusSearch`.\n\n### Try the preview\n\n1. Open the menu, search `cafe`, and press `Enter` with and without `Prevent Café selection`.\n2. Select an item and click the clear button, comparing `Reset selection on clear` on vs off.\n3. Enable `Show simulated remote search`, type two queries, and click `Complete stale request` to see stale results rejected."
+      "zh": "### 基本用法\n\n`SelectMenu` 将触发按钮、搜索框与 `Listbox` 组合在一起，选中值用 `SelectionState[string]` 保存，`SelectMenuState` 负责管理打开状态、查询词和持久焦点。可通过 `FilterInput` 自定义搜索框，`FocusSearch` 决定打开后聚焦搜索框还是列表。\n\n### 在预览中试一试\n\n1. 打开下拉菜单搜索 `cafe` 并回车，对比开启和关闭「阻止选择 Café」的行为。\n2. 选中后点击尾部清空按钮，切换「清空时重置选中值」查看仅清空搜索词还是同时清空选中项。\n3. 开启「展示模拟远程搜索」，依次输入不同关键词后点击 `Complete stale request`，体验旧请求自动被拒绝。\n\n### 显式提交数据\n\n在初始化或数据变化时调用 SetItems，不要在视图中调用；它会复制传入的数据，修改后需再次调用。传入 nil 会清空数据，但保留选择和查询。OnChange 无参数，用户每次更改选择时触发一次，需要选中的 ID 时调用 Values()。代码中修改选择不会触发回调。\n\n### 本地搜索执行\n\n将“本地搜索执行”设为 background 后在筛选框中输入，即可观察后台搜索。默认的 SearchAuto 在超过 2,048 项时转到后台。搜索期间列表显示加载提示，查询仍可编辑，但 Enter 和点击会被忽略，避免选中过期结果。新的查询、关闭或卸载都会取消搜索；自行销毁状态时请调用 Close()。",
+      "en": "### Basic usage\n\n`SelectMenu` combines a trigger, search field, and `Listbox`. Store selected IDs in a `SelectionState[string]` and keep open state, query, and focus handles in `SelectMenuState`. Customize the search input via `FilterInput` and initial focus via `FocusSearch`.\n\n### Try the preview\n\n1. Open the menu, search `cafe`, and press `Enter` with and without `Prevent Café selection`.\n2. Select an item and click the clear button, comparing `Reset selection on clear` on vs off.\n3. Enable `Show simulated remote search`, type two queries, and click `Complete stale request` to see stale results rejected.\n\n### Submitted data\n\nCall SetItems during setup or when the data changes, not in the view; it copies the items, so call it again after editing them. Passing nil clears the items but keeps the selection and query. OnChange takes no arguments and fires once per user change; call Values() there when you need the selected IDs. Selection changes made from code are silent.\n\n### Local search execution\n\nSet Local search execution to background and type into the filter to watch a background search. SearchAuto, the default, searches in the background above 2,048 items. While a search runs, the list shows a loading message and the query stays editable, but Enter and clicks are ignored so that a stale result cannot be chosen. A newer query, closing, or unmounting cancels the search; call Close() when you dispose of the state yourself."
     },
     "note": {
       "zh": "- 默认在选择或关闭弹层后清空搜索词；清空按钮始终清除搜索词，`ResetModelValueOnClear` 仅控制是否同时清空选中值。\n- `Loading` 会在触发器和列表顶部显示加载状态，已有候选项仍允许选择。\n- 远程搜索请配合 `ExternalFilter` / `IgnoreFilter` 和 `QueryState` 丢弃过期结果，并通过 `Window.Update` 回到 UI 线程更新。",
@@ -8946,11 +9064,35 @@
         },
         "kind": "boolean",
         "default": false
+      },
+      {
+        "key": "searchExecution",
+        "label": {
+          "zh": "本地搜索执行",
+          "en": "Local search execution"
+        },
+        "kind": "select",
+        "default": "auto",
+        "goType": "nui.SearchExecution",
+        "choices": [
+          {
+            "value": "auto",
+            "go": "nui.SearchAuto"
+          },
+          {
+            "value": "immediate",
+            "go": "nui.SearchImmediate"
+          },
+          {
+            "value": "background",
+            "go": "nui.SearchBackground"
+          }
+        ]
       }
     ],
-    "state": "Values []string;Menu nui.SelectMenuState;Changes,Selections,Queries,Attempts,Highlights,Opens,Clears int;Reversed bool;Remote nui.SelectMenuState;RemoteValues []string;Results nui.QueryState[nui.ListboxItem];Current,Previous nui.QueryTicket;Status string",
-    "setup": "s.Status=\"No request\"",
-    "body": "items := []nui.ListboxItem{\n {ID:\"languages\",Label:\"Languages\",Kind:nui.ListboxLabel},\n {ID:\"go\",Label:\"Go\",Description:\"Native applications\",Icon:lucide.Code()},\n {ID:\"rust\",Label:\"Rust\",Description:\"Systems programming\",Chip:&nui.ChipOptions{Color:nui.Warning}},\n {ID:\"typescript\",Label:\"TypeScript\",Description:\"Web applications\",Avatar:&nui.AvatarOptions{Text:\"TS\",Alt:\"TypeScript\"}},\n {ID:\"separator\",Kind:nui.ListboxSeparator},\n {ID:\"prefix\",Label:\"Cafeteria\",Description:\"Prefix match\"},\n {ID:\"contains\",Label:\"A café\",Description:\"Contains the query\"},\n {ID:\"exact\",Label:\"Café\",Description:\"Exact match; activation can be cancelled\",Options:&nui.ListboxItemOptions{OnSelect:func(e *nui.ListboxEvent){s.Attempts++;if {{protect}} {e.PreventDefault()}},Decoration:nui.Decoration{UI:nui.Styles{nui.ItemLabelSlot:{Weight:nui.Set(600)}}}}},\n}\nif s.Reversed {items[1],items[3]=items[3],items[1]}\nnui.SelectMenu(c.Key(\"select\"),t,&s.Values,&s.Menu,items,nui.SelectMenuOptions{ListboxOptions:nui.ListboxOptions{Label:\"Languages\",Multiple:{{multiple}},Disabled:{{disabled}},FilterInput:&nui.InputOptions{Label:\"Search languages\",Placeholder:\"Search languages or cafe\"},OnChange:func([]string){s.Changes++},OnSelect:func(string){s.Selections++},OnSearchTermChange:func(string){s.Queries++},OnHighlight:func(string){s.Highlights++}},Placeholder:{{placeholder}},SearchInput:{{search}},FocusSearch:{{focusSearch}},Clearable:true,ResetModelValueOnClear:{{resetModel}},ResetSearchTermOnSelect:{{resetSelect}},ResetSearchTermOnBlur:{{resetBlur}},Loading:{{loading}},Color:{{color}},Size:{{size}},Variant:{{variant}},Avatar:&nui.AvatarOptions{Text:\"UI\",Alt:\"Language choice\"},OnOpenChange:func(bool){s.Opens++},OnClear:func(){s.Clears++}})\nnui.Button(c.Key(\"reorder\"),t,\"Reorder options\",nui.ButtonOptions{Variant:nui.Outline}).KeepFocus().OnClick(func(){s.Reversed=!s.Reversed})\nui.Textf(c,\"Selected: %v · Changes: %d · Activations: %d\",s.Values,s.Changes,s.Selections)\nui.Textf(c,\"Queries: %d · Highlights: %d · Attempts: %d\",s.Queries,s.Highlights,s.Attempts)\n\nui.Textf(c,\"Open changes: %d · Clears: %d\",s.Opens,s.Clears)\nif {{remote}} {\n ui.Text(c,\"Simulated remote search\")\n nui.SelectMenu(c.Key(\"remote\"),t,&s.RemoteValues,&s.Remote,s.Results.Items,nui.SelectMenuOptions{Label:\"Remote options\",ExternalFilter:true,Loading:s.Results.Loading,ResetSearchTermOnBlur:nui.Set(false),ResetSearchTermOnSelect:nui.Set(false),OnQuery:func(query string){s.Previous=s.Current;_,s.Current=s.Results.Start(context.Background(),query);s.Status=\"Request pending: \"+query}})\n ui.Row(c).Wrap().Gap(8).Children(func(){\n  nui.Button(c.Key(\"stale\"),t,\"Complete stale request\",nui.ButtonOptions{Variant:nui.Outline}).OnClick(func(){if s.Results.Complete(s.Previous,[]nui.ListboxItem{{ID:\"stale\",Label:\"Stale result\"}},nil){s.Status=\"Previous result accepted\"}else{s.Status=\"Stale result rejected\"}})\n  nui.Button(c.Key(\"current\"),t,\"Complete current request\",nui.ButtonOptions{Variant:nui.Outline}).OnClick(func(){if s.Results.Complete(s.Current,[]nui.ListboxItem{{ID:\"result\",Label:\"Result: \"+s.Current.Query}},nil){s.Status=\"Current result accepted\"}else{s.Status=\"Current result rejected\"}})\n  nui.Button(c.Key(\"cancel\"),t,\"Cancel request\",nui.ButtonOptions{Variant:nui.Outline}).OnClick(func(){s.Results.Cancel();s.Status=\"Request cancelled\"})\n })\n ui.Text(c,s.Status)\n ui.Textf(c,\"Remote selection: %v\",s.RemoteValues)\n}\n",
+    "state": "Values nui.SelectionState[string];Menu nui.SelectMenuState;Changes,Selections,Queries,Attempts,Highlights,Opens,Clears int;Reversed bool;Remote nui.SelectMenuState;RemoteValues nui.SelectionState[string];Results nui.QueryState[nui.ListboxItem];Current,Previous nui.QueryTicket;Status string;Items []nui.ListboxItem;Protect bool",
+    "setup": "s.Status=\"No request\"\ns.Items = []nui.ListboxItem{\n {ID:\"languages\",Label:\"Languages\",Kind:nui.ListboxLabel},\n {ID:\"go\",Label:\"Go\",Description:\"Native applications\",Icon:lucide.Code()},\n {ID:\"rust\",Label:\"Rust\",Description:\"Systems programming\",Chip:&nui.ChipOptions{Color:nui.Warning}},\n {ID:\"typescript\",Label:\"TypeScript\",Description:\"Web applications\",Avatar:&nui.AvatarOptions{Text:\"TS\",Alt:\"TypeScript\"}},\n {ID:\"separator\",Kind:nui.ListboxSeparator},\n {ID:\"prefix\",Label:\"Cafeteria\",Description:\"Prefix match\"},\n {ID:\"contains\",Label:\"A café\",Description:\"Contains the query\"},\n {ID:\"exact\",Label:\"Café\",Description:\"Exact match; activation can be cancelled\",Options:&nui.ListboxItemOptions{OnSelect:func(e *nui.ListboxEvent){s.Attempts++;if s.Protect {e.PreventDefault()}},Decoration:nui.Decoration{UI:nui.Styles{nui.ItemLabelSlot:{Weight:nui.Set(600)}}}}},\n}\nif s.Reversed && len(s.Items)>3 {s.Items[1],s.Items[3]=s.Items[3],s.Items[1]}\ns.Menu.SetItems(s.Items)",
+    "body": "s.Protect={{protect}}\nnui.SelectMenu(c.Key(\"select\"),t,&s.Values,&s.Menu,nui.SelectMenuOptions{ListboxOptions:nui.ListboxOptions{SearchExecution:{{searchExecution}},Label:\"Languages\",Multiple:{{multiple}},Disabled:{{disabled}},FilterInput:&nui.InputOptions{Label:\"Search languages\",Placeholder:\"Search languages or cafe\"},OnChange:func(){s.Changes++},OnSelect:func(string){s.Selections++},OnSearchTermChange:func(string){s.Queries++},OnHighlight:func(string){s.Highlights++}},Placeholder:{{placeholder}},SearchInput:{{search}},FocusSearch:{{focusSearch}},Clearable:true,ResetModelValueOnClear:{{resetModel}},ResetSearchTermOnSelect:{{resetSelect}},ResetSearchTermOnBlur:{{resetBlur}},Loading:{{loading}},Color:{{color}},Size:{{size}},Variant:{{variant}},Avatar:&nui.AvatarOptions{Text:\"UI\",Alt:\"Language choice\"},OnOpenChange:func(bool){s.Opens++},OnClear:func(){s.Clears++}})\nnui.Button(c.Key(\"reorder\"),t,\"Reorder options\",nui.ButtonOptions{Variant:nui.Outline}).KeepFocus().OnClick(func(){s.Reversed=!s.Reversed;if len(s.Items)>3 {s.Items[1],s.Items[3]=s.Items[3],s.Items[1]};s.Menu.SetItems(s.Items)})\nui.Textf(c,\"Selected: %v · Changes: %d · Activations: %d\",s.Values.Values(),s.Changes,s.Selections)\nui.Textf(c,\"Queries: %d · Highlights: %d · Attempts: %d\",s.Queries,s.Highlights,s.Attempts)\n\nui.Textf(c,\"Open changes: %d · Clears: %d\",s.Opens,s.Clears)\nif {{remote}} {\n ui.Text(c,\"Simulated remote search\")\n nui.SelectMenu(c.Key(\"remote\"),t,&s.RemoteValues,&s.Remote,nui.SelectMenuOptions{SearchExecution:{{searchExecution}},Label:\"Remote options\",ExternalFilter:true,Loading:s.Results.Loading,ResetSearchTermOnBlur:nui.Set(false),ResetSearchTermOnSelect:nui.Set(false),OnQuery:func(query string){s.Previous=s.Current;_,s.Current=s.Results.Start(context.Background(),query);s.Status=\"Request pending: \"+query}})\n ui.Row(c).Wrap().Gap(8).Children(func(){\n  nui.Button(c.Key(\"stale\"),t,\"Complete stale request\",nui.ButtonOptions{Variant:nui.Outline}).OnClick(func(){if s.Results.Complete(s.Previous,[]nui.ListboxItem{{ID:\"stale\",Label:\"Stale result\"}},nil){s.Remote.SetItems(s.Results.Items);s.Status=\"Previous result accepted\"}else{s.Status=\"Stale result rejected\"}})\n  nui.Button(c.Key(\"current\"),t,\"Complete current request\",nui.ButtonOptions{Variant:nui.Outline}).OnClick(func(){if s.Results.Complete(s.Current,[]nui.ListboxItem{{ID:\"result\",Label:\"Result: \"+s.Current.Query}},nil){s.Remote.SetItems(s.Results.Items);s.Status=\"Current result accepted\"}else{s.Status=\"Current result rejected\"}})\n  nui.Button(c.Key(\"cancel\"),t,\"Cancel request\",nui.ButtonOptions{Variant:nui.Outline}).OnClick(func(){s.Results.Cancel();s.Status=\"Request cancelled\"})\n })\n ui.Text(c,s.Status)\n ui.Textf(c,\"Remote selection: %v\",s.RemoteValues.Values())\n}\n",
     "height": 560
   },
   {
@@ -9884,25 +10026,15 @@
       "en": "Display tabular data with virtual scrolling, single/multi-column sorting, and row selection."
     },
     "guide": {
-      "zh": "### 基本用法\n\n通过 `TableState.SetRows` 传入数据，每行必须有唯一且稳定的 `ID`。列定义中 `Value` 提供纯文本、`Compare` 提供本地排序规则、`Cell` 可自定义单元格内容；将 `List.SortBy` 指向持久切片即可启用多列排序，`ManualSorting: true` 则保留输入顺序交由外部服务端排序。\n\n### 在预览中试一试\n\n1. 点击表头 `Project` 切换排序，选中行后按 `Enter` 查看激活 ID；开启「多列排序」后按住 `Shift` 点击 `Length`。\n2. 开启「加载中」或「空数据」，观察加载条、已有数据保留和空状态提示。\n3. 调整表格高度、列宽、RTL 和可见标题，确认选择状态得以保留。\n\n### 借用行数据与数值 ID\n\n开启「借用行数据」可使用同一个表格渲染器而不复制行值，排序也不会修改应用持有的数组。借用模式要求调用方保证 ID 唯一、稳定，在主线程修改数据后重新绑定；清空数据会释放借用视图。数值 ID 使用 `KeyedTableState[Request, uint64]`、`SetBorrowedRows(requests, func(row Request) uint64 { return row.ID })` 和 `KeyedTableOptions[uint64]`，回调保留数值类型，支持零和大于 2^63 的 ID。`TableState[T]` 与 `TableOptions` 保持原有字符串接口。自定义单元格装饰可使用 `BuildCell`，通过 `TableCell[T]` 获取行索引、行值、选择状态，另一个参数 `Element` 是仅当前构建有效的容器。",
-      "en": "### Basic usage\n\nLoad data with `TableState.SetRows`, giving each row a stable, unique `ID`. Columns define text via `Value`, local sorting via `Compare`, and custom rendering via `Cell`. Point `List.SortBy` at a persistent slice for multi-column sorting, or enable `ManualSorting` for server-side sorting.\n\n### Try the preview\n\n1. Click the `Project` header to sort, select a row and press `Enter` to activate it; enable `Multi-column sorting` and Shift-click `Length`.\n2. Toggle `Loading` and `Empty data` to see the loading indicator and empty state.\n3. Adjust height, column widths, RTL, and visible caption.\n\n### Borrowing and typed IDs\n\nToggle `Borrowed rows` to use the same table renderer without copying row values. Sorting still leaves the application array unchanged. Borrowed rows require caller-validated unique stable IDs and main-thread rebinding after changes; clearing data releases the borrowed view. For numeric IDs, use `KeyedTableState[Request, uint64]`, `SetBorrowedRows(requests, func(row Request) uint64 { return row.ID })`, and `KeyedTableOptions[uint64]`; callbacks keep numeric IDs, including zero and values above 2^63. `TableState[T]` and `TableOptions` retain the existing string API. Use `BuildCell` with `TableCell[T].Index`, `.Value`, `.Selected`, and the separate current-build Element parameter when custom cell decoration needs row context."
+      "zh": "### 基本用法\n\n通过 `TableState.SetRows` 传入数据，每行必须有唯一且稳定的 `ID`。列定义中 `Value` 提供纯文本、`Compare` 提供本地排序规则、`Cell` 可自定义单元格内容；将 `List.SortBy` 指向持久切片即可启用多列排序，`ManualSorting: true` 则保留输入顺序交由外部服务端排序。\n\n### 在预览中试一试\n\n1. 点击表头 `Project` 切换排序，选中行后按 `Enter` 查看激活 ID；开启「多列排序」后按住 `Shift` 点击 `Length`。\n2. 开启「加载中」或「空数据」，观察加载条、已有数据保留和空状态提示。\n3. 调整表格高度、列宽、RTL 和可见标题，确认选择状态得以保留。\n\n### 借用行数据与数值 ID\n\n开启「借用行数据」可使用同一个表格渲染器而不复制行值，排序也不会修改应用持有的数组。借用模式要求调用方保证 ID 唯一、稳定，在主线程修改数据后重新绑定；清空数据会释放借用视图。数值 ID 使用 `KeyedTableState[Request, uint64]`、`SetBorrowedRows(requests, func(row Request) uint64 { return row.ID })` 和 `KeyedTableOptions[uint64]`，回调保留数值类型，支持零和大于 2^63 的 ID。`TableState[T]` 与 `TableOptions` 保持原有字符串接口。自定义单元格装饰可使用 `BuildCell`，通过 `TableCell[T]` 获取行索引、行值、选择状态，另一个参数 `Element` 是仅当前构建有效的容器。\n\n### 原生 Table 迁移\n\n已移除 OnSelectionChange。OnChange 是统一用户通知：Ctrl+Down 可能仅移动游标，列手势可能仅改变布局。重建与外部赋值保持静默。简单判断使用 Selection.Len/Has；显式遍历或排序快照分别需要 O(S) 或 O(S log S)。严格的选择变化监听由应用承担比较成本。\n\n启用「单元格选择」和「首列作为行头」可测试整行/整表选择。RowHeader 永不排序；RowHeight 仍设置在 ListState，0 保留原生自动高度。HeaderCell、表头/单元格菜单、FollowEnd 和触底加载保持可用，同时遵守原生拖拽互斥及动效限制。\n\n没有 Item 样式、Style 回调或自定义单元格的 Value 单元格直接绘制文本，Label 样式仍作用于该文本；其他装饰路径及表头分隔线保留。表格虚拟化行而不虚拟化列：固定测试视口中 5/50/200 列会构建 55/550/2200 个单元格。手动排序按应用发布的顺序显示；仓库 examples/table-manual-sorting 展示可取消工作线程、最新请求校验、不可变结果及 Window.Update 发布。",
+      "en": "### Basic usage\n\nLoad data with `TableState.SetRows`, giving each row a stable, unique `ID`. Columns define text via `Value`, local sorting via `Compare`, and custom rendering via `Cell`. Point `List.SortBy` at a persistent slice for multi-column sorting, or enable `ManualSorting` for server-side sorting.\n\n### Try the preview\n\n1. Click the `Project` header to sort, select a row and press `Enter` to activate it; enable `Multi-column sorting` and Shift-click `Length`.\n2. Toggle `Loading` and `Empty data` to see the loading indicator and empty state.\n3. Adjust height, column widths, RTL, and visible caption.\n\n### Borrowing and typed IDs\n\nToggle `Borrowed rows` to use the same table renderer without copying row values. Sorting still leaves the application array unchanged. Borrowed rows require caller-validated unique stable IDs and main-thread rebinding after changes; clearing data releases the borrowed view. For numeric IDs, use `KeyedTableState[Request, uint64]`, `SetBorrowedRows(requests, func(row Request) uint64 { return row.ID })`, and `KeyedTableOptions[uint64]`; callbacks keep numeric IDs, including zero and values above 2^63. `TableState[T]` and `TableOptions` retain the existing string API. Use `BuildCell` with `TableCell[T].Index`, `.Value`, `.Selected`, and the separate current-build Element parameter when custom cell decoration needs row context.\n\n### Native Table migration\n\nOnSelectionChange is removed. OnChange is a combined user notification: Ctrl+Down can move only the cursor, and column gestures can change only layout. Rebuilds and external updates stay silent. Read Selection.Len/Has for simple questions; requesting All or a sorted snapshot explicitly costs O(S) or O(S log S). Strict selection-only observers must own that comparison cost.\n\nEnable Cell selection and First column as row header to try whole-row/table selection. RowHeader never sorts; RowHeight remains a ListState setting with zero keeping native automatic height. Native HeaderCell, HeaderMenu, CellMenu, FollowEnd and paging settings remain available, with their native drag/motion restrictions.\n\nValue cells draw their text directly unless Item styles, Style callbacks, or custom cells need the decorated container; Label styles still apply to that text. All decorated cells and the header divider are preserved. Rows are virtual; columns are not: 5/50/200 columns build 55/550/2200 cells in the fixed test viewport. Manual sorting keeps application order; the repository examples/table-manual-sorting program demonstrates a cancellable worker, latest-request generation checks, immutable results and Window.Update publication."
     },
     "note": {
-      "zh": "- 表头固定在滚动区上方，始终启用原生虚拟列表；`Fixed` 仅禁止拖拽换列和调宽，不是「冻结列」。\n- `OnSelectionChange` 报告选中 ID，`OnActivate` 在 `Enter` 或双击时触发（不同于 Nuxt UI 的单击行 `select`）。\n- 筛选、分页、数据请求需由应用自行实现（可用 `List.EndReached` 配合 `NearEnd` 实现触底加载）；暂不支持冻结列、多级表头、行展开和分组聚合。\n- `SetRows` 复制并校验数据；`SetBorrowedRows` 信任调用方的数据和唯一键，不保留完整成员表。不要持有 `BuildCell` 提供的 Element。",
-      "en": "- Headers stay pinned above the virtualized body. `Fixed` locks column reordering and resizing—it does not freeze columns while horizontally scrolling.\n- `OnSelectionChange` reports selected IDs; `OnActivate` fires on `Enter` or double-click (unlike Nuxt UI's single-click `select`).\n- Filtering, pagination, and fetching belong to your app (use `List.EndReached` + `NearEnd` for load-more). Frozen columns, grouped headers, row expansion, and aggregation are not supported.\n- `SetRows` copies and validates. `SetBorrowedRows` trusts caller-owned data and unique keys; it does not retain a membership map. Never retain the Element supplied to BuildCell."
+      "zh": "- 表头固定在滚动区上方，始终启用原生虚拟列表；`Fixed` 仅禁止拖拽换列和调宽，不是「冻结列」。\n- `OnChange` 报告游标、选择、排序和已完成的列布局变更，需要时显式读取选中键；`OnActivate` 在 `Enter` 或双击时触发（不同于 Nuxt UI 的单击行 `select`）。\n- 筛选、分页、数据请求需由应用自行实现（可用 `List.EndReached` 配合 `NearEnd` 实现触底加载）；暂不支持冻结列、多级表头、行展开和分组聚合。\n- `SetRows` 复制并校验数据；`SetBorrowedRows` 信任调用方的数据和唯一键，不保留完整成员表。不要持有 `BuildCell` 提供的 Element。",
+      "en": "- Headers stay pinned above the virtualized body. `Fixed` locks column reordering and resizing—it does not freeze columns while horizontally scrolling.\n- `OnChange` reports cursor, selection, sort and completed column layout; read selected keys explicitly when needed. `OnActivate` fires on `Enter` or double-click (unlike Nuxt UI's single-click `select`).\n- Filtering, pagination, and fetching belong to your app (use `List.EndReached` + `NearEnd` for load-more). Frozen columns, grouped headers, row expansion, and aggregation are not supported.\n- `SetRows` copies and validates. `SetBorrowedRows` trusts caller-owned data and unique keys; it does not retain a membership map. Never retain the Element supplied to BuildCell."
     },
-    "symbols": [
-      "Table"
-    ],
-    "types": [
-      "TableOptions",
-      "TableColumn",
-      "TableState",
-      "KeyedTableState",
-      "KeyedTableOptions",
-      "TableKey",
-      "TableCell"
-    ],
+    "symbols": ["Table"],
+    "types": ["TableOptions", "TableColumn", "TableState", "KeyedTableState", "KeyedTableOptions", "TableKey", "TableCell"],
     "controls": [
       {
         "key": "disabled",
@@ -10014,11 +10146,40 @@
             "go": "nui.TableLoadingElastic"
           }
         ]
+      },
+      {
+        "key": "cellSelection",
+        "label": {
+          "en": "Cell selection",
+          "zh": "单元格选择"
+        },
+        "kind": "boolean",
+        "default": false
+      },
+      {
+        "key": "rowHeader",
+        "label": {
+          "en": "First column as row header",
+          "zh": "首列作为行头"
+        },
+        "kind": "boolean",
+        "default": false
+      },
+      {
+        "key": "rowHeight",
+        "label": {
+          "en": "Native row height (0 = auto)",
+          "zh": "原生行高（0 为自动）"
+        },
+        "kind": "number",
+        "default": 0,
+        "min": 0,
+        "max": 96
       }
     ],
-    "state": "Table nui.TableState[string]\nOrders []ui.SortOrder\nEmpty, Multiple, Borrowed bool\nRows []string\nSortChanges, SelectionChanges int\nActivated string",
+    "state": "Table nui.TableState[string]\nOrders []ui.SortOrder\nEmpty, Multiple, Borrowed bool\nRows []string\nSortChanges, Changes int\nActivated string",
     "setup": "s.Rows=[]string{\"NuxtUI Go\",\"MyGo\",\"Documentation\"};s.Table.SetRows(s.Rows,func(v string)string{return v});s.Activated=\"None\"",
-    "body": "if s.Empty!={{empty}} || s.Borrowed!={{borrowed}} {s.Empty={{empty}};s.Borrowed={{borrowed}};rows:=s.Rows;if s.Empty{rows=nil};if s.Borrowed{s.Table.SetBorrowedRows(rows,func(v string)string{return v})}else{s.Table.SetRows(rows,func(v string)string{return v})}}\nif s.Multiple!={{multiple}} {s.Multiple={{multiple}};if s.Multiple {s.Orders=nil;if s.Table.Sort.Column!=\"\"{s.Orders=append(s.Orders,s.Table.Sort)};s.Table.List.SortBy=&s.Orders}else{s.Table.List.SortBy=nil}}\nvar caption func(*ui.Context,nui.Theme)\nif {{caption}} {caption=func(c *ui.Context,t nui.Theme){ui.Text(c,\"Project records\").TextColor(t.Highlighted)}}\ndirection:=ui.LeftToRight\nif {{rtl}} {direction=ui.RightToLeft}\nui.Row(c).Wrap().Gap(8).Children(func(){\n nui.Button(c.Key(\"sort\"),t,\"Sort Project descending\",nui.ButtonOptions{Variant:nui.Outline}).OnClick(func(){s.Table.Sort=ui.SortOrder{Column:\"name\",Descending:true};if s.Multiple{s.Orders=[]ui.SortOrder{s.Table.Sort}}})\n nui.Button(c.Key(\"restore\"),t,\"Restore input order\",nui.ButtonOptions{Variant:nui.Outline}).OnClick(func(){s.Table.Sort=ui.SortOrder{};s.Orders=nil})\n})\nui.Column(c.Key(\"direction\")).Direction(direction).Children(func(){\n nui.Table(c.Key(\"table\"),t,&s.Table,[]nui.TableColumn[string]{\n  {ID:\"name\",Title:\"Project\",Width:240,MinWidth:100,Value:func(v string)string{return v},Compare:func(a,b string)int{return strings.Compare(a,b)}},\n  {ID:\"length\",Title:\"Length\",Width:100,MinWidth:80,Value:func(v string)string{return fmt.Sprint(len(v))},Compare:func(a,b string)int{return cmp.Compare(len(a),len(b))}},\n },nui.TableOptions{Label:\"Projects\",Caption:\"Project records\",Height:float32({{height}}),Disabled:{{disabled}},ManualSorting:{{manual}},Loading:{{loading}},LoadingAnimation:{{animation}},BuildCaption:caption,BuildLoading:func(c *ui.Context,_ nui.Theme){ui.Text(c,\"Loading projects\")},OnSortChange:func([]ui.SortOrder){s.SortChanges++},OnSelectionChange:func([]string){s.SelectionChanges++},OnActivate:func(id string){s.Activated=id}})\n})\nfirst:=\"None\"\nif s.Table.Len()>0 {first=s.Table.RowID(0)}\nui.Textf(c,\"First: %s · Selected: %d\",first,s.Table.Selection.Len())\nui.Textf(c,\"Sort changes: %d · Selection changes: %d · Activated: %s\",s.SortChanges,s.SelectionChanges,s.Activated)",
+    "body": "s.Table.List.CellSelect = {{cellSelection}}\ns.Table.List.RowHeight = float32({{rowHeight}})\nif s.Empty!={{empty}} || s.Borrowed!={{borrowed}} {s.Empty={{empty}};s.Borrowed={{borrowed}};rows:=s.Rows;if s.Empty{rows=nil};if s.Borrowed{s.Table.SetBorrowedRows(rows,func(v string)string{return v})}else{s.Table.SetRows(rows,func(v string)string{return v})}}\nif s.Multiple!={{multiple}} {s.Multiple={{multiple}};if s.Multiple {s.Orders=nil;if s.Table.Sort.Column!=\"\"{s.Orders=append(s.Orders,s.Table.Sort)};s.Table.List.SortBy=&s.Orders}else{s.Table.List.SortBy=nil}}\nvar caption func(*ui.Context,nui.Theme)\nif {{caption}} {caption=func(c *ui.Context,t nui.Theme){ui.Text(c,\"Project records\").TextColor(t.Highlighted)}}\ndirection:=ui.LeftToRight\nif {{rtl}} {direction=ui.RightToLeft}\nui.Row(c).Wrap().Gap(8).Children(func(){\n nui.Button(c.Key(\"sort\"),t,\"Sort Project descending\",nui.ButtonOptions{Variant:nui.Outline}).OnClick(func(){s.Table.Sort=ui.SortOrder{Column:\"name\",Descending:true};if s.Multiple{s.Orders=[]ui.SortOrder{s.Table.Sort}}})\n nui.Button(c.Key(\"restore\"),t,\"Restore input order\",nui.ButtonOptions{Variant:nui.Outline}).OnClick(func(){s.Table.Sort=ui.SortOrder{};s.Orders=nil})\n})\nui.Column(c.Key(\"direction\")).Direction(direction).Children(func(){\n nui.Table(c.Key(\"table\"),t,&s.Table,[]nui.TableColumn[string]{\n  {ID:\"name\",Title:\"Project\",Width:240,MinWidth:100,RowHeader:{{rowHeader}},Value:func(v string)string{return v},Compare:func(a,b string)int{return strings.Compare(a,b)}},\n  {ID:\"length\",Title:\"Length\",Width:100,MinWidth:80,Value:func(v string)string{return fmt.Sprint(len(v))},Compare:func(a,b string)int{return cmp.Compare(len(a),len(b))}},\n },nui.TableOptions{Label:\"Projects\",Caption:\"Project records\",Height:float32({{height}}),Disabled:{{disabled}},ManualSorting:{{manual}},Loading:{{loading}},LoadingAnimation:{{animation}},BuildCaption:caption,BuildLoading:func(c *ui.Context,_ nui.Theme){ui.Text(c,\"Loading projects\")},OnSortChange:func([]ui.SortOrder){s.SortChanges++},OnChange:func(){s.Changes++},OnActivate:func(id string){s.Activated=id}})\n})\nfirst:=\"None\"\nif s.Table.Len()>0 {first=s.Table.RowID(0)}\nui.Textf(c,\"First: %s · Selected: %d\",first,s.Table.Selection.Len())\nui.Textf(c,\"Sort changes: %d · Table changes: %d · Activated: %s\",s.SortChanges,s.Changes,s.Activated)",
     "height": 620
   },
   {
@@ -10030,21 +10191,15 @@
       "en": "Display hierarchical tree data with expansion, lazy loading, and linked selection."
     },
     "guide": {
-      "zh": "### 基本用法\n\n仅在数据变化时调用 `SetNodes`，为每个节点提供唯一且稳定的 `ID`。`Selection` 保存选中项，`Outline.Open` 保存展开节点，`Active` 保存键盘高亮。默认点击行会同时选择并切换展开，键盘 `Enter`/`Space` 只选择、左右键展开折叠；`OnSelect`/`OnToggle` 可调用 `PreventDefault` 拦截。\n\n### 在预览中试一试\n\n1. 点击 `src` 或用左右方向键展开折叠，开启「保护 src」测试事件拦截。\n2. 开启「多选」「同时选择子节点」和「根据子项更新父节点」，观察部分选中时的 `Mixed` 状态。\n3. 展开 `Remote files` 后点击 `Complete empty load` 或先折叠再完成，体验懒加载与过期结果拒绝。",
-      "en": "### Basic usage\n\nCall `SetNodes` only when data changes, assigning each node a stable, unique `ID`. `Selection` holds selected IDs, `Outline.Open` holds expanded IDs, and `Active` tracks keyboard highlight. By default, clicking selects and toggles expansion, while `Enter`/`Space` selects and Left/Right expand/collapse; `OnSelect`/`OnToggle` can cancel via `PreventDefault`.\n\n### Try the preview\n\n1. Expand/collapse `src` by clicking or pressing Left/Right, and test `Protect src`.\n2. Enable `Multiple`, `Select descendants`, and `Update parents from children` to see mixed parent states.\n3. Expand `Remote files` and try `Complete empty load` or collapse before completing to see stale-result rejection."
+      "zh": "### 基本用法\n\n仅在数据变化时调用 `SetNodes`，为每个节点提供唯一且稳定的 `ID`。`Selection` 保存选中项，`Outline.Open` 保存展开节点，`Active` 保存键盘高亮。默认点击行会同时选择并切换展开，键盘 `Enter`/`Space` 只选择、左右键展开折叠；`OnSelect`/`OnToggle` 可调用 `PreventDefault` 拦截。\n\n### 在预览中试一试\n\n1. 点击 `src` 或用左右方向键展开折叠，开启「保护 src」测试事件拦截。\n2. 开启「多选」「同时选择子节点」和「根据子项更新父节点」，观察部分选中时的 `Mixed` 状态。\n3. 展开 `Remote files` 后点击 `Complete empty load` 或先折叠再完成，体验懒加载与过期结果拒绝。\n4. 开启自定义内容和多选联动，选择一个子项以显示 `Mixed`。关闭两种联动选项或关闭多选，`Mixed` 会消失且不触发选择回调；重新开启联动后按当前选择重新计算。",
+      "en": "### Basic usage\n\nCall `SetNodes` only when data changes, assigning each node a stable, unique `ID`. `Selection` holds selected IDs, `Outline.Open` holds expanded IDs, and `Active` tracks keyboard highlight. By default, clicking selects and toggles expansion, while `Enter`/`Space` selects and Left/Right expand/collapse; `OnSelect`/`OnToggle` can cancel via `PreventDefault`.\n\n### Try the preview\n\n1. Expand/collapse `src` by clicking or pressing Left/Right, and test `Protect src`.\n2. Enable `Multiple`, `Select descendants`, and `Update parents from children` to see mixed parent states.\n3. Expand `Remote files` and try `Complete empty load` or collapse before completing to see stale-result rejection.\n4. Enable custom content and linked multiple selection, then select one child to show `Mixed`. Disable both linking options or Multiple: `Mixed` disappears without a selection callback. Re-enable linking to recompute from the current selection."
     },
     "note": {
-      "zh": "- 父子联动仅作用于已加载的可用节点，遇到禁用节点会停止，后续懒加载的子项不会自动继承父节点选中态。\n- 嵌套模式（`Nested`）和普通模式均使用原生虚拟列表；自定义首尾构建器中请只放展示元素，交互由整行和键盘统一处理。\n- 空分支会保留展开状态但不再补默认文件夹和展开箭头。",
-      "en": "- Parent-child selection applies to loaded, enabled nodes, stops at disabled nodes, and does not auto-select children loaded later.\n- Both `Nested` and flat layouts are natively virtualized. Keep custom leading/trailing builders display-only; rows and keyboard handle interaction.\n- Loaded empty branches keep expanded state without fallback folder or chevron icons."
+      "zh": "- 父子联动仅作用于已加载的可用节点，遇到禁用节点会停止，后续懒加载的子项不会自动继承父节点选中态。\n- 嵌套模式（`Nested`）和普通模式均使用原生虚拟列表；自定义首尾构建器中请只放展示元素，交互由整行和键盘统一处理。\n- 空分支会保留展开状态但不再补默认文件夹和展开箭头。\n- 单独使用自定义部件不会为计算混合状态遍历折叠后代。未联动时 Indeterminate 始终为 false，并在构建前清除旧的联动汇总。展开 ID 检查和联动选择协调的成本仍随数据量变化。",
+      "en": "- Parent-child selection applies to loaded, enabled nodes, stops at disabled nodes, and does not auto-select children loaded later.\n- Both `Nested` and flat layouts are natively virtualized. Keep custom leading/trailing builders display-only; rows and keyboard handle interaction.\n- Loaded empty branches keep expanded state without fallback folder or chevron icons.\n- Custom parts alone do not traverse folded descendants for mixed state. Unlinked modes always report Indeterminate=false and clear old linked summaries before building. Expanded-ID checks and linked-selection reconciliation still have data-dependent costs."
     },
     "symbols": ["Tree"],
-    "types": [
-      "TreeOptions",
-      "TreeNode",
-      "TreeState",
-      "TreeEvent",
-      "TreeItemState"
-    ],
+    "types": ["TreeOptions", "TreeNode", "TreeState", "TreeEvent", "TreeItemState"],
     "controls": [
       {
         "key": "nested",
@@ -10259,13 +10414,7 @@
       "en": "- Built-in search matches `label`, `description`, `suffix`, and `keywords` (up to 200 virtualized results); custom `Search` callbacks own filtering.\n- Call `Refresh` after replacing a custom `Search` callback, and `Close` on unmount or window close.\n- Closes after running a command by default and does not expose embedded multi-select or web router props (default shortcut is disabled in this preview)."
     },
     "symbols": ["CommandPalette"],
-    "types": [
-      "CommandPaletteOptions",
-      "CommandAction",
-      "CommandMatch",
-      "CommandPaletteState",
-      "CommandEvent"
-    ],
+    "types": ["CommandPaletteOptions", "CommandAction", "CommandMatch", "CommandPaletteState", "CommandEvent"],
     "controls": [
       {
         "key": "label",
@@ -10436,12 +10585,7 @@
       "en": "- Defaults to horizontal, `Primary`, and `Soft` (pill). `Compact` applies to vertical navigation only, with `Tooltip` and `Popover` enabled by default.\n- `Single` limits sibling expansion and `Collapsible` applies only in `Single` mode; external `Expanded` edits are silent.\n- Horizontal submenus use native `DropdownMenu` rather than a shared mega-menu viewport or automatic route matching."
     },
     "symbols": ["NavigationMenu"],
-    "types": [
-      "NavigationOptions",
-      "NavigationItem",
-      "NavigationState",
-      "NavigationEvent"
-    ],
+    "types": ["NavigationOptions", "NavigationItem", "NavigationState", "NavigationEvent"],
     "controls": [
       {
         "key": "vertical",
@@ -10711,8 +10855,8 @@
       "en": "Pick or drop files, validate them, and display upload status and progress."
     },
     "guide": {
-      "zh": "### 基本用法\n\n用 `FileUploadState` 保存文件队列，应用通过 `Begin` 和 `Report` 更新真实上传进度。`Rules` 负责校验文件类型、大小和数量，被拒绝的文件会保留并显示原因；`OnChange` 在队列变化时通知，`OnReject` 报告新增的拒绝项。\n\n### 在预览中试一试\n\n1. 点击 `Project files` 添加示例文件，观察队列、校验拒绝和计数变化。\n2. 将「模拟选择结果」改为 `cancel` 或 `error` 再次点击，确认取消和出错不会破坏现有队列。\n3. 切换选择入口样式、列表/网格布局、列表位置以及文件头像显示。",
-      "en": "### Basic usage\n\nStore queued files in `FileUploadState` and drive real transfers via `Begin` and `Report`. `Rules` validates file type, size, and count, keeping rejected entries with reasons. `OnChange` reports queue updates; `OnReject` reports newly rejected files.\n\n### Try the preview\n\n1. Click `Project files` to add sample files and inspect queue updates and rejections.\n2. Switch `Simulated result` to `cancel` or `error` to confirm neither alters the existing queue.\n3. Compare picker variants, list vs grid layout, list position, and file avatars."
+      "zh": "### 基本用法\n\n用 `FileUploadState` 保存文件队列，应用通过 `Begin` 和 `Report` 更新真实上传进度。`Rules` 负责校验文件类型、大小和数量，被拒绝的文件会保留并显示原因；`OnChange` 在队列变化时通知，`OnReject` 报告新增的拒绝项。\n\n### 在预览中试一试\n\n1. 点击 `Project files` 添加示例文件，观察队列、校验拒绝和计数变化。\n2. 将「模拟选择结果」改为 `cancel` 或 `error` 再次点击，确认取消和出错不会破坏现有队列。\n3. 切换选择入口样式、列表/网格布局、列表位置以及文件头像显示。\n\n### 有界文件预览\n\nPreviewHeight 设置文件列表滚动区域的高度（默认 320 DIP，0 表示隐藏）。点击 Load 10,000 previews 体验滚动及列表/网格切换。Preview=false 只隐藏列表，不改变文件或任务。\n\n列表测量可见行高度；网格使用按主题和文字缩放计算的固定卡片，名称与状态一行，错误最多两行。无障碍文本保留完整名称和错误；错误文字可通过键盘聚焦，提示展示完整消息。点击 Show long error 可检查长错误。原生网格在布局后更新列数，切换布局时恢复文件操作焦点，移除或取消后焦点回到选择入口。自定义 FileDeleteOptions、组件 Style 回调或行字体/间距覆盖使用测量型 List 回退。网格中的 Avatar 装饰必须符合所声明的头像尺寸；任意头像尺寸请使用 UploadList。仅构建可见预览及原生有限预读。\n",
+      "en": "### Basic usage\n\nStore queued files in `FileUploadState` and drive real transfers via `Begin` and `Report`. `Rules` validates file type, size, and count, keeping rejected entries with reasons. `OnChange` reports queue updates; `OnReject` reports newly rejected files.\n\n### Try the preview\n\n1. Click `Project files` to add sample files and inspect queue updates and rejections.\n2. Switch `Simulated result` to `cancel` or `error` to confirm neither alters the existing queue.\n3. Compare picker variants, list vs grid layout, list position, and file avatars.\n\n### Bounded file previews\n\nPreviewHeight sets the height of the scrolling file list (320 DIP by default; 0 hides it). Click Load 10,000 previews to try scrolling and switching between list and grid. Preview=false hides the list without changing files or jobs.\n\nList mode measures visible rows. Grid mode uses fixed cards sized from the theme/text scale, single-line names/status and at most two error lines. Complete names/errors remain in accessibility text; the error can receive keyboard focus and its tooltip contains the full message. Try Show long error. The native grid updates its columns after layout; file action focus is restored across layout changes and removal/cancel returns focus to the picker. Custom FileDeleteOptions, component Style callbacks or row typography/spacing overrides use the measured List fallback. Grid Avatar decorations must fit the declared avatar size; use UploadList for arbitrary avatar sizing. Builders only create visible previews and native overscan.\n"
     },
     "note": {
       "zh": "- `Dialog.Multiple` 仅决定系统对话框单次能否多选，队列总文件数上限请通过 `Rules.MaxFiles` 控制。\n- 列表位置（`Position`）仅在 `UploadArea` / `UploadList` 下生效；组件不读取文件内容也不负责网络上传，页面卸载时请调用 `Dispose`。\n- 预览通过 `Choose` 返回模拟文件，不会打开本机对话框或上传数据。",
@@ -10974,12 +11118,24 @@
         },
         "kind": "boolean",
         "default": false
+      },
+      {
+        "key": "previewHeight",
+        "label": {
+          "zh": "预览高度（0 隐藏）",
+          "en": "Preview height (0 hides)"
+        },
+        "kind": "number",
+        "default": 320,
+        "min": 0,
+        "max": 640,
+        "step": 20
       }
     ],
     "state": "Files nui.FileUploadState\nChanges,Rejected int",
     "setup": "s.Files.Files=[]nui.UploadFile{{ID:\"readme\",Path:\"sample/README.md\",Name:\"README.md\",Size:2048,Status:nui.UploadDone,Avatar:&nui.AvatarOptions{Text:\"MD\",Color:nui.Info}},{ID:\"design\",Path:\"sample/design.png\",Name:\"design.png\",Size:184320,Status:nui.UploadReady}}",
-    "body": "outcome := {{outcome}}\no := nui.FileUploadOptions{Label:{{label}},Description:\"Sample metadata; no file reads or network upload\",Disabled:{{disabled}},Interactive:nui.Set({{interactive}}),Dropzone:nui.Set({{dropzone}}),Preview:nui.Set({{preview}}),FileImage:nui.Set({{fileImage}}),ShowIcon:nui.Set({{showIcon}}),Highlight:{{highlight}},FileDelete:{{remove}},Variant:{{variant}},Layout:{{layout}},Position:{{position}},Color:{{color}},Size:{{size}},Rules:nui.UploadRules{Accept:[]string{\".md, .txt, .png\"},MaxFiles:3,MaxBytes:2<<20},Choose:func(context.Context)([]nui.UploadFile,error){\n if outcome==\"cancel\" {return nil,nil}; if outcome==\"error\" {return nil,errors.New(\"sample selection failed\")}\n return []nui.UploadFile{{Path:\"sample/notes.txt\",Name:\"notes.txt\",Size:512},{Path:\"sample/application.exe\",Name:\"application.exe\",Size:1024}},nil\n},OnChange:func([]nui.UploadFile){s.Changes++},OnReject:func(files []nui.UploadFile){s.Rejected+=len(files)}}\nif {{custom}} {o.Icon=lucide.FolderUp();o.FileIcon=lucide.FileText();o.FileDeleteIcon=lucide.Trash();o.FileDeleteOptions=&nui.ButtonOptions{Color:nui.Error,Variant:nui.Outline};o.UI=nui.Styles{nui.ItemLabelSlot:{Foreground:nui.Set(t.Info)},nui.Body:{BorderColor:nui.Set(t.Info)}}}\nnui.FileUpload(c.Key(\"files\"),t,&s.Files,o)\nui.Textf(c,\"Changes: %d · Rejected: %d\",s.Changes,s.Rejected)",
-    "height": 580
+    "body": "ui.Row(c.Key(\"samples\")).Wrap().Gap(8).Children(func(){\n nui.Button(c.Key(\"large\"),t,\"Load 10,000 previews\",nui.ButtonOptions{Variant:nui.Outline}).OnClick(func(){\n  s.Files.Dispose()\n  files:=make([]nui.UploadFile,10000)\n  for i:=range files {files[i]=nui.UploadFile{ID:fmt.Sprintf(\"sample-%d\",i),Name:fmt.Sprintf(\"Sample %05d.txt\",i),Size:1024}}\n  s.Files.Files=files\n })\n nui.Button(c.Key(\"error\"),t,\"Show long error\",nui.ButtonOptions{Variant:nui.Outline}).OnClick(func(){\n  if len(s.Files.Files)>0 {s.Files.Files[0].Status=nui.UploadFailed;s.Files.Files[0].Error=strings.Repeat(\"The remote service could not store this file. \",12)}\n })\n})\noutcome := {{outcome}}\no := nui.FileUploadOptions{Label:{{label}},Description:\"Sample metadata; no file reads or network upload\",Disabled:{{disabled}},Interactive:nui.Set({{interactive}}),Dropzone:nui.Set({{dropzone}}),Preview:nui.Set({{preview}}),PreviewHeight:nui.Set(float32({{previewHeight}})),FileImage:nui.Set({{fileImage}}),ShowIcon:nui.Set({{showIcon}}),Highlight:{{highlight}},FileDelete:{{remove}},Variant:{{variant}},Layout:{{layout}},Position:{{position}},Color:{{color}},Size:{{size}},Rules:nui.UploadRules{Accept:[]string{\".md, .txt, .png\"},MaxFiles:3,MaxBytes:2<<20},Choose:func(context.Context)([]nui.UploadFile,error){\n if outcome==\"cancel\" {return nil,nil}; if outcome==\"error\" {return nil,errors.New(\"sample selection failed\")}\n return []nui.UploadFile{{Path:\"sample/notes.txt\",Name:\"notes.txt\",Size:512},{Path:\"sample/application.exe\",Name:\"application.exe\",Size:1024}},nil\n},OnChange:func([]nui.UploadFile){s.Changes++},OnReject:func(files []nui.UploadFile){s.Rejected+=len(files)}}\nif {{custom}} {o.Icon=lucide.FolderUp();o.FileIcon=lucide.FileText();o.FileDeleteIcon=lucide.Trash();o.FileDeleteOptions=&nui.ButtonOptions{Color:nui.Error,Variant:nui.Outline};o.UI=nui.Styles{nui.ItemLabelSlot:{Foreground:nui.Set(t.Info)},nui.Body:{BorderColor:nui.Set(t.Info)}}}\nnui.FileUpload(c.Key(\"files\"),t,&s.Files,o)\nui.Textf(c,\"Changes: %d · Rejected: %d\",s.Changes,s.Rejected)",
+    "height": 720
   },
   {
     "id": "chart",

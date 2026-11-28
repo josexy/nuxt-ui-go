@@ -230,7 +230,7 @@ func commandItems(t Theme, s *CommandPaletteState, o CommandPaletteOptions) *com
 		if a.Active {
 			nodeUI = mergeStyles(mergeStyles(Styles{Item: {Background: Set(t.Elevated), Foreground: Set(t.Highlighted)}}, styles), a.UI)
 		}
-		item.Options = &ListboxItemOptions{OnSelect: func(*ListboxEvent) { s.previous = slices.Clone(s.selected) }, UI: commandListUI(nodeUI), Style: func(slot Slot, e ui.Element) {
+		item.Options = &ListboxItemOptions{OnSelect: func(*ListboxEvent) { s.previous = s.selected.Values() }, UI: commandListUI(nodeUI), Style: func(slot Slot, e ui.Element) {
 			if a.Style != nil {
 				a.Style(commandSlot(slot), e)
 			}
@@ -238,6 +238,7 @@ func commandItems(t Theme, s *CommandPaletteState, o CommandPaletteOptions) *com
 		r.items = append(r.items, item)
 		r.matches[a.ID] = match
 	}
+	s.list.SetItems(r.items)
 	return r
 }
 
@@ -255,12 +256,12 @@ func commandRows(c *ui.Context, t Theme, s *CommandPaletteState, o CommandPalett
 	if empty == "" && strings.TrimSpace(s.Query) != "" {
 		empty = emptyMessage(c, "noMatch", "noResults")
 	}
-	Listbox(c.Key("results"), t, &s.selected, &s.list, items, ListboxOptions{Label: namedMessage(c, "resultsNamed", title), Size: size, Height: 280, Disabled: disabled, Loading: pending, LoadingIcon: o.LoadingIcon, EmptyText: empty, Loop: o.Loop, HighlightOnHover: o.HighlightOnHover, SelectionBehavior: SelectionReplace, SelectedIcon: o.SelectedIcon, OnSelect: func(id string) {
+	Listbox(c.Key("results"), t, &s.selected, &s.list, ListboxOptions{Label: namedMessage(c, "resultsNamed", title), Size: size, Height: 280, Disabled: disabled, Loading: pending, LoadingIcon: o.LoadingIcon, EmptyText: empty, Loop: o.Loop, HighlightOnHover: o.HighlightOnHover, SelectionBehavior: SelectionReplace, SelectedIcon: o.SelectedIcon, OnSelect: func(id string) {
 		// The row's OnSelect kept the choice from before this selection.
 		previous := s.previous
 		s.previous = nil
 		if !activate(id) {
-			s.selected = previous
+			s.selected.Set(previous)
 		}
 	}, OnHighlight: o.OnHighlight, UI: rows.listUI, Style: func(slot Slot, e ui.Element) {
 		if slot == Item {
@@ -275,12 +276,28 @@ func commandRows(c *ui.Context, t Theme, s *CommandPaletteState, o CommandPalett
 }
 
 func commandText(c *ui.Context, t Theme, text string, marks []int, slot Slot, base PartStyle, o CommandPaletteOptions, a CommandAction) ui.Element {
+	if len(marks) == 0 {
+		e := ui.Text(c, text).MinWidth(0).SingleLine()
+		finishCommandPart(t, slot, e, base, o.Decoration, a.Decoration)
+		return e
+	}
+	if !slices.IsSorted(marks) {
+		marks = slices.Clone(marks)
+		slices.Sort(marks)
+	}
 	runes := []rune(text)
 	spans := []ui.Span{}
+	mark := 0
+	markedAt := func(at int) bool {
+		for mark < len(marks) && marks[mark] < at {
+			mark++
+		}
+		return mark < len(marks) && marks[mark] == at
+	}
 	for start := 0; start < len(runes); {
-		marked := slices.Contains(marks, start)
+		marked := markedAt(start)
 		end := start + 1
-		for end < len(runes) && slices.Contains(marks, end) == marked {
+		for end < len(runes) && markedAt(end) == marked {
 			end++
 		}
 		span := ui.Span{Text: string(runes[start:end])}
