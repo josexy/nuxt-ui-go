@@ -5,7 +5,7 @@
 Display tabular data with virtual scrolling, single/multi-column sorting, and row selection.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `Table`
 - Types: `TableOptions`, `TableColumn`, `TableState`, `KeyedTableState`, `KeyedTableOptions`, `TableKey`, `TableCell`
 - Theme key: `nui.ComponentTable` (for `Theme.WithComponent`)

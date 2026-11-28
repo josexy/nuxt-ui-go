@@ -5,7 +5,7 @@
 Drag a slider to pick a single value or a numeric range.
 
 - Category: Inputs and selection
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `Slider`, `RangeSlider`
 - Types: `SliderOptions`, `RangeSliderOptions`
 - Theme key: `nui.ComponentSlider` (for `Theme.WithComponent`)

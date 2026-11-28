@@ -5,7 +5,7 @@
 Show explanatory copy and secondary actions at the bottom of a page.
 
 - Category: Advanced interaction and layout
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `FooterLayout`
 - Types: `FooterOptions`
 - Theme key: `nui.ComponentFooter` (for `Theme.WithComponent`)

@@ -5,7 +5,7 @@
 Bottom sheet drawer with a drag handle and customizable snap heights.
 
 - Category: Advanced interaction and layout
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `Drawer`
 - Types: `DrawerOptions`, `DrawerState`
 - Theme key: `nui.ComponentDrawer` (for `Theme.WithComponent`)

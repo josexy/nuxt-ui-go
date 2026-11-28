@@ -5,7 +5,7 @@
 Display keyboard shortcuts as key caps.
 
 - Category: Themes and basic components
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `Kbd`, `FormatKey`
 - Types: `KbdOptions`
 - Theme key: `nui.ComponentKbd` (for `Theme.WithComponent`)

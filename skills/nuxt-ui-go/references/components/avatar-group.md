@@ -5,7 +5,7 @@
 Stack multiple avatars and show the remaining count as +n.
 
 - Category: Themes and basic components
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `AvatarGroup`
 - Types: `AvatarGroupOptions`
 - Theme key: `nui.ComponentAvatarGroup` (for `Theme.WithComponent`)

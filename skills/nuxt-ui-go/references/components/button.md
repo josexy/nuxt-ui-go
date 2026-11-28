@@ -5,7 +5,7 @@
 Trigger an action with icons, avatars, loading, and disabled states.
 
 - Category: Themes and basic components
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `Button`
 - Types: `ButtonOptions`
 - Theme key: `nui.ComponentButton` (for `Theme.WithComponent`)

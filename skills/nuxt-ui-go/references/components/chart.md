@@ -5,7 +5,7 @@
 Visualize data as line, bar, area, or donut charts.
 
 - Category: Advanced interaction and layout
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `Chart`
 - Types: `ChartOptions`, `ChartSelection`
 - Theme key: `nui.ComponentChart` (for `Theme.WithComponent`)

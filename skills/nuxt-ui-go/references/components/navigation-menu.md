@@ -5,7 +5,7 @@
 Render primary app navigation and submenus in horizontal, vertical, or compact layouts.
 
 - Category: Advanced interaction and layout
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `NavigationMenu`
 - Types: `NavigationOptions`, `NavigationItem`, `NavigationState`, `NavigationEvent`
 - Theme key: `nui.ComponentNavigationMenu` (for `Theme.WithComponent`)

@@ -5,7 +5,7 @@
 Navigate paged datasets with page buttons and customizable controls.
 
 - Category: Overlays and navigation
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `Pagination`
 - Types: `PaginationOptions`
 - Theme key: `nui.ComponentPagination` (for `Theme.WithComponent`)

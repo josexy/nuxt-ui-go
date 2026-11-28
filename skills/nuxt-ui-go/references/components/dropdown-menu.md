@@ -5,7 +5,7 @@
 Open an action menu from a button, with groups, checkboxes, submenus, and filtering.
 
 - Category: Overlays and navigation
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `DropdownMenu`
 - Types: `MenuOptions`, `MenuItem`, `MenuContentOptions`
 - Theme key: `nui.ComponentDropdownMenu` (for `Theme.WithComponent`)

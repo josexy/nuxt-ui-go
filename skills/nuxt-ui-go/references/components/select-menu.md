@@ -5,7 +5,7 @@
 Search and select one or more options inside a popup list.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `SelectMenu`
 - Types: `SelectMenuOptions`
 - Theme key: `nui.ComponentSelectMenu` (for `Theme.WithComponent`)

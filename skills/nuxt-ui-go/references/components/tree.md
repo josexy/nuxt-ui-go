@@ -5,7 +5,7 @@
 Display hierarchical tree data with expansion, lazy loading, and linked selection.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `Tree`
 - Types: `TreeOptions`, `TreeNode`, `TreeState`, `TreeEvent`, `TreeItemState`
 - Theme key: `nui.ComponentTree` (for `Theme.WithComponent`)

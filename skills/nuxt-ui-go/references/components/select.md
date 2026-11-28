@@ -5,7 +5,7 @@
 Open a dropdown list to pick one or more options.
 
 - Category: Inputs and selection
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `Select`, `SelectMultiple`
 - Types: `SelectOptions`
 - Theme key: `nui.ComponentSelect` (for `Theme.WithComponent`)

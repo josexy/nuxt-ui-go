@@ -5,7 +5,7 @@
 Application sidebar with desktop collapse, drag resizing, and narrow-window overlays.
 
 - Category: Advanced interaction and layout
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `Sidebar`
 - Types: `SidebarOptions`, `SidebarState`, `SidebarScope`
 - Theme key: `nui.ComponentSidebar` (for `Theme.WithComponent`)

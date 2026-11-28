@@ -5,7 +5,7 @@
 Switch between related content panels using tabs.
 
 - Category: Overlays and navigation
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `Tabs`
 - Types: `TabsOptions`, `TabItem`
 - Theme key: `nui.ComponentTabs` (for `Theme.WithComponent`)

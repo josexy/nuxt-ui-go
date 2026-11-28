@@ -5,7 +5,7 @@
 Filter and select one or more items in an always-visible list.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `Listbox`
 - Types: `ListboxOptions`, `ListboxEvent`
 - Theme key: `nui.ComponentListbox` (for `Theme.WithComponent`)

@@ -5,7 +5,7 @@
 Show brief non-blocking notifications in a corner of the window.
 
 - Category: Overlays and navigation
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `Toast`, `ToastViewport`, `CloseToast`
 - Types: `ToastOptions`, `ToastViewportOptions`, `ToastActionOptions`, `ToastProgressOptions`
 - Theme key: `nui.ComponentToast` (for `Theme.WithComponent`)

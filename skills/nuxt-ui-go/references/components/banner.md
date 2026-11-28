@@ -5,7 +5,7 @@
 Display a prominent, dismissible banner notice across a page.
 
 - Category: Overlays and navigation
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `Banner`
 - Types: `BannerOptions`
 - Theme key: `nui.ComponentBanner` (for `Theme.WithComponent`)

@@ -5,7 +5,7 @@
 Select multiple items from a visible group of options.
 
 - Category: Inputs and selection
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `CheckboxGroup`
 - Types: `CheckboxGroupOptions`
 - Theme key: `nui.ComponentCheckboxGroup` (for `Theme.WithComponent`)

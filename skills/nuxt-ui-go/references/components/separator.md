@@ -5,7 +5,7 @@
 Separate content with a horizontal or vertical divider, optionally with a label or icon.
 
 - Category: Themes and basic components
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `Separator`
 - Types: `SeparatorOptions`
 - Theme key: `nui.ComponentSeparator` (for `Theme.WithComponent`)

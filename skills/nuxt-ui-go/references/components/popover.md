@@ -5,7 +5,7 @@
 Open a floating content panel anchored to a button or control.
 
 - Category: Inputs and selection
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `Popover`
 - Types: `PopoverOptions`
 - Theme key: `nui.ComponentPopover` (for `Theme.WithComponent`)

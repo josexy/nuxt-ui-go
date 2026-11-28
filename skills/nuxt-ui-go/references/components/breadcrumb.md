@@ -5,7 +5,7 @@
 Show the current page's location within a navigation hierarchy.
 
 - Category: Overlays and navigation
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `Breadcrumb`
 - Types: `BreadcrumbOptions`, `BreadcrumbItem`
 - Theme key: `nui.ComponentBreadcrumb` (for `Theme.WithComponent`)

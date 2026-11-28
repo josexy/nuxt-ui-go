@@ -5,7 +5,7 @@
 Expand or collapse a single content section on demand.
 
 - Category: Overlays and navigation
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `Collapsible`
 - Types: `CollapsibleOptions`
 - Theme key: `nui.ComponentCollapsible` (for `Theme.WithComponent`)

@@ -5,7 +5,7 @@
 Show a short text and shortcut hint on hover or keyboard focus.
 
 - Category: Overlays and navigation
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `Tooltip`
 - Types: `TooltipOptions`
 - Theme key: `nui.ComponentTooltip` (for `Theme.WithComponent`)

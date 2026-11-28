@@ -5,7 +5,7 @@
 Show task completion progress or ongoing activity.
 
 - Category: Themes and basic components
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `Progress`
 - Types: `ProgressOptions`
 - Theme key: `nui.ComponentProgress` (for `Theme.WithComponent`)

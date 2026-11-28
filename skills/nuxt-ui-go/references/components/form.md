@@ -5,7 +5,7 @@
 Validate multiple form fields together with synchronous or async submission.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `Form`
 - Types: `FormOptions`, `FormState`
 - Theme key: `nui.ComponentForm` (for `Theme.WithComponent`)

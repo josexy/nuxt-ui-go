@@ -5,7 +5,7 @@
 Show a loading placeholder before real content arrives.
 
 - Category: Themes and basic components
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `Skeleton`
 - Types: `SkeletonOptions`
 - Theme key: `nui.ComponentSkeleton` (for `Theme.WithComponent`)

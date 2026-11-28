@@ -5,7 +5,7 @@
 Multiline text input that can grow automatically with content.
 
 - Category: Inputs and selection
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `Textarea`
 - Types: `TextareaOptions`
 - Theme key: `nui.ComponentTextarea` (for `Theme.WithComponent`)

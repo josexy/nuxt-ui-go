@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.2.0 - 2026-11-28
 
 - Upgrade MyGo runtime and tools to v0.10.0. No other dependency moves, and the Go requirement stays 1.27.3. Re-verified the selected-text IME cancellation known issue under v0.10.0: it remains.
 - Anchored popups fit the window on the side they open. Under MyGo v0.10.0, a DropdownMenu, Popover or Select, SelectMenu or InputMenu popup opened above or below its trigger is no taller than the room between the trigger and the window edge, and does not cover the trigger; a ContextMenu stays inside the window. In a short window the last items of a long DropdownMenu, Select or SelectMenu list were out of reach before, past the window edge even when scrolled to the end; now the list scrolls inside the window. Popover content taller than the room is cut off at the panel's edge, as it was at the window's. New regression tests cover each popup.

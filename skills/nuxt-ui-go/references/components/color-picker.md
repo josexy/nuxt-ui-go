@@ -5,7 +5,7 @@
 Pick a color using a spectrum panel, sliders, swatches, or RGBA inputs.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `ColorPicker`
 - Types: `ColorPickerOptions`
 - Theme key: `nui.ComponentColorPicker` (for `Theme.WithComponent`)

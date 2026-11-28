@@ -5,7 +5,7 @@
 Type to filter suggestions inside an input and choose or submit a value.
 
 - Category: Inputs and selection
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `InputMenu`, `SearchSelect`
 - Types: `InputMenuOptions`
 - Theme key: `nui.ComponentInputMenu` (for `Theme.WithComponent`)

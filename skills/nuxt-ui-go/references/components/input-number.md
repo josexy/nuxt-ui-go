@@ -5,7 +5,7 @@
 Type a number or step it with increment/decrement buttons and keys.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `InputNumber`, `ParseNumber`
 - Types: `InputNumberOptions`
 - Theme key: `nui.ComponentInputNumber` (for `Theme.WithComponent`)

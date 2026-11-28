@@ -5,7 +5,7 @@
 Pick a single date or a date range from a calendar grid.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `Calendar`
 - Types: `CalendarOptions`
 - Theme key: `nui.ComponentCalendar` (for `Theme.WithComponent`)

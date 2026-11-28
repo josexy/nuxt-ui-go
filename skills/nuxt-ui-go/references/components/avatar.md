@@ -5,7 +5,7 @@
 Display a user photo, icon, or name initials.
 
 - Category: Themes and basic components
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `Avatar`, `Initials`
 - Types: `AvatarOptions`
 - Theme key: `nui.ComponentAvatar` (for `Theme.WithComponent`)

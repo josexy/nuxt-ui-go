@@ -5,7 +5,7 @@
 Show a contextual action menu when right-clicking a target area.
 
 - Category: Overlays and navigation
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `ContextMenu`
 - Types: `MenuOptions`, `MenuItem`, `MenuContentOptions`
 - Theme key: `nui.ComponentContextMenu` (for `Theme.WithComponent`)

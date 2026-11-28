@@ -5,7 +5,7 @@
 Guide users through a multi-step flow with linear or free navigation.
 
 - Category: Overlays and navigation
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `Stepper`
 - Types: `StepperOptions`, `StepItem`
 - Theme key: `nui.ComponentStepper` (for `Theme.WithComponent`)

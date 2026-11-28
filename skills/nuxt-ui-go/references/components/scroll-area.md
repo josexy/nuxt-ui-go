@@ -5,7 +5,7 @@
 Wrap overflowing content in a scrollable viewport with customizable scrollbars.
 
 - Category: Inputs and selection
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `ScrollArea`
 - Types: `ScrollAreaOptions`
 - Theme key: `nui.ComponentScrollArea` (for `Theme.WithComponent`)

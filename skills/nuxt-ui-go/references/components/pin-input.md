@@ -5,7 +5,7 @@
 Enter a verification code or fixed-length short code cell by cell.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `PinInput`
 - Types: `PinInputOptions`
 - Theme key: `nui.ComponentPinInput` (for `Theme.WithComponent`)

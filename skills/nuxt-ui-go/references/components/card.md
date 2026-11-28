@@ -5,7 +5,7 @@
 Group a heading, description, and body content in a card.
 
 - Category: Themes and basic components
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `Card`
 - Types: `CardOptions`
 - Theme key: `nui.ComponentCard` (for `Theme.WithComponent`)

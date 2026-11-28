@@ -5,7 +5,7 @@
 Continuously scroll display-only text, logos, or badges in a marquee.
 
 - Category: Advanced interaction and layout
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `Marquee`
 - Types: `MarqueeOptions`
 - Theme key: `nui.ComponentMarquee` (for `Theme.WithComponent`)

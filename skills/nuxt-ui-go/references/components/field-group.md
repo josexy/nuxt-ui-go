@@ -5,7 +5,7 @@
 Join related inputs and buttons into a single connected group.
 
 - Category: Inputs and selection
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `FieldGroup`
 - Types: `FieldGroupOptions`
 - Theme key: `nui.ComponentFieldGroup` (for `Theme.WithComponent`)

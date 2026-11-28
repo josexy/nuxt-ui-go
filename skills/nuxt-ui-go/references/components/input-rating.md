@@ -5,7 +5,7 @@
 Select a whole-number rating with star icons.
 
 - Category: Forms and data
-- Version: nuxt-ui-go v0.1.1 plus unreleased changes (MyGo v0.10.0)
+- Version: nuxt-ui-go v0.2.0 (MyGo v0.10.0)
 - Functions: `InputRating`
 - Types: `InputRatingOptions`
 - Theme key: `nui.ComponentInputRating` (for `Theme.WithComponent`)
